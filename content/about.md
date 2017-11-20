@@ -35,7 +35,9 @@ Some nice blogs:
 
 ## Licence
 
-Own work is distributed under the terms of the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/), which permits unrestricted use, distribution, and redistribution in any medium, provided that the original author and source are credited.
+MIT. That's a permissive licence. Please cite this blog, and enjoy.
+
+
 
 ## DOI
 
