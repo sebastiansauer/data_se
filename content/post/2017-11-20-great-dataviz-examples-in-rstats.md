@@ -1,7 +1,8 @@
 ---
+title: Great dataviz examples in rstats
 author: Sebastian Sauer
 date: '2017-11-20'
-title: Great dataviz examples in rstats
+slug: great-dataviz-examples-in-rstats
 categories:
   - rstats
   - dataviz
@@ -9,11 +10,10 @@ tags:
   - plot
   - dataviz
   - rstats
-slug: great-dataviz-examples-in-rstats
 ---
 
 
-Here come some stunning examples of data visualizations, all built with R. R code of each diagram is available at the source. Enjoy!
+Here come some stunning examples of data visualizations, all built with R. R code of each diagram is available at the source. Enjoy! #beautiful.
 
 
 
