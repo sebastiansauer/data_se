@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Some tricks on dplyr::filter - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Some tricks on dplyr::filter - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">16 min read</span>
+    
+
+    <h1 class="article-title">Some tricks on dplyr::filter</h1>
+
+    
+    <span class="article-date">2016/12/21</span>
+    
+
+    <div class="article-content">
+      
+
+<p>The R package <code>dplyr</code> has some attractive features; some say, this packkage revolutionized their workflow. At any rate, I like it a lot, and I think it is very helpful.</p>
+
+<p>In this post, I would like to share some useful (I hope) ideas (&ldquo;tricks&rdquo;) on <code>filter</code>, one function of <code>dplyr</code>. This function does what the name suggests: it filters <em>rows</em> (ie., observations such as persons). The addressed rows will be kept; the rest of the rows will be dropped. Note that always a <del>data frame</del> tibble is returned.</p>
+
+<h1 id="starters-example">Starters example</h1>
+
+<p>Load packages:</p>
+
+<pre><code class="language-r">library(tidyverse)  # get da whole shabeng!
+</code></pre>
+
+<pre><code>## Loading tidyverse: ggplot2
+## Loading tidyverse: tibble
+## Loading tidyverse: tidyr
+## Loading tidyverse: readr
+## Loading tidyverse: purrr
+</code></pre>
+
+<pre><code>## Conflicts with tidy packages ----------------------------------------------
+</code></pre>
+
+<pre><code>## filter(): dplyr, stats
+## lag():    dplyr, stats
+</code></pre>
+
+<pre><code class="language-r"># don't forget to have the package(s) installed upfront.
+</code></pre>
+
+<p>An easy usecase would be:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(cyl &gt;= 8)
+</code></pre>
+
+<pre><code>##     mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## 1  18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
+## 2  14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
+## 3  16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+## 4  17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+## 5  15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
+## 6  10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
+## 7  10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
+## 8  14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
+## 9  15.5   8 318.0 150 2.76 3.520 16.87  0  0    3    2
+## 10 15.2   8 304.0 150 3.15 3.435 17.30  0  0    3    2
+## 11 13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
+## 12 19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
+## 13 15.8   8 351.0 264 4.22 3.170 14.50  0  1    5    4
+## 14 15.0   8 301.0 335 3.54 3.570 14.60  0  1    5    8
+</code></pre>
+
+<p>We see there are 15 cars with 8 cylinders.</p>
+
+<p>Typical comparison operators to filter rows include:</p>
+
+<ul>
+<li><code>==</code> equality</li>
+<li><code>!=</code> inequality</li>
+<li><code>&lt;</code> or <code>&gt;</code> greater than/ smaller than</li>
+<li><code>&lt;=</code> less or equal</li>
+</ul>
+
+<p>Multiple logical comparisons can be combined. Just add &lsquo;em up using commas; that amounts to logical <code>OR</code> &ldquo;addition&rdquo;:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(cyl == 8, hp &gt; 250)
+</code></pre>
+
+<pre><code>##    mpg cyl disp  hp drat   wt qsec vs am gear carb
+## 1 15.8   8  351 264 4.22 3.17 14.5  0  1    5    4
+## 2 15.0   8  301 335 3.54 3.57 14.6  0  1    5    8
+</code></pre>
+
+<p><code>AND</code> addition can be achived the standard way</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(cyl == 6 &amp; hp &lt; 260)
+</code></pre>
+
+<pre><code>##    mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## 1 21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4
+## 2 21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4
+## 3 21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
+## 4 18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
+## 5 19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+## 6 17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+## 7 19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
+</code></pre>
+
+<p>Before we continue, let&rsquo;s transform the rowname (where the cars&rsquo; names are stored) into a proper column, so that we can address the cars names the usual way:</p>
+
+<pre><code class="language-r">mtcars &lt;- mtcars %&gt;% 
+    rownames_to_column
+</code></pre>
+
+<h1 id="pick-value-from-list">Pick value from list</h1>
+
+<p>One particular helpful way is to say &ldquo;I want to keep any of the following items&rdquo;. In R, the <code>%in%</code> operator comes for help. See:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(cyl %in% c(4, 6))
+</code></pre>
+
+<pre><code>##           rowname  mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## 1       Mazda RX4 21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4
+## 2   Mazda RX4 Wag 21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4
+## 3      Datsun 710 22.8   4 108.0  93 3.85 2.320 18.61  1  1    4    1
+## 4  Hornet 4 Drive 21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
+## 5         Valiant 18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
+## 6       Merc 240D 24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
+## 7        Merc 230 22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
+## 8        Merc 280 19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+## 9       Merc 280C 17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+## 10       Fiat 128 32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+## 11    Honda Civic 30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+## 12 Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+## 13  Toyota Corona 21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+## 14      Fiat X1-9 27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+## 15  Porsche 914-2 26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+## 16   Lotus Europa 30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2
+## 17   Ferrari Dino 19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
+## 18     Volvo 142E 21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2
+</code></pre>
+
+<h1 id="partial-matching">Partial matching</h1>
+
+<p>Suppose you would like to filter all Mercs; the Mercs include &ldquo;Merc 240D&rdquo;, &ldquo;Merc 280C&rdquo; and other. So we cannot filter for &ldquo;Merc&rdquo; as an exact search string. We need to tell R, &ldquo;hey if &lsquo;Merc&rsquo; is a part of this string, then filter it, otherwise leave it&rdquo;.</p>
+
+<p>For more flexible string-operations, we can make use of the package <code>stringr</code> (again, by Hadley Wickham).</p>
+
+<pre><code class="language-r">library(stringr)
+</code></pre>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(str_detect(rowname, &quot;Merc&quot;))
+</code></pre>
+
+<pre><code>##       rowname  mpg cyl  disp  hp drat   wt qsec vs am gear carb
+## 1   Merc 240D 24.4   4 146.7  62 3.69 3.19 20.0  1  0    4    2
+## 2    Merc 230 22.8   4 140.8  95 3.92 3.15 22.9  1  0    4    2
+## 3    Merc 280 19.2   6 167.6 123 3.92 3.44 18.3  1  0    4    4
+## 4   Merc 280C 17.8   6 167.6 123 3.92 3.44 18.9  1  0    4    4
+## 5  Merc 450SE 16.4   8 275.8 180 3.07 4.07 17.4  0  0    3    3
+## 6  Merc 450SL 17.3   8 275.8 180 3.07 3.73 17.6  0  0    3    3
+## 7 Merc 450SLC 15.2   8 275.8 180 3.07 3.78 18.0  0  0    3    3
+</code></pre>
+
+<p>Of course, we now can go wild, making use of the whole string manipulation magic, called <code>Regex</code>. This tool is powerful indeed, but it needs some time to get used to it. For example, let&rsquo;s filter all cars where the cars names begins with &ldquo;L&rdquo;:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(str_detect(rowname, &quot;^L&quot;))
+</code></pre>
+
+<pre><code>##               rowname  mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## 1 Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
+## 2        Lotus Europa 30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2
+</code></pre>
+
+<p>The circonflex means &ldquo;the string starts with&rdquo;; in this example &ldquo;the string starts with &lsquo;L&rsquo;&rdquo;. To get values <em>ending</em> with, say, &ldquo;L&rdquo;, we use <code>$</code> in Regex:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(str_detect(rowname, &quot;L$&quot;))
+</code></pre>
+
+<pre><code>##          rowname  mpg cyl  disp  hp drat   wt qsec vs am gear carb
+## 1     Merc 450SL 17.3   8 275.8 180 3.07 3.73 17.6  0  0    3    3
+## 2 Ford Pantera L 15.8   8 351.0 264 4.22 3.17 14.5  0  1    5    4
+</code></pre>
+
+<p>Another usecase could be that we want to pick rows where the names contain digits.</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(str_detect(rowname, &quot;\\d&quot;))
+</code></pre>
+
+<pre><code>##           rowname  mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## 1       Mazda RX4 21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4
+## 2   Mazda RX4 Wag 21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4
+## 3      Datsun 710 22.8   4 108.0  93 3.85 2.320 18.61  1  1    4    1
+## 4  Hornet 4 Drive 21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
+## 5      Duster 360 14.3   8 360.0 245 3.21 3.570 15.84  0  0    3    4
+## 6       Merc 240D 24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
+## 7        Merc 230 22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
+## 8        Merc 280 19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+## 9       Merc 280C 17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+## 10     Merc 450SE 16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+## 11     Merc 450SL 17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+## 12    Merc 450SLC 15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
+## 13       Fiat 128 32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+## 14     Camaro Z28 13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
+## 15      Fiat X1-9 27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+## 16  Porsche 914-2 26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+## 17     Volvo 142E 21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2
+</code></pre>
+
+<p>In Regex, <code>\d</code> means &ldquo;digit&rdquo;. As the backslash needs to be escaped (by typing an extra backslash), we type two backslashes, and get what we want.</p>
+
+<p>Similarly, if we want all values <em>except</em> those with digits, we could say:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(!str_detect(rowname, &quot;\\d&quot;))
+</code></pre>
+
+<pre><code>##                rowname  mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## 1    Hornet Sportabout 18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
+## 2              Valiant 18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
+## 3   Cadillac Fleetwood 10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
+## 4  Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
+## 5    Chrysler Imperial 14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
+## 6          Honda Civic 30.4   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+## 7       Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+## 8        Toyota Corona 21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+## 9     Dodge Challenger 15.5   8 318.0 150 2.76 3.520 16.87  0  0    3    2
+## 10         AMC Javelin 15.2   8 304.0 150 3.15 3.435 17.30  0  0    3    2
+## 11    Pontiac Firebird 19.2   8 400.0 175 3.08 3.845 17.05  0  0    3    2
+## 12        Lotus Europa 30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2
+## 13      Ford Pantera L 15.8   8 351.0 264 4.22 3.170 14.50  0  1    5    4
+## 14        Ferrari Dino 19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
+## 15       Maserati Bora 15.0   8 301.0 335 3.54 3.570 14.60  0  1    5    8
+</code></pre>
+
+<p>As <code>!</code> is used for a logical <code>not</code>, we can invert our expression above (`str_detect) this way.</p>
+
+<p>Finally, say we want to filter all &ldquo;Mercs&rdquo; and all &ldquo;Toyotas&rdquo;. As there are different Mercs and different Toyotas in the data set, we need to tell R something like &ldquo;take all Mercs you can find all Toyotas, and leave the rest&rdquo;.</p>
+
+<p>What does <em>not</em> work is this:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(rowname %in% c(&quot;Merc&quot;, &quot;Toyota&quot;))
+</code></pre>
+
+<pre><code>##  [1] rowname mpg     cyl     disp    hp      drat    wt      qsec   
+##  [9] vs      am      gear    carb   
+## &lt;0 rows&gt; (or 0-length row.names)
+</code></pre>
+
+<p>The code above does not work, as the <code>%in%</code> operators does not partial matching but expects complete matching.</p>
+
+<p>Again, Regex can help:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(str_detect(rowname, &quot;Merc|Toy&quot;))
+</code></pre>
+
+<pre><code>##          rowname  mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## 1      Merc 240D 24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
+## 2       Merc 230 22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
+## 3       Merc 280 19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+## 4      Merc 280C 17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+## 5     Merc 450SE 16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+## 6     Merc 450SL 17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+## 7    Merc 450SLC 15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
+## 8 Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+## 9  Toyota Corona 21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+</code></pre>
+
+<p>Note that the <code>|</code> (vertical dash) means &ldquo;or&rdquo; (in R and in Regex).</p>
+
+<p>The same result could be achived in a more usual R way:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(str_detect(rowname, &quot;Merc&quot;) | str_detect(rowname, &quot;Toy&quot;))
+</code></pre>
+
+<pre><code>##          rowname  mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## 1      Merc 240D 24.4   4 146.7  62 3.69 3.190 20.00  1  0    4    2
+## 2       Merc 230 22.8   4 140.8  95 3.92 3.150 22.90  1  0    4    2
+## 3       Merc 280 19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+## 4      Merc 280C 17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+## 5     Merc 450SE 16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+## 6     Merc 450SL 17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+## 7    Merc 450SLC 15.2   8 275.8 180 3.07 3.780 18.00  0  0    3    3
+## 8 Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+## 9  Toyota Corona 21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+</code></pre>
+
+<h1 id="filtering-na-s">Filtering <code>NA</code>s</h1>
+
+<p>For the sake of illustration, let&rsquo;s introduce some <code>NA</code>s to <code>mtcars</code>.</p>
+
+<pre><code class="language-r">mtcars$mpg[sample(32, 3)] &lt;- NA
+mtcars$cyl[sample(32, 3)] &lt;- NA
+mtcars$hp[sample(32, 3)] &lt;- NA
+mtcars$wt[sample(32, 3)] &lt;- NA
+</code></pre>
+
+<p>First, we filter all lines where there are no <code>NA</code>s in <code>mpg</code>:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(!is.na(mpg))
+</code></pre>
+
+<pre><code>##                rowname  mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## 1            Mazda RX4 21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4
+## 2        Mazda RX4 Wag 21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4
+## 3           Datsun 710 22.8  NA 108.0  93 3.85 2.320 18.61  1  1    4    1
+## 4       Hornet 4 Drive 21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
+## 5    Hornet Sportabout 18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
+## 6              Valiant 18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
+## 7           Duster 360 14.3   8 360.0 245 3.21    NA 15.84  0  0    3    4
+## 8            Merc 240D 24.4  NA 146.7  62 3.69 3.190 20.00  1  0    4    2
+## 9             Merc 280 19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+## 10           Merc 280C 17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+## 11          Merc 450SE 16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+## 12          Merc 450SL 17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+## 13  Cadillac Fleetwood 10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
+## 14 Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
+## 15   Chrysler Imperial 14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
+## 16            Fiat 128 32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+## 17      Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+## 18       Toyota Corona 21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+## 19    Dodge Challenger 15.5   8 318.0 150 2.76    NA 16.87  0  0    3    2
+## 20         AMC Javelin 15.2   8 304.0 150 3.15 3.435 17.30  0  0    3    2
+## 21          Camaro Z28 13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
+## 22    Pontiac Firebird 19.2  NA 400.0 175 3.08 3.845 17.05  0  0    3    2
+## 23           Fiat X1-9 27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+## 24       Porsche 914-2 26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+## 25        Lotus Europa 30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2
+## 26      Ford Pantera L 15.8   8 351.0  NA 4.22 3.170 14.50  0  1    5    4
+## 27        Ferrari Dino 19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
+## 28       Maserati Bora 15.0   8 301.0  NA 3.54 3.570 14.60  0  1    5    8
+## 29          Volvo 142E 21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2
+</code></pre>
+
+<p>Easy. Next, we filter complete rows. Wait, there&rsquo;s a shortcut for that:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  na.omit %&gt;% 
+  nrow
+</code></pre>
+
+<pre><code>## [1] 22
+</code></pre>
+
+<p>But, what if we only care about <code>NA</code>s at <code>mpg</code> and <code>hp</code>? Say, we want any row with <code>NA</code> in these two columns. Here&rsquo;s a way:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter(!is.na(mpg) &amp; !is.na(hp)) 
+</code></pre>
+
+<pre><code>##                rowname  mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## 1            Mazda RX4 21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4
+## 2        Mazda RX4 Wag 21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4
+## 3           Datsun 710 22.8  NA 108.0  93 3.85 2.320 18.61  1  1    4    1
+## 4       Hornet 4 Drive 21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
+## 5    Hornet Sportabout 18.7   8 360.0 175 3.15 3.440 17.02  0  0    3    2
+## 6              Valiant 18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
+## 7           Duster 360 14.3   8 360.0 245 3.21    NA 15.84  0  0    3    4
+## 8            Merc 240D 24.4  NA 146.7  62 3.69 3.190 20.00  1  0    4    2
+## 9             Merc 280 19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+## 10           Merc 280C 17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+## 11          Merc 450SE 16.4   8 275.8 180 3.07 4.070 17.40  0  0    3    3
+## 12          Merc 450SL 17.3   8 275.8 180 3.07 3.730 17.60  0  0    3    3
+## 13  Cadillac Fleetwood 10.4   8 472.0 205 2.93 5.250 17.98  0  0    3    4
+## 14 Lincoln Continental 10.4   8 460.0 215 3.00 5.424 17.82  0  0    3    4
+## 15   Chrysler Imperial 14.7   8 440.0 230 3.23 5.345 17.42  0  0    3    4
+## 16            Fiat 128 32.4   4  78.7  66 4.08 2.200 19.47  1  1    4    1
+## 17      Toyota Corolla 33.9   4  71.1  65 4.22 1.835 19.90  1  1    4    1
+## 18       Toyota Corona 21.5   4 120.1  97 3.70 2.465 20.01  1  0    3    1
+## 19    Dodge Challenger 15.5   8 318.0 150 2.76    NA 16.87  0  0    3    2
+## 20         AMC Javelin 15.2   8 304.0 150 3.15 3.435 17.30  0  0    3    2
+## 21          Camaro Z28 13.3   8 350.0 245 3.73 3.840 15.41  0  0    3    4
+## 22    Pontiac Firebird 19.2  NA 400.0 175 3.08 3.845 17.05  0  0    3    2
+## 23           Fiat X1-9 27.3   4  79.0  66 4.08 1.935 18.90  1  1    4    1
+## 24       Porsche 914-2 26.0   4 120.3  91 4.43 2.140 16.70  0  1    5    2
+## 25        Lotus Europa 30.4   4  95.1 113 3.77 1.513 16.90  1  1    5    2
+## 26        Ferrari Dino 19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
+## 27          Volvo 142E 21.4   4 121.0 109 4.11 2.780 18.60  1  1    4    2
+</code></pre>
+
+<p>Finally, assume we want to inspect each row where there is at least one <code>NA</code> at <code>mpg</code> or at <code>hp</code>.</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  filter((is.na(mpg) | is.na(hp))) 
+</code></pre>
+
+<pre><code>##          rowname  mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+## 1       Merc 230   NA   4 140.8  NA 3.92 3.150 22.90  1  0    4    2
+## 2    Merc 450SLC   NA   8 275.8 180 3.07    NA 18.00  0  0    3    3
+## 3    Honda Civic   NA   4  75.7  52 4.93 1.615 18.52  1  1    4    2
+## 4 Ford Pantera L 15.8   8 351.0  NA 4.22 3.170 14.50  0  1    5    4
+## 5  Maserati Bora 15.0   8 301.0  NA 3.54 3.570 14.60  0  1    5    8
+</code></pre>
+
+<p>Happy filtering!</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

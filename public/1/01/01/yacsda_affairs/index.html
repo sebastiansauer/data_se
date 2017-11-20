@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>YACSDA (Fallstudie) zum Datensatz &#39;Affairs&#39; - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="YACSDA (Fallstudie) zum Datensatz &#39;Affairs&#39; - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">17 min read</span>
+    
+
+    <h1 class="article-title">YACSDA (Fallstudie) zum Datensatz &#39;Affairs&#39;</h1>
+
+    
+    <span class="article-date">0001/01/01</span>
+    
+
+    <div class="article-content">
+      
+
+<hr />
+
+<p>This YACSDA (Yet-another-case-study-on-data-analysis) in composed in German language. Some typical data analytical steps are introduced.</p>
+
+<hr />
+
+<p>Wovon ist die Häufigkeit von Affären (Seitensprüngen) in Ehen abhängig? Diese Frage soll anhand des Datensates <code>Affair</code> untersucht werden.</p>
+
+<p>Dieser Post stellt beispielhaft eine grundlegende Methoden der praktischen Datenanalyse im Rahmen einer kleinen Fallstudie (YACSDA) vor.</p>
+
+<p>Quelle der Daten: <a href="http://statsmodels.sourceforge.net/0.5.0/datasets/generated/fair.html">http://statsmodels.sourceforge.net/0.5.0/datasets/generated/fair.html</a></p>
+
+<p>Der Datensatz findet sich (in ähnlicher Form) auch im R-Paket <code>COUNT</code> (<a href="https://cran.r-project.org/web/packages/COUNT/index.html">https://cran.r-project.org/web/packages/COUNT/index.html</a>).</p>
+
+<p>Laden wir als erstes den Datensatz in R. Wählen Sie zuerst das Verzeichnis als Arbeitsverzeichnis, in dem die Daten liegen. Dann laden Sie z.B. mit dem R-Commander (s. Skript) oder &ldquo;per Hand&rdquo; z.B. bei mir so:</p>
+
+<pre><code class="language-r">Affair &lt;- read.csv(&quot;~/Documents/Literatur/Methoden_Literatur/Datensaetze/Affair.csv&quot;)
+</code></pre>
+
+<p>Schauen wir mal, ob es funktioniert hat (&ldquo;Datenmatrix betrachten&rdquo;):</p>
+
+<pre><code class="language-r">head(Affair)
+#&gt;   affairs gender age yearsmarried children religiousness education
+#&gt; 1       0   male  37        10.00       no             3        18
+#&gt; 2       0 female  27         4.00       no             4        14
+#&gt; 3       0 female  32        15.00      yes             1        12
+#&gt; 4       0   male  57        15.00      yes             5        18
+#&gt; 5       0   male  22         0.75       no             2        17
+#&gt; 6       0 female  32         1.50       no             2        17
+#&gt;   occupation rating
+#&gt; 1          7      4
+#&gt; 2          6      4
+#&gt; 3          1      4
+#&gt; 4          6      5
+#&gt; 5          6      3
+#&gt; 6          5      5
+</code></pre>
+
+<p>Ok scheint zu passen. Was jetzt?</p>
+
+<h1 id="geben-sie-zentrale-deskriptive-statistiken-an-für-affärenhäufigkeit-und-ehezufriedenheit">Geben Sie zentrale deskriptive Statistiken an für Affärenhäufigkeit und Ehezufriedenheit!</h1>
+
+<pre><code class="language-r"># nicht robust:
+mean(Affair$affairs, na.rm = T)
+#&gt; [1] 1.455907
+sd(Affair$affairs, na.rm = T)
+#&gt; [1] 3.298758
+# robust:
+median(Affair$affair, na.rm = T)
+#&gt; [1] 0
+IQR(Affair$affair, na.rm = T)
+#&gt; [1] 0
+</code></pre>
+
+<p>Es scheint, die meisten Leute haben keine Affären:</p>
+
+<pre><code class="language-r">table(Affair$affairs)
+#&gt; 
+#&gt;   0   1   2   3   7  12 
+#&gt; 451  34  17  19  42  38
+</code></pre>
+
+<p>Man kann sich viele Statistiken mit dem Befehl <code>describe</code> aus <code>psych</code> ausgeben lassen, das ist etwas praktischer:</p>
+
+<pre><code class="language-r">library(psych)
+                 
+describe(Affair$affairs)
+#&gt;    vars   n mean  sd median trimmed mad min max range skew kurtosis   se
+#&gt; X1    1 601 1.46 3.3      0    0.55   0   0  12    12 2.34     4.19 0.13
+describe(Affair$rating)
+#&gt;    vars   n mean  sd median trimmed  mad min max range  skew kurtosis   se
+#&gt; X1    1 601 3.93 1.1      4    4.07 1.48   1   5     4 -0.83    -0.22 0.04
+</code></pre>
+
+<p>Dazu muss das Paket <code>psych</code> natürlich vorher installiert sein. Beachten Sie, dass man ein Paket nur <em>einmal</em> installieren muss, aber jedes Mal, wen Sie R starten, auch starten muss (mit <code>library</code>).</p>
+
+<pre><code class="language-r">install.packages(&quot;psych&quot;)
+</code></pre>
+
+<h1 id="visualisieren-sie-zentrale-variablen">Visualisieren Sie zentrale Variablen!</h1>
+
+<p>Sicherlich sind Diagramme auch hilfreich. Dies geht wiederum mit dem R-Commander oder z.B. mit folgenden Befehlen:</p>
+
+<pre><code class="language-r">
+library(ggplot2)
+qplot(x = affairs, data = Affair)
+qplot(x = rating, data = Affair)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-05/unnamed-chunk-7-1.png" title="plot of chunk unnamed-chunk-7" alt="plot of chunk unnamed-chunk-7" width="70%" style="display: block; margin: auto;" /><img src="https://sebastiansauer.github.io/images/2017-01-05/unnamed-chunk-7-2.png" title="plot of chunk unnamed-chunk-7" alt="plot of chunk unnamed-chunk-7" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Die meisten Menschen (dieser Stichprobe) scheinen mit Ihrer Beziehung sehr zufrieden zu sein.</p>
+
+<h1 id="wer-ist-zufriedener-mit-der-partnerschaft-personen-mit-kindern-oder-ohne">Wer ist zufriedener mit der Partnerschaft: Personen mit Kindern oder ohne?</h1>
+
+<p>Nehmen wir dazu mal ein paar <code>dplyr</code>-Befehle:</p>
+
+<pre><code class="language-r">library(dplyr)
+Affair %&gt;% 
+  group_by(children) %&gt;% 
+  summarise(rating_children = mean(rating, na.rm = T))
+#&gt; # A tibble: 2 × 2
+#&gt;   children rating_children
+#&gt;     &lt;fctr&gt;           &lt;dbl&gt;
+#&gt; 1       no        4.274854
+#&gt; 2      yes        3.795349
+</code></pre>
+
+<p>Ah! Kinder sind also ein Risikofaktor für eine Partnerschaft! Gut, dass wir das geklärt haben.</p>
+
+<h1 id="wie-viele-fehlende-werte-gibt-es-was-machen-wir-am-besten-damit">Wie viele fehlende Werte gibt es? Was machen wir am besten damit?</h1>
+
+<p>Diesen Befehl könnten wir für jede Spalte auführen:</p>
+
+<pre><code class="language-r">sum(is.na(Affair$affairs))
+#&gt; [1] 0
+</code></pre>
+
+<p>Oder lieber alle auf einmal:</p>
+
+<pre><code class="language-r">Affair %&gt;% 
+  summarise_each(funs(sum(is.na(.))))
+#&gt;   affairs gender age yearsmarried children religiousness education
+#&gt; 1       0      0   0            0        0             0         0
+#&gt;   occupation rating
+#&gt; 1          0      0
+</code></pre>
+
+<p>Übrigens gibt es ein gutes <a href="https://www.rstudio.com/wp-content/uploads/2015/02/data-wrangling-cheatsheet.pdf">Cheat Sheet</a> für <code>dplyr</code>.</p>
+
+<p>Ah, gut, keine fehlenden Werte. Das macht uns das Leben leichter.</p>
+
+<h1 id="wer-ist-glücklicher-männer-oder-frauen">Wer ist glücklicher: Männer oder Frauen?</h1>
+
+<pre><code class="language-r">Affair %&gt;% 
+  group_by(gender) %&gt;% 
+  summarise(rating_gender = mean(rating))
+#&gt; # A tibble: 2 × 2
+#&gt;   gender rating_gender
+#&gt;   &lt;fctr&gt;         &lt;dbl&gt;
+#&gt; 1 female      3.939683
+#&gt; 2   male      3.923077
+</code></pre>
+
+<p>Praktisch kein Unterschied. Heißt das auch, es gibt keinen Unterschied in der Häufigkeit der Affären?</p>
+
+<pre><code class="language-r">Affair %&gt;% 
+  group_by(gender) %&gt;% 
+  summarise(affairs_gender = mean(affairs))
+#&gt; # A tibble: 2 × 2
+#&gt;   gender affairs_gender
+#&gt;   &lt;fctr&gt;          &lt;dbl&gt;
+#&gt; 1 female       1.419048
+#&gt; 2   male       1.496503
+</code></pre>
+
+<p>Scheint auch kein Unterschied zu sein&hellip;</p>
+
+<p>Und zum Abschluss noch mal etwas genauer: Teilen wir mal nach Geschlecht und nach Kinderstatus auf, also in 4 Gruppen. Theoretisch dürfte es hier auch keine Unterschiede/Zusammenhänge geben. Zumindest fällt mir kein sinnvoller Grund ein; zumal die vorherige eindimensionale Analyse keine Unterschiede zu Tage gefördert hat.</p>
+
+<pre><code class="language-r">Affair %&gt;% 
+  group_by(gender, children) %&gt;% 
+  summarise(affairs_mean = mean(affairs),
+            rating_mean = mean(rating))
+#&gt; Source: local data frame [4 x 4]
+#&gt; Groups: gender [?]
+#&gt; 
+#&gt;   gender children affairs_mean rating_mean
+#&gt;   &lt;fctr&gt;   &lt;fctr&gt;        &lt;dbl&gt;       &lt;dbl&gt;
+#&gt; 1 female       no    0.8383838    4.404040
+#&gt; 2 female      yes    1.6851852    3.726852
+#&gt; 3   male       no    1.0138889    4.097222
+#&gt; 4   male      yes    1.6588785    3.864486
+
+Affair %&gt;% 
+  group_by(children, gender) %&gt;% 
+  summarise(affairs_mean = mean(affairs),
+            rating_mean = mean(rating))
+#&gt; Source: local data frame [4 x 4]
+#&gt; Groups: children [?]
+#&gt; 
+#&gt;   children gender affairs_mean rating_mean
+#&gt;     &lt;fctr&gt; &lt;fctr&gt;        &lt;dbl&gt;       &lt;dbl&gt;
+#&gt; 1       no female    0.8383838    4.404040
+#&gt; 2       no   male    1.0138889    4.097222
+#&gt; 3      yes female    1.6851852    3.726852
+#&gt; 4      yes   male    1.6588785    3.864486
+</code></pre>
+
+<h1 id="berichten-sie-eine-relevante-effektstärke">Berichten Sie eine relevante Effektstärke!</h1>
+
+<p>Hm, auch keine gewaltigen Unterschiede. Höchstens für die Zufriedenheit mit der Partnerschaft bei kinderlosen Personen scheinen sich Männer und Frauen etwas zu unterscheiden. Hier stellt sich die Frage nach der Größe des Effekts, z.B. anhand Cohen&rsquo;s d. Dafür müssen wir noch die SD pro Gruppe wissen:</p>
+
+<pre><code class="language-r">Affair %&gt;% 
+  group_by(children, gender) %&gt;% 
+  summarise(rating_mean = mean(rating),
+            rating_sd = sd(rating))
+#&gt; Source: local data frame [4 x 4]
+#&gt; Groups: children [?]
+#&gt; 
+#&gt;   children gender rating_mean rating_sd
+#&gt;     &lt;fctr&gt; &lt;fctr&gt;       &lt;dbl&gt;     &lt;dbl&gt;
+#&gt; 1       no female    4.404040 0.9138302
+#&gt; 2       no   male    4.097222 1.0636070
+#&gt; 3      yes female    3.726852 1.1829884
+#&gt; 4      yes   male    3.864486 1.0460525
+</code></pre>
+
+<pre><code class="language-r">d &lt;- (4.4 - 4.1)/(1)
+</code></pre>
+
+<p>Die Effektstärke beträgt etwa 0.3.</p>
+
+<h1 id="berechnen-und-visualisieren-sie-zentrale-korrelationen">Berechnen und visualisieren Sie zentrale Korrelationen!</h1>
+
+<pre><code class="language-r">Affair %&gt;% 
+  select_if(is.numeric) %&gt;% 
+  cor -&gt; cor_tab
+
+cor_tab
+#&gt;                    affairs        age yearsmarried religiousness
+#&gt; affairs        1.000000000  0.0952372   0.18684169   -0.14450135
+#&gt; age            0.095237204  1.0000000   0.77754585    0.19377693
+#&gt; yearsmarried   0.186841686  0.7775458   1.00000000    0.21826067
+#&gt; religiousness -0.144501345  0.1937769   0.21826067    1.00000000
+#&gt; education     -0.002437441  0.1345960   0.04000272   -0.04257108
+#&gt; occupation     0.049611758  0.1664125   0.04459201   -0.03972232
+#&gt; rating        -0.279512403 -0.1989999  -0.24311883    0.02429578
+#&gt;                  education  occupation      rating
+#&gt; affairs       -0.002437441  0.04961176 -0.27951240
+#&gt; age            0.134596015  0.16641254 -0.19899990
+#&gt; yearsmarried   0.040002716  0.04459201 -0.24311883
+#&gt; religiousness -0.042571079 -0.03972232  0.02429578
+#&gt; education      1.000000000  0.53360524  0.10930347
+#&gt; occupation     0.533605242  1.00000000  0.01742227
+#&gt; rating         0.109303473  0.01742227  1.00000000
+
+library(corrplot)
+corrplot(cor_tab)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-05/unnamed-chunk-16-1.png" title="plot of chunk unnamed-chunk-16" alt="plot of chunk unnamed-chunk-16" width="70%" style="display: block; margin: auto;" /></p>
+
+<h1 id="wie-groß-ist-der-einfluss-das-einflussgewicht-der-ehejahre-bzw-ehezufriedenheit-auf-die-anzahl-der-affären">Wie groß ist der Einfluss (das Einflussgewicht) der Ehejahre bzw. Ehezufriedenheit auf die Anzahl der Affären?</h1>
+
+<p>Dazu sagen wir R: &ldquo;Hey R, rechne mal ein lineares Modell&rdquo;, also eine normale
+(lineare) Regression. Dazu können wir entweder das entsprechende Menü im R-Commander auswählen, oder folgende R-Befehle ausführen:</p>
+
+<pre><code class="language-r">lm1 &lt;- lm(affairs ~ yearsmarried, data = Affair)
+summary(lm1)  # Ergebnisse der Regression zeigen
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = affairs ~ yearsmarried, data = Affair)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -2.2106 -1.6575 -0.9937 -0.5974 11.3658 
+#&gt; 
+#&gt; Coefficients:
+#&gt;              Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)   0.55122    0.23511   2.345   0.0194 *  
+#&gt; yearsmarried  0.11063    0.02377   4.655    4e-06 ***
+#&gt; ---
+#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#&gt; 
+#&gt; Residual standard error: 3.243 on 599 degrees of freedom
+#&gt; Multiple R-squared:  0.03491,	Adjusted R-squared:  0.0333 
+#&gt; F-statistic: 21.67 on 1 and 599 DF,  p-value: 3.996e-06
+lm2 &lt;- lm(affairs ~ rating, data = Affair)
+summary(lm2)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = affairs ~ rating, data = Affair)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -3.9063 -1.3989 -0.5631 -0.5631 11.4369 
+#&gt; 
+#&gt; Coefficients:
+#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)   4.7421     0.4790   9.900   &lt;2e-16 ***
+#&gt; rating       -0.8358     0.1173  -7.125    3e-12 ***
+#&gt; ---
+#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#&gt; 
+#&gt; Residual standard error: 3.17 on 599 degrees of freedom
+#&gt; Multiple R-squared:  0.07813,	Adjusted R-squared:  0.07659 
+#&gt; F-statistic: 50.76 on 1 and 599 DF,  p-value: 3.002e-12
+</code></pre>
+
+<p>Also: <code>yearsmarried</code> und <code>rating</code> sind beide statistisch signifikante Prädiktoren für die Häufigkeit von Affären. Das adjustierte $$R^2$$ ist allerdings in beiden Fällen nicht so groß.</p>
+
+<h1 id="um-wie-viel-erhöht-sich-die-erklärte-varianz-r-quadrat-von-affärenhäufigkeit-wenn-man-den-prädiktor-ehezufriedenheit-zum-prädiktor-ehejahre-hinzufügt-wie-verändern-sich-die-einflussgewichte-b">Um wie viel erhöht sich die erklärte Varianz (R-Quadrat) von Affärenhäufigkeit wenn man den Prädiktor Ehezufriedenheit zum Prädiktor Ehejahre hinzufügt? (Wie) verändern sich die Einflussgewichte (b)?</h1>
+
+<pre><code class="language-r">lm3 &lt;- lm(affairs ~ rating + yearsmarried, data = Affair)
+lm4 &lt;- lm(affairs ~ yearsmarried + rating, data = Affair)
+summary(lm3)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = affairs ~ rating + yearsmarried, data = Affair)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -4.1474 -1.6495 -0.8365 -0.1616 11.8945 
+#&gt; 
+#&gt; Coefficients:
+#&gt;              Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)   3.76913    0.56715   6.646 6.80e-11 ***
+#&gt; rating       -0.74395    0.12005  -6.197 1.07e-09 ***
+#&gt; yearsmarried  0.07481    0.02377   3.147  0.00173 ** 
+#&gt; ---
+#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#&gt; 
+#&gt; Residual standard error: 3.147 on 598 degrees of freedom
+#&gt; Multiple R-squared:  0.09315,	Adjusted R-squared:  0.09012 
+#&gt; F-statistic: 30.71 on 2 and 598 DF,  p-value: 2.01e-13
+summary(lm4)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = affairs ~ yearsmarried + rating, data = Affair)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -4.1474 -1.6495 -0.8365 -0.1616 11.8945 
+#&gt; 
+#&gt; Coefficients:
+#&gt;              Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)   3.76913    0.56715   6.646 6.80e-11 ***
+#&gt; yearsmarried  0.07481    0.02377   3.147  0.00173 ** 
+#&gt; rating       -0.74395    0.12005  -6.197 1.07e-09 ***
+#&gt; ---
+#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#&gt; 
+#&gt; Residual standard error: 3.147 on 598 degrees of freedom
+#&gt; Multiple R-squared:  0.09315,	Adjusted R-squared:  0.09012 
+#&gt; F-statistic: 30.71 on 2 and 598 DF,  p-value: 2.01e-13
+</code></pre>
+
+<p>Ok. Macht eigentlich die Reihenfolge der Prädiktoren in der Regression einen
+Unterschied? Der Vergleich von Modell 3 vs. Modell 4 beantwortet diese Frage.</p>
+
+<p>Wir sehen, dass beim 1. Regressionsmodell das R^2 0.03 war; beim 2. Modell 0.08 und beim 3. Modell liegt R^2 bei 0.09. Die Differenz zwischen Modell 1 und 3 liegt bei (gerundet) 0.06; wenig.</p>
+
+<h1 id="welche-prädiktoren-würden-sie-noch-in-die-regressionsanalyse-aufnehmen">Welche Prädiktoren würden Sie noch in die Regressionsanalyse aufnehmen?</h1>
+
+<p>Hm, diese Frage klingt nicht so, als ob der Dozent die Antwort selber wüsste&hellip; Naja, welche Variablen gibt es denn alles:</p>
+
+<pre><code>#&gt; [1] &quot;affairs&quot;       &quot;gender&quot;        &quot;age&quot;           &quot;yearsmarried&quot; 
+#&gt; [5] &quot;children&quot;      &quot;religiousness&quot; &quot;education&quot;     &quot;occupation&quot;   
+#&gt; [9] &quot;rating&quot;
+</code></pre>
+
+<p>Z.B. wäre doch interessant, ob Ehen mit Kinder mehr oder weniger Seitensprüngen aufweisen. Und ob die &ldquo;Kinderfrage&rdquo; die anderen Zusammenhänge/Einflussgewichte in der Regression verändert. Probieren wir es auch. Wir können wiederum im R-Comamnder ein Regressionsmodell anfordern oder es mit der Syntax probieren:</p>
+
+<pre><code class="language-r">lm5 &lt;- lm(affairs~ rating + yearsmarried + children, data = Affair)
+summary(lm5)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = affairs ~ rating + yearsmarried + children, data = Affair)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -4.3537 -1.7316 -0.8927 -0.1719 12.0162 
+#&gt; 
+#&gt; Coefficients:
+#&gt;              Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)   3.85245    0.58808   6.551 1.24e-10 ***
+#&gt; rating       -0.74861    0.12043  -6.216 9.57e-10 ***
+#&gt; yearsmarried  0.08332    0.02853   2.921  0.00362 ** 
+#&gt; childrenyes  -0.18805    0.34817  -0.540  0.58932    
+#&gt; ---
+#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#&gt; 
+#&gt; Residual standard error: 3.148 on 597 degrees of freedom
+#&gt; Multiple R-squared:  0.09359,	Adjusted R-squared:  0.08904 
+#&gt; F-statistic: 20.55 on 3 and 597 DF,  p-value: 1.107e-12
+r2_lm5 &lt;- summary(lm5)$r.squared
+</code></pre>
+
+<p>Das Regressionsgewicht von <code>childrenyes</code> ist negativ. Das bedeutet, dass Ehen mit Kindern weniger Affären verbuchen (aber geringe Zufriedenheit, wie wir oben gesehen haben! Hrks!). Allerdings ist der p-Wert nich signifikant, was wir als Zeichen der Unbedeutsamkeit dieses Prädiktors verstehen können. $$R^2$$ lungert immer noch bei mickrigen 0.09 herum. Wir haben bisher kaum verstanden, wie es zu Affären kommt. Oder unsere Daten bergen diese Informationen einfach nicht.</p>
+
+<p>Wir könnten auch einfach mal Prädiktoren, die wir haben, ins Feld schicken. Mal sehen, was dann passiert:</p>
+
+<pre><code class="language-r">lm6 &lt;- lm(affairs ~ ., data = Affair)
+summary(lm6)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = affairs ~ ., data = Affair)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -5.0503 -1.7226 -0.7947  0.2101 12.7036 
+#&gt; 
+#&gt; Coefficients:
+#&gt;               Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)    5.87201    1.13750   5.162 3.34e-07 ***
+#&gt; gendermale     0.05409    0.30049   0.180   0.8572    
+#&gt; age           -0.05098    0.02262  -2.254   0.0246 *  
+#&gt; yearsmarried   0.16947    0.04122   4.111 4.50e-05 ***
+#&gt; childrenyes   -0.14262    0.35020  -0.407   0.6840    
+#&gt; religiousness -0.47761    0.11173  -4.275 2.23e-05 ***
+#&gt; education     -0.01375    0.06414  -0.214   0.8303    
+#&gt; occupation     0.10492    0.08888   1.180   0.2383    
+#&gt; rating        -0.71188    0.12001  -5.932 5.09e-09 ***
+#&gt; ---
+#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#&gt; 
+#&gt; Residual standard error: 3.095 on 592 degrees of freedom
+#&gt; Multiple R-squared:  0.1317,	Adjusted R-squared:   0.12 
+#&gt; F-statistic: 11.23 on 8 and 592 DF,  p-value: 7.472e-15
+r2_lm6 &lt;- round(summary(lm6)$r.squared, 2)
+</code></pre>
+
+<p>Der &ldquo;.&rdquo; im Befehl <code>affairs ~ .</code> oben soll sagen: nimm &ldquo;alle Variablen, die noch in der Datenmatrix übrig sind&rdquo;.</p>
+
+<p>Insgesamt bleibt die erklärte Varian in sehr bescheidenem Rahmen: 0.13. Das zeigt uns, dass es immer noch nur schlecht verstanden ist &ndash; im Rahmen dieser Analyse &ndash; welche Faktoren die Affärenhäufigkeit erklärt.</p>
+
+<h1 id="unterscheiden-sich-die-geschlechter-statistisch-signifikant-wie-groß-ist-der-unterschied-sollte-hierlieber-das-d-maß-oder-rohwerte-als-effektmaß-angegeben-werden">Unterscheiden sich die Geschlechter statistisch signifikant? Wie groß ist der Unterschied? Sollte hierlieber das d-Maß oder Rohwerte als Effektmaß  angegeben werden?</h1>
+
+<p>Hier bietet sich ein t-Test für unabhängige Gruppen an. Die Frage lässt auf eine ungerichtete Hypothese schließen ($$\alpha$$ sei .05). Mit dem entsprechenden Menüpunkt im R-Commander oder mit folgender Syntax lässt sich diese Analyse angehen:</p>
+
+<pre><code class="language-r">t1 &lt;- t.test(affairs ~ gender, data = Affair)
+t1
+#&gt; 
+#&gt; 	Welch Two Sample t-test
+#&gt; 
+#&gt; data:  affairs by gender
+#&gt; t = -0.28733, df = 594.01, p-value = 0.774
+#&gt; alternative hypothesis: true difference in means is not equal to 0
+#&gt; 95 percent confidence interval:
+#&gt;  -0.6068861  0.4519744
+#&gt; sample estimates:
+#&gt; mean in group female   mean in group male 
+#&gt;             1.419048             1.496503
+</code></pre>
+
+<p>Der p-Wert ist mit 0.7739606 &gt; $$\alpha$$. Daher wird die $$H_0$$ beibehalten. Auf Basis der Stichprobendaten entscheiden wir uns für die $$H_0$$. Entsprechend umschließt das 95%-KI die Null.</p>
+
+<p>Da die Differenz nicht signifikant ist, kann argumentiert werden, dass wir <code>d</code> auf 0 schätzen müssen. Man kann sich den d-Wert auch z.B. von {MBESS} schätzen lassen.</p>
+
+<p>Dafür brauchen wir die Anzahl an Männer und Frauen: 315, 286.</p>
+
+<pre><code class="language-r">library(MBESS)
+ci.smd(ncp = t1$statistic,
+    n.1 = 315,
+    n.2 = 286)
+#&gt; $Lower.Conf.Limit.smd
+#&gt; [1] -0.1835475
+#&gt; 
+#&gt; $smd
+#&gt;           t 
+#&gt; -0.02346813 
+#&gt; 
+#&gt; $Upper.Conf.Limit.smd
+#&gt; [1] 0.1366308
+</code></pre>
+
+<p>Das Konfidenzintervall ist zwar relativ klein (die Schätzung also aufgrund der recht großen Stichprobe relativ präzise), aber der Schätzwert für d <code>smd</code> liegt sehr nahe bei Null. Das stärkt unsere Entscheidung, von einer Gleichheit der Populationen (Männer vs. Frauen) auszugehen.</p>
+
+<h1 id="rechnen-sie-die-regressionsanalyse-getrennt-für-kinderlose-ehe-und-ehen-mit-kindern">Rechnen Sie die Regressionsanalyse getrennt für kinderlose Ehe und Ehen mit Kindern!</h1>
+
+<p>Hier geht es im ersten Schritt darum, die entsprechenden Teil-Mengen der Datenmatrix zu erstellen. Das kann man natürlich mit Excel o.ä. tun. Alternativ könnte man es in R z.B. so machen:</p>
+
+<pre><code class="language-r">Affair2 &lt;- Affair[Affair$children == &quot;yes&quot;, ]
+lm7 &lt;- lm(affairs~ rating, data = Affair2)
+summary(lm7)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = affairs ~ rating, data = Affair2)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -4.1903 -1.4877 -0.5869 -0.4877 11.4131 
+#&gt; 
+#&gt; Coefficients:
+#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)   5.0912     0.5701   8.930  &lt; 2e-16 ***
+#&gt; rating       -0.9009     0.1441  -6.252 9.84e-10 ***
+#&gt; ---
+#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#&gt; 
+#&gt; Residual standard error: 3.336 on 428 degrees of freedom
+#&gt; Multiple R-squared:  0.08367,	Adjusted R-squared:  0.08153 
+#&gt; F-statistic: 39.08 on 1 and 428 DF,  p-value: 9.845e-10
+
+Affair3 &lt;- Affair[Affair$children == &quot;no&quot;, ]
+lm8 &lt;- lm(affairs~ rating, data = Affair3)
+summary(lm8)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = affairs ~ rating, data = Affair3)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -2.5465 -1.0494 -0.5504 -0.5504 11.4496 
+#&gt; 
+#&gt; Coefficients:
+#&gt;             Estimate Std. Error t value Pr(&gt;|t|)   
+#&gt; (Intercept)   3.0455     0.9140   3.332  0.00106 **
+#&gt; rating       -0.4990     0.2083  -2.395  0.01771 * 
+#&gt; ---
+#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#&gt; 
+#&gt; Residual standard error: 2.685 on 169 degrees of freedom
+#&gt; Multiple R-squared:  0.03283,	Adjusted R-squared:  0.02711 
+#&gt; F-statistic: 5.737 on 1 and 169 DF,  p-value: 0.01771
+</code></pre>
+
+<p>Übrigens, einfacher geht das &ldquo;Subsetten&rdquo; so:</p>
+
+<pre><code class="language-r">library(dplyr)
+Affair4 &lt;- filter(Affair, children == &quot;yes&quot;)
+head(Affair4)
+#&gt;   affairs gender age yearsmarried children religiousness education
+#&gt; 1       0 female  32           15      yes             1        12
+#&gt; 2       0   male  57           15      yes             5        18
+#&gt; 3       0   male  57           15      yes             2        14
+#&gt; 4       0 female  32           15      yes             4        16
+#&gt; 5       0   male  37           15      yes             2        20
+#&gt; 6       0   male  27            4      yes             4        18
+#&gt;   occupation rating
+#&gt; 1          1      4
+#&gt; 2          6      5
+#&gt; 3          4      4
+#&gt; 4          1      2
+#&gt; 5          7      2
+#&gt; 6          6      4
+</code></pre>
+
+<h1 id="rechnen-sie-die-regression-nur-für-halodries-d-h-für-menschen-mit-seitensprüngen-dafür-müssen-sie-alle-menschen-ohne-affären-aus-den-datensatz-entfernen">Rechnen Sie die Regression nur für &ldquo;Halodries&rdquo;; d.h. für Menschen mit Seitensprüngen. Dafür müssen Sie alle Menschen ohne Affären aus den Datensatz entfernen.</h1>
+
+<p>Also, rechnen wir nochmal die Standardregression (<code>lm1</code>). Probieren wir den Befehl <code>filter</code> dazu nochmal aus:</p>
+
+<pre><code class="language-r">Affair5 &lt;- filter(Affair, affairs != 0)
+lm9 &lt;- lm(affairs ~ rating, data = Affair5)
+summary(lm9)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = affairs ~ rating, data = Affair5)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -6.0605 -3.5157 -0.0605  3.6895  7.4843 
+#&gt; 
+#&gt; Coefficients:
+#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)   8.7570     1.0225   8.564  1.3e-14 ***
+#&gt; rating       -0.8483     0.2800  -3.030  0.00289 ** 
+#&gt; ---
+#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#&gt; 
+#&gt; Residual standard error: 4.144 on 148 degrees of freedom
+#&gt; Multiple R-squared:  0.05841,	Adjusted R-squared:  0.05205 
+#&gt; F-statistic: 9.181 on 1 and 148 DF,  p-value: 0.002887
+</code></pre>
+
+<h1 id="berechnen-sie-für-eine-logistische-regression-mit-affäre-ja-vs-nein-als-kriterium-wie-stark-der-einfluss-von-geschlecht-kinderstatus-ehezufriedenheit-und-ehedauer-ist">Berechnen Sie für eine logistische Regression mit &ldquo;Affäre ja vs. nein&rdquo; als Kriterium, wie stark der Einfluss von Geschlecht, Kinderstatus, Ehezufriedenheit und Ehedauer ist!</h1>
+
+<pre><code class="language-r">
+Affair %&gt;% 
+  mutate(affairs_dichotom = if_else(affairs == 0, 0, 1)) %&gt;% 
+  glm(affairs_dichotom ~gender + children + rating + yearsmarried, data = .) -&gt; lm10
+
+summary(lm10)
+#&gt; 
+#&gt; Call:
+#&gt; glm(formula = affairs_dichotom ~ gender + children + rating + 
+#&gt;     yearsmarried, data = .)
+#&gt; 
+#&gt; Deviance Residuals: 
+#&gt;      Min        1Q    Median        3Q       Max  
+#&gt; -0.57662  -0.26766  -0.17186  -0.06459   0.93295  
+#&gt; 
+#&gt; Coefficients:
+#&gt;               Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)   0.515778   0.079344   6.501 1.69e-10 ***
+#&gt; gendermale    0.037945   0.034218   1.109    0.268    
+#&gt; childrenyes   0.054032   0.046307   1.167    0.244    
+#&gt; rating       -0.090337   0.015985  -5.651 2.47e-08 ***
+#&gt; yearsmarried  0.003947   0.003787   1.042    0.298    
+#&gt; ---
+#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+#&gt; 
+#&gt; (Dispersion parameter for gaussian family taken to be 0.1746456)
+#&gt; 
+#&gt;     Null deviance: 112.56  on 600  degrees of freedom
+#&gt; Residual deviance: 104.09  on 596  degrees of freedom
+#&gt; AIC: 663.8
+#&gt; 
+#&gt; Number of Fisher Scoring iterations: 2
+</code></pre>
+
+<p>Wenn <code>if_else</code> unbekannt ist, lohnt sich ein Blick in die Hilfe mit <code>?if_else</code> (<code>dplyr</code> muss vorher geladen sein).</p>
+
+<p>Aha, signifikant ist die Ehezufriedenheit: Je größer <code>rating</code> desto geringer die Wahrscheinlickeit für <code>affairs_dichotom</code>. Macht Sinn! Je zufriedener, desto geringer Seitensprung-Gefahr&hellip;</p>
+
+<p>Übrigens, die Funktion <code>lm</code> und <code>glm</code> spucken leider keine brave Tabelle in Normalform aus. Aber man leicht eine schöne Tabelle (data.frame) bekommen mit dem Befehl <code>tidy</code> aus <code>broom</code>:</p>
+
+<pre><code class="language-r">library(broom)
+tidy(lm10) 
+#&gt;           term     estimate   std.error statistic      p.value
+#&gt; 1  (Intercept)  0.515777667 0.079343849  6.500537 1.693109e-10
+#&gt; 2   gendermale  0.037944509 0.034217912  1.108908 2.679172e-01
+#&gt; 3  childrenyes  0.054032156 0.046307172  1.166820 2.437495e-01
+#&gt; 4       rating -0.090336904 0.015984908 -5.651387 2.468646e-08
+#&gt; 5 yearsmarried  0.003946811 0.003786673  1.042290 2.976998e-01
+</code></pre>
+
+<p>Und Tabellen (d.h. brave Dataframes) kann man sich schön ausgeben lassen z.B. mit dem Befehl <code>knitr::kable</code>:</p>
+
+<pre><code class="language-r">library(knitr)
+tidy(lm10) %&gt;% kable
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="left">term</th>
+<th align="right">estimate</th>
+<th align="right">std.error</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="left">(Intercept)</td>
+<td align="right">0.5157777</td>
+<td align="right">0.0793438</td>
+<td align="right">6.500538</td>
+<td align="right">0.0000000</td>
+</tr>
+
+<tr>
+<td align="left">gendermale</td>
+<td align="right">0.0379445</td>
+<td align="right">0.0342179</td>
+<td align="right">1.108908</td>
+<td align="right">0.2679172</td>
+</tr>
+
+<tr>
+<td align="left">childrenyes</td>
+<td align="right">0.0540322</td>
+<td align="right">0.0463072</td>
+<td align="right">1.166821</td>
+<td align="right">0.2437495</td>
+</tr>
+
+<tr>
+<td align="left">rating</td>
+<td align="right">-0.0903369</td>
+<td align="right">0.0159849</td>
+<td align="right">-5.651387</td>
+<td align="right">0.0000000</td>
+</tr>
+
+<tr>
+<td align="left">yearsmarried</td>
+<td align="right">0.0039468</td>
+<td align="right">0.0037867</td>
+<td align="right">1.042290</td>
+<td align="right">0.2976998</td>
+</tr>
+</tbody>
+</table>
+
+<h1 id="visualisieren-wir-mal-was">Visualisieren wir mal was!</h1>
+
+<p>Ok, wie wäre es damit:</p>
+
+<pre><code class="language-r">Affair %&gt;% 
+   select(affairs, gender, children, rating) %&gt;%
+  ggplot(aes(x = affairs, y = rating)) + geom_jitter(aes(color = gender, shape = children)) 
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-05/unnamed-chunk-31-1.png" title="plot of chunk unnamed-chunk-31" alt="plot of chunk unnamed-chunk-31" width="70%" style="display: block; margin: auto;" /></p>
+
+<pre><code class="language-r">Affair %&gt;% 
+   mutate(rating_dichotom = ntile(rating, 2)) %&gt;% 
+   ggplot(aes(x = yearsmarried, y = affairs)) + geom_jitter(aes(color = gender)) +
+  geom_smooth()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-05/unnamed-chunk-32-1.png" title="plot of chunk unnamed-chunk-32" alt="plot of chunk unnamed-chunk-32" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Puh. Geschafft!</p>
+
+<h1 id="versionshinweise-und-sessioninfo">Versionshinweise und SessionInfo</h1>
+
+<ul>
+<li>Datum erstellt: 2017-01-06</li>
+<li>R Version: 3.3.2</li>
+<li><code>dplyr</code> Version: 0.5.0</li>
+</ul>
+
+<pre><code class="language-r">sessionInfo()
+#&gt; R version 3.3.2 (2016-10-31)
+#&gt; Platform: x86_64-apple-darwin13.4.0 (64-bit)
+#&gt; Running under: macOS Sierra 10.12.2
+#&gt; 
+#&gt; locale:
+#&gt; [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+#&gt; 
+#&gt; attached base packages:
+#&gt; [1] stats     graphics  grDevices utils     datasets  methods   base     
+#&gt; 
+#&gt; other attached packages:
+#&gt; [1] broom_0.4.1   MBESS_4.1.0   corrplot_0.77 ggplot2_2.2.1 psych_1.6.9  
+#&gt; [6] knitr_1.15.1  dplyr_0.5.0  
+#&gt; 
+#&gt; loaded via a namespace (and not attached):
+#&gt;  [1] Rcpp_0.12.8         magrittr_1.5        munsell_0.4.3      
+#&gt;  [4] mnormt_1.5-5        lattice_0.20-34     colorspace_1.3-2   
+#&gt;  [7] R6_2.2.0            plyr_1.8.4          stringr_1.1.0      
+#&gt; [10] highr_0.6           tools_3.3.2         parallel_3.3.2     
+#&gt; [13] grid_3.3.2          nlme_3.1-128        gtable_0.2.0       
+#&gt; [16] DBI_0.5-1           htmltools_0.3.5     yaml_2.1.14        
+#&gt; [19] lazyeval_0.2.0.9000 assertthat_0.1      rprojroot_1.1      
+#&gt; [22] digest_0.6.11       tibble_1.2          tidyr_0.6.0        
+#&gt; [25] reshape2_1.4.2      codetools_0.2-15    rsconnect_0.7      
+#&gt; [28] evaluate_0.10       rmarkdown_1.3       labeling_0.3       
+#&gt; [31] stringi_1.1.2       scales_0.4.1        backports_1.0.4    
+#&gt; [34] foreign_0.8-67
+</code></pre>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

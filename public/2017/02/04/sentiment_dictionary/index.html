@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Sentiment-Wörterbuch erstellen - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Sentiment-Wörterbuch erstellen - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">Sentiment-Wörterbuch erstellen</h1>
+
+    
+    <span class="article-date">2017/02/04</span>
+    
+
+    <div class="article-content">
+      
+
+<p>Bei der Textanalyse (Textmining) ist die Sentiment-Analyse eine typische Tätigkeit. Natürlich steht und fällt die Qualität der Sentiment-Analyse mit der Qualität des verwendeten Wörterbuchs (was nicht heißt, dass man nicht auch auf andere Klippen schellen kann).</p>
+
+<p>Der Zweck dieses Posts ist es, eine Sentiment-Lexikon in deutscher Sprache einzulesen.</p>
+
+<p>Dazu wird das Sentiment-Lexikon <a href="http://asv.informatik.uni-leipzig.de/download/sentiws.html">dieser Quelle</a> verwendet (CC-BY-NC-SA 3.0). In <a href="http://asv.informatik.uni-leipzig.de/publication/file/155/490_Paper.pdf">diesem Paper</a> finden sich Hintergründe. Von dort lassen sich die Daten herunter laden. Im folgenden gehe ich davon aus, dass die Daten herunter geladen sind und sich im Working Directory befinden.</p>
+
+<p>Wir benötigen diese Pakete (es ginge auch über base):</p>
+
+<pre><code class="language-r">library(stringr)
+library(readr)
+library(dplyr)
+</code></pre>
+
+<p>Dann lesen wir die Daten ein, zuerst die Datei mit den negativen Konnotationen:</p>
+
+<pre><code class="language-r">neg_df &lt;- read_tsv(&quot;SentiWS_v1.8c_Negative.txt&quot;, col_names = FALSE)
+names(neg_df) &lt;- c(&quot;Wort_POS&quot;, &quot;Wert&quot;, &quot;Inflektionen&quot;)
+
+glimpse(neg_df)
+#&gt; Observations: 1,818
+#&gt; Variables: 3
+#&gt; $ Wort_POS     &lt;chr&gt; &quot;Abbau|NN&quot;, &quot;Abbruch|NN&quot;, &quot;Abdankung|NN&quot;, &quot;Abdämp...
+#&gt; $ Wert         &lt;dbl&gt; -0.0580, -0.0048, -0.0048, -0.0048, -0.0048, -0.3...
+#&gt; $ Inflektionen &lt;chr&gt; &quot;Abbaus,Abbaues,Abbauen,Abbaue&quot;, &quot;Abbruches,Abbrü...
+</code></pre>
+
+<p>Dann parsen wir aus der ersten Spalte (<code>Wort_POS</code>) zum einen den entsprechenden Begriff (z.B. &ldquo;Abbau&rdquo;) und zum anderen die Wortarten-Tags (eine Erläuterung zu den Wortarten-Tags findet sich <a href="http://www.jlcl.org/2013_Heft1/H2013-1.pdf">hier</a>).</p>
+
+<pre><code class="language-r">neg_df %&gt;% 
+  mutate(Wort = str_sub(Wort_POS, 1, regexpr(&quot;\\|&quot;, .$Wort_POS)-1),
+         POS = str_sub(Wort_POS, start = regexpr(&quot;\\|&quot;, .$Wort_POS)+1)) -&gt; neg_df
+</code></pre>
+
+<p><code>str_sub</code> parst zuerst das Wort. Dazu nehmen wir den Wort-Vektor <code>Wort_POS</code>, und für jedes Element wird der Text von Position 1 bis vor dem Zeichen <code>|</code> geparst; da der Querstrich ein Steuerzeichen in Regex muss er escaped werden. Für <code>POS</code> passiert das gleiche von Position <code>|</code>+1 bis zum Ende des Text-Elements.</p>
+
+<p>Das gleiche wiederholen wir für positiv konnotierte Wörter.</p>
+
+<pre><code class="language-r">pos_df &lt;- read_tsv(&quot;SentiWS_v1.8c_Positive.txt&quot;, col_names = FALSE)
+names(pos_df) &lt;- c(&quot;Wort_POS&quot;, &quot;Wert&quot;, &quot;Inflektionen&quot;)
+pos_df %&gt;% 
+  mutate(Wort = str_sub(Wort_POS, 1, regexpr(&quot;\\|&quot;, .$Wort_POS)-1),
+         POS = str_sub(Wort_POS, start = regexpr(&quot;\\|&quot;, .$Wort_POS)+1)) -&gt; pos_df
+</code></pre>
+
+<p>Schließlich schweißen wir beide Dataframes in einen:</p>
+
+<pre><code class="language-r">bind_rows(&quot;neg&quot; = neg_df, &quot;pos&quot; = pos_df, .id = &quot;neg_pos&quot;) -&gt; sentiment_df
+sentiment_df %&gt;% select(neg_pos, Wort, Wert, Inflektionen, -Wort_POS) -&gt; sentiment_df
+</code></pre>
+
+<pre><code class="language-r">knitr::kable(head(sentiment_df))
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="left">neg_pos</th>
+<th align="left">Wort</th>
+<th align="right">Wert</th>
+<th align="left">Inflektionen</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="left">neg</td>
+<td align="left">Abbau</td>
+<td align="right">-0.058</td>
+<td align="left">Abbaus,Abbaues,Abbauen,Abbaue</td>
+</tr>
+
+<tr>
+<td align="left">neg</td>
+<td align="left">Abbruch</td>
+<td align="right">-0.005</td>
+<td align="left">Abbruches,Abbrüche,Abbruchs,Abbrüchen</td>
+</tr>
+
+<tr>
+<td align="left">neg</td>
+<td align="left">Abdankung</td>
+<td align="right">-0.005</td>
+<td align="left">Abdankungen</td>
+</tr>
+
+<tr>
+<td align="left">neg</td>
+<td align="left">Abdämpfung</td>
+<td align="right">-0.005</td>
+<td align="left">Abdämpfungen</td>
+</tr>
+
+<tr>
+<td align="left">neg</td>
+<td align="left">Abfall</td>
+<td align="right">-0.005</td>
+<td align="left">Abfalles,Abfälle,Abfalls,Abfällen</td>
+</tr>
+
+<tr>
+<td align="left">neg</td>
+<td align="left">Abfuhr</td>
+<td align="right">-0.337</td>
+<td align="left">Abfuhren</td>
+</tr>
+</tbody>
+</table>
+
+<h1 id="literatur">Literatur</h1>
+
+<p>R. Remus, U. Quasthoff &amp; G. Heyer: SentiWS - a Publicly Available German-language Resource for Sentiment Analysis.
+In: Proceedings of the 7th International Language Ressources and Evaluation (LREC&rsquo;10), 2010</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

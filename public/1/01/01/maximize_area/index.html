@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Squares maximize area - a visualization - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Squares maximize area - a visualization - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">3 min read</span>
+    
+
+    <h1 class="article-title">Squares maximize area - a visualization</h1>
+
+    
+    <span class="article-date">0001/01/01</span>
+    
+
+    <div class="article-content">
+      
+
+<p>An old story is that one of the farmer with a fence of some given length, say 20m. Now this farmer wants to put up his fence so that he claims the largest piece of land possible. What width (w) and height (h) should we pick?</p>
+
+<p>Instead of a formal proof, let&rsquo;s start with a visualization.</p>
+
+<p>First, we need some packages.</p>
+
+<pre><code class="language-r">library(tidyverse)
+library(gganimate)
+library(RColorBrewer)
+library(scales)
+library(knitr)
+</code></pre>
+
+<p>Now, let&rsquo;s make up serveral ways to split up a rectengular piece of land. Note that we only need to define two sides (width and height), as the circumference of a rectangle is $$c = 2w + sh$$.</p>
+
+<pre><code class="language-r">df &lt;- data_frame(
+  w = c(0:10, 9:0),
+  h = c(10:0, 1:10),
+  area = w * h)
+
+df$row &lt;- 1:nrow(df)
+</code></pre>
+
+<p>Next, let&rsquo;s define a palette from Brewer&rsquo;s palette no 5.</p>
+
+<pre><code class="language-r">cols &lt;- brewer_pal(&quot;seq&quot;)(5)
+mypal &lt;- gradient_n_pal(cols)(seq(0, 1, length.out = 21))
+
+names(mypal) &lt;- as.character(df$area)
+</code></pre>
+
+<p>Next, plot an animated diagram:</p>
+
+<pre><code class="language-r">p &lt;- ggplot(df) +
+  aes(x = w, y = h, fill = mypal, frame = row) +
+  geom_rect(aes(xmax = w, ymax = h), xmin = 0, ymin = 0) +
+  labs(title = paste0(&quot;area = &quot;, df$area)) +
+  # theme(legend.position = &quot;none&quot;) +
+  guides(fill = FALSE) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+gganimate(p)
+</code></pre>
+
+<video controls loop><source src="https://sebastiansauer.github.io/images/2017-05-19/fig-animate.webm" /><p>plot of chunk fig-animate</p></video>
+
+<pre><code class="language-r">detach(&quot;package:gganimate&quot;, unload=TRUE)
+</code></pre>
+
+<p>Save output as gif:</p>
+
+<pre><code class="language-r">#gganimate(p, &quot;output.gif&quot;)
+</code></pre>
+
+<p>We can see (those wich quick eyes) that area is maximized when our piece of land is of quadratic shape. Glimpsing at the numbers confirms that impression:</p>
+
+<pre><code class="language-r">df %&gt;% 
+  select(row, w, h, area) %&gt;% 
+  kable
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="right">row</th>
+<th align="right">w</th>
+<th align="right">h</th>
+<th align="right">area</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">10</td>
+<td align="right">0</td>
+</tr>
+
+<tr>
+<td align="right">2</td>
+<td align="right">1</td>
+<td align="right">9</td>
+<td align="right">9</td>
+</tr>
+
+<tr>
+<td align="right">3</td>
+<td align="right">2</td>
+<td align="right">8</td>
+<td align="right">16</td>
+</tr>
+
+<tr>
+<td align="right">4</td>
+<td align="right">3</td>
+<td align="right">7</td>
+<td align="right">21</td>
+</tr>
+
+<tr>
+<td align="right">5</td>
+<td align="right">4</td>
+<td align="right">6</td>
+<td align="right">24</td>
+</tr>
+
+<tr>
+<td align="right">6</td>
+<td align="right">5</td>
+<td align="right">5</td>
+<td align="right">25</td>
+</tr>
+
+<tr>
+<td align="right">7</td>
+<td align="right">6</td>
+<td align="right">4</td>
+<td align="right">24</td>
+</tr>
+
+<tr>
+<td align="right">8</td>
+<td align="right">7</td>
+<td align="right">3</td>
+<td align="right">21</td>
+</tr>
+
+<tr>
+<td align="right">9</td>
+<td align="right">8</td>
+<td align="right">2</td>
+<td align="right">16</td>
+</tr>
+
+<tr>
+<td align="right">10</td>
+<td align="right">9</td>
+<td align="right">1</td>
+<td align="right">9</td>
+</tr>
+
+<tr>
+<td align="right">11</td>
+<td align="right">10</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+
+<tr>
+<td align="right">12</td>
+<td align="right">9</td>
+<td align="right">1</td>
+<td align="right">9</td>
+</tr>
+
+<tr>
+<td align="right">13</td>
+<td align="right">8</td>
+<td align="right">2</td>
+<td align="right">16</td>
+</tr>
+
+<tr>
+<td align="right">14</td>
+<td align="right">7</td>
+<td align="right">3</td>
+<td align="right">21</td>
+</tr>
+
+<tr>
+<td align="right">15</td>
+<td align="right">6</td>
+<td align="right">4</td>
+<td align="right">24</td>
+</tr>
+
+<tr>
+<td align="right">16</td>
+<td align="right">5</td>
+<td align="right">5</td>
+<td align="right">25</td>
+</tr>
+
+<tr>
+<td align="right">17</td>
+<td align="right">4</td>
+<td align="right">6</td>
+<td align="right">24</td>
+</tr>
+
+<tr>
+<td align="right">18</td>
+<td align="right">3</td>
+<td align="right">7</td>
+<td align="right">21</td>
+</tr>
+
+<tr>
+<td align="right">19</td>
+<td align="right">2</td>
+<td align="right">8</td>
+<td align="right">16</td>
+</tr>
+
+<tr>
+<td align="right">20</td>
+<td align="right">1</td>
+<td align="right">9</td>
+<td align="right">9</td>
+</tr>
+
+<tr>
+<td align="right">21</td>
+<td align="right">0</td>
+<td align="right">10</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+
+<h1 id="area-as-a-function-of-w">Area as a function of w</h1>
+
+<p>Maybe a more classical plot of area as a function of w (or h) is in order.</p>
+
+<pre><code class="language-r">ggplot(df) +
+  aes(y = area) +
+  geom_line(aes(x = w)) +
+  geom_point(aes(x = w), color = &quot;red&quot;) 
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-05-19/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7" /></p>
+
+<p>Similarly, area as a function of h:</p>
+
+<pre><code class="language-r">ggplot(df) +
+  aes(y = area) +
+  geom_line(aes(x = h)) +
+  geom_point(aes(x = h), color = &quot;red&quot;) 
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-05-19/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8" /></p>
+
+<p>That&rsquo;s of coure no formal proof, but we get a &ldquo;feel&rdquo; that quadratic forms make best use of the fence (ie maximize the area for a given circumference) for all rectangular forms.</p>
+
+<h1 id="proof">Proof</h1>
+
+<p>More formally, note that $$2w + 2h = 20$$, or $$w+h=10$$.</p>
+
+<p>The area $$a$$ is given by</p>
+
+<p>$$a = wh = w(10-w) = 10w - w^2$$.</p>
+
+<p>The derivative of this function is zero at the maximum, so</p>
+
+<p>$$\frac{da}{dw} = 10 - 2w $$.</p>
+
+<p>This equation is satisfied when $$a = 5$$, hence also $$b = 5$$. So the maximum rectengular area enclosed by a 20 meter fence is provided by a side length of 5 meters.
+a</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

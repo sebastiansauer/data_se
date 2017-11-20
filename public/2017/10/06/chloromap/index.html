@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Drawing a country map - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Drawing a country map - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">5 min read</span>
+    
+
+    <h1 class="article-title">Drawing a country map</h1>
+
+    
+    <span class="article-date">2017/10/06</span>
+    
+
+    <div class="article-content">
+      
+
+<p>Let&rsquo;s draw a map of Bavaria, a state of Germany, in this post.</p>
+
+<h1 id="packages">Packages</h1>
+
+<pre><code class="language-r">library(tidyverse)
+library(maptools)
+library(sf)
+library(RColorBrewer)
+library(ggmap)
+library(viridis)
+library(stringr)
+</code></pre>
+
+<h1 id="data">Data</h1>
+
+<p>Let&rsquo;s get the data first. Basically, we need to data files:</p>
+
+<ul>
+<li>the shape file, ie., a geographic details of state borders and points of interest</li>
+<li>the semantic information to points of interest eg., town names</li>
+</ul>
+
+<h2 id="shape-file">Shape file</h2>
+
+<p>The shape file can be downloaded from this source: <a href="http://www.metaspatial.net/download/plz.tar.gz">http://www.metaspatial.net/download/plz.tar.gz</a></p>
+
+<p><a href="http://gadm.org/country">This site</a> also looks great to get geospatial data.</p>
+
+<p>These data are PD as stated <a href="http://arnulf.us/PLZ">here</a>. Download and unpack the data. Let&rsquo;s assume that the data are stored in a path called <code>my_path</code>. See for instance in my case:</p>
+
+<pre><code class="language-r"># replace the following path with your path:
+my_path &lt;- &quot;/Users/sebastiansauer/Documents/Datensaetze/plz/&quot;
+my_shape &lt;- &quot;post_pl.shp&quot;
+
+shape_dest &lt;- paste0(my_path, my_shape)
+file.exists(shape_dest)
+#&gt; [1] TRUE
+</code></pre>
+
+<p>Parse the shape data:</p>
+
+<pre><code class="language-r">de_shape &lt;- sf::st_read(shape_dest)  # &quot;de&quot; is for Germany
+#&gt; Reading layer `post_pl' from data source `/Users/sebastiansauer/Documents/Datensaetze/plz/post_pl.shp' using driver `ESRI Shapefile'
+#&gt; Simple feature collection with 8270 features and 3 fields
+#&gt; geometry type:  MULTIPOLYGON
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 5.866286 ymin: 47.2736 xmax: 15.04863 ymax: 55.05826
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    NA
+</code></pre>
+
+<p>Check the result:</p>
+
+<pre><code class="language-r">head(de_shape)
+#&gt; Simple feature collection with 6 features and 3 fields
+#&gt; geometry type:  MULTIPOLYGON
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 13.69598 ymin: 51.02433 xmax: 13.91312 ymax: 51.14665
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    NA
+#&gt;   PLZ99 PLZ99_N PLZORT99                       geometry
+#&gt; 1 01067    1067  Dresden MULTIPOLYGON (((13.7189358 ...
+#&gt; 2 01069    1069  Dresden MULTIPOLYGON (((13.74983892...
+#&gt; 3 01097    1097  Dresden MULTIPOLYGON (((13.727583 5...
+#&gt; 4 01099    1099  Dresden MULTIPOLYGON (((13.82015592...
+#&gt; 5 01109    1109  Dresden MULTIPOLYGON (((13.75953588...
+#&gt; 6 01127    1127  Dresden MULTIPOLYGON (((13.72007952...
+de_shape$PLZORT99 %&gt;% head
+#&gt; [1] Dresden Dresden Dresden Dresden Dresden Dresden
+#&gt; 6359 Levels: Aach Aachen Aalen Aarbergen Abenberg Abensberg ... \xdfxheim
+</code></pre>
+
+<p>Note that the file contains semantic data, too (zip code, town names).</p>
+
+<p>Some encoding problems. More often than not, text data is in the wrong format. Blind guessing: Data was stored on a Windows machine, hence in Latin1. My system assumes UTF-8, so culture clash is to expected. Let&rsquo;s try to fix.</p>
+
+<pre><code class="language-r">de_shape$PLZORT99 &lt;- as.character(de_shape$PLZORT99)
+Encoding(de_shape$PLZORT99) &lt;- &quot;latin1&quot;
+slice(de_shape$PLZORT99, 90:100)
+#&gt; Error in UseMethod(&quot;slice_&quot;): no applicable method for 'slice_' applied to an object of class &quot;character&quot;
+</code></pre>
+
+<p>Ok, fixed.</p>
+
+<h2 id="shape-semantics">Shape semantics</h2>
+
+<p>&ldquo;Shape semantics&rdquo; is a rather fancy word for the county/community/town names. We can access the data <a href="http://download.geonames.org/export/zip/DE.zip">here</a>.</p>
+
+<p>Download and unzip the data, then move it to <code>my_path</code>. The German word for &ldquo;zip code&rdquo; is &ldquo;PLZ&rdquo;, so that&rsquo;s why I call it <code>my_plz</code>:</p>
+
+<pre><code class="language-r">my_plz &lt;- &quot;PLZ_Ort_Long_Lat_Land_DE.txt&quot;
+de_plz &lt;- paste0(my_path, my_plz)
+file.exists(de_plz)
+#&gt; [1] TRUE
+
+plz_df &lt;- read_tsv(file = de_plz, col_names = FALSE)  # tab separated data
+</code></pre>
+
+<p>In the help file from the downloaded data, we find some explanation as to the columns:</p>
+
+<pre><code class="language-r">plz_df &lt;- plz_df %&gt;%
+  rename(country_code = X1,
+         postal_code = X2,
+         place_name = X3,
+         state = X4,
+         state_code = X5,
+         county = X6,
+         county_code = X7,
+         community = X8,
+         community_code = X9,
+         lat = X10,
+         long = X11,
+         accuracy = X12)  # accuracy of lat/lng from 1=estimated to 6=centroid
+
+
+glimpse(plz_df)
+#&gt; Observations: 16,481
+#&gt; Variables: 12
+#&gt; $ country_code   &lt;chr&gt; &quot;DE&quot;, &quot;DE&quot;, &quot;DE&quot;, &quot;DE&quot;, &quot;DE&quot;, &quot;DE&quot;, &quot;DE&quot;, &quot;DE&quot;,...
+#&gt; $ postal_code    &lt;chr&gt; &quot;01945&quot;, &quot;01945&quot;, &quot;01945&quot;, &quot;01945&quot;, &quot;01945&quot;, &quot;0...
+#&gt; $ place_name     &lt;chr&gt; &quot;Hohenbocka&quot;, &quot;Lindenau&quot;, &quot;Schwarzbach&quot;, &quot;Grüne...
+#&gt; $ state          &lt;chr&gt; &quot;Brandenburg&quot;, &quot;Brandenburg&quot;, &quot;Brandenburg&quot;, &quot;B...
+#&gt; $ state_code     &lt;chr&gt; &quot;BB&quot;, &quot;BB&quot;, &quot;BB&quot;, &quot;BB&quot;, &quot;BB&quot;, &quot;BB&quot;, &quot;BB&quot;, &quot;BB&quot;,...
+#&gt; $ county         &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
+#&gt; $ county_code    &lt;chr&gt; &quot;00&quot;, &quot;00&quot;, &quot;00&quot;, &quot;00&quot;, &quot;00&quot;, &quot;00&quot;, &quot;00&quot;, &quot;00&quot;,...
+#&gt; $ community      &lt;chr&gt; &quot;Landkreis Oberspreewald-Lausitz&quot;, &quot;Landkreis O...
+#&gt; $ community_code &lt;int&gt; 12066, 12066, 12066, 12066, 12066, 12066, 12066...
+#&gt; $ lat            &lt;dbl&gt; 51.4, 51.4, 51.5, 51.4, 51.4, 51.5, 51.4, 51.4,...
+#&gt; $ long           &lt;dbl&gt; 14.0, 13.7, 13.9, 14.0, 13.9, 13.9, 13.9, 13.7,...
+#&gt; $ accuracy       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
+</code></pre>
+
+<h2 id="test-it">Test it</h2>
+
+<p>Now, enough of grey theory! Unfortunately, I don&rsquo;t know any nice Hamlet citation here, which would certainly be impressive.</p>
+
+<pre><code class="language-r">my_col &lt;- sample(1:7, length(de_shape), replace = T)
+plot(de_shape[c(&quot;PLZ99&quot;, &quot;geometry&quot;)],
+     col = brewer.pal(7, &quot;Greens&quot;)[my_col], border = F)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-06/unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" width="70%" style="display: block; margin: auto;" /></p>
+
+<h2 id="filter-bavaria">Filter Bavaria</h2>
+
+<pre><code class="language-r">plz_bavaria &lt;- plz_df %&gt;%
+  filter(state == &quot;Bayern&quot;)
+
+plz_bavaria_vec &lt;- plz_bavaria$postal_code
+</code></pre>
+
+<p>Easy; ~2259 zip codes in Bavaria.</p>
+
+<p>Now let&rsquo;s filter the shape file.</p>
+
+<pre><code class="language-r">my_rows &lt;- de_shape$PLZ99 %in% plz_bavaria_vec
+</code></pre>
+
+<p>And plot Bavaria:</p>
+
+<pre><code class="language-r">my_col &lt;- sample(1:7, length(de_shape), replace = T)
+
+bav_data &lt;- de_shape[my_rows,c(&quot;PLZ99&quot;, &quot;geometry&quot;)]
+plot(bav_data,
+     col = brewer.pal(7, &quot;Oranges&quot;)[my_col], border = F)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-06/unnamed-chunk-11-1.png" title="plot of chunk unnamed-chunk-11" alt="plot of chunk unnamed-chunk-11" width="70%" style="display: block; margin: auto;" /></p>
+
+<h2 id="now-plot-with-ggplot2">Now plot with ggplot2</h2>
+
+<pre><code class="language-r">
+bav_data$PLZ2 &lt;- str_extract(bav_data$PLZ99, &quot;\\d\\d&quot;)
+
+
+ggplot(data = bav_data) +
+  geom_sf(aes(fill = PLZ2)) +
+  scale_fill_viridis_d() +
+  guides(fill = FALSE) -&gt; p_bavaria
+p_bavaria
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-06/unnamed-chunk-12-1.png" title="plot of chunk unnamed-chunk-12" alt="plot of chunk unnamed-chunk-12" width="70%" style="display: block; margin: auto;" /></p>
+
+<h2 id="sample-some-counties">Sample some counties</h2>
+
+<p>FWIW, let&rsquo;s sample some counties, and fill them in a distinct color.</p>
+
+<pre><code class="language-r">
+bav_data$PLZ_sample &lt;- sample(c(0,1),
+                              size = nrow(bav_data),
+                              prob = c(.99, .01),
+                              replace = TRUE)
+
+
+ggplot(data = bav_data) +
+  geom_sf(aes(fill = PLZ_sample)) +
+  scale_fill_viridis() +
+  guides(fill = FALSE) -&gt; p_bavaria2
+p_bavaria2
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-06/unnamed-chunk-13-1.png" title="plot of chunk unnamed-chunk-13" alt="plot of chunk unnamed-chunk-13" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Let&rsquo;s define our own palette:</p>
+
+<pre><code class="language-r">bav_data$PLZ_sample &lt;- sample(c(0,1),
+                              size = nrow(bav_data),
+                              prob = c(.99, .01),
+                              replace = TRUE) %&gt;% factor
+my_pal &lt;- c(&quot;grey80&quot;, &quot;firebrick&quot;)
+ggplot(data = bav_data) +
+  geom_sf(aes(fill = PLZ_sample)) +
+  scale_fill_manual(values = my_pal) +
+  guides(fill = FALSE) -&gt; p_bavaria3
+p_bavaria3
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-06/unnamed-chunk-14-1.png" title="plot of chunk unnamed-chunk-14" alt="plot of chunk unnamed-chunk-14" width="70%" style="display: block; margin: auto;" /></p>
+
+<h1 id="bigger-visual-chunks">Bigger visual chunks</h1>
+
+<p>Let&rsquo;s cut the polygons in bigger chunks, say, according to the first digit in the zip code.</p>
+
+<pre><code class="language-r">bav_data$PLZ1 &lt;- str_extract(bav_data$PLZ99, &quot;\\d&quot;)
+
+my_pal &lt;- c(&quot;grey80&quot;, &quot;firebrick&quot;)
+ggplot(data = bav_data) +
+  geom_sf(aes(fill = PLZ1)) +
+  scale_fill_viridis_d() -&gt; p_bavaria4
+p_bavaria4
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-06/unnamed-chunk-15-1.png" title="plot of chunk unnamed-chunk-15" alt="plot of chunk unnamed-chunk-15" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Happy map painting!</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

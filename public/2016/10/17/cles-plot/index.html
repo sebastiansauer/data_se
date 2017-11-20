@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>CLES plot - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="CLES plot - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">5 min read</span>
+    
+
+    <h1 class="article-title">CLES plot</h1>
+
+    
+    <span class="article-date">2016/10/17</span>
+    
+
+    <div class="article-content">
+      <p>In data analysis, we often ask &ldquo;Do these two groups differ in the outcome variable&rdquo;? Asking this question, a tacit assumption may be that the grouping variable is the cause of the difference in the outcome variable. For example, assume the two groups are &ldquo;treatment group&rdquo; and &ldquo;control group&rdquo;, and the outcome variable is &ldquo;pain reduction&rdquo;.</p>
+
+<p>A typical approach would be to report the strenght of the difference by help of Cohen&rsquo;s d. Even better (probably, but this atttitude is not undebated) is to report confidence intervals for d.</p>
+
+<p>Although this approach is widely used, I think it is not ideal. One reason is that we (may) have tacitly changed our hypothesis. We are <em>not</em> asking anymore &ldquo;Do individuals between the two groups differ?&rdquo; but we ask now &ldquo;Do the mean values differ?&rdquo;, which is different. Although we are used to this approach, there are problems: Often, our theories do <em>not</em> state that e.g., some pill will change the mean of a group. Rather, the theory will (quite rightly, in principle) suggest that some chemical compound in <em>an organism</em> will change some molecules, thereby some cell metabolism products, and finally bringing about some biological and/or psychological change (to the better). This is complete different a theory. And the last theory makes sense (potentially) from a biological and logical perspective. The former does <em>not</em> make any sense. How can some chemical affect some group averages, some &ldquo;average organism&rdquo; which does not exist in reality? If we agre with that notion we would be forced, I believe, not to compare means.</p>
+
+<p>But what can we do instead? In fact, some new methods have been proposed; for example James Grice developed what he has dubbed <a href="http://store.elsevier.com/Observation-Oriented-Modeling/James-Grice/isbn-9780123851949/">Observation Oriented Moeling</a>. But maybe an easy, first step alternative could be using the &ldquo;common language effect size&rdquo; (CLES). CLES simply states &ldquo;given the observed effect, how likely is it that if we draw two individuals, one from each of the two groups, that the individual from the experimental group will have a higher value in the variable of interest?&rdquo; (see <a href="http://core.ecu.edu/psyc/wuenschk/docs30/CL.pdf">here</a>).</p>
+
+<p>The value of CLEs is observational, not a hypothetical parameter. It is quite straight-forward man-on-the-street logic. For example: &ldquo;Draw 100 pairs from the two groups; in 83 cases the experimental group person will a higher value&rdquo;. That makes sense from an observation or individual organism point of view.</p>
+
+<p>Practically, there are <a href="https://cran.r-project.org/web/packages/compute.es/compute.es.pdf">R packages out there</a> which help us computing CLES (or at least one package). The details of the computation are beyond the scope of this article; see <a href="http://core.ecu.edu/psyc/wuenschk/docs30/CL.pdf">here</a> for mathematical details.</p>
+
+<p>Rather, we will build a nice plot for displaying a number of CLES differences between two groups.</p>
+
+<p>First, let&rsquo;s get some data, and load the needed packages.</p>
+
+<pre><code class="language-r">library(tidyverse)
+</code></pre>
+
+<pre><code class="language-r"># library(readr)
+extra_file &lt;- &quot;https://raw.github.com/sebastiansauer/Daten_Unterricht/master/extra.csv&quot;
+
+extra_df &lt;- read_csv(extra_file)
+</code></pre>
+
+<p>This dataset <code>extra</code> comprises answers to a survey tapping into extraversion as a psychometric variable plus some related behavior (e.g., binge drinking). The real-word details are not so much of interest here.</p>
+
+<p>So, let&rsquo;s pick all numeric variables plus one grouping variable (say, sex):</p>
+
+<pre><code class="language-r"># library(dplyr)
+extra_df %&gt;% 
+  na.omit() %&gt;% 
+  select_if(is.numeric) %&gt;% 
+  names -&gt; extra_num_vars
+</code></pre>
+
+<p>First, we compute a t-test for each numeric variable (using our grouping variable &ldquo;sex&rdquo;):</p>
+
+<pre><code class="language-r"># library(purrr)
+extra_df %&gt;% 
+  dplyr::select(one_of(extra_num_vars)) %&gt;% 
+  # na.omit() %&gt;% 
+  map(~t.test(. ~ extra_df$Geschlecht)) %&gt;% 
+  map(~compute.es::tes(.$statistic,
+                       n.1 = nrow(dplyr::filter(extra_df, Geschlecht == &quot;Frau&quot;)),
+                       n.2 = nrow(dplyr::filter(extra_df, Geschlecht == &quot;Mann&quot;)))) %&gt;% 
+  map(~do.call(rbind, .)) %&gt;% 
+  as.data.frame %&gt;% 
+  t %&gt;% 
+  data.frame %&gt;% 
+  rownames_to_column %&gt;% 
+  rename(outcomes = rowname) -&gt; 
+  extra_effsize
+</code></pre>
+
+<hr />
+
+<p>Note: output hidden, tl;dr.</p>
+
+<hr />
+
+<p>Puh, that&rsquo;s a bit confusing. So, what did we do?</p>
+
+<ol>
+<li>We selected the numeric variables of the data frame; here <code>one_of</code> comes handy. This function gets the column names of a data frame as input, and allows to select all of them in the <code>select</code> function.</li>
+<li>We mapped a t-test to each of those columns, where <code>extra_df$Geschlecht</code> was the grouping variable. Note that the dot <code>.</code> is used as a shortcut for the lefthand side of the equation, ie., whatever is handed over by the pipe <code>%&gt;%</code> in the previous line/step.</li>
+<li>Next, we computed the effect size using <code>tes</code> from package <code>compute.es</code>.</li>
+<li>For each variable submitted to a t-test, bind the results rowwise. Each t-test gives back a list of results. We want to bind those results in a list. As we have several list elements (for each t-test), we can use <code>do.call</code> to bind that all together in one go.</li>
+<li>Convert to data frame.</li>
+<li>Better turn matrix by 90° using <code>t</code>.</li>
+<li>As <code>t</code> gives back a matrix, we need to convert to data frame again.</li>
+<li>Rownames should be their own column with an appropriate name (<code>outcomes</code>).</li>
+<li>Save that in an own data frame.</li>
+</ol>
+
+<p>And compute the differences in CLES, and plot it:</p>
+
+<pre><code class="language-r"># library(ggplot2)
+extra_effsize %&gt;% 
+  dplyr::select(outcomes, cl.d) %&gt;% 
+  mutate(sign = ifelse(cl.d &gt; 50, &quot;+&quot;, &quot;-&quot;)) %&gt;% 
+  ggplot(aes(x = reorder(outcomes, cl.d), y = cl.d, color = sign)) + 
+  geom_hline(yintercept = 50, alpha = .4) +
+  geom_point(aes(shape = sign)) + 
+  coord_flip() +
+  ylab(&quot;effect size (Common Language Effect Size)&quot;) +
+  xlab(&quot;outcome variables&quot;) + 
+  ggtitle(&quot;CLES plot&quot;) -&gt; CLES_plot
+
+
+CLES_plot
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-10-17/unnamed-chunk-5-1.png" alt="" /></p>
+
+<p>The code above in more detail:</p>
+
+<ol>
+<li>select columns <code>outcomes</code> and <code>cl.d</code>; note that <code>cl.d</code> stands for CLES (here: Common Language Cohen&rsquo;s d, as CLES is derived from Cohen&rsquo;s d).</li>
+<li>Compute variable to tell in which direction the difference points, ie., whether it is greater or smaller than 50%, where 50% refers to ignorance towards the direction of difference.</li>
+<li>Well, now plot, but sort the outcomes by their CLES value; for the purpose of sorting we use <code>reorder</code>.</li>
+<li>Flip the axes because it is more beautiful here.</li>
+</ol>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

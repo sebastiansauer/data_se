@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Data, machine-friendly, of the 2017 German federal elections - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Data, machine-friendly, of the 2017 German federal elections - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">6 min read</span>
+    
+
+    <h1 class="article-title">Data, machine-friendly, of the 2017 German federal elections</h1>
+
+    
+    <span class="article-date">2017/10/30</span>
+    
+
+    <div class="article-content">
+      
+
+<p>On September 2017, the 19. German Bundestag has been elected. As of this writing, the parties are still busy sorting out whether they want to part of the government, with whom, and maybe whether they even want to form a government at all. This post is about providing the data in machine friendly form, and in English language.</p>
+
+<p>All data presented in this post regarding this (and previous) elections are published by the Bundeswahlleiter. The data may be used without restriction as long as it is credited duely.</p>
+
+<p>Let me be clear that the all data presented here were drawn from this source. So, for each dataset the copyright notice is:</p>
+
+<hr />
+
+<p>The raw data is published by the Bundeswahlleiter 2017
+&copy; Der Bundeswahlleiter, Wiesbaden 2017
+<a href="https://www.bundeswahlleiter.de/info/impressum.html">https://www.bundeswahlleiter.de/info/impressum.html</a></p>
+
+<hr />
+
+<p>The contribution by me is only to render the data more machine friendly, as the presented CSVs have multiple header lines, German Umlaute, non-UTF8 coding, and some other minor hickups.</p>
+
+<p>Of course, data itself has not been touched by me; I hae only changed some wordings and the structure of the dataset in order to render analysis more comfortable. Analysts can easily access the raw data and check the correctness.</p>
+
+<p>Setup:</p>
+
+<pre><code class="language-r">library(tidyverse)
+</code></pre>
+
+<h1 id="package-prada-contains-the-data">Package <code>prada</code> contains the data</h1>
+
+<p>Maybe the easiest way is to use my package <code>prada</code>, which can be downloaded/installed from Github:</p>
+
+<p>Install the package once:</p>
+
+<pre><code class="language-r">devtools::install_github(&quot;sebastiansauer/prada&quot;)
+</code></pre>
+
+<pre><code class="language-r">library(prada)
+</code></pre>
+
+<p>There you will find the relevant data.</p>
+
+<h2 id="parties-running-the-election">Parties running the election</h2>
+
+<ul>
+<li><code>parties_de</code> - a dataframe of the 43 parties than ran for the election</li>
+</ul>
+
+<pre><code class="language-r">data(parties_de)
+glimpse(parties_de)
+#&gt; Observations: 43
+#&gt; Variables: 2
+#&gt; $ party_short &lt;chr&gt; &quot;CDU&quot;, &quot;SPD&quot;, &quot;Linke&quot;, &quot;Gruene&quot;, &quot;CSU&quot;, &quot;FDP&quot;, &quot;Af...
+#&gt; $ party_long  &lt;chr&gt; &quot;Christlich Demokratische Union Deutschlands&quot;, &quot;So...
+</code></pre>
+
+<ul>
+<li><code>elec_results</code> - a dataframe of the results (first/second) votes of the parties plus some more data</li>
+</ul>
+
+<pre><code class="language-r">data(elec_results)
+head(elec_results)
+#&gt; # A tibble: 6 x 191
+#&gt;   district_nr                     district_name parent_district_nr
+#&gt;         &lt;int&gt;                             &lt;chr&gt;              &lt;int&gt;
+#&gt; 1           1             Flensburg – Schleswig                  1
+#&gt; 2           2 Nordfriesland – Dithmarschen Nord                  1
+#&gt; 3           3      Steinburg – Dithmarschen Süd                  1
+#&gt; 4           4             Rendsburg-Eckernförde                  1
+#&gt; 5           5                              Kiel                  1
+#&gt; 6           6                 Plön – Neumünster                  1
+#&gt; # ... with 188 more variables: registered_voters_1 &lt;int&gt;,
+#&gt; #   registered_voters_2 &lt;int&gt;, registered_voters_3 &lt;int&gt;,
+#&gt; #   registered_voters_4 &lt;int&gt;, votes_1 &lt;dbl&gt;, votes_2 &lt;int&gt;,
+#&gt; #   votes_3 &lt;dbl&gt;, votes_4 &lt;int&gt;, votes_unvalid_1 &lt;int&gt;,
+#&gt; #   votes_unvalid_2 &lt;int&gt;, votes_unvalid_3 &lt;dbl&gt;, votes_unvalid_4 &lt;int&gt;,
+#&gt; #   votes_valid_1 &lt;int&gt;, votes_valid_2 &lt;int&gt;, votes_valid_3 &lt;int&gt;,
+#&gt; #   votes_valid_4 &lt;int&gt;, CDU_1 &lt;int&gt;, CDU_2 &lt;chr&gt;, CDU_3 &lt;int&gt;,
+#&gt; #   CDU_4 &lt;dbl&gt;, SPD_1 &lt;int&gt;, SPD_2 &lt;int&gt;, SPD_3 &lt;int&gt;, SPD_4 &lt;int&gt;,
+#&gt; #   Linke_1 &lt;int&gt;, Linke_2 &lt;int&gt;, Linke_3 &lt;int&gt;, Linke_4 &lt;int&gt;,
+#&gt; #   Gruene_1 &lt;int&gt;, Gruene_2 &lt;int&gt;, Gruene_3 &lt;dbl&gt;, Gruene_4 &lt;dbl&gt;,
+#&gt; #   CSU_1 &lt;int&gt;, CSU_2 &lt;int&gt;, CSU_3 &lt;int&gt;, CSU_4 &lt;int&gt;, FDP_1 &lt;int&gt;,
+#&gt; #   FDP_2 &lt;int&gt;, FDP_3 &lt;int&gt;, FDP_4 &lt;int&gt;, AfD_1 &lt;int&gt;, AfD_2 &lt;int&gt;,
+#&gt; #   AfD_3 &lt;dbl&gt;, AfD_4 &lt;dbl&gt;, Piraten_1 &lt;int&gt;, Piraten_2 &lt;int&gt;,
+#&gt; #   Piraten_3 &lt;int&gt;, Piraten_4 &lt;dbl&gt;, NPD_1 &lt;int&gt;, NPD_2 &lt;int&gt;,
+#&gt; #   NPD_3 &lt;int&gt;, NPD_4 &lt;int&gt;, FW_1 &lt;int&gt;, FW_2 &lt;int&gt;, FW_3 &lt;int&gt;,
+#&gt; #   FW_4 &lt;int&gt;, Mensch_1 &lt;int&gt;, Mensch_2 &lt;int&gt;, Mensch_3 &lt;int&gt;,
+#&gt; #   Mensch_4 &lt;dbl&gt;, ÖDP_1 &lt;dbl&gt;, ÖDP_2 &lt;int&gt;, ÖDP_3 &lt;int&gt;, ÖDP_4 &lt;int&gt;,
+#&gt; #   Arbeit_1 &lt;int&gt;, Arbeit_2 &lt;int&gt;, Arbeit_3 &lt;int&gt;, Arbeit_4 &lt;int&gt;,
+#&gt; #   Bayern_1 &lt;int&gt;, Bayern_2 &lt;int&gt;, Bayern_3 &lt;int&gt;, Bayern_4 &lt;int&gt;,
+#&gt; #   Volk_1 &lt;int&gt;, Volk_2 &lt;int&gt;, Volk_3 &lt;int&gt;, Volk_4 &lt;int&gt;,
+#&gt; #   Vernunft_1 &lt;int&gt;, Vernunft_2 &lt;int&gt;, Vernunft_3 &lt;int&gt;,
+#&gt; #   Vernunft_4 &lt;int&gt;, MLPD_1 &lt;int&gt;, MLPD_2 &lt;int&gt;, MLPD_3 &lt;int&gt;,
+#&gt; #   MLPD_4 &lt;int&gt;, Soli_1 &lt;int&gt;, Soli_2 &lt;int&gt;, Soli_3 &lt;int&gt;, Soli_4 &lt;int&gt;,
+#&gt; #   Sozialist_1 &lt;int&gt;, Sozialist_2 &lt;chr&gt;, Sozialist_3 &lt;int&gt;,
+#&gt; #   Sozialist_4 &lt;int&gt;, Rechte_1 &lt;int&gt;, Rechte_2 &lt;chr&gt;, Rechte_3 &lt;int&gt;,
+#&gt; #   Rechte_4 &lt;int&gt;, ADD_1 &lt;chr&gt;, ADD_2 &lt;chr&gt;, ADD_3 &lt;int&gt;, ADD_4 &lt;chr&gt;,
+#&gt; #   ...
+</code></pre>
+
+<p>Note that this data set is structured as follows: For each column AFTER &lsquo;parent_district_nr&rsquo;, ie., from column 4 onward, 4 columns build one bundle. In each bundle, column 1 refers to the Erststimme in the present election; column 2 to the Erststimme in the previous election. Column 3 refers to the Zweitstimme of the present election, and column 4 to the Zweitstimme of the previous election. For example, &lsquo;CDU_3&rsquo; refers to the number of Zweitstimmen in the present (2017) elections.</p>
+
+<p>That is:</p>
+
+<ul>
+<li>&ldquo;<code>_1</code>&rdquo; - first vote in present election</li>
+<li>&ldquo;<code>_2</code>&rdquo; - first vote in previous election</li>
+<li>&ldquo;<code>_3</code>&rdquo; - second vote in present election</li>
+<li>&ldquo;<code>_4</code>&rdquo; - second vote in previous election</li>
+</ul>
+
+<p>Please also check the package documentation for additional information.</p>
+
+<h2 id="geometric-shapes-of-the-electoroal-districts-wahlkreise">Geometric shapes of the electoroal districts (Wahlkreise)</h2>
+
+<ul>
+<li><code>wahlkreise_shp</code> - a dataframe with ID of the Wahlkreise (electoral districts) plus their geometric shape for plotting</li>
+</ul>
+
+<pre><code class="language-r">data(wahlkreise_shp)
+glimpse(wahlkreise_shp)
+#&gt; Observations: 299
+#&gt; Variables: 5
+#&gt; $ WKR_NR    &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1...
+#&gt; $ LAND_NR   &lt;fctr&gt; 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 13, 13,...
+#&gt; $ LAND_NAME &lt;fctr&gt; Schleswig-Holstein, Schleswig-Holstein, Schleswig-H...
+#&gt; $ WKR_NAME  &lt;fctr&gt; Flensburg – Schleswig, Nordfriesland – Dithmarschen...
+#&gt; $ geometry  &lt;S3: sfc_MULTIPOLYGON&gt; [543474.9, 547528.6, 547598.2, 5479...
+</code></pre>
+
+<p>See <a href="https://sebastiansauer.github.io/afd-map/">this post</a> for a usecase of the shapefile data.</p>
+
+<h2 id="socioeconomic-data-of-germany">Socioeconomic data of Germany</h2>
+
+<ul>
+<li><code>socec</code> - a dataframe with socio economic information (eg., unemployment rate) for each wahlkreis.</li>
+</ul>
+
+<pre><code class="language-r">data(socec)
+head(socec)
+#&gt; # A tibble: 6 x 51
+#&gt;                   V1    V2                                V3    V4     V5
+#&gt;                &lt;chr&gt; &lt;int&gt;                             &lt;chr&gt; &lt;int&gt;  &lt;dbl&gt;
+#&gt; 1 Schleswig-Holstein     1             Flensburg – Schleswig   130 2128.1
+#&gt; 2 Schleswig-Holstein     2 Nordfriesland – Dithmarschen Nord   197 2777.0
+#&gt; 3 Schleswig-Holstein     3      Steinburg – Dithmarschen Süd   178 2000.5
+#&gt; 4 Schleswig-Holstein     4             Rendsburg-Eckernförde   163 2164.8
+#&gt; 5 Schleswig-Holstein     5                              Kiel     3  143.0
+#&gt; 6 Schleswig-Holstein     6                 Plön – Neumünster    92 1302.0
+#&gt; # ... with 46 more variables: V6 &lt;dbl&gt;, V7 &lt;dbl&gt;, V8 &lt;dbl&gt;, V9 &lt;dbl&gt;,
+#&gt; #   V10 &lt;dbl&gt;, V11 &lt;dbl&gt;, V12 &lt;dbl&gt;, V13 &lt;dbl&gt;, V14 &lt;dbl&gt;, V15 &lt;dbl&gt;,
+#&gt; #   V16 &lt;dbl&gt;, V17 &lt;dbl&gt;, V18 &lt;dbl&gt;, V19 &lt;dbl&gt;, V20 &lt;dbl&gt;, V21 &lt;dbl&gt;,
+#&gt; #   V22 &lt;dbl&gt;, V23 &lt;dbl&gt;, V24 &lt;dbl&gt;, V25 &lt;dbl&gt;, V26 &lt;int&gt;, V27 &lt;int&gt;,
+#&gt; #   V28 &lt;dbl&gt;, V29 &lt;chr&gt;, V30 &lt;dbl&gt;, V31 &lt;dbl&gt;, V32 &lt;dbl&gt;, V33 &lt;dbl&gt;,
+#&gt; #   V34 &lt;dbl&gt;, V35 &lt;dbl&gt;, V36 &lt;dbl&gt;, V37 &lt;dbl&gt;, V38 &lt;dbl&gt;, V39 &lt;chr&gt;,
+#&gt; #   V40 &lt;chr&gt;, V41 &lt;chr&gt;, V42 &lt;chr&gt;, V43 &lt;dbl&gt;, V44 &lt;dbl&gt;, V45 &lt;dbl&gt;,
+#&gt; #   V46 &lt;dbl&gt;, V47 &lt;dbl&gt;, V48 &lt;dbl&gt;, V49 &lt;dbl&gt;, V50 &lt;dbl&gt;, V51 &lt;dbl&gt;
+</code></pre>
+
+<p>The names of the indicators can be accessed via the dictionary <code>socec_dict</code> or via the documentation of <code>socec</code>. In addition, of course, the Bundeswahlleiter provides this information.</p>
+
+<pre><code class="language-r">data(socec_dict)
+glimpse(socec_dict)
+</code></pre>
+
+<h1 id="use-case">Use case</h1>
+
+<p>You can use the data eg., for determining association of right-wing (AfD) results with unemployment rate per electoral district - see <a href="https://sebastiansauer.github.io/afd-map-foreigners/">here</a> for an example.</p>
+
+<p>Of course those data can easily be saved as csv:</p>
+
+<pre><code class="language-r">write_csv(elec_results, path = &quot;elec_results.csv&quot;)
+write_csv(socec, path = &quot;socec.csv&quot;)
+write_csv(parties_de, path = &quot;parties_de.csv&quot;)
+write_csv(wahlkreise_shp, path = &quot;wahlkreise_shp.csv&quot;)
+</code></pre>
+
+<p>Watch our for <code>wahlkreise_shp</code> though as it contains a list column.</p>
+
+<h1 id="data-at-osf-io">Data at osf.io</h1>
+
+<p>The <a href="https://osf.io">Open Science Framework</a> is a great place to store data openly. You can easily access the data from that source, too. Look at <a href="https://osf.io/2yhr9/">this repository</a>.</p>
+
+<p>Data are provided in csv and RData form.</p>
+
+<h1 id="concluding">Concluding</h1>
+
+<p>It was quite fun to me to play around with the data, and I think quite some valuable insights can be inferred. Of course, electoral data has a unique value as it features the most important action of a democracy.</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

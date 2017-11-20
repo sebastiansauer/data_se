@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Einführung in die Datenanalyse mit R-Paket &#39;dplyr&#39; - R User Group Nürnberg - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Einführung in die Datenanalyse mit R-Paket &#39;dplyr&#39; - R User Group Nürnberg - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">26 min read</span>
+    
+
+    <h1 class="article-title">Einführung in die Datenanalyse mit R-Paket &#39;dplyr&#39; - R User Group Nürnberg</h1>
+
+    
+    <span class="article-date">2017/04/27</span>
+    
+
+    <div class="article-content">
+      
+
+<h1 id="datenjudo-mit-dplyr">Datenjudo mit <code>dplyr</code></h1>
+
+<h2 id="einleitung">Einleitung</h2>
+
+<p>Innerhalb der R-Landschaft hat sich das Paket <a href="https://cran.r-project.org/web/packages/dplyr/index.html">dplyr</a> binnen kurzer Zeit zu einem der verbreitesten
+Pakete entwickelt; es stellt ein innovatives Konzept der Datenanalyse
+zur Verfügung. dplyr zeichnet sich durch zwei Ideen aus. Die erste Idee ist, dass
+nur Tabellen (&ldquo;dataframes&rdquo; oder &ldquo;tibbles&rdquo;) verarbeitet werden, keine anderen Datenstrukturen. Diese Tabellen werden
+von Funktion zu Funktion durchgereicht. Der Fokus auf Tabellen vereinfacht die
+Analyse, da Spalten nicht einzeln oder mittels Schleifen werden müssen. Die zweite Idee ist, typische Tätigkeiten der Datenanalyse
+anhand einer Taxonomie zu &ldquo;grammatikalisieren&rdquo;. Es lassen sich einige Bausteine identifizieren, mit der die typischen Aufgaben der Datenanalyse durchgeführt werden können. Der Workshop stellt beide Ideen von dplyr vor; dabei wird zuerst die Logik von dplyr erläutert ohne Rückgriff auf die R-Syntax. Danach wird die Funktionsweise von <code>dpyr</code> praktisch eingeübt. Der Workshop dauert ca. 90-120 Minuten. Grundkenntnisse in R werden vorausgesetzt.</p>
+
+<h2 id="organisatorisches">Organisatorisches</h2>
+
+<p>Bitte bringen Sie einen Comptuer zur Veranstaltung mit. Folgende Software nutzen wir im Workshop; bitte vorab installieren:</p>
+
+<ul>
+<li>R und RStudio</li>
+<li>R-Pakete <code>tidyverse</code>, <code>nycflights13</code>, <code>reshape2</code></li>
+</ul>
+
+<pre><code class="language-r">library(tidyverse)  # Datenjudo
+library(reshape2)  # Daten klein
+library(nycflights13)  # Daten groß
+library(okcupiddata)  # Daten groß
+</code></pre>
+
+<p>Außerdem laden wir noch einen Datensatz herunter; bitte stellen Sie eine Internetverbindung sicher.</p>
+
+<p>Das Paket <code>tidyverse</code> lädt <code>dplyr</code>, <code>ggplot2</code> und weitere Pakete (für eine Liste s. <code>tidyverse_packages(include_self = TRUE)</code>). Daher ist es komfortabler, <code>tidyverse</code> zu laden, damit spart man sich Tipparbeit. Die eigentliche Funktionalität, die wir in diesem Kapitel nutzen, kommt aus dem Paket <code>dplyr</code>.</p>
+
+<p>Mit <em>Datenjudo</em> ist gemeint, die Daten für die eigentliche Analyse &ldquo;aufzubereiten&rdquo;. Unter <em>Aufbereiten</em> ist hier das Umformen, Prüfen, Bereinigen, Gruppieren und Zusammenfassen von Daten gemeint. Die deskriptive Statistik fällt unter die Rubrik Aufbereiten. Kurz gesagt: Alles, wan tut, nachdem die Daten &ldquo;da&rdquo; sind und bevor man mit anspruchsvoller(er) Modellierung beginnt.</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-27/Datenjudo/Aufbereiten.pdf" title="Daten aufbereiten" alt="Daten aufbereiten" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Ist das Aufbereiten von Daten auch nicht statistisch anspruchsvoll, so ist es trotzdem von großer Bedeutung und häufig recht zeitintensiv. Eine Anekdote zur Relevanz der Datenaufbereitung, die (so will es die Geschichte) mir an einer Bar nach einer einschlägigen Konferenz erzählt wurde (daher keine Quellenangebe, Sie verstehen&hellip;). Eine Computerwissenschaftlerin aus den USA (deutschen Ursprungs) hatte einen beeindruckenden &ldquo;Track Record&rdquo; an Siegen in Wettkämpfen der Datenanalyse. Tatsächlich hatte sie keine besonderen, raffinierten Modellierungstechniken eingesetzt; klassische Regression war ihre Methode der Wahl. Bei einem Wettkampf, bei dem es darum ging, Krebsfälle aus Krankendaten vorherzusagen (z.B. von Röntgenbildern) fand sie nach langem Datenjudo heraus, dass in die &ldquo;ID-Variablen&rdquo; Information gesickert war, die dort nicht hingehörte und die sie nutzen konnte für überraschend (aus Sicht der Mitstreiter) gute Vorhersagen zu Krebsfällen. Wie war das möglich? Die Daten stammten aus mehreren Kliniken, jede Klinik verwendete ein anderes System, um IDs für Patienten zu erstellen. Überall waren die IDs stark genug, um die Anonymität der Patienten sicherzustellen, aber gleich wohl konnte man (nach einigem Judo) unterscheiden, welche ID von welcher Klinik stammte. Was das bringt? Einige Kliniken waren reine Screening-Zentren, die die Normalbevölkerung versorgte. Dort sind wenig Krebsfälle zu erwarten. Andere Kliniken jedoch waren Onkologie-Zentren für bereits bekannte Patienten oder für Patienten mit besonderer Risikolage. Wenig überraschen, dass man dann höhere Krebsraten vorhersagen kann. Eigentlich ganz einfach; besondere Mathe steht hier (zumindest in dieser Geschichte) nicht dahinter. Und, wenn man den Trick kennt, ganz einfach. Aber wie so oft ist es nicht leicht, den Trick zu finden. Sorgfältiges Datenjudo hat hier den Schlüssel zum Erfolg gebracht.</p>
+
+<h2 id="typische-probleme">Typische Probleme</h2>
+
+<p>Bevor man seine Statistik-Trickkiste so richtig schön aufmachen kann, muss man die Daten häufig erst noch in Form bringen. Das ist nicht schwierig in dem Sinne, dass es um komplizierte Mathe ginge. Allerdings braucht es mitunter recht viel Zeit und ein paar (oder viele) handwerkliche Tricks sind hilfreich. Hier soll das folgende Kapitel helfen.</p>
+
+<!-- Mit "Datenjudo" (ein Fachbegriff aus der östlichen Zahlentheorie) ist gemeint, die Daten so "umzuformen", "aufzubereiten", oder "reinigen" , dass sie passend für statistische Analysen sind.  -->
+
+<p>Einige typische Probleme, die immer wieder auftreten, sind:</p>
+
+<ul>
+<li><em>Fehlende Werte</em>: Irgend jemand hat auf eine meiner schönen Fragen in der Umfrage nicht geantwortet!</li>
+<li><em>Unerwartete Daten</em>: Auf die Frage, wie viele Facebook-Freunde er oder sie habe, schrieb die Person &ldquo;I like you a lot&rdquo;. Was tun???</li>
+<li><em>Daten müssen umgeformt werden</em>: Für jede der beiden Gruppen seiner Studie hat Joachim einen Google-Forms-Fragebogen aufgesetzt. Jetzt hat er zwei Tabellen, die er &ldquo;verheiraten&rdquo; möchte. Geht das?</li>
+<li><em>Neue Variablen (Spalten) berechnen</em>: Ein Student fragt nach der Anzahl der richtigen Aufgaben in der Statistik-Probeklausur. Wir wollen helfen und im entsprechenden Datensatz eine Spalte erzeugen, in der pro Person die Anzahl der richtig beantworteten Fragen steht.</li>
+</ul>
+
+<h2 id="daten-aufbereiten-mit-dplyr">Daten aufbereiten mit <code>dplyr</code></h2>
+
+<p>Es gibt viele Möglichkeiten, Daten mit R aufzubereiten; <a href="https://cran.r-project.org/web/packages/dplyr/index.html">dplyr</a> ist ein populäres Paket dafür. Eine zentrale Idee von <code>dplyr</code> ist, dass es nur ein paar wenige Grundbausteine geben sollte, die sich gut kombinieren lassen. Sprich: Wenige grundlegende Funktionen mit eng umgrenzter Funktionalität. Der Autor, Hadley Wickham, sprach einmal in einem Forum (citation needed), dass diese Befehle wenig können, das Wenige aber gut. Ein Nachteil dieser Konzeption kann sein, dass man recht viele dieser Bausteine kombinieren muss, um zum gewünschten Ergebnis zu kommen. Außerdem muss man die Logik des Baukastens gut verstanden habe - die Lernkurve ist also erstmal steiler. Dafür ist man dann nicht darauf angewiesen, dass es irgendwo &ldquo;Mrs Right&rdquo; gibt, die genau das kann, was ich will. Außerdem braucht man sich auch nicht viele Funktionen merken. Es reicht einen kleinen Satz an Funktionen zu kennen (die praktischerweise konsistent in Syntax und Methodik sind).</p>
+
+<p>Willkommen in der Welt von <code>dyplr</code>! <code>dplyr</code> hat seinen Namen, weil es sich ausschließlich um *D*ataframes bemüht; es erwartet einen Dataframe als Eingabe und gibt einen Dataframe zurück (zumindest bei den meisten Befehlen).</p>
+
+<h3 id="die-zwei-prinzipien-von-dplyr">Die zwei Prinzipien von <code>dplyr</code></h3>
+
+<p>Es gibt viele Möglichkeiten, Daten mit R aufzubereiten; <code>dplyr</code><sup class="footnote-ref" id="fnref:https-cran-r-pro"><a rel="footnote" href="#fn:https-cran-r-pro">1</a></sup> ist ein populäres Paket dafür. <code>dplyr</code> basiert auf zwei Ideen:</p>
+
+<ol>
+<li><em>Lego-Prinzip</em> Komplexe Datenanalysen in Bausteine zerlegen (</li>
+<li><em>Durchpfeifen</em>: Alle Operationen werden nur auf Dataframes angewendet; jede Operation erwartet einen Dataframe als Eingabe und gibt wieder einen Dataframe aus .</li>
+</ol>
+
+<p>Das <em>erste Prinzip</em> von <code>dplyr</code> ist, dass es nur ein paar <em>wenige Grundbausteine</em> geben sollte, die sich gut kombinieren lassen. Sprich: Wenige grundlegende Funktionen mit eng umgrenzter Funktionalität. Der Autor, Hadley Wickham, sprach einmal in einem Forum (citation needed&hellip;), dass diese Befehle wenig können, das Wenige aber gut. Ein Nachteil dieser Konzeption kann sein, dass man recht viele dieser Bausteine kombinieren muss, um zum gewünschten Ergebnis zu kommen. Außerdem muss man die Logik des Baukastens gut verstanden habe - die Lernkurve ist also erstmal steiler. Dafür ist man dann nicht darauf angewiesen, dass es irgendwo &ldquo;Mrs Right&rdquo; gibt, die genau das kann, was ich will. Außerdem braucht man sich auch nicht viele Funktionen merken. Es reicht einen kleinen Satz an Funktionen zu kennen (die praktischerweise konsistent in Syntax und Methodik sind). Diese Bausteine sind typische Tätigkeiten im Umgang mit Daten; nichts Überraschendes. Wir schauen wir uns diese Bausteine gleich näher an.</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-27/Datenjudo/Bausteine_dplyr_crop.pdf" title="Lego-Prinzip: Zerlege eine komplexe Struktur in einfache Bausteine" alt="Lego-Prinzip: Zerlege eine komplexe Struktur in einfache Bausteine" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Das <em>zweite Prinzip</em> von <code>dplyr</code> ist es, einen Dataframe von Operation zu Operation <em>durchzureichen.</em> <code>dplyr</code> arbeitet also <em>nur</em> mit Dataframes. Jeder Arbeitsschritt bei <code>dplyr</code> erwartet einen Dataframe als Eingabe und gibt im Gegenzug wieder einen Dataframe aus.</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-27/Datenjudo/durchpfeifen_allgemein_crop.pdf" title="Durchpfeifen: Ein Dataframe wird von Operation zu Operation weitergereicht" alt="Durchpfeifen: Ein Dataframe wird von Operation zu Operation weitergereicht" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Werfen wir einen Blick auf ein paar typische Bausteine von <code>dplyr</code>.</p>
+
+<h2 id="zentrale-bausteine-von-dplyr">Zentrale Bausteine von <code>dplyr</code></h2>
+
+<h3 id="zeilen-filtern-mit-filter">Zeilen filtern mit <code>filter</code></h3>
+
+<p>Häufig will man bestimmte Zeilen aus einer Tabelle filtern; <code>filter</code>. Zum Beispiel man arbeitet für die Zigarettenindustrie und ist nur an den Rauchern interessiert, nicht an Nicht-Rauchern; es sollen die nur Umsatzzahlen des letzten Quartals untersucht werden, nicht die vorherigen Quartale; es sollen nur die Daten aus Labor X (nicht Labor Y) ausgewertet werden etc.</p>
+
+<p>Ein Sinnbild:</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-27/Datenjudo/filter.pdf" title="Zeilen filtern" alt="Zeilen filtern" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Merke:</p>
+
+<blockquote>
+<p>Die Funktion <code>filter</code> filtert Zeilen aus einem Dataframe.</p>
+</blockquote>
+
+<p>Schauen wir uns einige Beispiel an; zuerst die Daten laden nicht vergessen. Achtung: &ldquo;Wohnen&rdquo; die Daten in einem Paket, muss dieses Paket installiert sein, damit man auf die Daten zugreifen kann.</p>
+
+<pre><code class="language-r">data(profiles, package = &quot;okcupiddata&quot;)  # Das Paket muss installiert sein
+</code></pre>
+
+<pre><code class="language-r">df_frauen &lt;- filter(profiles, sex == &quot;f&quot;)  # nur die Frauen
+df_alt &lt;- filter(profiles, age &gt; 70)  # nur die alten
+df_alte_frauen &lt;- filter(profiles, age &gt; 70, sex == &quot;f&quot;)  # nur die alten Frauen, d.h. UND-Verknüpfung
+df_nosmoke_nodrinks &lt;- filter(profiles, smokes == &quot;no&quot; | drinks == &quot;not at all&quot;) 
+# liefert alle Personen, die Nicht-Raucher *oder* Nicht-Trinker sind
+</code></pre>
+
+<p>Gar nicht so schwer, oder? Allgemeiner gesprochen werden diejenigen Zeilen gefiltert (also behalten bzw. zurückgeliefert), für die das Filterkriterium <code>TRUE</code> ist.</p>
+
+<pre><code>Manche Befehle wie `filter` haben einen Allerweltsnamen; gut möglich, dass ein Befehl mit gleichem Namen in einem anderen (geladenen) Paket existiert. Das kann dann zu Verwirrungen führen - und kryptischen Fehlern. Im Zweifel den Namen des richtigen Pakets ergänzen, und zwar zum Beispiel so: `dplyr::filter(...)`.
+</code></pre>
+
+<h4 id="aufgaben-f-r-f-f-r">Aufgaben F, R, F, F, R</h4>
+
+<pre><code>Richtig oder Falsch!?
+
+1. `filter` filtert Spalten.
+1. `filter` ist eine Funktion aus dem Paket `dplyr`.
+1. `filter` erwartet als ersten Parameter das Filterkriterium.
+1. `filter` lässt nur ein Filterkriterium zu.
+1. Möchte man aus dem Datensatz `profiles` (`okcupiddata`) die Frauen filtern, so ist folgende Syntax korrekt: `filter(profiles, sex == &quot;f&quot;)´.
+</code></pre>
+
+<p>Lösung: F, R, F, F, R</p>
+
+<h4 id="vertiefung-fortgeschrittene-beispiele-für-filter">Vertiefung: Fortgeschrittene Beispiele für <code>filter</code></h4>
+
+<p>Einige fortgeschrittene Beispiele für <code>filter</code>:</p>
+
+<p>Man kann alle Elemente (Zeilen) filtern, die zu einer Menge gehören und zwar mit diesem Operator: <code>%in%</code>:</p>
+
+<pre><code class="language-r">filter(profiles, body_type %in% c(&quot;a little extra&quot;, &quot;average&quot;))
+</code></pre>
+
+<p>Besonders Textdaten laden zu einigen Extra-Überlegungen ein; sagen wir, wir wollen alle Personen filtern, die Katzen bei den Haustieren erwähnen. Es soll reichen, wenn <code>cat</code> ein Teil des Textes ist; also <code>likes dogs and likes cats</code> wäre OK (soll gefiltert werden). Dazu nutzen wir ein Paket zur Bearbeitung von Strings (Textdaten):</p>
+
+<pre><code class="language-r">
+filter(profiles, str_detect(pets, &quot;cats&quot;))
+</code></pre>
+
+<p>Ein häufiger Fall ist, Zeilen <em>ohne</em> fehlende Werte (<code>NA</code>s) zu filtern. Das geht einfach:</p>
+
+<pre><code class="language-r">profiles_keine_nas &lt;- na.omit(profiles)
+
+</code></pre>
+
+<p>Aber was ist, wenn wir nur bei bestimmten Spalten wegen fehlender Werte besorgt sind? Sagen wir bei <code>income</code> und bei <code>sex</code>:</p>
+
+<pre><code class="language-r">filter(profiles, !is.na(income) | !is.na(sex))
+</code></pre>
+
+<h3 id="spalten-wählen-mit-select">Spalten wählen mit <code>select</code></h3>
+
+<p>Das Gegenstück zu <code>filter</code> ist <code>select</code>; dieser Befehl liefert die gewählten Spalten zurück. Das ist häufig praktisch, wenn der Datensatz sehr &ldquo;breit&rdquo; ist, also viele Spalten enthält. Dann kann es übersichtlicher sein, sich nur die relevanten auszuwählen. Das Sinnbild für diesen Befehl:</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-27/Datenjudo/select.pdf" title="Spalten auswählen" alt="Spalten auswählen" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Merke:</p>
+
+<blockquote>
+<p>Die Funktion <code>select</code> wählt Spalten aus einem Dataframe aus.</p>
+</blockquote>
+
+<p>Laden wir als ersten einen Datensatz.</p>
+
+<pre><code class="language-r">stats_test &lt;- read.csv(&quot;https://sebastiansauer.github.io/data/test_inf_short.csv&quot;)
+</code></pre>
+
+<p>Dieser Datensatz beinhaltet Daten zu einer Statistikklausur.</p>
+
+<pre><code class="language-r">select(stats_test, score)  # Spalte `score` auswählen
+select(stats_test, score, study_time)  # Splaten `score` und `study_time` auswählen
+select(stats_test, score:study_time) # dito
+select(stats_test, 5:6) Spalten 5 bis 6 auswählen
+</code></pre>
+
+<p>Tatsächlich ist der Befehl <code>select</code> sehr flexibel; es gibt viele Möglichkeiten, Spalten auszuwählen. Im <code>dplyr</code>-Cheatsheet findet sich ein guter Überblick dazu.</p>
+
+<h4 id="aufgaben">Aufgaben</h4>
+
+<pre><code>Richtig oder Falsch!?
+
+1. `select` wählt *Zeilen* aus.
+1. `select` ist eine Funktion aus dem Paket `knitr`.
+1. Möchte man zwei Spalten auswählen, so ist folgende Syntax prinzipiell korrekt: `select(df, spalte1, spalte2)`.
+1. Möchte man Spalten 1 bis 10 auswählen, so ist folgende Syntax prinzipiell korrekt: `select(df, spalte1:spalte10)
+1. Mit `select` können Spalten nur bei ihrem Namen, aber nicht bei ihrer Nummer aufgerufen werden.
+
+
+</code></pre>
+
+<p>Lösung: F, F, R, R, F</p>
+
+<h3 id="zeilen-sortieren-mit-arrange">Zeilen sortieren mit <code>arrange</code></h3>
+
+<p>Man kann zwei Arten des Umgangs mit R unterscheiden: Zum einen der &ldquo;interaktive Gebrauch&rdquo; und zum anderen &ldquo;richtiges Programmieren&rdquo;. Im interaktiven Gebrauch geht es uns darum, die Fragen zum aktuell vorliegenden Datensatz (schnell) zu beantworten. Es geht nicht darum, eine allgemeine Lösung zu entwickeln, die wir in die Welt verschicken können und die dort ein bestimmtes Problem löst, ohne dass der Entwickler (wir) dabei Hilfestellung geben muss. &ldquo;Richtige&rdquo; Software, wie ein R-Paket oder Microsoft Powerpoint, muss diese Erwartung erfüllen; &ldquo;richtiges Programmieren&rdquo; ist dazu vonnöten. Natürlich sind in diesem Fall die Ansprüche an die Syntax (der &ldquo;Code&rdquo;, hört sich cooler an) viel höher. In dem Fall muss man alle Eventualitäten voraussehen und sicherstellen, dass das Programm auch beim merkwürdigsten Nutzer brav seinen Dienst tut. Wir haben hier, beim interaktiven Gebrauch, niedrigere Ansprüche bzw. andere Ziele.</p>
+
+<p>Beim interaktiven Gebrauch von R (oder beliebigen Analyseprogrammen) ist das Sortieren von Zeilen eine recht häufige Tätigkeit. Typisches Beispiel wäre der Lehrer, der eine Tabelle mit Noten hat und wissen will, welche Schüler die schlechtesten oder die besten sind in einem bestimmten Fach. Oder bei der Prüfung der Umsätze nach Filialen möchten wir die umsatzstärksten sowie -schwächsten Niederlassungen kennen.</p>
+
+<p>Ein R-Befehl hierzu ist <code>arrange</code>; einige Beispiele zeigen die Funktionsweise am besten:</p>
+
+<pre><code class="language-r">
+arrange(stats_test, score) # liefert die *schlechtesten* Noten zuerst zurück
+arrange(stats_test, -score) # liefert die *besten* Noten zuerst zurück
+arrange(stats_test, interest, score)
+</code></pre>
+
+<pre><code>#&gt;     X                 V_1 study_time self_eval interest score
+#&gt; 1 234 23.01.2017 18:13:15          3         1        1    17
+#&gt; 2   4 06.01.2017 09:58:05          2         3        2    18
+#&gt; 3 131 19.01.2017 18:03:45          2         3        4    18
+#&gt; 4 142 19.01.2017 19:02:12          3         4        1    18
+#&gt; 5  35 12.01.2017 19:04:43          1         2        3    19
+#&gt; 6  71 15.01.2017 15:03:29          3         3        3    20
+#&gt;    X                 V_1 study_time self_eval interest score
+#&gt; 1  3 05.01.2017 23:33:47          5        10        6    40
+#&gt; 2  7 06.01.2017 14:25:49         NA        NA       NA    40
+#&gt; 3 29 12.01.2017 09:48:16          4        10        3    40
+#&gt; 4 41 13.01.2017 12:07:29          4        10        3    40
+#&gt; 5 58 14.01.2017 15:43:01          3         8        2    40
+#&gt; 6 83 16.01.2017 10:16:52         NA        NA       NA    40
+#&gt;     X                 V_1 study_time self_eval interest score
+#&gt; 1 234 23.01.2017 18:13:15          3         1        1    17
+#&gt; 2 142 19.01.2017 19:02:12          3         4        1    18
+#&gt; 3 221 23.01.2017 11:40:30          1         1        1    23
+#&gt; 4 230 23.01.2017 16:27:49          1         1        1    23
+#&gt; 5  92 17.01.2017 17:18:55          1         1        1    24
+#&gt; 6 107 18.01.2017 16:01:36          3         2        1    24
+</code></pre>
+
+<p>Einige Anmerkungen. Die generelle Syntax lautet <code>arrange(df, Spalte1, ...)</code>, wobei <code>df</code> den Dataframe bezeichnet und <code>Spalte1</code> die erste zu sortierende Spalte; die Punkte <code>...</code> geben an, dass man weitere Parameter übergeben kann. Man kann sowohl numerische Spalten als auch Textspalten sortieren. Am wichtigsten ist hier, dass man weitere Spalten übergeben kann. Dazu gleich mehr.</p>
+
+<p>Standardmäßig sortiert <code>arrange</code> <em>aufsteigend</em>  (weil kleine Zahlen im Zahlenstrahl vor den großen Zahlen kommen). Möchte man diese Reihenfolge umdrehen (große Werte zuert, d.h. <em>absteigend</em>), so kann man ein Minuszeichen vor den Namen der Spalte setzen.</p>
+
+<p>Gibt man <em>zwei oder mehr</em> Spalten an, so werden pro Wert von <code>Spalte1</code> die Werte von <code>Spalte2</code> sortiert etc; man betrachte den Output des Beispiels oben dazu.</p>
+
+<p>Merke:</p>
+
+<blockquote>
+<p>Die Funktion arrange sortiert die Zeilen eines Datafames.</p>
+</blockquote>
+
+<p>Ein Sinnbild zur Verdeutlichung:</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-27/Datenjudo/arrange.pdf" title="Spalten sortieren" alt="Spalten sortieren" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Ein ähnliches Ergebnis erhält mit man <code>top_n()</code>, welches die <code>n</code> <em>größten Ränge</em> widergibt:</p>
+
+<pre><code class="language-r">
+top_n(stats_test, 3)
+#&gt;      X                 V_1 study_time self_eval interest score
+#&gt; 1    3 05.01.2017 23:33:47          5        10        6    40
+#&gt; 2    7 06.01.2017 14:25:49         NA        NA       NA    40
+#&gt; 3   29 12.01.2017 09:48:16          4        10        3    40
+#&gt; 4   41 13.01.2017 12:07:29          4        10        3    40
+#&gt; 5   58 14.01.2017 15:43:01          3         8        2    40
+#&gt; 6   83 16.01.2017 10:16:52         NA        NA       NA    40
+#&gt; 7  116 18.01.2017 23:07:32          4         8        5    40
+#&gt; 8  119 19.01.2017 09:05:01         NA        NA       NA    40
+#&gt; 9  132 19.01.2017 18:22:32         NA        NA       NA    40
+#&gt; 10 175 20.01.2017 23:03:36          5        10        5    40
+#&gt; 11 179 21.01.2017 07:40:05          5         9        1    40
+#&gt; 12 185 21.01.2017 15:01:26          4        10        5    40
+#&gt; 13 196 22.01.2017 13:38:56          4        10        5    40
+#&gt; 14 197 22.01.2017 14:55:17          4        10        5    40
+#&gt; 15 248 24.01.2017 16:29:45          2        10        2    40
+#&gt; 16 249 24.01.2017 17:19:54         NA        NA       NA    40
+#&gt; 17 257 25.01.2017 10:44:34          2         9        3    40
+#&gt; 18 306 27.01.2017 11:29:48          4         9        3    40
+top_n(stats_test, 3, interest)
+#&gt;     X                 V_1 study_time self_eval interest score
+#&gt; 1   3 05.01.2017 23:33:47          5        10        6    40
+#&gt; 2   5 06.01.2017 14:13:08          4         8        6    34
+#&gt; 3  43 13.01.2017 14:14:16          4         8        6    36
+#&gt; 4  65 15.01.2017 12:41:27          3         6        6    22
+#&gt; 5 110 18.01.2017 18:53:02          5         8        6    37
+#&gt; 6 136 19.01.2017 18:22:57          3         1        6    39
+#&gt; 7 172 20.01.2017 20:42:46          5        10        6    34
+#&gt; 8 214 22.01.2017 21:57:36          2         6        6    31
+#&gt; 9 301 27.01.2017 08:17:59          4         8        6    33
+</code></pre>
+
+<p>Gibt man <em>keine</em> Spalte an, so bezieht sich <code>top_n</code> auf die letzte Spalte im Datensatz.</p>
+
+<p>Da sich hier mehrere Personen den größten Rang (Wert 40) teilen, bekommen wir <em>nicht</em> 3 Zeilen zurückgeliefert, sondern entsprechend mehr.</p>
+
+<h4 id="aufgaben-1">Aufgaben</h4>
+
+<pre><code>Richtig oder Falsch!?
+
+1. `arrange` arrangiert Spalten.
+1. `arrange` sortiert im Standard absteigend.
+1. `arrange` lässt nur ein Sortierkriterium zu.
+1. `arrange` kann numerische Werte, aber nicht Zeichenketten sortieren.
+1. `top_n(5)` liefert die fünf kleinsten Ränge.
+</code></pre>
+
+<p>Lösung: F, F, F, F, R</p>
+
+<h3 id="datensatz-gruppieren-mit-group-by">Datensatz gruppieren mit <code>group_by</code></h3>
+
+<p>Einen Datensatz zu gruppieren ist eine häufige Angelegenheit: Was ist der mittlere Umsatz in Region X im Vergleich zu Region Y? Ist die Reaktionszeit in der Experimentalgruppe kleiner als in der Kontrollgruppe? Können Männer schneller ausparken als Frauen? Man sieht, dass das Gruppieren v.a. in Verbindung mit Mittelwerten oder anderen Zusammenfassungen sinnvol ist; dazu im nächsten Abschnitt mehr.</p>
+
+<blockquote>
+<p>Gruppieren meint, einen Datensatz anhand einer diskreten Variablen (z.B. Geschlecht) so aufzuteilen, dass Teil-Datensätze entstehen - pro Gruppe ein Teil-Datensatz (z.B. Mann vs. Frau).</p>
+</blockquote>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-27/Datenjudo/group_by.pdf" title="Datensätze nach Subgruppen aufteilen" alt="Datensätze nach Subgruppen aufteilen" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>In der Abbildung wurde der Datensatz anhand der Spalte <code>Fach</code> in mehrere Gruppen geteilt. Wir könnten uns als nächstes z.B. Mittelwerte pro Fach - d.h. pro Gruppe (pro Ausprägung von <code>Fach</code>) - ausgeben lassen; in diesem Fall vier Gruppen (Fach A bis D).</p>
+
+<pre><code class="language-r">test_gruppiert &lt;- group_by(stats_test, interest)
+test_gruppiert
+#&gt; Source: local data frame [306 x 6]
+#&gt; Groups: interest [7]
+#&gt; 
+#&gt;        X                 V_1 study_time self_eval interest score
+#&gt;    &lt;int&gt;              &lt;fctr&gt;      &lt;int&gt;     &lt;int&gt;    &lt;int&gt; &lt;int&gt;
+#&gt; 1      1 05.01.2017 13:57:01          5         8        5    29
+#&gt; 2      2 05.01.2017 21:07:56          3         7        3    29
+#&gt; 3      3 05.01.2017 23:33:47          5        10        6    40
+#&gt; 4      4 06.01.2017 09:58:05          2         3        2    18
+#&gt; 5      5 06.01.2017 14:13:08          4         8        6    34
+#&gt; 6      6 06.01.2017 14:21:18         NA        NA       NA    39
+#&gt; 7      7 06.01.2017 14:25:49         NA        NA       NA    40
+#&gt; 8      8 06.01.2017 17:24:53          2         5        3    24
+#&gt; 9      9 07.01.2017 10:11:17          2         3        5    25
+#&gt; 10    10 07.01.2017 18:10:05          4         5        5    33
+#&gt; # ... with 296 more rows
+</code></pre>
+
+<p>Schaut man sich nun den Datensatz an, sieht man erstmal wenig Effekt der Gruppierung. R teilt uns lediglich mit <code>Groups: interest [7]</code>, dass es 7 Gruppen gibt, aber es gibt keine extra Spalte oder sonstige Anzeichen der Gruppierung. Aber keine Sorge, wenn wir gleich einen Mittelwert ausrechnen, bekommen wir den Mittelwert pro Gruppe!</p>
+
+<p>Ein paar Hinweise: <code>Source: local data frame [306 x 6]</code> will sagen, dass die Ausgabe sich auf einen <code>tibble</code> bezieht (siehe Details <a href="http://stackoverflow.com/questions/29084380/what-is-the-meaning-of-the-local-data-frame-message-from-dplyrprint-tbl-df">hier</a>), also eine bestimmte Art von Dataframe. <code>Groups: interest [7]</code> zeigt, dass der Tibble in 7 Gruppen - entsprechend der Werte von <code>interest</code> aufgeteilt ist.</p>
+
+<p><code>group_by</code> an sich ist nicht wirklich nützlich. Nützlich wird es erst, wenn man weitere Funktionen auf den gruppierten Datensatz anwendet - z.B. Mittelwerte ausrechnet (z.B mit <code>summarise</code>, s. unten). Die nachfolgenden Funktionen (wenn sie aus <code>dplyr</code> kommen), berücksichtigen nämlich die Gruppierung. So kann man einfach Mittelwerte pro Gruppe ausrechnen. <code>dplyr</code> kombiniert dann die Zusammenfassungen (z.B. Mittelwerte) der einzelnen Gruppen in einen Dataframe und gibt diesen dann aus.</p>
+
+<p>Die Idee des &ldquo;Gruppieren - Zusammenfassen - Kombinieren&rdquo; ist flexibel; man kann sie häufig brauchen. Es lohnt sich, diese Idee zu lernen (vgl. Abb. \@ref(fig:sac)).</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-27/Datenjudo/sac_crop.pdf" title="Schematische Darstellung des 'Gruppieren - Zusammenfassen - Kombinieren'" alt="Schematische Darstellung des 'Gruppieren - Zusammenfassen - Kombinieren'" width="70%" style="display: block; margin: auto;" /></p>
+
+<h4 id="aufgaben-2">Aufgaben</h4>
+
+<pre><code>Richtig oder Falsch!?
+
+1. Mit `group_by` gruppiert man einen Datensatz.
+1. `group_by` lässt nur ein Gruppierungskriterium zu.
+1. Die Gruppierung durch `group_by` wird nur von Funktionen aus `dplyr` erkannt.
+1. `group_by` ist sinnvoll mit `summarise` zu kombinieren.
+
+
+</code></pre>
+
+<p>Lösung: R, F, R, R</p>
+
+<p>Merke:</p>
+
+<blockquote>
+<p>Mit group_by teilt man einen Datensatz in Gruppen ein, entsprechend der Werte einer mehrerer Spalten.</p>
+</blockquote>
+
+<h3 id="eine-spalte-zusammenfassen-mit-summarise">Eine Spalte zusammenfassen mit <code>summarise</code></h3>
+
+<p>Vielleicht die wichtigste oder häufigte Tätigkeit in der Analyse von Daten ist es, eine Spalte zu <em>einem</em> Wert zusammenzufassen; <code>summarise</code> leistet dies. Anders gesagt: Einen Mittelwert berechnen, den größten (kleinsten) Wert heraussuchen, die Korrelation berechnen oder eine beliebige andere Statistik ausgeben lassen. Die Gemeinsamkeit dieser Operaitonen ist, dass sie eine Spalte zu einem Wert zusammenfassen, &ldquo;aus Spalte mach Zahl&rdquo;, sozusagen. Daher ist der Name des Befehls <code>summarise</code> ganz passend. Genauer gesagt fasst dieser Befehl eine Spalte zu einer Zahl zusammen <em>anhand</em> einer Funktion wie <code>mean</code> oder <code>max</code>. Hierbei ist jede Funktion erlaubt, die eine Spalte als Input verlangt und eine Zahl zurückgibt; andere Funktionen sind bei <code>summarise</code> nicht erlaubt.</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-27/Datenjudo/summarise.pdf" title="Spalten zu einer Zahl zusammenfassen" alt="Spalten zu einer Zahl zusammenfassen" width="70%" style="display: block; margin: auto;" /></p>
+
+<pre><code class="language-r">summarise(stats_test, mean(score))
+#&gt;   mean(score)
+#&gt; 1        31.1
+</code></pre>
+
+<p>Man könnte diesen Befehl so ins Deutsche übersetzen: <code>Fasse aus Tabelle stats_test die Spalte score anhand des Mittelwerts zusammen</code>. Nicht vergessen, wenn die Spalte <code>score</code> fehlende Werte hat, wird der Befehl <code>mean</code> standardmäßig dies mit <code>NA</code> quittieren. Ergänzt man den Parameter <code>nr.rm = TRUE</code>, so ignoriert R fehlende Werte und der Befehl <code>mean</code> liefert ein Ergebnis zurück.</p>
+
+<p>Jetzt können wir auch die Gruppierung nutzen:</p>
+
+<pre><code class="language-r">test_gruppiert &lt;- group_by(stats_test, interest)
+summarise(test_gruppiert, mean(score, na.rm = TRUE))
+#&gt; # A tibble: 7 × 2
+#&gt;   interest `mean(score, na.rm = TRUE)`
+#&gt;      &lt;int&gt;                       &lt;dbl&gt;
+#&gt; 1        1                        28.3
+#&gt; 2        2                        29.7
+#&gt; 3        3                        30.8
+#&gt; 4        4                        29.9
+#&gt; 5        5                        32.5
+#&gt; 6        6                        34.0
+#&gt; 7       NA                        33.1
+</code></pre>
+
+<p>Der Befehl <code>summarise</code> erkennt also, wenn eine (mit <code>group_by</code>) gruppierte Tabelle vorliegt. Jegliche Zusammenfassung, die wir anfordern, wird anhand der Gruppierungsinformation aufgeteilt werden. In dem Beispiel bekommen wir einen Mittelwert für jeden Wert von <code>interest</code>. Interessanterweise sehen wir, dass der Mittelwert tendenziell größer wird, je größer <code>interest</code> wird.</p>
+
+<p>Alle diese <code>dplyr</code>-Befehle geben einen Dataframe zurück, was praktisch ist für weitere Verarbeitung. In diesem Fall heißen die Spalten <code>interst</code> und <code>mean(score)</code>. Zweiter Name ist nicht so schön, daher ändern wir den wie folgt:</p>
+
+<p>Jetzt können wir auch die Gruppierung nutzen:</p>
+
+<pre><code class="language-r">test_gruppiert &lt;- group_by(stats_test, interest)
+summarise(test_gruppiert, mw_pro_gruppe = mean(score, na.rm = TRUE))
+#&gt; # A tibble: 7 × 2
+#&gt;   interest mw_pro_gruppe
+#&gt;      &lt;int&gt;         &lt;dbl&gt;
+#&gt; 1        1          28.3
+#&gt; 2        2          29.7
+#&gt; 3        3          30.8
+#&gt; 4        4          29.9
+#&gt; 5        5          32.5
+#&gt; 6        6          34.0
+#&gt; 7       NA          33.1
+</code></pre>
+
+<p>Nun heißt die zweite Spalte <code>mw_pro_Gruppe</code>. <code>na.rm = TRUE</code> veranlasst, bei fehlenden Werten trotzdem einen Mittelwert zurückzuliefern (die Zeilen mit fehlenden Werten werden in dem Fall ignoriert).</p>
+
+<p>Grundsätzlich ist die Philosophie der <code>dplyr</code>-Befehle: &ldquo;Mach nur eine Sache, aber die dafür gut&rdquo;. Entsprechend kann <code>summarise</code> nur <em>Spalten</em> zusammenfassen, aber keine <em>Zeilen</em>.</p>
+
+<p>Merke:</p>
+
+<blockquote>
+<p>Mit summarise kann man eine Spalte eines Dataframes zu einem Wert zusammenfassen.</p>
+</blockquote>
+
+<h4 id="deskriptive-statistik-mit-summarise">Deskriptive Statistik mit <code>summarise</code></h4>
+
+<blockquote>
+<p>Die deskriptive Statistik hat zwei Haupt-Bereiche: Lagemaße und Streuungsmaße.</p>
+</blockquote>
+
+<p><em>Lagemaße</em> geben den &ldquo;typischen&rdquo;, &ldquo;mittleren&rdquo; oder &ldquo;repräsentativen&rdquo; Vertreter der Verteilung an. Bei den Lagemaßen denkt man sofort an das <em>arithmetische Mittel</em> (synonym: Mittelwert; häufig als $$\bar{X}$$ abgekürzt; <code>mean</code>). Ein Nachteil von Mittelwerten ist, dass sie nicht robust gegenüber Extremwerte sind: Schon ein vergleichsweise großer Einzelwert kann den Mittelwert deutlich verändern und damit die Repräsentativität des Mittelwerts für die Gesamtmenge der Daten in Frage stellen. Eine robuste Variante ist der <em>Median</em> (Md; <code>median</code>). Ist die Anzahl der (unterschiedlichen) Ausprägungen nicht zu groß im Verhältnis zur Fallzahl, so ist der <em>Modus</em> eine sinnvolle Statistik; er gibt die häufigste Ausprägung an (Der <em>Modus</em> ist im Standard-R nicht mit einem eigenen Befehl vertreten. Man kann ihn aber leicht von Hand bestimmen; s.u. Es gibt auch einige Pakete, die diese Funktion anbieten: z.B. <a href="https://cran.r-project.org/web/packages/modes/index.html">so</a>).</p>
+
+<p><em>Streuungsmaße</em>} geben die Unterschiedlichkeit in den Daten wieder; mit anderen Worten: sind die Daten sich ähnlich oder unterscheiden sich die Werte deutlich? Zentrale Statistiken sind der <em>mittlere Absolutabstand</em> (MAA; MAD; Der <em>MAD</em> ist im Standard-R nicht mit einem eigenen Befehl vertreten. Es gibt einige Pakete, die diese Funktion anbieten: z.B. <a href="https://artax.karlin.mff.cuni.cz/r-help/library/lsr/html/aad.html">so</a>), die <em>Standardabweichung</em> (sd; <code>sd</code>), die <em>Varianz</em> (Var; <code>var</code>) und der <em>Interquartilsabstand</em> (IQR; <code>IQR</code>). Da nur der IQR <em>nicht</em> auf dem Mittelwert basiert, ist er am robustesten. Beliebige Quantile bekommt man mit dem R-Befehl <code>quantile</code>.</p>
+
+<p>Der Befehl <code>summarise</code> eignet sich, um deskriptive Statistiken auszurechnen.</p>
+
+<pre><code class="language-r">summarise(stats_test, mean(score))
+#&gt;   mean(score)
+#&gt; 1        31.1
+summarise(stats_test, sd(score))
+#&gt;   sd(score)
+#&gt; 1      5.74
+</code></pre>
+
+<p>Natürlich könnte man auch einfacher schreiben:</p>
+
+<pre><code class="language-r">mean(stats_test$score)
+#&gt; [1] 31.1
+median(stats_test$score)
+#&gt; [1] 31
+</code></pre>
+
+<p><code>summarise</code> liefert aber im Unterschied zu <code>mean</code> etc. immer einen Dataframe zurück. Da der Dataframe die typische Datenstruktur ist, ist es häufig praktisch, wenn man einen Dataframe zurückbekommt, mit dem man weiterarbeiten kann. Außerdem lassen <code>mean</code> etc. keine Gruppierungsoperationen zu; über <code>group_by</code> kann man dies aber bei <code>dplyr</code> erreichen.</p>
+
+<h4 id="aufgaben-3">Aufgaben</h4>
+
+<pre><code>Richtig oder Falsch!?
+
+1. Möchte man aus der Tabelle `stats_test` den Mittelwert für die Spalte `score` berechnen, so ist folgende Syntax korrekt: `summarise(stats_test, mean(score))`.
+1. `summarise` liefert eine Tabelle, genauer: einen Tibble, zurück.
+1. Die Tabelle, die diese Funktion zurückliefert: `summarise(stats_test, mean(score))`, hat eine Spalte mit dem Namen `mean(score)`.
+1. `summarise` lässt zu, dass die zu berechnende Spalte einen Namen vom Nutzer zugewiesen bekommt.
+1. `summarise` darf nur verwendet werden, wenn eine Spalte zu einem Wert zusammengefasst werden soll.
+</code></pre>
+
+<p>Lösung: R, R, R, R, R</p>
+
+<ol>
+<li>(Fortgeschritten) Bauen Sie einen eigenen Weg, um den mittleren Absolutabstand auszurechnen! Gehen Sie der Einfachheit halber (zuerst) von einem Vektor mit den Werten (1,2,3) aus!</li>
+</ol>
+
+<p>Lösung:</p>
+
+<pre><code class="language-r">x &lt;- c(1, 2, 3)
+x_mw &lt;- mean(x)
+x_delta &lt;- x - x_mw
+x_delta &lt;- abs(x_delta)
+mad &lt;- mean(x_delta)
+mad
+#&gt; [1] 0.667
+</code></pre>
+
+<h3 id="zeilen-zählen-mit-n-und-count">Zeilen zählen mit <code>n</code> und <code>count</code></h3>
+
+<p>Ebenfalls nützlich ist es, Zeilen zu zählen. Im Gegensatz zum Standardbefehl <code>nrow</code> (Standardbefehl meint, dass die Funktion zum Standardrepertoire von R gehört, also nicht über ein Paket extra geladen werden muss)  versteht der <code>dyplr</code>-Befehl <code>n</code> auch Gruppierungen. <code>n</code> darf nur innerhalb von <code>summarise</code> oder ähnlichen <code>dplyr</code>-Befehlen verwendet werden.</p>
+
+<pre><code class="language-r">summarise(stats_test, n())
+#&gt;   n()
+#&gt; 1 306
+summarise(test_gruppiert, n())
+#&gt; # A tibble: 7 × 2
+#&gt;   interest `n()`
+#&gt;      &lt;int&gt; &lt;int&gt;
+#&gt; 1        1    30
+#&gt; 2        2    47
+#&gt; 3        3    66
+#&gt; 4        4    41
+#&gt; 5        5    45
+#&gt; 6        6     9
+#&gt; 7       NA    68
+nrow(stats_test)
+#&gt; [1] 306
+</code></pre>
+
+<p>Außerhalb von gruppierten Datensätzen ist <code>nrow</code> meist praktischer.</p>
+
+<p>Praktischer ist der Befehl <code>count</code>, der nichts anderes ist als die Hintereinanderschaltung von <code>group_by</code> und <code>n</code>. Mit <code>count</code> zählen wir die Häufigkeiten nach Gruppen; Gruppen sind hier zumeist die Werte einer auszuzählenden Variablen (oder mehrerer auszuzählender Variablen). Das macht <code>count</code> zu einem wichtigen Helfer bei der Analyse von Häufigkeitsdaten.</p>
+
+<pre><code class="language-r">dplyr::count(stats_test, interest)
+#&gt; # A tibble: 7 × 2
+#&gt;   interest     n
+#&gt;      &lt;int&gt; &lt;int&gt;
+#&gt; 1        1    30
+#&gt; 2        2    47
+#&gt; 3        3    66
+#&gt; 4        4    41
+#&gt; 5        5    45
+#&gt; 6        6     9
+#&gt; 7       NA    68
+dplyr::count(stats_test, study_time)
+#&gt; # A tibble: 6 × 2
+#&gt;   study_time     n
+#&gt;        &lt;int&gt; &lt;int&gt;
+#&gt; 1          1    31
+#&gt; 2          2    49
+#&gt; 3          3    85
+#&gt; 4          4    56
+#&gt; 5          5    17
+#&gt; 6         NA    68
+dplyr::count(stats_test, interest, study_time)
+#&gt; # A tibble: 29 × 3
+#&gt;    interest study_time     n
+#&gt;       &lt;int&gt;      &lt;int&gt; &lt;int&gt;
+#&gt; 1         1          1    12
+#&gt; 2         1          2     7
+#&gt; 3         1          3     8
+#&gt; 4         1          4     2
+#&gt; 5         1          5     1
+#&gt; 6         2          1     9
+#&gt; 7         2          2    15
+#&gt; 8         2          3    16
+#&gt; 9         2          4     6
+#&gt; 10        2          5     1
+#&gt; # ... with 19 more rows
+</code></pre>
+
+<p>Allgemeiner formuliert lautet die Syntax: <code>count(df, Spalte1, ...)</code>, wobei <code>df</code> der Dataframe ist und <code>Spalte1</code> die erste (es können mehrere sein) auszuzählende Spalte. Gibt man z.B. zwei Spalten an, so wird pro Wert der 1. Spalte die Häufigkeiten der 2. Spalte ausgegeben.</p>
+
+<p>Merke:</p>
+
+<blockquote>
+<p>n und count zählen die Anzahl der Zeilen, d.h. die Anzahl der Fälle.</p>
+</blockquote>
+
+<h4 id="aufgaben-4">Aufgaben</h4>
+
+<pre><code>Richtig oder Falsch!?
+
+1. Mit `count` kann man Zeilen zählen.
+1. `count` ist ähnlich (oder identisch) zu einer Kombination von `group_by` und `n()`. 
+1. Mit `count` kann man nur nur eine Gruppe beim Zählen berücksichtigen.
+1. `count` darf nicht bei nominalskalierten Variablen verwendet werden.
+
+</code></pre>
+
+<p>Lösung: R, R, F, F</p>
+
+<ol>
+<li>Bauen Sie sich einen Weg, um den Modus mithilfe von <code>count</code> und <code>arrange</code> zu bekommen!</li>
+</ol>
+
+<pre><code class="language-r">stats_count &lt;- count(stats_test, score)
+stats_count_sortiert &lt;- arrange(stats_count, -n)
+head(stats_count_sortiert,1)
+#&gt; # A tibble: 1 × 2
+#&gt;   score     n
+#&gt;   &lt;int&gt; &lt;int&gt;
+#&gt; 1    34    22
+</code></pre>
+
+<p>Ah! Der Score <code>34</code> ist der häufigste!</p>
+
+<h2 id="die-pfeife">Die Pfeife</h2>
+
+<p>Die zweite Idee kann man salopp als &ldquo;Durchpfeifen&rdquo; oder die &ldquo;Idee der Pfeife&rdquo; bezeichnen; ikonographisch mit einem Pfeifen ähnlichen Symbol dargestellt <code>%&gt;%</code>. Der Begriff &ldquo;Durchpfeifen&rdquo; ist frei vom Englischen &ldquo;to pipe&rdquo; übernommen. Das berühmte Bild von René Magritte stand dabei Pate.</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-27/Datenjudo/ma-150089-WEB.jpg" title="La trahison des images [Ceci n'est pas une pipe], René Magritte, 1929, © C. Herscovici, Brussels / Artists Rights Society (ARS), New York, &lt;http://collections.lacma.org/node/239578&gt;" alt="La trahison des images [Ceci n'est pas une pipe], René Magritte, 1929, © C. Herscovici, Brussels / Artists Rights Society (ARS), New York, &lt;http://collections.lacma.org/node/239578&gt;" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Hierbei ist gemeint, einen Datensatz sozusagen auf ein Fließband zu legen und an jedem Arbeitsplatz einen Arbeitsschritt auszuführen. Der springende Punkt ist, dass ein Dataframe als &ldquo;Rohstoff&rdquo; eingegeben wird und jeder Arbeitsschritt seinerseits wieder einen Datafram ausgiebt. Damit kann man sehr schön, einen &ldquo;Flow&rdquo; an Verarbeitung erreichen, außerdem spart man sich Tipparbeit und die Syntax wird lesbarer. Damit das Durchpfeifen funktioniert, benötigt man Befehle, die als Eingabe einen Dataframe erwarten und wieder einen Dataframe zurückliefern. Das Schaubild verdeutlich beispielhaft eine Abfolge des Durchpfeifens.</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-27/Datenjudo/durchpfeifen.pdf" title="Das 'Durchpeifen'" alt="Das 'Durchpeifen'" width="80%" style="display: block; margin: auto;" /></p>
+
+<p>Die sog. &ldquo;Pfeife&rdquo; (pipe) in Anspielung an das berühmte Bild von René Magritte, verkettet Befehle hintereinander. Das ist praktisch, da es die Syntax vereinfacht. Vergleichen Sie mal diese Syntax</p>
+
+<pre><code class="language-r">filter(summarise(group_by(filter(stats_test, !is.na(score)), interest), mw = mean(score)), mw &gt; 30)
+</code></pre>
+
+<p>mit dieser</p>
+
+<pre><code class="language-r">stats_test %&gt;% 
+  filter(!is.na(score)) %&gt;% 
+  group_by(interest) %&gt;% 
+  summarise(mw = mean(score)) %&gt;% 
+  filter(mw &gt; 30)
+#&gt; # A tibble: 4 × 2
+#&gt;   interest    mw
+#&gt;      &lt;int&gt; &lt;dbl&gt;
+#&gt; 1        3  30.8
+#&gt; 2        5  32.5
+#&gt; 3        6  34.0
+#&gt; 4       NA  33.1
+</code></pre>
+
+<p>Es ist hilfreich, diese &ldquo;Pfeifen-Syntax&rdquo; in deutschen Pseudo-Code zu übersetzen.</p>
+
+<pre><code>Nimm die Tabelle &quot;stats_test&quot; UND DANN  
+filtere alle nicht-fehlenden Werte UND DANN  
+gruppiere die verbleibenden Werte nach &quot;interest&quot; UND DANN  
+bilde den Mittelwert (pro Gruppe) für &quot;score&quot; UND DANN  
+liefere nur die Werte größer als 30 zurück.  
+
+</code></pre>
+
+<p>Die zweite Syntax, in &ldquo;Pfeifenform&rdquo; ist viel einfacher zu verstehen als die erste! Die erste Syntax ist verschachelt, man muss sie von innen nach außen lesen. Das ist kompliziert. Die Pfeife in der 2. Syntax macht es viel einfacher, die Snytax zu verstehen, da die Befehle &ldquo;hintereinander&rdquo; gestellt (sequenziell organisiert) sind.</p>
+
+<p>Die Pfeife zerlegt die &ldquo;russische Puppe&rdquo;, also ineinander verschachelteten Code, in sequenzielle Schritte und zwar in der richtigen Reihenfolge (entsprechend der Abarbeitung). Wir müssen den Code nicht mehr von innen nach außen lesen (wie das bei einer mathematischen Formel der Fall ist), sondern können wie bei einem Kochrezept &ldquo;erstens &hellip;, zweitens .., drittens &hellip;&rdquo; lesen. Die Pfeife macht die Syntax einfacher. Natürlich hätten wir die verschachtelte Syntax in viele einzelne Befehle zerlegen können und jeweils eine Zwischenergebnis speichern mit dem Zuweisungspfeil <code>&lt;-</code> und das Zwischenergebnis dann explizit an den nächsten Befehl weitergeben. Eigentlich macht die Pfeife genau das - nur mit weniger Tipparbeit. Und auch einfacher zu lesen. Flow!</p>
+
+<pre><code>Wenn Sie Befehle verketten mit der Pfeife, sind nur Befehle erlaubt, die einen Datensatz als Eingabe verlangen und einen Datensatz ausgeben. Das ist bei den hier vorgestellten Funktionen der Fall. Viele andere Funktionen erfüllen dieses Kriterium aber nicht; in dem Fall liefert `dplyr` eine Fehlermeldung.
+
+</code></pre>
+
+<h3 id="spalten-berechnen-mit-mutate">Spalten berechnen mit <code>mutate</code></h3>
+
+<p>Wenn man die Pfeife benutzt, ist der Befehl <code>mutate</code> ganz praktisch: Er berechnet eine Spalte. Normalerweise kann man einfach eine Spalte berechnen mit dem Zuweisungsoperator:</p>
+
+<p>Zum Beispiel so:</p>
+
+<pre><code>df$neue_spalte &lt;- df$spalte1 + df$spalte2
+</code></pre>
+
+<p>Innerhalb einer Pfeifen-Syntax geht das aber nicht (so gut). Da ist man mit der Funtion <code>mutate</code> besser beraten; <code>mutate</code> leistest just dasselbe wie die Pseudo-Syntax oben:</p>
+
+<pre><code>df %&gt;% 
+  mutate(neue_spalte = spalte1 + spalte2)
+</code></pre>
+
+<p>In Worten:</p>
+
+<pre><code>Nimm die Tabelle &quot;df&quot; UND DANN  
+bilde eine neue Spalte mit dem Namen `neue_spalte`,  
+die sich berechnet als Summe von `spalte1` und `spalte2`.    
+
+</code></pre>
+
+<p>Allerdings berücksichtigt <code>mutate</code> auch Gruppierungen, praktischerweise. Der Hauptvorteil ist die bessere Lesbarkeit durch Auflösen der Verschachtelungen.</p>
+
+<p>Ein konkretes Beispiel:</p>
+
+<pre><code class="language-r">stats_test %&gt;% 
+  mutate(bestanden = score &gt; 25) %&gt;% 
+  head()
+#&gt;   X                 V_1 study_time self_eval interest score bestanden
+#&gt; 1 1 05.01.2017 13:57:01          5         8        5    29      TRUE
+#&gt; 2 2 05.01.2017 21:07:56          3         7        3    29      TRUE
+#&gt; 3 3 05.01.2017 23:33:47          5        10        6    40      TRUE
+#&gt; 4 4 06.01.2017 09:58:05          2         3        2    18     FALSE
+#&gt; 5 5 06.01.2017 14:13:08          4         8        6    34      TRUE
+#&gt; 6 6 06.01.2017 14:21:18         NA        NA       NA    39      TRUE
+</code></pre>
+
+<p>Diese Syntax erzeugt eine neue Spalte innerhalb von <code>stats_test</code>; diese Spalte prüft pro Persion, ob <code>score</code> &gt; 25 ist. Falls ja (TRUE), dann ist <code>bestanden</code> TRUE, ansonsten ist <code>bestanden</code> FALSE (Pech). <code>head</code> zeigt die ersten 6 Zeilen des resultierenden Dataframes an.</p>
+
+<p>Ein Sinnbild für <code>mutate</code>:</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-27/Datenjudo/mutate.png" title="plot of chunk fig-mutate" alt="plot of chunk fig-mutate" width="70%" style="display: block; margin: auto;" /></p>
+
+<h3 id="aufgaben-5">Aufgaben</h3>
+
+<ol>
+<li>Entschlüsseln Sie dieses Ungetüm! Übersetzen Sie diese Syntax auf Deutsch:</li>
+</ol>
+
+<pre><code class="language-r">
+library(nycflights13)
+data(flights)
+
+verspaetung &lt;-
+  filter(
+    summarise(
+    group_by(filter(flights, !is.na(dep_delay), month)), delay = mean(dep_delay), n = n()), n &gt; 10)
+ 
+</code></pre>
+
+<ol>
+<li>Entschlüsseln Sie jetzt diese Syntax bzw. übersetzen Sie sie ins Deutsche:</li>
+</ol>
+
+<pre><code class="language-r">verspaetung &lt;- flights %&gt;% filter(!is.na(dep_delay)) %&gt;%
+group_by(month) %&gt;%
+summarise(delay = mean(dep_delay), n = n()) %&gt;% filter(n &gt; 10)
+</code></pre>
+
+<ol>
+<li>(schwierig) Die Pfeife bei <code>arr_delay</code></li>
+</ol>
+
+<ul>
+<li>Übersetzen Sie die folgende Pseudo-Syntax ins ERRRische!</li>
+</ul>
+
+<pre><code>Nehme den Datensatz `flights` UND DANN...  
+Wähle daraus die Spalte `arr_delay` UND DANN...  
+Berechne den Mittelwert der Spalte UND DANN...  
+ziehe vom Mittelwert die Spalte ab UND DANN...
+quadriere die einzelnen Differenzen UND DANN...
+bilde davon den Mittelwert.  
+
+</code></pre>
+
+<p>Lösung:</p>
+
+<pre><code class="language-r">flights %&gt;% 
+  select(arr_delay) %&gt;% 
+  mutate(arr_delay_delta = arr_delay - mean(flights$arr_delay, na.rm = TRUE)) %&gt;% 
+  mutate(arr_delay_delta_quadrat = arr_delay_delta^2) %&gt;% 
+  summarise(arr_delay_var = mean(arr_delay_delta_quadrat, na.rm = TRUE)) %&gt;% 
+  summarise(sqrt(arr_delay_var))
+#&gt; # A tibble: 1 × 1
+#&gt;   `sqrt(arr_delay_var)`
+#&gt;                   &lt;dbl&gt;
+#&gt; 1                  44.6
+</code></pre>
+
+<ul>
+<li>Berechnen Sie die sd von <code>arr_delay</code> in <code>flights</code>! Vergleichen Sie sie mit dem Ergebnis der vorherigen Aufgabe!</li>
+</ul>
+
+<p>Lösung: <code>sd(flights$arr_delay, na.rm = TRUE)</code></p>
+
+<ul>
+<li>Was hat die Pfeifen-Syntax oben berechnet?</li>
+</ul>
+
+<p>Lösung: die sd von <code>arr_delay</code></p>
+
+<h2 id="befehlsübersicht">Befehlsübersicht</h2>
+
+<p>|Paket::Funktion  |   Beschreibung|
+|&mdash;&mdash;&mdash;&mdash;&mdash;-    &mdash;&mdash;&mdash;&mdash;-|
+|dplyr::arrange    |  Sortiert Spalten|
+|dplyr::filter   |    Filtert Zeilen|
+|dplyr::select    |   Wählt Spalten|
+|dplyr::group_by   |  gruppiert einen Dataframe|
+|dplyr::n         |   zählt Zeilen|
+|dplyr::count     |   zählt Zeilen nach Untergruppen|
+|%&gt;% (dplyr)     |    verkettet Befehle|
+|dplyr::mutate    |   erzeugt/berechnet Spalten|</p>
+
+<h2 id="verweise">Verweise</h2>
+
+<ul>
+<li><p>Die offizielle Dokumentation von <code>dplyr</code> findet sich hier: <a href="https://cran.r-project.org/web/packages/dplyr/dplyr.pdf">https://cran.r-project.org/web/packages/dplyr/dplyr.pdf</a>.</p></li>
+
+<li><p>Eine schöne Demonstration der Mächtigkeit von <code>dplyr</code> findet sich hier: <a href="http://bit.ly/2kX9lvC">http://bit.ly/2kX9lvC</a>.</p></li>
+
+<li><p>Die GUI &ldquo;exploratory&rdquo; ist ein &ldquo;klickbare&rdquo; Umsetzung von <code>dplyr</code>, mächtig, modern und sieht cool aus: <a href="https://exploratory.io">https://exploratory.io</a>.</p></li>
+
+<li><p><a href="http://r4ds.had.co.nz">R for Data Science</a> bietet umfangreiche Unterstützung zu diesem Thema.</p></li>
+</ul>
+
+<h2 id="fallstudie-zu-dplyr">Fallstudie zu <code>dplyr</code></h2>
+
+<p>Lesen Sie diese ausführlichere Fallstudie zu <code>dplyr</code> nach: <a href="https://sebastiansauer.github.io/Fallstudie_Flights/">https://sebastiansauer.github.io/Fallstudie_Flights/</a>.</p>
+<div class="footnotes">
+
+<hr />
+
+<ol>
+<li id="fn:https-cran-r-pro"><a href="https://cran.r-project.org/web/packages/dplyr/index.html">https://cran.r-project.org/web/packages/dplyr/index.html</a> <a class="footnote-return" href="#fnref:https-cran-r-pro"><sup>[return]</sup></a></li>
+</ol>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

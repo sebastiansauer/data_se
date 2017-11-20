@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Multiple t-Tests with dplyr - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Multiple t-Tests with dplyr - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">5 min read</span>
+    
+
+    <h1 class="article-title">Multiple t-Tests with dplyr</h1>
+
+    
+    <span class="article-date">0001/01/01</span>
+    
+
+    <div class="article-content">
+      
+
+<h2 id="t-test-on-multiple-columns">t-Test on multiple columns</h2>
+
+<p>Suppose you have a data set where you want to perform a t-Test on multiple columns with some grouping variable. As an example, say you a data frame where each column depicts the score on some test (1st, 2nd, 3rd assignment&hellip;). In each row is a different student. So you glance at the grading list (OMG!) of a teacher!</p>
+
+<p>How to do do that in R? Probably, the most &ldquo;natural&rdquo; solution would be some <code>lapply()</code> call.</p>
+
+<p>But I like <code>dplyr</code> (see <a href="https://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html">intro here</a>); so, is there some nice way to perform that with <code>dplyr</code>? The short answer is: no. <code>dplyr</code> basically wants to deliver back a data frame, and the t-test does not output a single value, so you cannot use the t-test (right away) for <code>dplyr</code>&rsquo;s <code>summarise</code>. One way out is using list-columns&hellip; Let&rsquo;s see.</p>
+
+<p>Load some <code>dplyr</code>, <code>tidyr</code> and some data:</p>
+
+<pre><code class="language-r">library(dplyr)
+library(tidyr)
+data(tips, package = &quot;reshape2&quot;)
+glimpse(tips)
+</code></pre>
+
+<pre><code>## Observations: 244
+## Variables: 7
+## $ total_bill &lt;dbl&gt; 16.99, 10.34, 21.01, 23.68, 24.59, 25.29, 8.77, 26....
+## $ tip        &lt;dbl&gt; 1.01, 1.66, 3.50, 3.31, 3.61, 4.71, 2.00, 3.12, 1.9...
+## $ sex        &lt;fctr&gt; Female, Male, Male, Male, Female, Male, Male, Male...
+## $ smoker     &lt;fctr&gt; No, No, No, No, No, No, No, No, No, No, No, No, No...
+## $ day        &lt;fctr&gt; Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, ...
+## $ time       &lt;fctr&gt; Dinner, Dinner, Dinner, Dinner, Dinner, Dinner, Di...
+## $ size       &lt;int&gt; 2, 3, 3, 2, 4, 4, 2, 4, 2, 2, 2, 4, 2, 4, 2, 2, 3, ...
+</code></pre>
+
+<p>Well, it looks crude, but that&rsquo;s a way:</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  select(tip, total_bill, sex) %&gt;% 
+  gather(key = variable, value = value, -sex) %&gt;% 
+  group_by(sex, variable) %&gt;% 
+  summarise(value = list(value)) %&gt;% 
+  spread(sex, value) %&gt;% 
+  group_by(variable) %&gt;% 
+  mutate(p_value = t.test(unlist(Female), unlist(Male))$p.value,
+         t_value = t.test(unlist(Female), unlist(Male))$statistic)
+</code></pre>
+
+<pre><code>## Source: local data frame [2 x 5]
+## Groups: variable [2]
+## 
+##     variable     Female        Male    p_value   t_value
+##        &lt;chr&gt;     &lt;list&gt;      &lt;list&gt;      &lt;dbl&gt;     &lt;dbl&gt;
+## 1        tip &lt;dbl [87]&gt; &lt;dbl [157]&gt; 0.13780684 -1.489536
+## 2 total_bill &lt;dbl [87]&gt; &lt;dbl [157]&gt; 0.01857339 -2.373398
+</code></pre>
+
+<p>Let&rsquo;s go through this code step by step. First, this bit</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  select(tip, total_bill, sex) %&gt;% head
+</code></pre>
+
+<pre><code>##    tip total_bill    sex
+## 1 1.01      16.99 Female
+## 2 1.66      10.34   Male
+## 3 3.50      21.01   Male
+## 4 3.31      23.68   Male
+## 5 3.61      24.59 Female
+## 6 4.71      25.29   Male
+</code></pre>
+
+<p>is used to select the columns we want to perform the t-Test on (here: <code>tip</code> and <code>total_bill</code>) plus the grouping variable (<code>sex</code>).</p>
+
+<p>Then by the next bit</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  select(tip, total_bill, sex) %&gt;% 
+  gather(key = variable, value = value, -sex) %&gt;% head
+</code></pre>
+
+<pre><code>##      sex variable value
+## 1 Female      tip  1.01
+## 2   Male      tip  1.66
+## 3   Male      tip  3.50
+## 4   Male      tip  3.31
+## 5 Female      tip  3.61
+## 6   Male      tip  4.71
+</code></pre>
+
+<p>we &ldquo;melt&rdquo; the data frame down, so that all numeric variables are put in one column (underneath each other).</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  select(tip, total_bill, sex) %&gt;% 
+  gather(key = variable, value = value, -sex) %&gt;% 
+  group_by(sex, variable) %&gt;% 
+  summarise(value = list(value)) 
+</code></pre>
+
+<pre><code>## Source: local data frame [4 x 3]
+## Groups: sex [?]
+## 
+##      sex   variable       value
+##   &lt;fctr&gt;      &lt;chr&gt;      &lt;list&gt;
+## 1 Female        tip  &lt;dbl [87]&gt;
+## 2 Female total_bill  &lt;dbl [87]&gt;
+## 3   Male        tip &lt;dbl [157]&gt;
+## 4   Male total_bill &lt;dbl [157]&gt;
+</code></pre>
+
+<p>Now it get&rsquo;s interesting. We put all the <code>values</code> per group (e.g., male-tip or female-total_bill&hellip;) in one cell. Yes, that&rsquo;s right. In each cell of column <code>value</code> there is now a list (a bunch) of values. That&rsquo;s what is called a &ldquo;list-column&rdquo;. We will now use this list column for the t-test.</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  select(tip, total_bill, sex) %&gt;% 
+  gather(key = variable, value = value, -sex) %&gt;% 
+  group_by(sex, variable) %&gt;% 
+  summarise(value = list(value)) %&gt;% 
+  spread(sex, value) %&gt;% 
+  group_by(variable) 
+</code></pre>
+
+<pre><code>## Source: local data frame [2 x 3]
+## Groups: variable [2]
+## 
+##     variable     Female        Male
+## *      &lt;chr&gt;     &lt;list&gt;      &lt;list&gt;
+## 1        tip &lt;dbl [87]&gt; &lt;dbl [157]&gt;
+## 2 total_bill &lt;dbl [87]&gt; &lt;dbl [157]&gt;
+</code></pre>
+
+<p>But before we do the t-Test, we &ldquo;spread&rdquo; the data frame. That is, we convert from &ldquo;long&rdquo; to &ldquo;wide&rdquo; format. Next, we group for <code>variable</code>. That means in practice, that the following t-test will be applied to each member of this group (ie., each variable, here <code>tip</code> and <code>total_bill</code>).</p>
+
+<p>And now the t-Test:</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  select(tip, total_bill, sex) %&gt;% 
+  gather(key = variable, value = value, -sex) %&gt;% 
+  group_by(sex, variable) %&gt;% 
+  summarise(value = list(value)) %&gt;% 
+  spread(sex, value) %&gt;% 
+  group_by(variable) %&gt;% 
+  mutate(p_value = t.test(unlist(Female), unlist(Male))$p.value,
+         t_value = t.test(unlist(Female), unlist(Male))$statistic)
+</code></pre>
+
+<pre><code>## Source: local data frame [2 x 5]
+## Groups: variable [2]
+## 
+##     variable     Female        Male    p_value   t_value
+##        &lt;chr&gt;     &lt;list&gt;      &lt;list&gt;      &lt;dbl&gt;     &lt;dbl&gt;
+## 1        tip &lt;dbl [87]&gt; &lt;dbl [157]&gt; 0.13780684 -1.489536
+## 2 total_bill &lt;dbl [87]&gt; &lt;dbl [157]&gt; 0.01857339 -2.373398
+</code></pre>
+
+<p>That&rsquo;s it.</p>
+
+<h2 id="you-can-have-it-very-simple">You can have it very simple</h2>
+
+<p>That was quite cumbersome for something which could have been achieved very simple with</p>
+
+<pre><code class="language-r">t.test(tip ~ sex, data = tips)$p.value
+</code></pre>
+
+<pre><code>## [1] 0.1378068
+</code></pre>
+
+<pre><code class="language-r">t.test(total_bill ~ sex, data = tips)$p.value
+</code></pre>
+
+<pre><code>## [1] 0.01857339
+</code></pre>
+
+<p>So our way (OK, my way) does not seem advisable. However, it may has been instructive for the &ldquo;thinking&rdquo; of dplyr.</p>
+
+<p>By the way, another simpler approach with <code>dplyr</code> could have been:</p>
+
+<pre><code class="language-r">tips %&gt;%
+    summarise_each(funs(t.test(.[sex == &quot;Female&quot;], .[sex == &quot;Male&quot;])$p.value), vars = total_bill:tip)
+</code></pre>
+
+<pre><code>##        vars1     vars2
+## 1 0.01857339 0.1378068
+</code></pre>
+
+<h2 id="acknowledgment">Acknowledgment</h2>
+
+<p>This post was inspired by <a href="http://stackoverflow.com/questions/32477863/r-run-t-test-on-previous-years-by-group-using-dplyr">this post</a> on Stack Overflow, and also by <a href="http://stackoverflow.com/questions/26244321/dplyr-summarise-multiple-columns-using-t-test">this one</a>.</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

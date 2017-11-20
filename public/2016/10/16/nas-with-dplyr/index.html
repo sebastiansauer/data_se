@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Checking for NA with dplyr - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Checking for NA with dplyr - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">Checking for NA with dplyr</h1>
+
+    
+    <span class="article-date">2016/10/16</span>
+    
+
+    <div class="article-content">
+      <p>Often, we want to check for missing values (<code>NA</code>s). There are of course many ways to do so. <code>dplyr</code> provides a quite nice one.</p>
+
+<p>First, let&rsquo;s load some data:</p>
+
+<pre><code class="language-r">library(readr)
+extra_file &lt;- &quot;https://raw.github.com/sebastiansauer/Daten_Unterricht/master/extra.csv&quot;
+
+extra_df &lt;- read_csv(extra_file)
+</code></pre>
+
+<p>Note that <code>extra</code> is a data frame consisting of survey items regarding extraversion and related behavior.</p>
+
+<p>In case the dataframe is quite largish (many columns) it is helpful to have some quick way. Here, we have 25 columns. That is not enormous, but ok, let&rsquo;s stick with that for now.</p>
+
+<pre><code class="language-r">library(dplyr)
+
+extra_df %&gt;% 
+  select_if(function(x) any(is.na(x))) %&gt;% 
+  summarise_each(funs(sum(is.na(.)))) -&gt; extra_NA
+</code></pre>
+
+<p>So, what have we done?
+The <code>select_if</code> part choses any column where <code>is.na</code> is true (<code>TRUE</code>). Then we take those columns and for each of them, we sum up (<code>summarise_each</code>) the number of NAs. Note that each column is summarized to a single value, that&rsquo;s why we use <code>summarise</code>. And finally, the resulting data frame (dplyr always aims at giving back a data frame) is stored in a new variable for further processing.</p>
+
+<p>Now, let&rsquo;s see:</p>
+
+<pre><code class="language-r"># library(pander)  # for printing tables in markdown
+library(knitr)
+
+kable(extra_NA)
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="right">code</th>
+<th align="right">i6</th>
+<th align="right">i9</th>
+<th align="right">i12</th>
+<th align="right">Facebook</th>
+<th align="right">Kater</th>
+<th align="right">Alter</th>
+<th align="right">Geschlecht</th>
+<th align="right">extro_one_item</th>
+<th align="right">Minuten</th>
+<th align="right">Messe</th>
+<th align="right">Party</th>
+<th align="right">Kunden</th>
+<th align="right">Beschreibung</th>
+<th align="right">Aussagen</th>
+<th align="right">i26</th>
+<th align="right">extra_mw</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="right">82</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">73</td>
+<td align="right">12</td>
+<td align="right">3</td>
+<td align="right">3</td>
+<td align="right">4</td>
+<td align="right">37</td>
+<td align="right">4</td>
+<td align="right">16</td>
+<td align="right">49</td>
+<td align="right">117</td>
+<td align="right">121</td>
+<td align="right">3</td>
+<td align="right">3</td>
+</tr>
+</tbody>
+</table>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

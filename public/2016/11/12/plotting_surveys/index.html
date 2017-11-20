@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Plotting survey results using `ggplot2` - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Plotting survey results using `ggplot2` - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">11 min read</span>
+    
+
+    <h1 class="article-title">Plotting survey results using `ggplot2`</h1>
+
+    
+    <span class="article-date">2016/11/12</span>
+    
+
+    <div class="article-content">
+      
+
+<p>Plotting (and more generally, analyzing) survey results is a frequent endeavor in many business environments. Let&rsquo;s not think about arguments whether and when surveys are useful (for some recent criticism see <a href="http://www.springer.com/de/book/9783319397559">Briggs&rsquo; book</a>).</p>
+
+<p>Typically, respondents circle some option ranging from &ldquo;don&rsquo;t agree at all&rdquo; to &ldquo;completely agree&rdquo; for each question (or &ldquo;item&rdquo;). Typically, four to six boxes are given where one is expected to tick one.</p>
+
+<p>In this tutorial, I will discuss some barplot type visualizations; the presentation is based on <code>ggplot2</code> (within the <code>R</code> environment) . Sure, much more can be done than will be presented here, but for the scope of this post, we will stick to the plain barplot (although some variations of it).</p>
+
+<p>Let&rsquo;s load some needed packages:</p>
+
+<pre><code class="language-r">library(tidyverse)
+</code></pre>
+
+<hr />
+
+<p>EDIT: The preparation part of this post has been <em>excluded</em> and moved to an <a href="https://sebastiansauer.github.io/preparing_survey_data/">own post</a>, for clarity.</p>
+
+<hr />
+
+<h1 id="loading-data">Loading data</h1>
+
+<p>So, first, let&rsquo;s load some data. That&rsquo;s a data set of a survey on extraversion. Folks were asked a bunch of questions tapping at their &ldquo;psychometric extraversion&rdquo;, and some related behavior, that is, behavior <em>supposed to</em> be related such as &ldquo;number of Facebook friends&rdquo;, &ldquo;how often at a party&rdquo; etc. Note that college students form the sample.</p>
+
+<p>Data are available only (free as in free and free as in beer).</p>
+
+<pre><code class="language-r">data &lt;- read.csv(&quot;https://osf.io/meyhp/?action=download&quot;)
+
+
+data_backup &lt;- data # backup just in case we screw something up
+</code></pre>
+
+<p>Here&rsquo;s the DOI of this piece of data: 10.17605/OSF.IO/4KGZH.</p>
+
+<p>OK, we got &lsquo;em; a dataset of dimension 501, 28. Let&rsquo;s glimpse at the data:</p>
+
+<pre><code class="language-r">glimpse(data)
+</code></pre>
+
+<pre><code>## Observations: 501
+## Variables: 28
+## $ X                  &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, ...
+## $ timestamp          &lt;fctr&gt; 11.03.2015 19:17:48, 11.03.2015 19:18:05, ...
+## $ code               &lt;fctr&gt; HSC, ERB, ADP, KHB, PTG, ABL, ber, hph, IH...
+## $ i01                &lt;int&gt; 3, 2, 3, 3, 4, 3, 4, 3, 4, 4, 3, 3, 4, 4, 3...
+## $ i02r               &lt;int&gt; 3, 2, 4, 3, 3, 2, 4, 3, 4, 4, 3, 4, 3, 3, 3...
+## $ i03                &lt;int&gt; 3, 1, 1, 2, 1, 1, 1, 2, 1, 2, 1, 1, 1, 4, 1...
+## $ i04                &lt;int&gt; 3, 2, 4, 4, 4, 4, 3, 3, 4, 4, 3, 3, 2, 4, 3...
+## $ i05                &lt;int&gt; 4, 3, 4, 3, 4, 2, 3, 2, 3, 3, 3, 2, 3, 3, 3...
+## $ i06r               &lt;int&gt; 4, 2, 1, 3, 3, 3, 3, 2, 4, 3, 3, 3, 3, 3, 3...
+## $ i07                &lt;int&gt; 3, 2, 3, 3, 4, 4, 2, 3, 3, 3, 2, 4, 2, 3, 3...
+## $ i08                &lt;int&gt; 2, 3, 2, 3, 2, 3, 3, 2, 3, 3, 3, 2, 3, 3, 4...
+## $ i09                &lt;int&gt; 3, 3, 3, 3, 3, 3, 3, 4, 4, 3, 4, 2, 4, 4, 4...
+## $ i10                &lt;int&gt; 1, 1, 1, 2, 4, 3, 2, 1, 2, 3, 1, 3, 2, 3, 2...
+## $ n_facebook_friends &lt;int&gt; 250, 106, 215, 200, 100, 376, 180, 432, 200...
+## $ n_hangover         &lt;int&gt; 1, 0, 0, 15, 0, 1, 1, 2, 5, 0, 1, 2, 20, 2,...
+## $ age                &lt;int&gt; 24, 35, 25, 39, 29, 33, 24, 28, 29, 38, 25,...
+## $ sex                &lt;fctr&gt; Frau, Frau, Frau, Frau, Frau, Mann, Frau, ...
+## $ extra_single_item  &lt;int&gt; 4, 3, 4, 3, 4, 4, 3, 3, 4, 4, 4, 4, 4, 4, 4...
+## $ time_conversation  &lt;dbl&gt; 10, 15, 15, 5, 5, 20, 2, 15, 10, 10, 1, 5, ...
+## $ presentation       &lt;fctr&gt; nein, nein, nein, nein, nein, ja, ja, ja, ...
+## $ n_party            &lt;int&gt; 20, 5, 3, 25, 4, 4, 3, 6, 12, 5, 10, 5, 10,...
+## $ clients            &lt;fctr&gt; , , , , , , , , , , , , , , , , , , , , , ...
+## $ extra_vignette     &lt;fctr&gt; , , , , , , , , , , , , , , , , , , , , , ...
+## $ extra_description  &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
+## $ prop_na_per_row    &lt;dbl&gt; 0.04347826, 0.04347826, 0.04347826, 0.04347...
+## $ extra_mean         &lt;dbl&gt; 2.9, 2.1, 2.6, 2.9, 3.2, 2.8, 2.8, 2.5, 3.2...
+## $ extra_median       &lt;dbl&gt; 3.0, 2.0, 3.0, 3.0, 3.5, 3.0, 3.0, 2.5, 3.5...
+## $ client_freq        &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
+</code></pre>
+
+<p>Let&rsquo;s extract only the items, and exclude <code>NA</code>s (there are not many).</p>
+
+<pre><code class="language-r">data %&gt;% 
+  select(i01:i10) %&gt;% nrow
+</code></pre>
+
+<pre><code>## [1] 501
+</code></pre>
+
+<pre><code class="language-r">data %&gt;% 
+  select(i01:i10) %&gt;%
+  na.omit %&gt;% nrow
+</code></pre>
+
+<pre><code>## [1] 493
+</code></pre>
+
+<pre><code class="language-r">data %&gt;% 
+  select(i01:i10) %&gt;%
+  na.omit -&gt; data_items
+</code></pre>
+
+<h1 id="plotting-item-distribution">Plotting item distribution</h1>
+
+<h2 id="typical-stacked-bar-plot">Typical stacked bar plot</h2>
+
+<p>The most obvious thing is to plot the distribution of the items (here: 10) of the survey. So let&rsquo;s do that with <code>ggplot</code>.</p>
+
+<p>On the x-axis we would like to have each item (i1, i2, &hellip;), and on the y-axis the frequency of each answer, in some stapled bar fashion. That means, on the x-axis is <em>one</em> variable only. That&rsquo;s why we need to &ldquo;melt&rdquo; the items to one &ldquo;long&rdquo; variable.</p>
+
+<pre><code class="language-r">data_items %&gt;%  
+  gather(key = items, value = answer) %&gt;% 
+  mutate(answer = factor(answer)) %&gt;% 
+  ggplot(aes(x = items)) +
+  geom_bar(aes(fill = answer), position = &quot;fill&quot;) -&gt; p1
+p1
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
+
+<p>Maybe nicer to turn it 90 degrees:</p>
+
+<pre><code class="language-r">p1 + coord_flip()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-5-1.png" alt="plot of chunk unnamed-chunk-5" /></p>
+
+<p>And reverse the order of the items, so that <code>i01</code> is at the top.</p>
+
+<pre><code class="language-r">data_items %&gt;% 
+  gather(key = items, value = answer) %&gt;% 
+  mutate(answer = factor(answer),
+         items = factor(items)) -&gt; data2
+  
+ggplot(data2, aes(x = items)) +
+  geom_bar(aes(fill = answer), position = &quot;fill&quot;) +
+  coord_flip() +
+  scale_x_discrete(limits = rev(levels(data2$items))) -&gt; p2
+p2
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-6-1.png" alt="plot of chunk unnamed-chunk-6" /></p>
+
+<h2 id="colors">Colors</h2>
+
+<p>The beauty of the colors lie in the eye of the beholder&hellip; Let&rsquo;s try a different palette.</p>
+
+<p>Sequential color palettes.</p>
+
+<pre><code class="language-r">p2 + scale_fill_brewer(palette = &quot;Blues&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7" /></p>
+
+<pre><code class="language-r">p2 + scale_fill_brewer(palette = &quot;BuGn&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-7-2.png" alt="plot of chunk unnamed-chunk-7" /></p>
+
+<pre><code class="language-r">p2 + scale_fill_brewer(palette = 12)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-7-3.png" alt="plot of chunk unnamed-chunk-7" /></p>
+
+<p>Diverging palettes.</p>
+
+<pre><code class="language-r">p2 + scale_fill_brewer(palette = &quot;RdYlGn&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8" /></p>
+
+<pre><code class="language-r">p2 + scale_fill_brewer(palette = &quot;RdYlBu&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-8-2.png" alt="plot of chunk unnamed-chunk-8" /></p>
+
+<p>The divering palettes are useful because we have two &ldquo;poles&rdquo; - &ldquo;do not agree&rdquo; on one side, and &ldquo;do agree&rdquo; on the other side.</p>
+
+<p>See <a href="https://www.r-bloggers.com/choosing-colour-palettes-part-ii-educated-choices/">here</a> for an overview on Brewer palettes.</p>
+
+<p>Or maybe just grey tones.</p>
+
+<pre><code class="language-r">p2 + scale_fill_grey()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9" /></p>
+
+<p>My own favorite-cherished color.</p>
+
+<pre><code class="language-r">colours &lt;- c(&quot;#2121D9&quot;, &quot;#9999FF&quot;, &quot;#D92121&quot;, &quot;#21D921&quot;, &quot;#FFFF4D&quot;, &quot;#FF9326&quot;)
+p2 + scale_fill_manual(values=colours)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-10-1.png" alt="plot of chunk unnamed-chunk-10" /></p>
+
+<h2 id="numbers-count-on-bars">Numbers (count) on bars</h2>
+
+<p>It might be helpful to print the exact numbers on the bars.</p>
+
+<pre><code class="language-r">data2 %&gt;% 
+  dplyr::count(items, answer) %&gt;% 
+  mutate(y_pos = cumsum(n)/nrow(data_items) - (0.5 * n/nrow(data_items)),
+         y_cumsum = cumsum(n)) %&gt;% 
+  mutate(items_num = parse_number(items)) -&gt; data3
+
+ggplot(data3, aes(x = items, y = n)) +
+  geom_bar(aes(fill = answer), position = &quot;fill&quot;, stat = &quot;identity&quot;) +
+  geom_text(aes(y = y_pos, label = n),  size = 3) -&gt; p3
+
+p3
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-11-1.png" alt="plot of chunk unnamed-chunk-11" /></p>
+
+<p>Flip coordinate system, and with &ldquo;%&rdquo; labels.</p>
+
+<pre><code class="language-r">p3 + coord_flip() + 
+  scale_y_continuous(labels = scales::percent) +
+  ylab(&quot;proportion of respondents&quot;) -&gt; p4
+p4
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-12-1.png" alt="plot of chunk unnamed-chunk-12" /></p>
+
+<h2 id="highlight-main-category">Highlight main category</h2>
+
+<pre><code class="language-r">data3 %&gt;% 
+  mutate(answer = as.numeric(answer)) %&gt;% 
+  group_by(items) %&gt;% 
+  mutate(max_n = max(n)) %&gt;% 
+  mutate(max_cat = factor(which(n == max_n))) %&gt;% 
+  mutate(fit_cat = (answer == max_cat)) %&gt;% 
+  ungroup -&gt; data4
+
+
+ggplot(data4, aes(x = items, y = n)) +
+  geom_bar(aes(fill = factor(answer),
+               color = fit_cat), position = &quot;fill&quot;, stat = &quot;identity&quot;) +
+  geom_text(aes(y = y_pos, label = n),  size = 3) +
+  scale_color_manual(values = c(&quot;NA&quot;, &quot;red&quot;), guide = &quot;none&quot;) +
+  scale_fill_grey()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-13-1.png" alt="plot of chunk unnamed-chunk-13" /></p>
+
+<p>To be honest, does really look nice. Let&rsquo;s try something different later.</p>
+
+<h2 id="barplot-with-geom-rect">Barplot with <code>geom_rect</code></h2>
+
+<p>This section and code is inspired by <a href="http://rnotr.com/likert/ggplot/barometer/likert-plotly/">this post</a>.</p>
+
+<p>The goal is to produce a more flexible bar plot, such as a &ldquo;waterfall plot&rdquo;, where y= 0 is centered at the middle bar height, we need to change the <code>geom</code>. No more <code>geom_bar</code> but the more versatile <code>geom_rect</code>. This geom plots, surprisingly, rectangles. Hence, we need to know the start and the end value (for the y-axis, the width of the bar is just 1).</p>
+
+<p>First, we need to prepare the dataset for that task.</p>
+
+<pre><code class="language-r">data4 %&gt;% 
+  select(items, answer, y_cumsum) %&gt;% 
+  group_by(items) %&gt;% 
+  spread(key = answer, value = y_cumsum) %&gt;% 
+  mutate(zero = 0, end = nrow(data_items)) %&gt;% 
+  select(items, zero, `1`, `2`, `3`, `4`, end) %&gt;% 
+  ungroup %&gt;% 
+  mutate(items_num = 1:10) -&gt; data5
+
+
+
+data5 %&gt;% 
+  rename(start_1 = zero) %&gt;% 
+  mutate(end_1 = `1`) %&gt;% 
+  mutate(start_2 = `1`) %&gt;% 
+  mutate(end_2 = `2`) %&gt;% 
+  mutate(start_3 = `2`) %&gt;% 
+  mutate(end_3 = `3`) %&gt;% 
+  mutate(start_4 = `3`) %&gt;% 
+  mutate(end_4 = end) %&gt;% 
+  select(items_num, start_1, end_1, start_2, end_2, start_3, end_3, start_4, end_4) -&gt; data6
+
+head(data6) %&gt;% kable
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="right">items_num</th>
+<th align="right">start_1</th>
+<th align="right">end_1</th>
+<th align="right">start_2</th>
+<th align="right">end_2</th>
+<th align="right">start_3</th>
+<th align="right">end_3</th>
+<th align="right">start_4</th>
+<th align="right">end_4</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">7</td>
+<td align="right">7</td>
+<td align="right">46</td>
+<td align="right">46</td>
+<td align="right">273</td>
+<td align="right">273</td>
+<td align="right">493</td>
+</tr>
+
+<tr>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">17</td>
+<td align="right">17</td>
+<td align="right">97</td>
+<td align="right">97</td>
+<td align="right">318</td>
+<td align="right">318</td>
+<td align="right">493</td>
+</tr>
+
+<tr>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">203</td>
+<td align="right">203</td>
+<td align="right">366</td>
+<td align="right">366</td>
+<td align="right">461</td>
+<td align="right">461</td>
+<td align="right">493</td>
+</tr>
+
+<tr>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">3</td>
+<td align="right">79</td>
+<td align="right">79</td>
+<td align="right">290</td>
+<td align="right">290</td>
+<td align="right">493</td>
+</tr>
+
+<tr>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">11</td>
+<td align="right">11</td>
+<td align="right">110</td>
+<td align="right">110</td>
+<td align="right">344</td>
+<td align="right">344</td>
+<td align="right">493</td>
+</tr>
+
+<tr>
+<td align="right">6</td>
+<td align="right">0</td>
+<td align="right">23</td>
+<td align="right">23</td>
+<td align="right">114</td>
+<td align="right">114</td>
+<td align="right">383</td>
+<td align="right">383</td>
+<td align="right">493</td>
+</tr>
+</tbody>
+</table>
+
+<p>OK, we have that, pooh, quite a mess.</p>
+
+<p>So, now we need it in long form. Here come a not so elegant, but rather simple, solution for that.</p>
+
+<pre><code class="language-r">data_cat1 &lt;- select(data6, items_num, start_1, end_1) %&gt;% setNames(c(&quot;items&quot;, &quot;start&quot;, &quot;end&quot;)) %&gt;% mutate(answer = 1)
+data_cat2 &lt;- select(data6, items_num, start_2, end_2) %&gt;% setNames(c(&quot;items&quot;,&quot;start&quot;, &quot;end&quot;))  %&gt;% mutate(answer = 2)
+data_cat3 &lt;- select(data6, items_num, start_3, end_3) %&gt;% setNames(c(&quot;items&quot;,&quot;start&quot;, &quot;end&quot;))  %&gt;% mutate(answer = 3)
+data_cat4 &lt;- select(data6, items_num, start_4, end_4) %&gt;% setNames(c(&quot;items&quot;,&quot;start&quot;, &quot;end&quot;))  %&gt;% mutate(answer = 4)
+
+   
+data7 &lt;- bind_rows(data_cat1, data_cat2, data_cat3, data_cat4) 
+
+data7 %&gt;% head %&gt;% kable
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="right">items</th>
+<th align="right">start</th>
+<th align="right">end</th>
+<th align="right">answer</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">7</td>
+<td align="right">1</td>
+</tr>
+
+<tr>
+<td align="right">2</td>
+<td align="right">0</td>
+<td align="right">17</td>
+<td align="right">1</td>
+</tr>
+
+<tr>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">203</td>
+<td align="right">1</td>
+</tr>
+
+<tr>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">1</td>
+</tr>
+
+<tr>
+<td align="right">5</td>
+<td align="right">0</td>
+<td align="right">11</td>
+<td align="right">1</td>
+</tr>
+
+<tr>
+<td align="right">6</td>
+<td align="right">0</td>
+<td align="right">23</td>
+<td align="right">1</td>
+</tr>
+</tbody>
+</table>
+
+<p>Now let&rsquo;s plot the bar graph with the rectangle plot.</p>
+
+<pre><code class="language-r">data7$answer &lt;- factor(data7$answer)
+
+ggplot(data7) +
+  aes() +
+  geom_rect(aes(x = items, 
+                ymin = start, 
+                ymax = end, 
+                xmin = items - 0.4, 
+                xmax = items + 0.4,
+                fill = answer)) +
+  scale_x_continuous(breaks = 1:10, name = &quot;items&quot;) +
+  ylab(&quot;n&quot;) -&gt; p5
+</code></pre>
+
+<pre><code>## Warning: Ignoring unknown aesthetics: x
+</code></pre>
+
+<pre><code class="language-r">p5 + geom_text(data = data3, aes(x = items_num, y = y_pos*nrow(data), label = n), size = 2) -&gt; p6
+
+p6
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-16-1.png" alt="plot of chunk unnamed-chunk-16" /></p>
+
+<p>Compare that to the <code>geom_bar</code> solution.</p>
+
+<pre><code class="language-r">p3
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-17-1.png" alt="plot of chunk unnamed-chunk-17" /></p>
+
+<p>Basically identical (never mind the bar width).</p>
+
+<p>Now flip the coordinates again (and compare to previous solution with <code>geom_bar</code>).</p>
+
+<pre><code class="language-r">p6 + coord_flip()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-18-1.png" alt="plot of chunk unnamed-chunk-18" /></p>
+
+<pre><code class="language-r">p4
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-18-2.png" alt="plot of chunk unnamed-chunk-18" /></p>
+
+<p>Let&rsquo;s try to highlight the most frequent answer category for each item.</p>
+
+<pre><code class="language-r">data7 %&gt;% 
+  mutate(n = end - start) %&gt;% 
+  group_by(items) %&gt;% 
+  mutate(max_n = max(n)) %&gt;% 
+  mutate(max_cat = factor(which(n == max_n))) %&gt;% 
+  mutate(fit_cat = (answer == max_cat)) %&gt;% 
+  ungroup -&gt; data8
+
+data8 %&gt;% 
+  filter(fit_cat == TRUE) -&gt; data8a
+
+
+data7 %&gt;% 
+  ggplot() +
+  aes() +
+  geom_rect(aes(x = items, 
+                ymin = start, 
+                ymax = end, 
+                xmin = items - 0.4, 
+                xmax = items + 0.4,
+                fill = answer)) +
+  scale_x_continuous(breaks = 1:10, name = &quot;items&quot;) +
+  ylab(&quot;n&quot;) + 
+  scale_fill_grey(start = .4, end = .8) -&gt; p8
+</code></pre>
+
+<pre><code>## Warning: Ignoring unknown aesthetics: x
+</code></pre>
+
+<pre><code class="language-r">p8 + geom_rect(data = data8a, aes(x = items, 
+                ymin = start, 
+                ymax = end, 
+                xmin = items - 0.4, 
+                xmax = items + 0.4), fill = &quot;red&quot;)  + 
+  geom_text(data = data3, aes(x = items_num, y = y_pos*nrow(data), label = n), size = 2) -&gt; p8
+</code></pre>
+
+<pre><code>## Warning: Ignoring unknown aesthetics: x
+</code></pre>
+
+<pre><code class="language-r">p8 + coord_flip()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-19-1.png" alt="plot of chunk unnamed-chunk-19" /></p>
+
+<p><a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">Here&rsquo;s</a> a cheat sheet on colors and palettes; and <a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">here</a> you&rsquo;ll find an overview on colors (with names and hex codes).</p>
+
+<p>Mrs. Brewer <a href="http://colorbrewer2.org/#type=sequential&amp;scheme=BuGn&amp;n=3">site</a> is a great place to come up with your own palette and learn more about colors.</p>
+
+<h1 id="rainbow-diagram">Rainbow diagram</h1>
+
+<p>Let&rsquo;s try to &ldquo;move&rdquo; the bars to our wishes. Precisely, it would be nice if the bars were aligned at the &ldquo;Rubicon&rdquo; between &ldquo;do <em>not</em> agree&rdquo; and &ldquo;<em>do</em> agree&rdquo;. Then we could see better how many persons agree and not.</p>
+
+<p>More practically, if we knew that 104+212 = 316 persons basically disagree, then 316 could be our &ldquo;zero line&rdquo; (item 10). Repeat that for each item.</p>
+
+<pre><code class="language-r">data8 %&gt;% 
+  group_by(items) %&gt;% 
+  mutate(n_disagree = sum(n[c(1,2)]),
+         n_agree = sum(n[c(3,4)]),
+         start_adj = start - n_disagree,
+         end_adj = end - n_disagree
+         ) %&gt;% 
+  ungroup -&gt; data9
+
+
+data9 %&gt;% 
+  ggplot() +
+  aes() +
+  geom_rect(aes(x = items, 
+                ymin = start_adj, 
+                ymax = end_adj, 
+                xmin = items - 0.4, 
+                xmax = items + 0.4,
+                fill = answer)) +
+  scale_x_continuous(breaks = 1:10, name = &quot;items&quot;) +
+  ylab(&quot;n&quot;) + 
+  scale_fill_grey(start = .4, end = .8) -&gt; p9
+</code></pre>
+
+<pre><code>## Warning: Ignoring unknown aesthetics: x
+</code></pre>
+
+<pre><code class="language-r">p9
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-20-1.png" alt="plot of chunk unnamed-chunk-20" /></p>
+
+<p>Looks quite cool.</p>
+
+<p>Now let&rsquo;s add the numbers to that plot.</p>
+
+<pre><code class="language-r">data4 %&gt;% 
+  mutate(items_num = parse_number(items)) %&gt;% 
+  dplyr::select(-items) %&gt;% 
+  rename(items = items_num) %&gt;% 
+  select(items, everything()) %&gt;% 
+  arrange(answer, items) %&gt;% 
+  ungroup -&gt; data10
+
+
+data9 %&gt;% 
+  mutate(y_pos_adj = data10$y_pos * nrow(data) - n_disagree) -&gt; data11
+
+
+
+p9 +  
+  geom_text(data = data11, aes(x = items, y = y_pos_adj, label = n), size = 2) -&gt; p11
+
+p11
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-21-1.png" alt="plot of chunk unnamed-chunk-21" /></p>
+
+<p>And now let&rsquo;s highlight the most frequent answer category.</p>
+
+<pre><code class="language-r">library(ggrepel)
+
+data11 %&gt;% 
+  ggplot() +
+  aes() +
+  geom_rect(aes(x = items,
+                ymin = start_adj,
+                ymax = end_adj,
+                xmin = items - 0.4,
+                xmax = items + 0.4,
+                fill = answer)) +
+  scale_fill_grey(start = .4, end = .8) + 
+  geom_rect(data = filter(data11, fit_cat == TRUE), 
+            aes(x = items, 
+                ymin = start_adj, 
+                ymax = end_adj, 
+                xmin = items - 0.4, 
+                xmax = items + 0.4),
+            fill = &quot;red&quot;) + 
+  geom_text(aes(x = items, y = y_pos_adj, label = n), size = 2) +
+  scale_x_continuous(breaks = 1:10) +
+  ylab(&quot;n&quot;) -&gt; p12
+</code></pre>
+
+<pre><code>## Warning: Ignoring unknown aesthetics: x
+
+## Warning: Ignoring unknown aesthetics: x
+</code></pre>
+
+<pre><code class="language-r">p12
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-22-1.png" alt="plot of chunk unnamed-chunk-22" /></p>
+
+<p>OK, that&rsquo;s about it for today. May turn the waterfall by 90°.</p>
+
+<pre><code class="language-r">p12 + coord_flip()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-23-1.png" alt="plot of chunk unnamed-chunk-23" /></p>
+
+<p>And change the direction of the now numeric items-axis.</p>
+
+<pre><code class="language-r">p12 + coord_flip() + scale_x_reverse(breaks = 1:10)
+</code></pre>
+
+<pre><code>## Scale for 'x' is already present. Adding another scale for 'x', which
+## will replace the existing scale.
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-24-1.png" alt="plot of chunk unnamed-chunk-24" /></p>
+
+<p>Happy plotting!</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

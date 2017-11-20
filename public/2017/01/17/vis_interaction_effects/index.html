@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Visualizing Interaction Effects with ggplot2 - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Visualizing Interaction Effects with ggplot2 - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">4 min read</span>
+    
+
+    <h1 class="article-title">Visualizing Interaction Effects with ggplot2</h1>
+
+    
+    <span class="article-date">2017/01/17</span>
+    
+
+    <div class="article-content">
+      
+
+<p>Moderator effects or interaction effect are a frequent topic of scientific endeavor. Put bluntly, such effects respond to the question whether the input variable X (predictor or independent variable IV) has an effect on the output variable (dependent variable DV) Y: &ldquo;it depends&rdquo;. More precisely, it depends on a second variable, M (Moderator).</p>
+
+<p>More formally, a moderation effect can be summarized as follows:</p>
+
+<blockquote>
+<p>If the effect of X on Y depends on M, a moderator effect takes place.</p>
+</blockquote>
+
+<p>There exist some typical procedures to detect such effects. In this post, however we are concerned only with the visualization of moderation.</p>
+
+<p>To do so, we will distinguish three situations: Where X and M are nominal, where X and M are numeric, and situations where one of them is nominal and the other numeric.</p>
+
+<p>We will look at some visualization methods based on <code>ggplot2</code> (don&rsquo;t forget to install upfront if not yet installed). We will use the dataset <code>tips</code> from <code>reshape2</code>. <code>dplyr</code> will be used for data mingling.</p>
+
+<pre><code class="language-r">library(ggplot2) 
+library(dplyr) 
+tips &lt;- read.csv(&quot;https://sebastiansauer.github.io/data/tips.csv&quot;)
+</code></pre>
+
+<h1 id="iv-numeric-m-nominal">IV: numeric, M: nominal</h1>
+
+<p>Let&rsquo;s assume we take <code>total_bill</code> as predictor (X), and <code>sex</code> as moderator; <code>tip</code> is the criterion (outcome).</p>
+
+<pre><code class="language-r">qplot(x = total_bill, y = tip, facets = ~sex, data = tips) +
+  geom_smooth(method = &quot;lm&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-2-1.png" alt="plot of chunk unnamed-chunk-2" /></p>
+
+<p>The data set is split in two facets; a regression line indicates the strength of association in each level of the moderator.</p>
+
+<p>However, as the two lines are not aligned, they are of limited use for visual comparison. Better place the lines in one, single diagram.</p>
+
+<pre><code class="language-r">qplot(x = total_bill, y = tip, data = tips, color = sex) +
+  geom_smooth(method = &quot;lm&quot;) 
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3" /></p>
+
+<p>Now we see clearly that there are little differences between the groups, if at all.</p>
+
+<p>Some tweaks:</p>
+
+<pre><code class="language-r">ggplot(tips) +
+  aes(x = total_bill, y = tip, color = sex) +
+  geom_point(color = &quot;grey&quot;) +
+  geom_smooth(method = &quot;lm&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
+
+<p>Or:</p>
+
+<pre><code class="language-r">tips_f &lt;- filter(tips, sex == &quot;Female&quot;)
+tips_m &lt;- filter(tips, sex == &quot;Male&quot;)
+
+
+ggplot(tips) +
+  aes(x = total_bill, y = tip, color = sex) +
+  geom_point(color = &quot;grey&quot;) +
+  geom_smooth(method = &quot;lm&quot;, data = tips_f) +
+   geom_smooth(method = &quot;lm&quot;, data = tips_m)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-5-1.png" alt="plot of chunk unnamed-chunk-5" /></p>
+
+<h1 id="iv-nominal-m-nominal">IV: nominal, M: nominal</h1>
+
+<pre><code class="language-r">ggplot(tips) +
+  aes(x = sex, y = tip) +
+  geom_boxplot() +
+  facet_wrap(~smoker)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-6-1.png" alt="plot of chunk unnamed-chunk-6" /></p>
+
+<p>The moderator effect can be put in this question here &ldquo;Is the difference between the sexes of equal size in non-smokers the same as in smokers&rdquo;? It appears that there is little difference in the differences, hence little indication for a moderator effect.</p>
+
+<p>We can also do the statistical summary ourselves:</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  group_by(sex, smoker) %&gt;% 
+  summarise(tip_groups = mean(tip)) -&gt; tips2
+
+
+tips2 %&gt;% 
+  ggplot() +
+  aes(x = sex, y = tip_groups, color = smoker) +
+  geom_line(aes(group = smoker)) +
+  geom_point()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7" /></p>
+
+<p>This plot argues for some interaction of the two predictors, as the lines are not parallel (in fact they are crossed here).</p>
+
+<p>Similarly, in <code>ggplot2</code>:</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  ggplot() +
+  aes(x = sex, color = smoker, group = smoker, y = tip) +
+  stat_summary(fun.y = mean, geom = &quot;point&quot;) +
+  stat_summary(fun.y = mean, geom = &quot;line&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8" /></p>
+
+<h1 id="iv-metric-m-metric">IV: metric, M: metric</h1>
+
+<p>As the effect of the metric moderator is not straight-forward to plot, it is convenient to discretize the metric moderator. For example, in two groups (median split) or in three (1 sd below the mean, mean, 1 sd above the mean, or in terciles&hellip;). Then we proceed as above.</p>
+
+<pre><code class="language-r">tips$tip_2tile &lt;- ntile(tips$tip, 2)
+head(tips$tip_2tile)
+</code></pre>
+
+<pre><code>## [1] 1 1 2 2 2 2
+</code></pre>
+
+<pre><code class="language-r">tips$tip_3tile &lt;- ntile(tips$tip, 3)
+head(tips$tip_3tile)
+</code></pre>
+
+<pre><code>## [1] 1 1 3 3 3 3
+</code></pre>
+
+<pre><code class="language-r">x &lt;- tips$tip
+
+tips$tip_3group &lt;-
+  case_when(x &gt; mean(x)+sd(x) ~ &quot;high&quot;,
+            x &lt; mean(x)+sd(x) &amp; x &gt; mean(x)-sd(x) ~ &quot;average&quot;,
+            x &lt; mean(x)-sd(x) ~ &quot;low&quot;)
+
+count(tips, tip_3group)
+</code></pre>
+
+<pre><code>## # A tibble: 3 × 2
+##   tip_3group     n
+##        &lt;chr&gt; &lt;int&gt;
+## 1    average   182
+## 2       high    32
+## 3        low    30
+</code></pre>
+
+<pre><code class="language-r">tips %&gt;% 
+  ggplot() +
+  aes(x = total_bill, y = size, group = tip_3group, color = tip_3group) +
+  geom_point(color = &quot;grey&quot;, alpha = .7) +
+    geom_smooth(method = &quot;lm&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9" /></p>
+
+<h1 id="debrief">Debrief</h1>
+
+<p>In sum, <code>ggplot2</code> provides some handy functions for visualizing moderator effects. In addition to traditional regression analyses, such plots can help to better grasp what actually is going on.</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

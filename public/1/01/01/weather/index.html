@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Precipitation - It never rains in Southern Nuremberg (?). Working with dates/times. - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Precipitation - It never rains in Southern Nuremberg (?). Working with dates/times. - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">5 min read</span>
+    
+
+    <h1 class="article-title">Precipitation - It never rains in Southern Nuremberg (?). Working with dates/times.</h1>
+
+    
+    <span class="article-date">0001/01/01</span>
+    
+
+    <div class="article-content">
+      <p>In this post, we will explore some <em>date</em> and <em>time</em> parsing. As an example, we will work with weather data provided by <a href="http://umweltdaten.nuernberg.de/en.html">City of Nuremberg, Environmental and Meteorological Data</a>.</p>
+
+<p>We will need these packages:</p>
+
+<pre><code class="language-r">library(tidyverse)  # data reading and wrangling
+library(lubridate)  # working with dates/times
+</code></pre>
+
+<p>First, let&rsquo;s import some precipitation data:</p>
+
+<pre><code class="language-r">file_name &lt;- &quot;~/Downloads/export-sun-nuremberg--flugfeld--airport--precipitation-data--1-hour--individuell.csv&quot;
+rain &lt;- read_csv2(file_name,
+                 skip = 13,
+                 col_names = FALSE)
+</code></pre>
+
+<pre><code>## Warning in rbind(names(probs), probs_f): number of columns of result is not
+## a multiple of vector length (arg 1)
+</code></pre>
+
+<pre><code>## Warning: 300 parsing failures.
+## row # A tibble: 5 x 5 col     row   col expected actual expected   &lt;int&gt; &lt;chr&gt;    &lt;chr&gt;  &lt;chr&gt; actual 1  1643    X2 a double      - file 2  1644    X2 a double      - row 3  1645    X2 a double      - col 4  1646    X2 a double      - expected 5  1647    X2 a double      - actual # ... with 1 more variables: file &lt;chr&gt;
+## ... ................. ... ............................. ........ ............................. ...... ............................. .... ............................. ... ............................. ... ............................. ........ ............................. ...... .......................................
+## See problems(...) for more details.
+</code></pre>
+
+<pre><code class="language-r">colnames(rain) &lt;- c(&quot;date_time&quot;, &quot;precip&quot;)
+</code></pre>
+
+<p>As there was some strange, non-UTF8 character in line 12, we just skipped this line. As this was the row with the column names, we informed <code>read_csv</code> that there are no col_names (using <code>col_names = FALSE</code>). Also, some missing data occured. Luckily, <code>readr</code> takes care (despite of a lot of warning output).</p>
+
+<p>Unfortunately, R has not yet reckognized that the first column consists of a date/time object. So let&rsquo;s tell her:</p>
+
+<pre><code class="language-r">rain$dt &lt;- parse_date_time(rain$date_time, orders=&quot;dmy HM&quot;)
+</code></pre>
+
+<p>The parameter <code>order</code> tell R, that the format of <code>date_time</code> is day month year (hence <code>dmy</code>), followed by hour and minute (hence <code>HM</code>). Now let&rsquo;s spread the date/time to several columns:</p>
+
+<pre><code class="language-r">rain %&gt;%
+  select(-date_time) %&gt;%
+  mutate(day = day(dt),
+         month = month(dt),
+         year = year(dt),
+         hour = hour(dt)) -&gt; rain
+</code></pre>
+
+<p>Let&rsquo;s give each day a number, first day in record is #1, second day #2, and so on.</p>
+
+<pre><code class="language-r">rain$date &lt;- date(rain$dt)
+
+first_day &lt;- min(rain$date)
+last_day &lt;- max(rain$date)
+
+rain$day_ID &lt;- rain$date - min(rain$date)
+</code></pre>
+
+<p>OK, now let&rsquo;s look at the precipitation in Nuremberg.</p>
+
+<p>How many dry days (no rain) have there been in 2016?</p>
+
+<pre><code class="language-r">rain %&gt;%
+  group_by(day_ID) %&gt;%
+  summarise(precip_day_sum = sum(precip)) %&gt;%
+  filter(precip_day_sum == 0) %&gt;%
+  nrow -&gt; n_dry_days
+
+n_dry_days
+</code></pre>
+
+<pre><code>## [1] 207
+</code></pre>
+
+<p>Oh, 207 out of 366 days no rain, ie., 0.55. BTW: It was a leap year, that&rsquo;s why I put 366 days.</p>
+
+<pre><code class="language-r">rain %&gt;%
+  group_by(day_ID) %&gt;%
+  slice(1) %&gt;% nrow
+</code></pre>
+
+<pre><code>## [1] 366
+</code></pre>
+
+<p>Easy enought, this little sweet function tells us whether a given year was a leap year or not.</p>
+
+<pre><code class="language-r">leap_year(2016)
+</code></pre>
+
+<pre><code>## [1] TRUE
+</code></pre>
+
+<p>Let&rsquo;s visualize whether a day was dry or not. First, we compute a variable <code>rain_today</code>.</p>
+
+<pre><code class="language-r">rain %&gt;%
+  group_by(year, month, day, day_ID) %&gt;%
+  summarise(rain_today = any(precip != 0)) %&gt;%
+  filter(!is.na(rain_today)) %&gt;%
+  group_by(month) %&gt;%   
+  summarise(prop_rain_days_per_month = sum(rain_today)/n()) %&gt;%
+  ggplot() +
+  aes(x = month, y = prop_rain_days_per_month) %&gt;%
+  geom_col() +
+  scale_x_continuous(breaks = 1:12)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9" /></p>
+
+<p>August and September then were quite dry, it appears. Let&rsquo;s look at the amount of precipitation for comparison.</p>
+
+<pre><code class="language-r">rain %&gt;%
+  group_by(month) %&gt;%
+  summarise(precip_mean_today = sum(precip, na.rm = T)) %&gt;%
+  ggplot(aes(x = month, y = precip_mean_today)) +
+  geom_line() +
+  geom_point() +
+  scale_x_continuous(breaks = 1:12) +
+  labs(title = &quot;Total precipitation in liter per square meter&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-10-1.png" alt="plot of chunk unnamed-chunk-10" /></p>
+
+<p>For the fun of it, let&rsquo;s prepare a more nuanced picture.</p>
+
+<pre><code class="language-r">rain %&gt;%
+  ggplot +
+  aes(x = date, y = hour, fill = precip) +
+  geom_tile() +
+  scale_fill_distiller(palette = &quot;Spectral&quot;) +
+  scale_x_date(date_breaks = &quot;1 month&quot;, date_labels = &quot;%b&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-11-1.png" alt="plot of chunk unnamed-chunk-11" /></p>
+
+<p>Hey, in June there must have been some heavy raining. Let&rsquo;s zoom in.</p>
+
+<pre><code class="language-r">rain %&gt;%
+  filter(month == 6) %&gt;%
+  ggplot +
+  aes(x = date, y = hour, fill = precip) +
+  geom_tile() +
+  scale_fill_distiller(palette = &quot;Spectral&quot;) +
+  scale_x_date(date_breaks = &quot;1 day&quot;, date_labels = &quot;%d&quot;) +
+  scale_y_continuous(breaks = c(4, 8, 12, 16, 20, 24))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-12-1.png" alt="plot of chunk unnamed-chunk-12" /></p>
+
+<p>Most of the days in June were dry, but on one day, heave rains occurred on the 12th or 13th in the late afternoon.</p>
+
+<pre><code class="language-r">rain %&gt;%
+  filter(precip &gt; 7)
+</code></pre>
+
+<pre><code>## # A tibble: 4 x 8
+##   precip                  dt   day month  year  hour       date   day_ID
+##    &lt;dbl&gt;              &lt;dttm&gt; &lt;int&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt;     &lt;date&gt;   &lt;time&gt;
+## 1    7.4 2016-05-29 21:00:00    29     5  2016    21 2016-05-29 149 days
+## 2    9.5 2016-06-12 17:00:00    12     6  2016    17 2016-06-12 163 days
+## 3    8.7 2016-06-12 18:00:00    12     6  2016    18 2016-06-12 163 days
+## 4    7.2 2016-07-13 15:00:00    13     7  2016    15 2016-07-13 194 days
+</code></pre>
+
+<p>On June, 12th between 17:00 and 19:00 CEDT, a lot of rain came down in Nuremburg.</p>
+
+<p>Is there a preference for time in terms of precipitation? Maybe it rather rains in the late afternoon in general?</p>
+
+<pre><code class="language-r">rain %&gt;%
+  group_by(hour) %&gt;%
+  summarise(precip_mean_per_hour = mean(precip, na.rm = T),
+            precip_sd_per_hour = sd(precip, na.rm = T)) %&gt;%
+  ggplot +
+  aes(x = hour, y = precip_mean_per_hour) +
+  geom_line() +
+  geom_errorbar(aes(ymin = precip_mean_per_hour - precip_sd_per_hour,
+                    ymax = precip_mean_per_hour + precip_sd_per_hour)) +
+  geom_point(color = &quot;tomato4&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-14-1.png" alt="plot of chunk unnamed-chunk-14" /></p>
+
+<p>Hm, not much difference between the hours. But the variability seems to differ quite some bit. Would that picture change if we consider only days <em>with</em> precipation?</p>
+
+<pre><code class="language-r">rain %&gt;%
+  filter(precip != 0) %&gt;%
+  group_by(hour) %&gt;%
+  summarise(precip_mean_per_hour = mean(precip, na.rm = T),
+            precip_sd_per_hour = sd(precip, na.rm = T)) %&gt;%
+  ggplot +
+  aes(x = hour, y = precip_mean_per_hour) +
+  geom_line() +
+  geom_errorbar(aes(ymin = precip_mean_per_hour - precip_sd_per_hour,
+                    ymax = precip_mean_per_hour + precip_sd_per_hour)) +
+  geom_point(color = &quot;tomato4&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-15-1.png" alt="plot of chunk unnamed-chunk-15" /></p>
+
+<p>Not too much difference in the overall pattern. But what about if we look at the median and IQR, instead of mean and sd?</p>
+
+<pre><code class="language-r">rain %&gt;%
+  filter(precip != 0) %&gt;%
+  group_by(hour) %&gt;%
+  summarise(precip_median_per_hour = median(precip, na.rm = T),
+            precip_iqr_per_hour = IQR(precip, na.rm = T)) %&gt;%
+  ggplot +
+  aes(x = hour, y = precip_median_per_hour) +
+  geom_line() +
+  geom_errorbar(aes(ymin = precip_median_per_hour - precip_iqr_per_hour,
+                    ymax = precip_median_per_hour + precip_iqr_per_hour),
+                color = &quot;grey60&quot;) +
+  geom_point(color = &quot;tomato4&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-16-1.png" alt="plot of chunk unnamed-chunk-16" /></p>
+
+<p>That the pattern breaks down essentially. Not that much difference between the hours left. Maybe 10:00 is rather dry, but that may be sampling errror of this year.</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

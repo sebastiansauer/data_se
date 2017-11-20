@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Programming with dplyr: Part 03, working with strings - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Programming with dplyr: Part 03, working with strings - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">4 min read</span>
+    
+
+    <h1 class="article-title">Programming with dplyr: Part 03, working with strings</h1>
+
+    
+    <span class="article-date">0001/01/01</span>
+    
+
+    <div class="article-content">
+      
+
+<h1 id="more-on-programming-with-dplyr-converting-quosures-to-strings">More on programming with dplyr: converting quosures to strings</h1>
+
+<p>In <a href="https://sebastiansauer.github.io/prop_fav/">this</a> post, we have programmed a simple function using dplyr&rsquo;s programming capabilities based on <a href="https://cran.r-project.org/web/packages/rlang/vignettes/tidy-evaluation.html">tidyeval</a>; for more intro to programming with dplyr, see <a href="https://cran.r-project.org/web/packages/dplyr/vignettes/programming.html">here</a>.</p>
+
+<p>In this post, we&rsquo;ll go one step further and programm a function where a quosure will be turned to a string. Why this? Because quite a number of functions out there except strings as input parameters.</p>
+
+<h1 id="libraries">Libraries</h1>
+
+<pre><code class="language-r">library(tidyverse)
+library(stringr)
+</code></pre>
+
+<h1 id="data-example">Data example</h1>
+
+<p>Say, we have a string where we search for a word stem. However this stem does not appear in its &ldquo;stem&rdquo; form, but always with some suffixes. Let our stem be &ldquo;spd&rdquo; (the name of the German Social-Democratic party), and (for simplicity), we&rsquo;ll assume two &ldquo;instances&rdquo; of &ldquo;spd&rdquo; that occurr <em>with</em> suffix, ie., &ldquo;spdbt&rdquo; and &ldquo;spdde&rdquo;. (I was just working on a text mining on Tweets of German politiicians, hence the example).</p>
+
+<pre><code class="language-r">data &lt;- c(&quot;spdde&quot;, &quot;sdf&quot;, &quot;sdf&quot;, &quot;fdds&quot;, &quot;spdde&quot;, &quot;dsf&quot;, &quot;spdbt&quot;, &quot;df&quot;) %&gt;% as_tibble
+stem &lt;- &quot;spd&quot;
+</code></pre>
+
+<h1 id="task-01-extract-the-spd-stem-out-of-the-data">Task 01: Extract the &ldquo;spd&rdquo; stem out of the data</h1>
+
+<p>Non-programmatically, ie., interactively, this is quite straight-forward. Some knowledge of Regex is helpful to render the task a bit more general:</p>
+
+<pre><code class="language-r">data %&gt;% 
+  mutate(is_instance = str_detect(string = value, pattern = &quot;spd\\w+&quot;),
+         instance = str_match(value, &quot;spd\\w+&quot;))
+</code></pre>
+
+<pre><code>## # A tibble: 8 x 3
+##   value is_instance instance
+##   &lt;chr&gt;       &lt;lgl&gt;    &lt;chr&gt;
+## 1 spdde        TRUE    spdde
+## 2   sdf       FALSE     &lt;NA&gt;
+## 3   sdf       FALSE     &lt;NA&gt;
+## 4  fdds       FALSE     &lt;NA&gt;
+## 5 spdde        TRUE    spdde
+## 6   dsf       FALSE     &lt;NA&gt;
+## 7 spdbt        TRUE    spdbt
+## 8    df       FALSE     &lt;NA&gt;
+</code></pre>
+
+<p><code>\\w</code> means &ldquo;find a word-character&rdquo; (ie., letter or digit), and <code>+</code> means that at least 1 hit is expected. <code>pattern</code> is the pattern to be looked for and <code>string</code> defines the string where to search for the pattern.</p>
+
+<h1 id="task-02-make-it-a-function">Task 02: Make it a function</h1>
+
+<p>Obviously, a function is much more general. Say we have 10 parties we would like to warp through; it becomes tedious to repeat that code many times. We will want a function. How to do that with dplyr?</p>
+
+<p>Let&rsquo;s define a function with input parameters <code>df</code> for the name of the dataframe, <code>col</code> for the name of the column where the stemming is performend, and <code>stem</code>, the term to be stemmed.</p>
+
+<pre><code class="language-r">stemm_col &lt;- function(df, col, stem){
+  
+  col &lt;- enquo(col)
+  col_name &lt;- quo_name(enquo(col))
+  stem_name &lt;- quo_name(enquo(stem))
+
+  df %&gt;% 
+    mutate(stemmed = str_extract(string = !!col,
+                                pattern = paste0(stem_name,&quot;\\w+&quot;))) -&gt; output
+  
+  return(output)
+}
+</code></pre>
+
+<p>See whether it runs:</p>
+
+<pre><code class="language-r">stemm_col(df = data, col = value, stem = &quot;spd&quot;)
+</code></pre>
+
+<pre><code>## # A tibble: 8 x 2
+##   value stemmed
+##   &lt;chr&gt;   &lt;chr&gt;
+## 1 spdde   spdde
+## 2   sdf    &lt;NA&gt;
+## 3   sdf    &lt;NA&gt;
+## 4  fdds    &lt;NA&gt;
+## 5 spdde   spdde
+## 6   dsf    &lt;NA&gt;
+## 7 spdbt   spdbt
+## 8    df    &lt;NA&gt;
+</code></pre>
+
+<h1 id="bit-by-bit-explanation">Bit by bit explanation</h1>
+
+<ul>
+<li><p><code>col &lt;- enquo(col)</code> &ndash; Take the parameter <code>col</code>, and just remember, R, that it is an expression, in this case, the parameter of a function, denoting a column.</p></li>
+
+<li><p><code>col_name &lt;- quo_name(enquo(col))</code>  &ndash; Now turn <code>col</code> (an expression) to a string, because the function further down (<code>str_extract</code>) expects a string.</p></li>
+
+<li><p><code>str_extract(string = !!col,...</code> &ndash; Hey R, when you extract the strings, you need to know which string to search. OK, take <code>col</code> which is an expression, and now evaluate it (indicated by <code>!!</code>), in this case, understand that it&rsquo;s a column. Now go get the values.</p></li>
+</ul>
+
+<h1 id="main-idea">Main idea</h1>
+
+<p>When working with <a href="http://adv-r.had.co.nz/Computing-on-the-language.html">NSE</a>, it is important to distinguish between expression, strings and evaluation. Using NSE, we can look at the parameters of a function, and grap the parameters before they are evaluated. That&rsquo;s why the parameters need not be well-behaved, importantly, they do not need to have quotation marks, which saves typing for the user.</p>
+
+<p>From the perspective of the R-interpreter (the machine), the steps of action looks more or less like this:</p>
+
+<ol>
+<li><p>Look at the parameters of the function</p></li>
+
+<li><p>Save the parameters not as strings, not as variables, but as expressions (via <code>enquo</code>)</p></li>
+
+<li><p>Convert the expression to a string (via <code>quo_name</code>) or, eventually,</p></li>
+
+<li><p>Evaluate it, ie., unquote (let the function to its job) via <code>!!</code> (called bang-bang) or via <code>UQ</code>.</p></li>
+</ol>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+
