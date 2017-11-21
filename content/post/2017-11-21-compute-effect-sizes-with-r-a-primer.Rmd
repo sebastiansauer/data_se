@@ -44,46 +44,76 @@ data(flights, package = "nycflights13")
 ```
 
 
-This post will be tidyverse-driven:
+This post will be tidyverse-driven.
 
 ```{r}
 library(tidyverse)
 library(skimr)
+library(mosaic)
 ```
 
 
-# Report descriptive statistics
-
+Let's compute some summaries:
 
 ```{r}
 flights %>% 
+  select(arr_delay) %>% 
   skim
 ```
 
-Done!
+Alternatively, using `mosaic`:
 
-Oh, wait, "subgroup" analysis is some often asked for task.
+```{r}
+mosaic::favstats(~arr_delay, data = flights)
+```
+
+
+## Subgroup statistics
+
+Differentiating between `origin` levels:
 
 ```{r}
 flights %>% 
+  select(arr_delay, origin) %>%
   group_by(origin) %>% 
   skim
 ```
 
 
-# Bonus: Use mosaic
-
-The package mosaic is another beginer friendly approach to data analysis.
+Alternatively, using `mosaic`:
 
 ```{r}
-library(mosaic)
+favstats(arr_delay~origin, data = flights)
+```
+
+
+# Effect sizes
+
+
+## Cohen's d
+
+
+```{r}
+library(effsize)
+```
+
+
+We need *two*  groups not three:
+```{r}
+flights2 <-
+  filter(flights, origin != "JFK") %>%
+  sample_n(1000) %>% 
+  na.omit
 ```
 
 
 ```{r}
-mosaic::inspect(flights)
+cohen.d(d = flights2$arr_delay,
+        f = flights2$origin)
 ```
 
+## Other effect sizes
 
-# Bonus: Get the results printed in nice table
+Other effect sizes can quite conveniently be derived from the package `compute.es`.
+
 

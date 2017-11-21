@@ -59,7 +59,7 @@
 
   <article class="article">
     
-    <span class="article-duration">2 min read</span>
+    <span class="article-duration">4 min read</span>
     
 
     <h1 class="article-title">Get your stats result in a table easily</h1>
@@ -81,6 +81,10 @@ library(skimr)</code></pre>
 <pre class="r"><code>flights %&gt;% 
   select(air_time, distance, arr_delay) %&gt;% 
   sample_n(1000) -&gt; flights_short</code></pre>
+<p>Let’s compute a summary:</p>
+<pre class="r"><code>mosaic::favstats(~arr_delay, data = flights_short)
+#&gt;  min  Q1 median Q3 max     mean       sd   n missing
+#&gt;  -63 -17     -5 13 304 6.047571 42.68319 988      12</code></pre>
 <div id="descriptive-statistics" class="section level1">
 <h1>Descriptive statistics</h1>
 <div id="apatables-ad-apastyle" class="section level2">
@@ -90,6 +94,109 @@ library(skimr)</code></pre>
 <pre class="r"><code>apaStyle::apa.descriptives(data = flights[c(&quot;arr_delay&quot;, &quot;distance&quot;)],
                            variables = c(&quot;arr_delay&quot;, &quot;distance&quot;))</code></pre>
 <p>With the result: “Word document succesfully generated in: /Users/sebastiansauer/Documents/RRRing/data_se”</p>
+</div>
+<div id="kable" class="section level2">
+<h2><code>kable</code></h2>
+<pre class="r"><code>library(knitr)</code></pre>
+<pre class="r"><code>kable
+#&gt; function (x, format, digits = getOption(&quot;digits&quot;), row.names = NA, 
+#&gt;     col.names = NA, align, caption = NULL, format.args = list(), 
+#&gt;     escape = TRUE, ...) 
+#&gt; {
+#&gt;     if (missing(format) || is.null(format)) 
+#&gt;         format = getOption(&quot;knitr.table.format&quot;)
+#&gt;     if (is.null(format)) 
+#&gt;         format = if (is.null(pandoc_to())) 
+#&gt;             switch(out_format() %n% &quot;markdown&quot;, latex = &quot;latex&quot;, 
+#&gt;                 listings = &quot;latex&quot;, sweave = &quot;latex&quot;, html = &quot;html&quot;, 
+#&gt;                 markdown = &quot;markdown&quot;, rst = &quot;rst&quot;, stop(&quot;table format not implemented yet!&quot;))
+#&gt;         else if (isTRUE(opts_knit$get(&quot;kable.force.latex&quot;)) &amp;&amp; 
+#&gt;             is_latex_output()) {
+#&gt;             &quot;latex&quot;
+#&gt;         }
+#&gt;         else &quot;pandoc&quot;
+#&gt;     if (is.function(format)) 
+#&gt;         format = format()
+#&gt;     if (format != &quot;latex&quot; &amp;&amp; !missing(align) &amp;&amp; length(align) == 
+#&gt;         1L) 
+#&gt;         align = strsplit(align, &quot;&quot;)[[1]]
+#&gt;     if (!is.null(caption) &amp;&amp; !is.na(caption)) 
+#&gt;         caption = paste0(create_label(&quot;tab:&quot;, opts_current$get(&quot;label&quot;), 
+#&gt;             latex = (format == &quot;latex&quot;)), caption)
+#&gt;     if (inherits(x, &quot;list&quot;)) {
+#&gt;         if (format == &quot;pandoc&quot; &amp;&amp; is_latex_output()) 
+#&gt;             format = &quot;latex&quot;
+#&gt;         res = lapply(x, kable, format = format, digits = digits, 
+#&gt;             row.names = row.names, col.names = col.names, align = align, 
+#&gt;             caption = NA, format.args = format.args, escape = escape, 
+#&gt;             ...)
+#&gt;         res = unlist(lapply(res, paste, collapse = &quot;\n&quot;))
+#&gt;         res = if (format == &quot;latex&quot;) {
+#&gt;             kable_latex_caption(res, caption)
+#&gt;         }
+#&gt;         else if (format == &quot;html&quot; || (format == &quot;pandoc&quot; &amp;&amp; is_html_output())) 
+#&gt;             kable_html(matrix(paste0(&quot;\n\n&quot;, res, &quot;\n\n&quot;), 1), 
+#&gt;                 caption = caption, escape = FALSE, table.attr = &quot;class=\&quot;kable_wrapper\&quot;&quot;)
+#&gt;         else {
+#&gt;             res = paste(res, collapse = &quot;\n\n&quot;)
+#&gt;             if (format == &quot;pandoc&quot;) 
+#&gt;                 kable_pandoc_caption(res, caption)
+#&gt;             else res
+#&gt;         }
+#&gt;         return(structure(res, format = format, class = &quot;knitr_kable&quot;))
+#&gt;     }
+#&gt;     if (identical(col.names, NA)) 
+#&gt;         col.names = colnames(x)
+#&gt;     if (!is.matrix(x)) 
+#&gt;         x = as.data.frame(x)
+#&gt;     m = ncol(x)
+#&gt;     isn = if (is.matrix(x)) 
+#&gt;         rep(is.numeric(x), m)
+#&gt;     else sapply(x, is.numeric)
+#&gt;     if (missing(align) || (format == &quot;latex&quot; &amp;&amp; is.null(align))) 
+#&gt;         align = ifelse(isn, &quot;r&quot;, &quot;l&quot;)
+#&gt;     digits = rep(digits, length.out = m)
+#&gt;     for (j in seq_len(m)) {
+#&gt;         if (is_numeric(x[, j])) 
+#&gt;             x[, j] = round(x[, j], digits[j])
+#&gt;     }
+#&gt;     if (any(isn)) {
+#&gt;         if (is.matrix(x)) {
+#&gt;             if (is.table(x) &amp;&amp; length(dim(x)) == 2) 
+#&gt;                 class(x) = &quot;matrix&quot;
+#&gt;             x = format_matrix(x, format.args)
+#&gt;         }
+#&gt;         else x[, isn] = format_args(x[, isn], format.args)
+#&gt;     }
+#&gt;     if (is.na(row.names)) 
+#&gt;         row.names = has_rownames(x)
+#&gt;     if (!is.null(align)) 
+#&gt;         align = rep(align, length.out = m)
+#&gt;     if (row.names) {
+#&gt;         x = cbind(` ` = rownames(x), x)
+#&gt;         if (!is.null(col.names)) 
+#&gt;             col.names = c(&quot; &quot;, col.names)
+#&gt;         if (!is.null(align)) 
+#&gt;             align = c(&quot;l&quot;, align)
+#&gt;     }
+#&gt;     n = nrow(x)
+#&gt;     x = replace_na(base::format(as.matrix(x), trim = TRUE, justify = &quot;none&quot;), 
+#&gt;         is.na(x))
+#&gt;     if (!is.matrix(x)) 
+#&gt;         x = matrix(x, nrow = n)
+#&gt;     if (ncol(x) == 1 &amp;&amp; format == &quot;pandoc&quot;) 
+#&gt;         format = &quot;markdown&quot;
+#&gt;     x = trimws(x)
+#&gt;     colnames(x) = col.names
+#&gt;     if (format != &quot;latex&quot; &amp;&amp; length(align) &amp;&amp; !all(align %in% 
+#&gt;         c(&quot;l&quot;, &quot;r&quot;, &quot;c&quot;))) 
+#&gt;         stop(&quot;&#39;align&#39; must be a character vector of possible values &#39;l&#39;, &#39;r&#39;, and &#39;c&#39;&quot;)
+#&gt;     attr(x, &quot;align&quot;) = align
+#&gt;     res = do.call(paste(&quot;kable&quot;, format, sep = &quot;_&quot;), list(x = x, 
+#&gt;         caption = caption, escape = escape, ...))
+#&gt;     structure(res, format = format, class = &quot;knitr_kable&quot;)
+#&gt; }
+#&gt; &lt;environment: namespace:knitr&gt;</code></pre>
 </div>
 <div id="xtable" class="section level2">
 <h2><code>xtable</code></h2>
@@ -472,6 +579,9 @@ F Statistic
 
 
     
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
 
     
 <script>
