@@ -1,0 +1,264 @@
+---
+title: Compute effect sizes with R. A primer.
+author: Sebastian Sauer
+date: '2017-11-21'
+slug: compute-effect-sizes-with-r-a-primer
+categories:
+  - rstats
+tags:
+  - rstats
+---
+
+
+
+<p>A typical “cook book recipe” for doing data analysis is an applied stats course is:</p>
+<ol style="list-style-type: decimal">
+<li>report descriptive statistics</li>
+<li>plot some nice diagrams</li>
+<li>test hypothesis</li>
+<li>report effect sizes</li>
+</ol>
+<p>Let’s have a quick glance at these steps. We will use the dataset <code>flights</code> of the package <code>nycflights13</code>.</p>
+<pre class="r"><code>data(flights, package = &quot;nycflights13&quot;)</code></pre>
+<p>This post will be tidyverse-driven:</p>
+<pre class="r"><code>library(tidyverse)
+library(skimr)</code></pre>
+<div id="report-descriptive-statistics" class="section level1">
+<h1>Report descriptive statistics</h1>
+<pre class="r"><code>flights %&gt;% 
+  skim
+#&gt; Skim summary statistics
+#&gt;  n obs: 336776 
+#&gt;  n variables: 19 
+#&gt; 
+#&gt; Variable type: character 
+#&gt;       var missing complete      n min max empty n_unique
+#&gt; 1 carrier       0   336776 336776   2   2     0       16
+#&gt; 2    dest       0   336776 336776   3   3     0      105
+#&gt; 3  origin       0   336776 336776   3   3     0        3
+#&gt; 4 tailnum    2512   334264 336776   5   6     0     4043
+#&gt; 
+#&gt; Variable type: integer 
+#&gt;              var missing complete      n    mean      sd  min  p25 median
+#&gt; 1       arr_time    8713   328063 336776 1502.05  533.26    1 1104   1535
+#&gt; 2            day       0   336776 336776   15.71    8.77    1    8     16
+#&gt; 3       dep_time    8255   328521 336776 1349.11  488.28    1  907   1401
+#&gt; 4         flight       0   336776 336776 1971.92 1632.47    1  553   1496
+#&gt; 5          month       0   336776 336776    6.55    3.41    1    4      7
+#&gt; 6 sched_arr_time       0   336776 336776 1536.38  497.46    1 1124   1556
+#&gt; 7 sched_dep_time       0   336776 336776 1344.25  467.34  106  906   1359
+#&gt; 8           year       0   336776 336776 2013       0    2013 2013   2013
+#&gt;    p75  max     hist
+#&gt; 1 1940 2400 ▁▁▃▇▆▆▇▆
+#&gt; 2   23   31 ▇▇▇▇▆▇▇▇
+#&gt; 3 1744 2400 ▁▁▇▆▆▇▆▂
+#&gt; 4 3465 8500 ▇▅▂▃▂▁▁▁
+#&gt; 5   10   12 ▇▅▇▃▅▇▅▇
+#&gt; 6 1945 2359 ▁▁▂▇▆▇▇▆
+#&gt; 7 1729 2359 ▁▃▇▆▆▇▇▂
+#&gt; 8 2013 2013 ▁▁▁▇▁▁▁▁
+#&gt; 
+#&gt; Variable type: numeric 
+#&gt;         var missing complete      n    mean     sd min p25 median  p75
+#&gt; 1  air_time    9430   327346 336776  150.69  93.69  20  82    129  192
+#&gt; 2 arr_delay    9430   327346 336776    6.9   44.63 -86 -17     -5   14
+#&gt; 3 dep_delay    8255   328521 336776   12.64  40.21 -43  -5     -2   11
+#&gt; 4  distance       0   336776 336776 1039.91 733.23  17 502    872 1389
+#&gt; 5      hour       0   336776 336776   13.18   4.66   1   9     13   17
+#&gt; 6    minute       0   336776 336776   26.23  19.3    0   8     29   44
+#&gt;    max     hist
+#&gt; 1  695 ▇▇▂▃▁▁▁▁
+#&gt; 2 1272 ▇▁▁▁▁▁▁▁
+#&gt; 3 1301 ▇▁▁▁▁▁▁▁
+#&gt; 4 4983 ▆▇▂▂▁▁▁▁
+#&gt; 5   23 ▁▃▇▆▅▇▇▂
+#&gt; 6   59 ▇▂▃▃▅▂▃▅
+#&gt; 
+#&gt; Variable type: POSIXct 
+#&gt;         var missing complete      n        min        max     median
+#&gt; 1 time_hour       0   336776 336776 2013-01-01 2013-12-31 2013-07-03
+#&gt;   n_unique
+#&gt; 1     6936</code></pre>
+<p>Done!</p>
+<p>Oh, wait, “subgroup” analysis is some often asked for task.</p>
+<pre class="r"><code>flights %&gt;% 
+  group_by(origin) %&gt;% 
+  skim
+#&gt; Skim summary statistics
+#&gt;  n obs: 336776 
+#&gt;  n variables: 19 
+#&gt;  group variables: origin 
+#&gt; 
+#&gt; Variable type: character 
+#&gt;   origin     var missing complete      n min max empty n_unique
+#&gt; 1    EWR carrier       0   120835 120835   2   2     0       12
+#&gt; 2    EWR    dest       0   120835 120835   3   3     0       86
+#&gt; 3    EWR tailnum     606   120229 120835   5   6     0     3040
+#&gt; 4    JFK carrier       0   111279 111279   2   2     0       10
+#&gt; 5    JFK    dest       0   111279 111279   3   3     0       70
+#&gt; 6    JFK tailnum     909   110370 111279   5   6     0     1957
+#&gt; 7    LGA carrier       0   104662 104662   2   2     0       13
+#&gt; 8    LGA    dest       0   104662 104662   3   3     0       68
+#&gt; 9    LGA tailnum     997   103665 104662   5   6     0     2944
+#&gt; 
+#&gt; Variable type: integer 
+#&gt;    origin            var missing complete      n    mean      sd  min  p25
+#&gt; 1     EWR       arr_time    3390   117445 120835 1491.88  529.05    1 1102
+#&gt; 2     EWR            day       0   120835 120835   15.7     8.76    1    8
+#&gt; 3     EWR       dep_time    3239   117596 120835 1336.7   487.01    1  858
+#&gt; 4     EWR         flight       0   120835 120835 2373.51 1746.61    1  807
+#&gt; 5     EWR          month       0   120835 120835    6.49    3.42    1    4
+#&gt; 6     EWR sched_arr_time       0   120835 120835 1527.98  486.89    1 1126
+#&gt; 7     EWR sched_dep_time       0   120835 120835 1322.47  465.37  106  900
+#&gt; 8     EWR           year       0   120835 120835 2013       0    2013 2013
+#&gt; 9     JFK       arr_time    1995   109284 111279 1520.07  579.09    1 1059
+#&gt; 10    JFK            day       0   111279 111279   15.73    8.79    1    8
+#&gt; 11    JFK       dep_time    1863   109416 111279 1398.57  505.53    1  914
+#&gt; 12    JFK         flight       0   111279 111279 1365.75 1376.74    1  235
+#&gt; 13    JFK          month       0   111279 111279    6.5     3.41    1    4
+#&gt; 14    JFK sched_arr_time       0   111279 111279 1564.98  544.69    1 1120
+#&gt; 15    JFK sched_dep_time       0   111279 111279 1401.93  482.27  540  915
+#&gt; 16    JFK           year       0   111279 111279 2013       0    2013 2013
+#&gt; 17    LGA       arr_time    3328   101334 104662 1494.42  483.8     1 1112
+#&gt; 18    LGA            day       0   104662 104662   15.7     8.75    1    8
+#&gt; 19    LGA       dep_time    3153   101509 104662 1310.17  465.89    1  914
+#&gt; 20    LGA         flight       0   104662 104662 2152.77 1558.32    1  831
+#&gt; 21    LGA          month       0   104662 104662    6.67    3.42    1    4
+#&gt; 22    LGA sched_arr_time       0   104662 104662 1515.67  453.62   14 1125
+#&gt; 23    LGA sched_dep_time       0   104662 104662 1308.09  447.27  529  915
+#&gt; 24    LGA           year       0   104662 104662 2013       0    2013 2013
+#&gt;    median    p75  max     hist
+#&gt; 1    1522 1928   2400 ▁▁▃▇▇▇▇▆
+#&gt; 2      16   23     31 ▇▇▇▇▆▇▇▇
+#&gt; 3    1341 1733   2400 ▁▁▇▅▆▇▆▂
+#&gt; 4    1637 4224   6181 ▇▇▅▁▂▇▂▁
+#&gt; 5       6    9     12 ▇▃▇▃▃▇▃▇
+#&gt; 6    1542 1930   2359 ▁▁▃▇▇▇▇▆
+#&gt; 7    1330 1720   2345 ▁▅▇▅▇▇▇▂
+#&gt; 8    2013 2013   2013 ▁▁▁▇▁▁▁▁
+#&gt; 9    1625 2016   2400 ▂▁▁▇▅▅▇▇
+#&gt; 10     16   23     31 ▇▇▇▇▆▇▇▇
+#&gt; 11   1500 1825   2400 ▁▁▇▅▅▇▇▂
+#&gt; 12    801 2100.5 5765 ▇▃▂▁▂▁▁▁
+#&gt; 13      7    9     12 ▇▅▇▅▅▇▃▇
+#&gt; 14   1647 2029   2359 ▁▁▁▇▅▅▇▇
+#&gt; 15   1459 1815   2359 ▅▆▃▃▇▇▆▂
+#&gt; 16   2013 2013   2013 ▁▁▁▇▁▁▁▁
+#&gt; 17   1509 1913   2400 ▁▁▃▇▇▇▇▅
+#&gt; 18     16   23     31 ▇▇▇▇▆▇▇▆
+#&gt; 19   1315 1713   2400 ▁▂▇▇▇▇▆▂
+#&gt; 20   1885 3404   8500 ▇▇▅▃▃▁▁▁
+#&gt; 21      7   10     12 ▇▃▇▃▃▇▅▇
+#&gt; 22   1520 1913   2349 ▁▁▃▇▇▇▇▅
+#&gt; 23   1310 1700   2225 ▇▇▇▆▇▇▇▂
+#&gt; 24   2013 2013   2013 ▁▁▁▇▁▁▁▁
+#&gt; 
+#&gt; Variable type: numeric 
+#&gt;    origin       var missing complete      n    mean     sd min p25 median
+#&gt; 1     EWR  air_time    3708   117127 120835  153.3   93.34  20  89    130
+#&gt; 2     EWR arr_delay    3708   117127 120835    9.11  45.53 -86 -16     -4
+#&gt; 3     EWR dep_delay    3239   117596 120835   15.11  41.32 -25  -4     -1
+#&gt; 4     EWR  distance       0   120835 120835 1056.74 730.22  17 529    872
+#&gt; 5     EWR      hour       0   120835 120835   12.95   4.65   1   9     13
+#&gt; 6     EWR    minute       0   120835 120835   27.24  18.15   0  11     29
+#&gt; 7     JFK  air_time    2200   109079 111279  178.35 113.79  21  73    149
+#&gt; 8     JFK arr_delay    2200   109079 111279    5.55  44.28 -79 -18     -6
+#&gt; 9     JFK dep_delay    1863   109416 111279   12.11  39.04 -43  -5     -1
+#&gt; 10    JFK  distance       0   111279 111279 1266.25 896.11  94 427   1069
+#&gt; 11    JFK      hour       0   111279 111279   13.74   4.8    5   9     14
+#&gt; 12    JFK    minute       0   111279 111279   27.5   19.36   0  10     30
+#&gt; 13    LGA  air_time    3522   101140 104662  117.83  49.4   21  81    115
+#&gt; 14    LGA arr_delay    3522   101140 104662    5.78  43.86 -68 -17     -5
+#&gt; 15    LGA dep_delay    3153   101509 104662   10.35  39.99 -33  -6     -3
+#&gt; 16    LGA  distance       0   104662 104662  779.84 371.66  96 502    762
+#&gt; 17    LGA      hour       0   104662 104662   12.84   4.47   5   9     13
+#&gt; 18    LGA    minute       0   104662 104662   23.71  20.26   0   0     25
+#&gt;     p75  max     hist
+#&gt; 1   195  695 ▇▇▂▃▁▁▁▁
+#&gt; 2    16 1109 ▇▁▁▁▁▁▁▁
+#&gt; 3    15 1126 ▇▁▁▁▁▁▁▁
+#&gt; 4  1400 4963 ▆▇▂▂▁▁▁▁
+#&gt; 5    17   23 ▁▃▇▆▅▇▆▂
+#&gt; 6    41   59 ▇▃▅▆▆▃▅▅
+#&gt; 7   303  691 ▇▇▂▆▁▁▁▁
+#&gt; 8    13 1272 ▇▁▁▁▁▁▁▁
+#&gt; 9    10 1301 ▇▁▁▁▁▁▁▁
+#&gt; 10 2248 4983 ▇▆▂▆▂▁▁▁
+#&gt; 11   18   23 ▆▇▃▇▇▇▇▃
+#&gt; 12   45   59 ▇▂▃▃▆▂▅▅
+#&gt; 13  148  331 ▃▅▇▆▂▁▁▁
+#&gt; 14   12  915 ▇▁▁▁▁▁▁▁
+#&gt; 15    7  911 ▇▁▁▁▁▁▁▁
+#&gt; 16 1035 1620 ▃▃▅▇▅▃▂▁
+#&gt; 17   17   22 ▇▇▇▆▇▇▇▃
+#&gt; 18   40   59 ▇▂▂▂▃▁▃▃
+#&gt; 
+#&gt; Variable type: POSIXct 
+#&gt;   origin       var missing complete      n        min        max
+#&gt; 1    EWR time_hour       0   120835 120835 2013-01-01 2013-12-31
+#&gt; 2    JFK time_hour       0   111279 111279 2013-01-01 2013-12-31
+#&gt; 3    LGA time_hour       0   104662 104662 2013-01-01 2013-12-31
+#&gt;       median n_unique
+#&gt; 1 2013-06-30     6266
+#&gt; 2 2013-07-01     6935
+#&gt; 3 2013-07-09     6285</code></pre>
+</div>
+<div id="bonus-use-mosaic" class="section level1">
+<h1>Bonus: Use mosaic</h1>
+<p>The package mosaic is another beginer friendly approach to data analysis.</p>
+<pre class="r"><code>library(mosaic)</code></pre>
+<pre class="r"><code>mosaic::inspect(flights)
+#&gt; 
+#&gt; categorical variables:  
+#&gt;      name     class levels      n missing
+#&gt; 1 carrier character     16 336776       0
+#&gt; 2 tailnum character   4043 334264    2512
+#&gt; 3  origin character      3 336776       0
+#&gt; 4    dest character    105 336776       0
+#&gt;                                    distribution
+#&gt; 1 UA (17.4%), B6 (16.2%), EV (16.1%) ...       
+#&gt; 2 N725MQ (0.2%), N722MQ (0.2%) ...             
+#&gt; 3 EWR (35.9%), JFK (33%), LGA (31.1%)          
+#&gt; 4 ORD (5.1%), ATL (5.1%), LAX (4.8%) ...       
+#&gt; 
+#&gt; quantitative variables:  
+#&gt;              name   class  min   Q1 median   Q3  max        mean
+#&gt; 1            year integer 2013 2013   2013 2013 2013 2013.000000
+#&gt; 2           month integer    1    4      7   10   12    6.548510
+#&gt; 3             day integer    1    8     16   23   31   15.710787
+#&gt; 4        dep_time integer    1  907   1401 1744 2400 1349.109947
+#&gt; 5  sched_dep_time integer  106  906   1359 1729 2359 1344.254840
+#&gt; 6       dep_delay numeric  -43   -5     -2   11 1301   12.639070
+#&gt; 7        arr_time integer    1 1104   1535 1940 2400 1502.054999
+#&gt; 8  sched_arr_time integer    1 1124   1556 1945 2359 1536.380220
+#&gt; 9       arr_delay numeric  -86  -17     -5   14 1272    6.895377
+#&gt; 10         flight integer    1  553   1496 3465 8500 1971.923620
+#&gt; 11       air_time numeric   20   82    129  192  695  150.686460
+#&gt; 12       distance numeric   17  502    872 1389 4983 1039.912604
+#&gt; 13           hour numeric    1    9     13   17   23   13.180247
+#&gt; 14         minute numeric    0    8     29   44   59   26.230100
+#&gt;             sd      n missing
+#&gt; 1     0.000000 336776       0
+#&gt; 2     3.414457 336776       0
+#&gt; 3     8.768607 336776       0
+#&gt; 4   488.281791 328521    8255
+#&gt; 5   467.335756 336776       0
+#&gt; 6    40.210061 328521    8255
+#&gt; 7   533.264132 328063    8713
+#&gt; 8   497.457142 336776       0
+#&gt; 9    44.633292 327346    9430
+#&gt; 10 1632.471938 336776       0
+#&gt; 11   93.688305 327346    9430
+#&gt; 12  733.233033 336776       0
+#&gt; 13    4.661316 336776       0
+#&gt; 14   19.300846 336776       0
+#&gt; 
+#&gt; time variables:  
+#&gt;        name   class               first                last min_diff
+#&gt; 1 time_hour POSIXct 2013-01-01 05:00:00 2013-12-31 23:00:00   0 secs
+#&gt;     max_diff      n missing
+#&gt; 1 21600 secs 336776       0</code></pre>
+</div>
+<div id="bonus-get-the-results-printed-in-nice-table" class="section level1">
+<h1>Bonus: Get the results printed in nice table</h1>
+</div>

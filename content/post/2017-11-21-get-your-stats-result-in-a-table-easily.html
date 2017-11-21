@@ -1,0 +1,359 @@
+---
+title: Get your stats result in a table easily
+author: Sebastian Sauer
+date: '2017-11-21'
+slug: get-your-stats-result-in-a-table-easily
+categories:
+  - rstats
+tags:
+  - rstats
+  - writing
+---
+
+
+
+<p>Having computed some staticis, one would like to display them. Either in a figure, on in a table, that’s the two typical ways.</p>
+<p>Let’s explore some helper functions to get your stats to a table easily.</p>
+<p>A nice overview on packages can be found <a href="https://stackoverflow.com/questions/5465314/tools-for-making-latex-tables-in-r">here</a>.</p>
+<p>Let’s have a quick glance at these steps. We will use the dataset <code>flights</code> of the package <code>nycflights13</code>.</p>
+<pre class="r"><code>data(flights, package = &quot;nycflights13&quot;)</code></pre>
+<p>This post will be tidyverse-driven:</p>
+<pre class="r"><code>library(tidyverse)
+library(skimr)</code></pre>
+<p>Let’s shorten the dataset:</p>
+<pre class="r"><code>flights %&gt;% 
+  select(air_time, distance, arr_delay) %&gt;% 
+  sample_n(1000) -&gt; flights_short</code></pre>
+<div id="descriptive-statistics" class="section level1">
+<h1>Descriptive statistics</h1>
+<div id="apatables-ad-apastyle" class="section level2">
+<h2><code>ApaTables</code> ad <code>apaStyle</code></h2>
+<p>A number of suitables packages exist, for example, checkout <code>apaTables</code>, <code>apaStyle</code>, or <code>xtable</code>.</p>
+<p>See:</p>
+<pre class="r"><code>apaStyle::apa.descriptives(data = flights[c(&quot;arr_delay&quot;, &quot;distance&quot;)],
+                           variables = c(&quot;arr_delay&quot;, &quot;distance&quot;))</code></pre>
+<p>With the result: “Word document succesfully generated in: /Users/sebastiansauer/Documents/RRRing/data_se”</p>
+</div>
+<div id="xtable" class="section level2">
+<h2><code>xtable</code></h2>
+<p>Remember to use the chunk option <code>results = &quot;asis&quot;</code>.</p>
+<pre class="r"><code>library(xtable)</code></pre>
+<pre class="r"><code>options(xtable.comment = FALSE)  # prevent verbose comments
+flights_short %&gt;% 
+  head %&gt;% 
+  xtable %&gt;% 
+  print(type = &quot;html&quot;)</code></pre>
+<table border="1">
+<tr>
+<th>
+</th>
+<th>
+air_time
+</th>
+<th>
+distance
+</th>
+<th>
+arr_delay
+</th>
+</tr>
+<tr>
+<td align="right">
+1
+</td>
+<td align="right">
+335.00
+</td>
+<td align="right">
+2465.00
+</td>
+<td align="right">
+-19.00
+</td>
+</tr>
+<tr>
+<td align="right">
+2
+</td>
+<td align="right">
+80.00
+</td>
+<td align="right">
+529.00
+</td>
+<td align="right">
+-4.00
+</td>
+</tr>
+<tr>
+<td align="right">
+3
+</td>
+<td align="right">
+106.00
+</td>
+<td align="right">
+762.00
+</td>
+<td align="right">
+28.00
+</td>
+</tr>
+<tr>
+<td align="right">
+4
+</td>
+<td align="right">
+139.00
+</td>
+<td align="right">
+1096.00
+</td>
+<td align="right">
+-38.00
+</td>
+</tr>
+<tr>
+<td align="right">
+5
+</td>
+<td align="right">
+379.00
+</td>
+<td align="right">
+2586.00
+</td>
+<td align="right">
+-1.00
+</td>
+</tr>
+<tr>
+<td align="right">
+6
+</td>
+<td align="right">
+130.00
+</td>
+<td align="right">
+944.00
+</td>
+<td align="right">
+-6.00
+</td>
+</tr>
+</table>
+</div>
+<div id="stargazer" class="section level2">
+<h2><code>stargazer</code></h2>
+<p>Remember to use the chunk option <code>results = &quot;asis&quot;</code>.</p>
+<pre class="r"><code>library(stargazer)</code></pre>
+<pre class="r"><code>flights_short %&gt;% 
+  skim %&gt;% 
+  stargazer(type = &quot;html&quot;)</code></pre>
+<table style="text-align:center">
+<tr>
+<td colspan="6" style="border-bottom: 1px solid black">
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+Statistic
+</td>
+<td>
+N
+</td>
+<td>
+Mean
+</td>
+<td>
+St. Dev.
+</td>
+<td>
+Min
+</td>
+<td>
+Max
+</td>
+</tr>
+<tr>
+<td colspan="6" style="border-bottom: 1px solid black">
+</td>
+</tr>
+</table>
+</div>
+</div>
+<div id="linear-models" class="section level1">
+<h1>Linear models</h1>
+<pre class="r"><code>lm1 &lt;- lm(arr_delay ~ origin + distance, data = flights)</code></pre>
+<pre class="r"><code>stargazer(lm1, type = &quot;html&quot;)</code></pre>
+<table style="text-align:center">
+<tr>
+<td colspan="2" style="border-bottom: 1px solid black">
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+</td>
+<td>
+<em>Dependent variable:</em>
+</td>
+</tr>
+<tr>
+<td>
+</td>
+<td colspan="1" style="border-bottom: 1px solid black">
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+</td>
+<td>
+arr_delay
+</td>
+</tr>
+<tr>
+<td colspan="2" style="border-bottom: 1px solid black">
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+originJFK
+</td>
+<td>
+-2.704<sup>***</sup>
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+</td>
+<td>
+(0.189)
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+originLGA
+</td>
+<td>
+-4.456<sup>***</sup>
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+</td>
+<td>
+(0.194)
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+distance
+</td>
+<td>
+-0.004<sup>***</sup>
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+</td>
+<td>
+(0.0001)
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+Constant
+</td>
+<td>
+13.414<sup>***</sup>
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+</td>
+<td>
+(0.175)
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+</td>
+<td>
+</td>
+</tr>
+<tr>
+<td colspan="2" style="border-bottom: 1px solid black">
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+Observations
+</td>
+<td>
+327,346
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+R<sup>2</sup>
+</td>
+<td>
+0.006
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+Adjusted R<sup>2</sup>
+</td>
+<td>
+0.005
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+Residual Std. Error
+</td>
+<td>
+44.511 (df = 327342)
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+F Statistic
+</td>
+<td>
+603.733<sup>***</sup> (df = 3; 327342)
+</td>
+</tr>
+<tr>
+<td colspan="2" style="border-bottom: 1px solid black">
+</td>
+</tr>
+<tr>
+<td style="text-align:left">
+<em>Note:</em>
+</td>
+<td style="text-align:right">
+<sup><em></sup>p&lt;0.1; <sup><strong></sup>p&lt;0.05; <sup></strong></em></sup>p&lt;0.01
+</td>
+</tr>
+</table>
+</div>
