@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Mapping unemployment ratio to AfD election results in German Wahlkreise</title>
+  <meta property="og:title" content="Mapping unemployment ratio to AfD election results in German Wahlkreise" />
+  <meta name="twitter:title" content="Mapping unemployment ratio to AfD election results in German …" />
+  <meta name="description" content="There is the idea that the alt-right German party AfD is followed by those who are deprived of chances, thoses of fearing to falling down the social ladder, and so on. Let&rsquo;s test this hypothesis. No, I am not thinking on hypothesis testing, p-values, and stuff. Rather, let&rsquo;s color a map of German election districts (Wahlkreise) according to whether the area is poor AND the AfD gained a lot of votes (and vice versa: the area is rich AND the AfD gained relatively few votes).">
+  <meta property="og:description" content="There is the idea that the alt-right German party AfD is followed by those who are deprived of chances, thoses of fearing to falling down the social ladder, and so on. Let&rsquo;s test this hypothesis. No, I am not thinking on hypothesis testing, p-values, and stuff. Rather, let&rsquo;s color a map of German election districts (Wahlkreise) according to whether the area is poor AND the AfD gained a lot of votes (and vice versa: the area is rich AND the AfD gained relatively few votes).">
+  <meta name="twitter:description" content="There is the idea that the alt-right German party AfD is followed by those who are deprived of chances, thoses of fearing to falling down the social ladder, and so on. Let&rsquo;s test this …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/afd-map/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/afd-map/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>Mapping unemployment ratio to AfD election results in German Wahlkreise</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on October 10, 2017
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<p>There is the idea that the alt-right German party AfD is followed by those who are deprived of chances, thoses of fearing to falling down the social ladder, and so on. Let&rsquo;s test this hypothesis. No, I am not thinking on hypothesis testing, p-values, and stuff. Rather, let&rsquo;s color a map of German election districts (Wahlkreise) according to whether the area is poor AND the AfD gained a lot of votes (and vice versa: the area is rich AND the AfD gained relatively few votes). More specifically, let&rsquo;s look at unemployment ratios and incomes at different election areas in the country and compare those figures to AfD election results.</p>
+
+<p>In a similar vein, one could put forward the &ldquo;unemployment-AfD-accordance hypothesis&rdquo;: The rank order of a given area is equal (or similar) to the AfD vote rank order. Let&rsquo;s test this hypothesis in this post.</p>
+
+<h1 id="packages">Packages</h1>
+
+<pre><code class="language-r">library(sf)
+library(stringr)
+library(tidyverse)
+library(readxl)
+library(magrittr)
+library(huxtable)
+library(broom)
+</code></pre>
+
+<h1 id="geo-data">Geo data</h1>
+
+<p>In this post, we try to map election areas of Germany (&ldquo;Wahlkreise&rdquo;) to three types of statistical data:</p>
+
+<ul>
+<li>AfD election results</li>
+<li>unemployment ratio and/or</li>
+<li>income</li>
+</ul>
+
+<p>:attention: The election ratios are <em>unequal</em> to the district areas (as far as I know, not complete identical to the very least). So will need to get some special geo data. This geo data is available <a href="https://www.bundeswahlleiter.de/dam/jcr/67e3e9b8-dbca-4bc9-8977-ac792665bbce/btw17_geometrie_wahlkreise_vg250_shp.zip">here</a> and the others links on that page.</p>
+
+<p>Download and unzip the data; store them in an appropriate folder. Adjust the path to your needs:</p>
+
+<pre><code class="language-r">my_path_wahlkreise &lt;- &quot;~/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp&quot;
+file.exists(my_path_wahlkreise)
+</code></pre>
+
+<pre><code>## [1] TRUE
+</code></pre>
+
+<pre><code class="language-r">wahlkreise_shp &lt;- st_read(my_path_wahlkreise)
+</code></pre>
+
+<pre><code>## Reading layer `Geometrie_Wahlkreise_19DBT' from data source `/Users/sebastiansauer/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp' using driver `ESRI Shapefile'
+## Simple feature collection with 299 features and 4 fields
+## geometry type:  MULTIPOLYGON
+## dimension:      XY
+## bbox:           xmin: 280387.7 ymin: 5235855 xmax: 921025.5 ymax: 6101444
+## epsg (SRID):    NA
+## proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
+</code></pre>
+
+<pre><code class="language-r">glimpse(wahlkreise_shp)
+</code></pre>
+
+<pre><code>## Observations: 299
+## Variables: 5
+## $ WKR_NR    &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1...
+## $ LAND_NR   &lt;fctr&gt; 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 13, 13,...
+## $ LAND_NAME &lt;fctr&gt; Schleswig-Holstein, Schleswig-Holstein, Schleswig-H...
+## $ WKR_NAME  &lt;fctr&gt; Flensburg – Schleswig, Nordfriesland – Dithmarschen...
+## $ geometry  &lt;simple_feature&gt; MULTIPOLYGON (((543474.9057..., MULTIPOLY...
+</code></pre>
+
+<pre><code class="language-r">wahlkreise_shp %&gt;%
+  ggplot() +
+  geom_sf()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3" /></p>
+
+<p>That was easy, right? The <code>sf</code> package fits nicely with the tidyverse. Hence not much to learn in that regard. I am not saying that geo data is simple, quite the contrary. But luckily the R functions fit in a well known schema.</p>
+
+<p>For instance, let&rsquo;s remove the axis labels and let&rsquo;s fill the country with some different color. Hm, what&rsquo;s the color of Germany? Grey? Black (color of the leading party)? Black-red-gold?</p>
+
+<pre><code class="language-r">wahlkreise_shp %&gt;%
+  ggplot() +
+  geom_sf(fill = &quot;grey40&quot;) +
+  theme_void()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
+
+<p>Ok, that&rsquo;s complete. How many of those &ldquo;WahlKreise&rdquo; do we have? 318, it appears. At least (that&rsquo;s the number of rows in the dataframe). That&rsquo;s not exactly the number of administrative districts in Germany, which is 401.</p>
+
+<h1 id="unemployment-ratios">unemployment ratios</h1>
+
+<p>These data can as well be fetched from the <a href="https://www.bundeswahlleiter.de/dam/jcr/f7566722-a528-4b18-bea3-ea419371e300/btw17_strukturdaten.csv">same site as above</a>, as mentioned above, we need to make sure that we have the statistics according to the election aras, not the administrative areas.</p>
+
+<pre><code class="language-r">unemp_file &lt;- &quot;~/Documents/datasets/Strukturdaten_De/btw17_Strukturdaten-utf8.csv&quot;
+
+file.exists(unemp_file)
+</code></pre>
+
+<pre><code>## [1] TRUE
+</code></pre>
+
+<pre><code class="language-r">unemp_de_raw &lt;- read_delim(unemp_file,
+    &quot;;&quot;, escape_double = FALSE,
+    locale = locale(decimal_mark = &quot;,&quot;,
+        grouping_mark = &quot;.&quot;),
+    trim_ws = TRUE,
+    skip = 8)  # skipt the first 8 rows
+</code></pre>
+
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_double(),
+##   Land = col_character(),
+##   `Wahlkreis-Nr.` = col_integer(),
+##   `Wahlkreis-Name` = col_character(),
+##   `Gemeinden am 31.12.2015 (Anzahl)` = col_integer(),
+##   `Verfügbares Einkommen der privaten Haushalte 2014 (€ je Einwohner)` = col_integer(),
+##   `Bruttoinlandsprodukt 2014 (€ je Einwohner)` = col_integer(),
+##   `Absolventen/Abgänger beruflicher Schulen 2015` = col_character(),
+##   `Sozialversicherungspflichtig Beschäftigte am 30.06.2016 - Land- und Forstwirtschaft, Fischerei (%)` = col_character(),
+##   `Sozialversicherungspflichtig Beschäftigte am 30.06.2016 - Produzierendes Gewerbe (%)` = col_character(),
+##   `Sozialversicherungspflichtig Beschäftigte am 30.06.2016 - Handel, Gastgewerbe, Verkehr (%)` = col_character(),
+##   `Sozialversicherungspflichtig Beschäftigte am 30.06.2016 - Öffentliche und private Dienstl eister (%)` = col_character(),
+##   Fußnoten = col_character()
+## )
+</code></pre>
+
+<pre><code>## See spec(...) for full column specifications.
+</code></pre>
+
+<pre><code class="language-r">#glimpse(unemp_de_raw)
+</code></pre>
+
+<p>Jezz, we need to do some cleansing before we can work with this dataset.</p>
+
+<pre><code class="language-r">unemp_names &lt;- names(unemp_de_raw)
+
+unemp_de &lt;- unemp_de_raw
+
+names(unemp_de) &lt;- paste0(&quot;V&quot;,1:ncol(unemp_de))
+</code></pre>
+
+<p>The important columns are:</p>
+
+<pre><code class="language-r">unemp_de &lt;- unemp_de %&gt;%
+  rename(state = V1,
+         area_nr = V2,
+         area_name = V3,
+         for_prop = V8,
+         pop_move = V11,
+         pop_migr_background = V19,
+         income = V26,
+         unemp = V47)  # total, as to March 2017
+</code></pre>
+
+<h1 id="afd-election-results">AfD election results</h1>
+
+<p>Again, we can access the data from the same source, the Bundeswahlleiter <a href="https://www.bundeswahlleiter.de/dam/jcr/72f186bb-aa56-47d3-b24c-6a46f5de22d0/btw17_kerg.csv">here</a>. I have prepared the column names of the data and the data structure, to render the file more accessible to machine parsing. Data points were not altered. You can access my version of the file <a href="https://sebastiansauer.github.io/data/btw17_election_results.csv">here</a>.</p>
+
+<pre><code class="language-r">elec_file &lt;- &quot;~/Documents/datasets/Strukturdaten_De/btw17_election_results.csv&quot;
+file.exists(elec_file)
+</code></pre>
+
+<pre><code>## [1] TRUE
+</code></pre>
+
+<pre><code class="language-r">elec_results &lt;- read_csv(elec_file)
+</code></pre>
+
+<pre><code>## Parsed with column specification:
+## cols(
+##   .default = col_integer(),
+##   Gebiet = col_character(),
+##   Waehler_Erststimmen_vorlaeufig = col_double(),
+##   Waehler_Zweitsimmen_vorlaeufig = col_double(),
+##   Waehler_ungueltige_Zweitstimmen_vorlauefig = col_double(),
+##   CDU_Erststimmen_Vorperiode = col_character(),
+##   CDU_Zweitstimmen_Vorperiode = col_double(),
+##   Gruene3 = col_double(),
+##   Gruene4 = col_double(),
+##   AfD3 = col_double(),
+##   AfD4 = col_double(),
+##   Piraten4 = col_double(),
+##   Vorperiode__3 = col_double(),
+##   Vorläufig__4 = col_double(),
+##   Vorperiode__18 = col_character(),
+##   Vorperiode__20 = col_character(),
+##   Vorläufig__22 = col_character(),
+##   Vorperiode__22 = col_character(),
+##   Vorperiode__23 = col_character(),
+##   Vorperiode__24 = col_character(),
+##   Vorperiode__25 = col_character()
+##   # ... with 46 more columns
+## )
+</code></pre>
+
+<pre><code>## See spec(...) for full column specifications.
+</code></pre>
+
+<p>For each party, four values are reported:</p>
+
+<ol>
+<li>primary vote, present election</li>
+<li>primary vote, previous election</li>
+<li>secondary vote, present election</li>
+<li>secondary vote, previous election</li>
+</ol>
+
+<p>The secondary vote refers to the party, that&rsquo;s what we are interested in (column 46). The primary vote refers to the candidate of that area; the pimary vote may also be of similar interest, but that&rsquo;s a slightly different question, as it taps more into the approval of a person, rather to a party (of course there&rsquo;s a lot overlap between both in this situation).</p>
+
+<pre><code class="language-r"># names(elec_results)
+afd_prop &lt;- elec_results %&gt;%
+  select(1, 2, 46, 18) %&gt;%
+  rename(afd_votes = AfD3,
+         area_nr = Nr,
+         area_name = Gebiet,
+         votes_total = Waehler_gueltige_Zweitstimmen_vorlauefig) %&gt;%
+  mutate(afd_prop = afd_votes / votes_total) %&gt;%
+  na.omit
+</code></pre>
+
+<p>In the previous step, we have selected the columns of interest, changed their name (shorter, English), and have computed the proportion of (valid) secondary votes in favor of the AfD.</p>
+
+<h1 id="match-unemployment-and-income-to-afd-votes-for-each-wahlkreis">Match unemployment and income to AfD votes for each Wahlkreis</h1>
+
+<pre><code class="language-r">wahlkreise_shp %&gt;%
+  left_join(unemp_de, by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;%
+  left_join(afd_prop, by = &quot;area_name&quot;) -&gt; chloro_data
+</code></pre>
+
+<h1 id="plot-geo-map-with-afd-votes">Plot geo map with afd votes</h1>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  ggplot() +
+  geom_sf(aes(fill = afd_prop)) -&gt; p1
+p1
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-11-1.png" alt="plot of chunk unnamed-chunk-11" /></p>
+
+<p>We might want to play with the fill color, or clean up the map (remove axis etc.)</p>
+
+<pre><code class="language-r">p1 + scale_fill_distiller(palette = &quot;Spectral&quot;) +
+  theme_void()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-12-1.png" alt="plot of chunk unnamed-chunk-12" /></p>
+
+<h1 id="geo-map-of-election-areas-with-unemployment-map">Geo map (of election areas) with unemployment map</h1>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  ggplot() +
+  geom_sf(aes(fill = unemp)) +
+  scale_fill_distiller(palette = &quot;Spectral&quot;) +
+  theme_void() -&gt; p2
+p2
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-13-1.png" alt="plot of chunk unnamed-chunk-13" /></p>
+
+<h1 id="concordance-of-afd-results-and-unemployment-income">Concordance of AfD results and unemployment/income</h1>
+
+<p>Let&rsquo;s compute the percent ranking for each of the variables of interest (AfD votes, unemployment ratio, and income). Then we can compute the concordance for each pair by simply computing the difference (or maybe absolute difference). After that, we plot this &ldquo;concordance variables&rdquo; as fill color to the map.</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  mutate(afd_rank = percent_rank(afd_prop),
+         unemp_rank = percent_rank(unemp),
+         income_rank = percent_rank(income)) %&gt;%
+  mutate(afd_income_diff = subtract(afd_rank, income_rank),
+         afd_unemp_diff = subtract(afd_rank, unemp_rank)) -&gt; chloro_data
+</code></pre>
+
+<p>Let&rsquo;s check the first ranks for each of the variables of interest. AfD ranks first:</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  as.data.frame %&gt;%
+  select(area_name, afd_rank, afd_prop, unemp_rank, income_rank) %&gt;%
+  arrange(-afd_rank) %&gt;%
+  slice(1:5)
+</code></pre>
+
+<pre><code>## # A tibble: 5 x 5
+##                          area_name  afd_rank  afd_prop unemp_rank
+##                              &lt;chr&gt;     &lt;dbl&gt;     &lt;dbl&gt;      &lt;dbl&gt;
+## 1 Sächsische Schweiz-Osterzgebirge 1.0000000 0.3546391  0.5637584
+## 2                          Görlitz 0.9966443 0.3288791  0.9463087
+## 3                           Meißen 0.9932886 0.3287724  0.7114094
+## 4                        Bautzen I 0.9899329 0.3276397  0.6476510
+## 5                    Mittelsachsen 0.9865772 0.3124584  0.5872483
+## # ... with 1 more variables: income_rank &lt;dbl&gt;
+</code></pre>
+
+<p>Saxonia leads. Unemployment &ldquo;top&rdquo; places:</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  as.data.frame %&gt;%
+  select(area_name, afd_prop, unemp_rank, income_rank) %&gt;%
+  arrange(-unemp_rank) %&gt;%
+  slice(1:5)
+</code></pre>
+
+<pre><code>## # A tibble: 5 x 4
+##                                    area_name  afd_prop unemp_rank
+##                                        &lt;chr&gt;     &lt;dbl&gt;      &lt;dbl&gt;
+## 1                              Gelsenkirchen 0.1703539  1.0000000
+## 2                                 Duisburg I 0.1132661  0.9932886
+## 3                                Duisburg II 0.1542772  0.9932886
+## 4 Vorpommern-Rügen – Vorpommern-Greifswald I 0.1964088  0.9832215
+## 5                                   Essen II 0.1496040  0.9832215
+## # ... with 1 more variables: income_rank &lt;dbl&gt;
+</code></pre>
+
+<p>The Ruhrpott is ahead of this sad pack. And the lowest unemployment ranks are at:</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  as.data.frame %&gt;%
+  select(area_name, afd_prop, unemp_rank, income_rank) %&gt;%
+  arrange(unemp_rank) %&gt;%
+  slice(1:5)
+</code></pre>
+
+<pre><code>## # A tibble: 5 x 4
+##            area_name  afd_prop  unemp_rank income_rank
+##                &lt;chr&gt;     &lt;dbl&gt;       &lt;dbl&gt;       &lt;dbl&gt;
+## 1 Erding – Ebersberg 0.1191024 0.000000000   0.9496644
+## 2           Freising 0.1356325 0.003355705   0.7751678
+## 3         Donau-Ries 0.1470312 0.003355705   0.8255034
+## 4         Ingolstadt 0.1513400 0.010067114   0.5973154
+## 5            Neu-Ulm 0.1511712 0.010067114   0.8456376
+</code></pre>
+
+<p>And finale income, low 5 and top 5:</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  as.data.frame %&gt;%
+  select(area_name, afd_prop, unemp_rank, income_rank) %&gt;%
+  arrange(income_rank) %&gt;%
+  slice(c(1:5, 294:299))
+</code></pre>
+
+<pre><code>## # A tibble: 11 x 4
+##                             area_name   afd_prop unemp_rank income_rank
+##                                 &lt;chr&gt;      &lt;dbl&gt;      &lt;dbl&gt;       &lt;dbl&gt;
+##  1                      Gelsenkirchen 0.17035387 1.00000000 0.000000000
+##  2                          Leipzig I 0.20813820 0.79530201 0.003355705
+##  3                         Leipzig II 0.15977744 0.79530201 0.003355705
+##  4                              Halle 0.17787876 0.92281879 0.010067114
+##  5                         Duisburg I 0.11326607 0.99328859 0.013422819
+##  6 Bad Tölz-Wolfratshausen – Miesbach 0.11688174 0.04026846 0.983221477
+##  7                        Main-Taunus 0.10320408 0.20805369 0.986577181
+##  8                         Hochtaunus 0.11155599 0.23825503 0.989932886
+##  9      Starnberg – Landsberg am Lech 0.09900204 0.04026846 0.993288591
+## 10                          Heilbronn 0.16416233 0.26174497 0.996644295
+## 11                       München-Land 0.09399476 0.03355705 1.000000000
+</code></pre>
+
+<p>Now plot.</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  ggplot() +
+  geom_sf(aes(fill = afd_unemp_diff)) +
+  scale_fill_gradient2() +
+  theme_void() -&gt; p3
+p3
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-19-1.png" alt="plot of chunk unnamed-chunk-19" /></p>
+
+<p>The fill color denotes the difference between unemployment rank of a given area and its afd vote rank. For example, if area X has an unemployment rank of .5 (50%), it means that half of the areas in the country have a lower (higher) unemployment ratio, respectively (the median). Similarly, an AfD vote rank of .5 indicates the median position. The difference of these two figures is zero, indicating accordance or close match. Thus, figures around zero denote accordance or match. 1 (100%) of AfD vote rank indicates the area with the best AfD results (area with the most votes); similar reasoning applies for income and unemployment ratio.</p>
+
+<p>Hence, numbers <em>greater</em> than zero indicate that the AfD scored <em>better</em> than it would be expected by the accordance-hypothesis.</p>
+
+<p>Similarly, numbers <em>smaller</em> than zero indicate that the AfD scored <em>better</em> than it would be expected by the accordance-hypothesis.</p>
+
+<p>Areas with (near) white filling provide some support for the accordance hypothesis. There are areas of this type, but it is not the majority. The vast majority of areas showed too much or too little AfD - relative to their unemployment ratio.</p>
+
+<p>This reasonsing shows that the AfD received <em>better</em> results in southern and middle areas of Germany than it would be expected by the accordance hypothesis. In contrast, the more poorer northern areas voted for the AfD much less often than it would be expected by the accordance hypothesis.</p>
+
+<p>Let&rsquo;s look at the areas with minimal and maximal dis-accordance, out of curiosity.</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  as.data.frame %&gt;%
+  select(area_name, afd_unemp_diff, unemp, afd_prop) %&gt;%
+  arrange(afd_unemp_diff) %&gt;%
+  slice(c(1:5, 295:299)) %&gt;% hux %&gt;%
+  add_colnames
+</code></pre>
+
+<p><!--html_preserve--><table class="huxtable" style="border-collapse: collapse; width: 50%; margin-left: auto; margin-right: auto;">
+<col style="width: NA;"><col style="width: NA;"><col style="width: NA;"><col style="width: NA;"><tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">area_name</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">afd_unemp_diff</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">unemp</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">afd_prop</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Essen III</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.85</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">11.90</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.08</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Berlin-Friedrichshain-Kreuzberg – Prenzlauer Berg Ost</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.83</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 9.40</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.06</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Köln II</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.80</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 8.50</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.05</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Kiel</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.78</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 8.80</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.07</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Bremen I</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.77</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 9.80</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.08</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Deggendorf</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.71</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 3.60</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.19</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Rottal-Inn</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.76</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 3.10</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.17</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Donau-Ries</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.77</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 2.20</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.15</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Neu-Ulm</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.78</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 2.50</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.15</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Ingolstadt</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.78</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 2.50</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.15</td>
+</tr>
+</table>
+<!--/html_preserve--></p>
+
+<p>And areas with high accordance (diff score close to zero):</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  as.data.frame %&gt;%
+  select(area_name, afd_unemp_diff, unemp, afd_prop) %&gt;%
+  arrange(afd_unemp_diff) %&gt;%
+  filter(afd_unemp_diff &gt; -0.05, afd_unemp_diff &lt; .05) %&gt;%
+  hux %&gt;%
+  add_colnames
+</code></pre>
+
+<p><!--html_preserve--><table class="huxtable" style="border-collapse: collapse; width: 50%; margin-left: auto; margin-right: auto;">
+<col style="width: NA;"><col style="width: NA;"><col style="width: NA;"><col style="width: NA;"><tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">area_name</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">afd_unemp_diff</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">unemp</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">afd_prop</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Rostock – Landkreis Rostock II</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.04</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 8.90</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.16</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Offenbach</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.03</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 6.60</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.12</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Berlin-Lichtenberg</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.03</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 9.40</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.17</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Rhein-Sieg-Kreis I</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.03</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.20</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.10</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Mosel/Rhein-Hunsrück</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.03</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 4.10</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.09</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Berlin-Treptow-Köpenick</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.02</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 9.40</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.17</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Herzogtum Lauenburg – Stormarn-Süd</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.02</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 4.80</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.10</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Helmstedt – Wolfsburg</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.01</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.80</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.11</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Oberbergischer Kreis</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.01</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.50</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.11</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Kreuznach</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.01</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 6.40</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.12</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Herford – Minden-Lübbecke II</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.01</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.70</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.11</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Mansfeld</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.01</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">10.20</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.24</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Siegen-Wittgenstein</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.00</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.40</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.11</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Minden-Lübbecke I</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.01</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.30</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.11</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Heidelberg</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.01</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 4.30</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.09</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Leipzig II</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.01</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 8.30</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.16</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Neuwied</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.02</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.30</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.11</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Osterholz – Verden</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.03</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 4.40</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.10</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Prignitz – Ostprignitz-Ruppin – Havelland I</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.03</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 8.90</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.19</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Dessau – Wittenberg</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.04</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 9.10</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.20</td>
+</tr>
+<tr>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Elbe-Elster – Oberspreewald-Lausitz II</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.04</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 9.60</td>
+  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.25</td>
+</tr>
+</table>
+<!--/html_preserve--></p>
+
+<p>Similar story for income.</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  ggplot() +
+  geom_sf(aes(fill = afd_income_diff)) +
+  scale_fill_gradient2() +
+  theme_void() -&gt; p4
+p4
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-22-1.png" alt="plot of chunk unnamed-chunk-22" /></p>
+
+<p>The map shows a clear pattern: The eastern parts of Germany are far more afd-oriented than their income rank would predict (diff scores above zero, blue color). However, for some areas across the whole rest of the country, the likewise pattern is true too: A lot areas are rich and do <em>not</em> vote for the AfD (reddish color, diff score below zero). And, thirdly, a lot of aras support the accordance hypothesis (white color, diff score around zero).</p>
+
+<h1 id="more-simple-map">More simple map</h1>
+
+<p>Maybe we should simplify the map: Let&rsquo;s only distinguish three type of areas: too much AfD in comparison to the unemployment, too few AfD for the unemployment, or AfD at par with unemployment. Maybe the picture is more clearcut then.</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  select(afd_unemp_diff) %&gt;%
+  mutate(afd_unemp_diff_3g = cut_interval(afd_unemp_diff, n = 3,
+         labels = c(&quot;AFD &lt; Arbeitslosigkeit&quot;,
+                    &quot;AFD = Arbeitslosigkeit&quot;,
+                    &quot;AFD &gt; Arbeitslosigkeit&quot;))) %&gt;%
+  ggplot() +
+  geom_sf(aes(fill = afd_unemp_diff_3g)) +
+  labs(fill) +
+  theme_void()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-23-1.png" alt="plot of chunk unnamed-chunk-23" /></p>
+
+<h1 id="afd-density">&ldquo;AfD density&rdquo;</h1>
+
+<p>In a similar vein, we could compute the ratio of AfD votes and unemployment. That would give us some measure of covariability. Let&rsquo;s see.</p>
+
+<pre><code class="language-r">library(viridis)
+chloro_data %&gt;%
+  mutate(afd_dens = afd_prop / unemp) %&gt;%
+  ggplot +
+  geom_sf(aes(fill = afd_dens)) +
+  theme_void() +
+  scale_fill_viridis()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-24-1.png" alt="plot of chunk unnamed-chunk-24" /></p>
+
+<p>The diagram shows that <em>in relation to unemployment</em>, the AfD votes are strongest in central Bavaria (Oberbayern). Don&rsquo;t forget that this measure is an indication of co-occurence, not of absolute AfD votes.</p>
+
+<h1 id="correlation-of-unemployment-and-afd-votes">Correlation of unemployment and AfD votes</h1>
+
+<p>A simple, straight-forward and well-known approach to devise assocation strength is Pearson&rsquo;s correlation coefficient. Oldie but goldie. Let&rsquo;s depict it.</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  select(unemp, afd_prop, income, area_name) %&gt;%
+  ggplot +
+  aes(x = unemp, y = afd_prop) +
+  geom_point() +
+  geom_smooth()
+</code></pre>
+
+<pre><code>## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-25-1.png" alt="plot of chunk unnamed-chunk-25" /></p>
+
+<p>The correlation itself is</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  select(unemp, afd_prop, income, area_name) %&gt;%
+  as.data.frame %T&gt;%
+  summarise(cor_afd_unemp = cor(afd_prop, unemp)) %&gt;%
+  do(tidy(cor.test(.$afd_prop, .$unemp)))
+</code></pre>
+
+<pre><code>##    estimate statistic     p.value parameter  conf.low conf.high
+## 1 0.1834224    3.2156 0.001445273       297 0.0714793 0.2908024
+##                                 method alternative
+## 1 Pearson's product-moment correlation   two.sided
+</code></pre>
+
+<p>Which is not strong, but is certainly more than mere noise (and p-value below some magic number).</p>
+
+<h1 id="regression-residuals-of-predicting-unemployment-by-afd-score">Regression residuals of predicting unemployment by afd_score</h1>
+
+<p>Let&rsquo;s predict the AfD vote score taking the unemployment as an predictor. Then let&rsquo;s plot the residuals to see how good the prediction is, ie., how close (or rather, far) the association of unemployment and AfD voting is.</p>
+
+<pre><code class="language-r">lm1 &lt;- lm(afd_prop ~ unemp, data = chloro_data)
+
+chloro_data %&gt;%
+  mutate(afd_lm1 = lm(afd_prop ~ unemp, data = .)$residuals) -&gt; chloro_data
+</code></pre>
+
+<p>And now plot the residuals:</p>
+
+<pre><code class="language-r">chloro_data %&gt;%
+  select(afd_lm1) %&gt;%
+  ggplot() +
+  geom_sf(aes(fill = afd_lm1)) +
+  scale_fill_gradient2() +
+  theme_void()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-28-1.png" alt="plot of chunk unnamed-chunk-28" /></p>
+
+<p>Interesting! This model shows a clearcut picture: The eastern part is too &ldquo;afd&rdquo; for its unemployment ratio (some parts of east-southern Bavaria too); the west is less afd-ic than what would be expected by the unemployment. The rest (middle and south) parts over-and-above show the AfD levels that woul be expected by their unemployment.</p>
+
+<h1 id="conclusion">Conclusion</h1>
+
+<p>The regression model provides a quite clearcut picture, much more than the rank difference has unveiled. The difference in information may be due to the fact that the rank difference is of ordinal level only, and hence omits information compared to the regression level. The story of the data may thus be summarized in easy words: The higher the unemployment ratio, the higher the AfD ratio. However, this is only <em>part</em> of the story. unemployment explains a rather small fraction of AfD votes. Yet, given the multitude of potential influences on voting behavior, a correlation coefficient of .18 is not negligible, rather substantial.</p>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/unemp-map/" data-toggle="tooltip" data-placement="top" title="Mapping unemployment rate to German district areas">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/two-plots-rmd/" data-toggle="tooltip" data-placement="top" title="Two R plot side by side in .Rmd-Files">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/afd-map\/';
+    var disqus_title = 'Mapping unemployment ratio to AfD election results in German Wahlkreise';
+    var disqus_url = '\/..\/post\/afd-map\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

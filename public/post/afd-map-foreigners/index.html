@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Mapping foreigner ratio to AfD election results in the German Wahlkreise</title>
+  <meta property="og:title" content="Mapping foreigner ratio to AfD election results in the German Wahlkreise" />
+  <meta name="twitter:title" content="Mapping foreigner ratio to AfD election results in the German …" />
+  <meta name="description" content="In a previous post, we have shed some light on the idea that populism - as manifested in AfD election results - is associated with socioeconomic deprivation, be it subjective or objective. We found some supporting pattern in the data, although that hypothesis is far from being complete; ie., most of the variance remained unexplained.
+In this post, we test the hypothesis that AfD election results are negatively associated with the proportion of foreign nationals in a Wahlkreis.">
+  <meta property="og:description" content="In a previous post, we have shed some light on the idea that populism - as manifested in AfD election results - is associated with socioeconomic deprivation, be it subjective or objective. We found some supporting pattern in the data, although that hypothesis is far from being complete; ie., most of the variance remained unexplained.
+In this post, we test the hypothesis that AfD election results are negatively associated with the proportion of foreign nationals in a Wahlkreis.">
+  <meta name="twitter:description" content="In a previous post, we have shed some light on the idea that populism - as manifested in AfD election results - is associated with socioeconomic deprivation, be it subjective or objective. We found …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/afd-map-foreigners/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/afd-map-foreigners/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>Mapping foreigner ratio to AfD election results in the German Wahlkreise</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on October 22, 2017
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<p>In a previous post, we have shed some light on the idea that populism - as manifested in AfD election results - is associated with socioeconomic deprivation, be it subjective or objective. We found some supporting pattern in the data, although that hypothesis is far from being complete; ie., most of the variance remained unexplained.</p>
+
+<p>In this post, we test the hypothesis that AfD election results are <em>negatively</em> associated with the proportion of foreign nationals in a Wahlkreis. The idea is this: Many foreigners in your neighborhood, and you will get used to it. You will perceive those type of people as normal. To the contrary, if there are few of them, they are perceived as rather alien.</p>
+
+<p>To be honest, this idea is rather vague; and it maybe built on the simple fact that in the eastern part of Germany, there are (relatively) few foreign nationals, as compared to the western parts of the country. However, animosity towards foreign nationals and AfD results are particularly strong in the East. Put shortly, much more theory would be needed to understand causal pathways explaining populism flourishing in some regions of Germany, particularly in Sachsen (Saxonia).</p>
+
+<h1 id="packages">Packages</h1>
+
+<pre><code class="language-r">library(sf)
+library(stringr)
+library(tidyverse)
+library(magrittr)
+library(huxtable)
+library(broom)
+library(viridis)
+</code></pre>
+
+<h1 id="geo-data">Geo data</h1>
+
+<p>:attention: The election ratios are <em>unequal</em> to the district areas (as far as I know, not complete identical to the very least). So will need to get some special geo data. This geo data is available <a href="https://www.bundeswahlleiter.de/dam/jcr/67e3e9b8-dbca-4bc9-8977-ac792665bbce/btw17_geometrie_wahlkreise_vg250_shp.zip">here</a> and the others links on that page.</p>
+
+<p>Download and unzip the data; store them in an appropriate folder. Adjust the path to your needs:</p>
+
+<pre><code class="language-r">my_path_wahlkreise &lt;- &quot;~/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp&quot;
+file.exists(my_path_wahlkreise)
+#&gt; [1] TRUE
+wahlkreise_shp &lt;- st_read(my_path_wahlkreise)
+#&gt; Reading layer `Geometrie_Wahlkreise_19DBT' from data source `/Users/sebastiansauer/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp' using driver `ESRI Shapefile'
+#&gt; Simple feature collection with 299 features and 4 fields
+#&gt; geometry type:  MULTIPOLYGON
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 280387.7 ymin: 5235855 xmax: 921025.5 ymax: 6101444
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
+glimpse(wahlkreise_shp)
+#&gt; Observations: 299
+#&gt; Variables: 5
+#&gt; $ WKR_NR    &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1...
+#&gt; $ LAND_NR   &lt;fctr&gt; 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 13, 13,...
+#&gt; $ LAND_NAME &lt;fctr&gt; Schleswig-Holstein, Schleswig-Holstein, Schleswig-H...
+#&gt; $ WKR_NAME  &lt;fctr&gt; Flensburg – Schleswig, Nordfriesland – Dithmarschen...
+#&gt; $ geometry  &lt;simple_feature&gt; MULTIPOLYGON (((543474.9057..., MULTIPOLY...
+</code></pre>
+
+<pre><code class="language-r">wahlkreise_shp %&gt;% 
+  ggplot() +
+  geom_sf()
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-4-1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>That was easy, right? The <code>sf</code> package fits nicely with the tidyverse. Hence not much to learn in that regard. I am not saying that geo data is simple, quite the contrary. But luckily the R functions fit in a well known schema.</p>
+
+<h1 id="foreign-nationals-ratios">Foreign nationals ratios</h1>
+
+<p>These data can as well be fetched from the <a href="https://www.bundeswahlleiter.de/dam/jcr/f7566722-a528-4b18-bea3-ea419371e300/btw17_strukturdaten.csv">same site as above</a>, as mentioned above, we need to make sure that we have the statistics according to the election areas, not the administrative areas.</p>
+
+<pre><code class="language-r">foreign_file &lt;- &quot;~/Documents/datasets/Strukturdaten_De/btw17_Strukturdaten-utf8.csv&quot;
+
+file.exists(foreign_file)
+#&gt; [1] TRUE
+
+
+foreign_raw &lt;- read_delim(foreign_file, 
+    &quot;;&quot;, escape_double = FALSE, 
+    locale = locale(decimal_mark = &quot;,&quot;, 
+        grouping_mark = &quot;.&quot;), 
+    trim_ws = TRUE, 
+    skip = 8)  # skipt the first 8 rows
+
+#glimpse(foreign_raw)
+  
+</code></pre>
+
+<p>Jezz, we need to do some cleansing before we can work with this dataset.</p>
+
+<pre><code class="language-r">foreign_names &lt;- names(foreign_raw)
+
+foreign_df &lt;- foreign_raw
+
+names(foreign_df) &lt;- paste0(&quot;V&quot;,1:ncol(foreign_df))
+</code></pre>
+
+<p>The important columns are:</p>
+
+<pre><code class="language-r">foreign_df &lt;- foreign_df %&gt;% 
+  rename(state = V1,
+         area_nr = V2,
+         area_name = V3,
+         for_prop = V8,
+         pop_move = V11,
+         pop_migr_background = V19,
+         income = V26,
+         unemp = V47)  # total, as to March 2017
+</code></pre>
+
+<h1 id="afd-election-results">AfD election results</h1>
+
+<p>Again, we can access the data from the same source, the Bundeswahlleiter <a href="https://www.bundeswahlleiter.de/dam/jcr/72f186bb-aa56-47d3-b24c-6a46f5de22d0/btw17_kerg.csv">here</a>. I have prepared the column names of the data and the data structure, to render the file more accessible to machine parsing. Data points were not altered. You can access my version of the file <a href="https://sebastiansauer.github.io/data/btw17_election_results.csv">here</a>.</p>
+
+<pre><code class="language-r">elec_file &lt;- &quot;~/Documents/datasets/Strukturdaten_De/btw17_election_results.csv&quot;
+file.exists(elec_file)
+#&gt; [1] TRUE
+
+elec_results &lt;- read_csv(elec_file)
+</code></pre>
+
+<p>For each party, four values are reported:</p>
+
+<ol>
+<li>primary vote, present election</li>
+<li>primary vote, previous election</li>
+<li>secondary vote, present election</li>
+<li>secondary vote, previous election</li>
+</ol>
+
+<p>The secondary vote refers to the party, that&rsquo;s what we are interested in (column 46). The primary vote refers to the candidate of that area; the primary vote may also be of similar interest, but that&rsquo;s a slightly different question, as it taps more into the approval of a person, rather to a party (of course there&rsquo;s a lot overlap between both in this situation).</p>
+
+<pre><code class="language-r"># names(elec_results)
+afd_prop &lt;- elec_results %&gt;% 
+  select(1, 2, 46, 18) %&gt;% 
+  rename(afd_votes = AfD3,
+         area_nr = Nr,
+         area_name = Gebiet,
+         votes_total = Waehler_gueltige_Zweitstimmen_vorlauefig) %&gt;% 
+  mutate(afd_prop = afd_votes / votes_total) %&gt;% 
+  na.omit
+</code></pre>
+
+<p>In the previous step, we have selected the columns of interest, changed their name (shorter, English), and have computed the proportion of (valid) secondary votes in favor of the AfD.</p>
+
+<h1 id="match-foreign-national-rated-to-afd-votes-for-each-wahlkreis">Match foreign national rated to AfD votes for each Wahlkreis</h1>
+
+<pre><code class="language-r">wahlkreise_shp %&gt;% 
+  left_join(foreign_df, by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;% 
+  left_join(afd_prop, by = &quot;area_name&quot;) -&gt; chloro_data
+</code></pre>
+
+<h1 id="plot-geo-map-with-afd-votes">Plot geo map with afd votes</h1>
+
+<pre><code class="language-r">chloro_data %&gt;% 
+  ggplot() +
+  geom_sf(aes(fill = afd_prop)) -&gt; p1
+p1
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-11-1.png" title="plot of chunk unnamed-chunk-11" alt="plot of chunk unnamed-chunk-11" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>We might want to play with the fill color, or clean up the map (remove axis etc.)</p>
+
+<pre><code class="language-r">p1 + scale_fill_distiller(palette = &quot;Spectral&quot;) +
+  theme_void()
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-12-1.png" title="plot of chunk unnamed-chunk-12" alt="plot of chunk unnamed-chunk-12" width="70%" style="display: block; margin: auto;" /></p>
+
+<h1 id="geo-map-of-election-areas-with-foreign-national-data">Geo map (of election areas) with foreign national data</h1>
+
+<pre><code class="language-r">chloro_data %&gt;% 
+  ggplot() +
+  geom_sf(aes(fill = for_prop)) +
+  scale_fill_distiller(palette = &quot;Spectral&quot;) +
+  theme_void() -&gt; p2
+p2
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-13-1.png" title="plot of chunk unnamed-chunk-13" alt="plot of chunk unnamed-chunk-13" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>As can be seen from the previous figure, foreign nationals are relatively rare in the East, but tend to concentrate on the big cities such as Munich, Frankfurt, and the Ruhr area.</p>
+
+<h1 id="afd-to-foreigner-density">&ldquo;AfD to foreigner density&rdquo;</h1>
+
+<p>In a similar vein, we could compute the ratio of AfD votes and foreigner quote. That would give us some measure of covariability. Let&rsquo;s see.</p>
+
+<pre><code class="language-r">chloro_data %&gt;% 
+  mutate(afd_for_dens = afd_prop / (for_prop/100)) -&gt; chloro_data
+  
+chloro_data %&gt;% 
+  ggplot +
+  geom_sf(aes(fill = afd_for_dens)) +
+  theme_void() +
+  scale_fill_viridis()
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-14-1.png" title="plot of chunk unnamed-chunk-14" alt="plot of chunk unnamed-chunk-14" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Let&rsquo;s check that.</p>
+
+<pre><code class="language-r">chloro_data %&gt;% 
+  select(afd_for_dens, afd_prop, for_prop) %&gt;% 
+  as.data.frame %&gt;% 
+  slice(1:3)
+#&gt; # A tibble: 3 x 4
+#&gt;   afd_for_dens afd_prop for_prop          geometry
+#&gt;          &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;  &lt;simple_feature&gt;
+#&gt; 1         1.20   0.0684      5.7 &lt;MULTIPOLYGON...&gt;
+#&gt; 2         1.21   0.0653      5.4 &lt;MULTIPOLYGON...&gt;
+#&gt; 3         1.71   0.0854      5.0 &lt;MULTIPOLYGON...&gt;
+</code></pre>
+
+<p>The diagram shows that <em>in relation to foreigner rates</em>, the AfD votes are strongest in Saxonian Wahlkreise primarily. Second, the East is surprisingly strong more &ldquo;AfD dense&rdquo; compared to the West. Don&rsquo;t forget that this measure is an indication of co-occurrence, not of absolute AfD votes.</p>
+
+<h1 id="correlation-of-foreign-national-quote-and-afd-votes">Correlation of foreign national quote and AfD votes</h1>
+
+<p>A simple, straight-forward and well-known approach to devise association strength is Pearson&rsquo;s correlation coefficient. Oldie but Goldie. Let&rsquo;s depict it.</p>
+
+<pre><code class="language-r">chloro_data %&gt;% 
+  select(for_prop, afd_prop, area_name) %&gt;% 
+  ggplot +
+  aes(x = for_prop, y = afd_prop) +
+  geom_point() +
+  geom_smooth()
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-16-1.png" title="plot of chunk unnamed-chunk-16" alt="plot of chunk unnamed-chunk-16" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>The pattern exhibited is quite striking: What we see might easily fit an exponential distribution: When foreigner rate begins to augment, the AfD success <em>shrinks</em> strongly, but this trend comes to an end as soon as some &ldquo;saturation&rdquo; process starts, maybe around some 8% of foreign national quote. It would surely be simplistic to speak of a &ldquo;healthy proportion of around 8% foreigners&rdquo;, to fence populism. However, the available data shows a quite obvious pattern.</p>
+
+<p>The correlation itself is</p>
+
+<pre><code class="language-r">chloro_data %&gt;% 
+  select(for_prop, afd_prop, area_name) %&gt;% 
+  as.data.frame %T&gt;% 
+  summarise(cor_afd_foreigners = cor(afd_prop, for_prop)) %&gt;% 
+  do(tidy(cor.test(.$afd_prop, .$for_prop)))
+#&gt;   estimate statistic  p.value parameter conf.low conf.high
+#&gt; 1   -0.465     -9.05 1.98e-17       297   -0.549    -0.371
+#&gt;                                 method alternative
+#&gt; 1 Pearson's product-moment correlation   two.sided
+</code></pre>
+
+<p>That is, $r = -.46$, which is quite strong an effect.</p>
+
+<hr />
+
+<p>EDIT: A comment by Ilya Kashnitsky (@ikashnitsky) suggested to separate
+the trends for eastern and Western German electoral districts.</p>
+
+<p>Let&rsquo;s try that.</p>
+
+<p>First, we create a binary variable coding East vs. West:</p>
+
+<pre><code class="language-r">unique(chloro_data$LAND_NAME)
+#&gt;  [1] Schleswig-Holstein     Mecklenburg-Vorpommern Hamburg               
+#&gt;  [4] Niedersachsen          Bremen                 Brandenburg           
+#&gt;  [7] Sachsen-Anhalt         Berlin                 Nordrhein-Westfalen   
+#&gt; [10] Sachsen                Hessen                 Thüringen             
+#&gt; [13] Rheinland-Pfalz        Bayern                 Baden-Württemberg     
+#&gt; [16] Saarland              
+#&gt; 16 Levels: Baden-Württemberg Bayern Berlin Brandenburg Bremen ... Thüringen
+</code></pre>
+
+<p>Being a German citizen, I know which is East; although I am unsure about Berlin.</p>
+
+<pre><code class="language-r">
+east &lt;- c(&quot;Mecklenburg-Vorpommern&quot;, &quot;Brandenburg&quot;, &quot;Sachsen-Anhalt&quot;, &quot;Sachsen&quot;, &quot;Thüringen&quot;)
+
+chloro_data %&gt;%
+  mutate(east = LAND_NAME %in% east) -&gt; chloro_data
+
+
+chloro_data %&gt;% 
+  select(east, LAND_NAME) %&gt;% 
+  count(LAND_NAME, east)
+#&gt; Simple feature collection with 16 features and 3 fields
+#&gt; geometry type:  GEOMETRY
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 280387.7 ymin: 5235855 xmax: 921025.5 ymax: 6101444
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
+#&gt; # A tibble: 16 x 4
+#&gt;                 LAND_NAME  east     n          geometry
+#&gt;                    &lt;fctr&gt; &lt;lgl&gt; &lt;int&gt;  &lt;simple_feature&gt;
+#&gt;  1      Baden-Württemberg FALSE    38 &lt;MULTIPOLYGON...&gt;
+#&gt;  2                 Bayern FALSE    46 &lt;POLYGON ((61...&gt;
+#&gt;  3                 Berlin FALSE    12 &lt;POLYGON ((79...&gt;
+#&gt;  4            Brandenburg  TRUE    10 &lt;POLYGON ((89...&gt;
+#&gt;  5                 Bremen FALSE     2 &lt;MULTIPOLYGON...&gt;
+#&gt;  6                Hamburg FALSE     6 &lt;MULTIPOLYGON...&gt;
+#&gt;  7                 Hessen FALSE    22 &lt;POLYGON ((49...&gt;
+#&gt;  8 Mecklenburg-Vorpommern  TRUE     6 &lt;MULTIPOLYGON...&gt;
+#&gt;  9          Niedersachsen FALSE    30 &lt;MULTIPOLYGON...&gt;
+#&gt; 10    Nordrhein-Westfalen FALSE    64 &lt;MULTIPOLYGON...&gt;
+#&gt; 11        Rheinland-Pfalz FALSE    15 &lt;POLYGON ((45...&gt;
+#&gt; 12               Saarland FALSE     4 &lt;POLYGON ((36...&gt;
+#&gt; 13                Sachsen  TRUE    16 &lt;POLYGON ((75...&gt;
+#&gt; 14         Sachsen-Anhalt  TRUE     9 &lt;POLYGON ((72...&gt;
+#&gt; 15     Schleswig-Holstein FALSE    11 &lt;MULTIPOLYGON...&gt;
+#&gt; 16              Thüringen  TRUE     8 &lt;POLYGON ((68...&gt;
+</code></pre>
+
+<p>And now let&rsquo;s plot again:</p>
+
+<pre><code class="language-r">chloro_data %&gt;% 
+  select(for_prop, afd_prop, area_name, east) %&gt;% 
+  ggplot +
+  aes(x = for_prop, y = afd_prop) +
+  geom_point() +
+  geom_smooth(aes(color = east), method = &quot;lm&quot;)
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-20-1.png" title="plot of chunk unnamed-chunk-20" alt="plot of chunk unnamed-chunk-20" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Quite remarkably, we see that the association in the West is weak;
+in the East it is (comparatively) strong. Many foreigners, fewer AfD votes.
+So we might update our thinking saying that there appears to be different mindsets between
+East and West in this regard.</p>
+
+<p>Of course, this is observational data only, so all this reasoning should be taken cum grano salis.
+There are surely more variables in the play, so we cannot be sure what true influential (causal) patterns look like.
+Ilya suggested that some additional variable(s) with different distributions in East and West may explain the data (Simpson case).</p>
+
+<p>BTW: Data are now available in my package <code>pradadata</code> on Github, and can be installed via</p>
+
+<pre><code class="language-r">devtools::install_github(&quot;sebastiansauer/pradadata&quot;)
+</code></pre>
+
+<hr />
+
+<h1 id="regression-residuals-of-predicting-foreigner-quote-by-afd-score">Regression residuals of predicting foreigner quote by afd_score</h1>
+
+<p>Let&rsquo;s predict the AfD vote score taking the unemployment as an predictor. Then let&rsquo;s plot the residuals to see how good the prediction is, ie., how close (or rather, far) the association of unemployment and AfD voting is.</p>
+
+<pre><code class="language-r">
+lm2 &lt;- lm(afd_prop ~ for_prop, data = chloro_data)
+
+glance(lm2)
+#&gt;   r.squared adj.r.squared  sigma statistic  p.value df logLik  AIC  BIC
+#&gt; 1     0.216         0.213 0.0484      81.8 1.98e-17  2    482 -958 -947
+#&gt;   deviance df.residual
+#&gt; 1    0.697         297
+tidy(lm2)
+#&gt;          term estimate std.error statistic  p.value
+#&gt; 1 (Intercept)  0.17513   0.00596     29.40 5.90e-90
+#&gt; 2    for_prop -0.00471   0.00052     -9.05 1.98e-17
+
+
+chloro_data %&gt;% 
+  mutate(afd_lm2 = lm(afd_prop ~ for_prop, data = .)$residuals) -&gt; chloro_data
+</code></pre>
+
+<p>We have an $R^2$ of .21, quite a bit. Maybe the most important message: For each percentage point <em>more</em> foreigners, the AfD results decreases about a half percentage point.</p>
+
+<p>And now plot the residuals:</p>
+
+<pre><code class="language-r">chloro_data %&gt;% 
+  select(afd_lm2) %&gt;% 
+  ggplot() +
+  geom_sf(aes(fill = afd_lm2)) +
+  scale_fill_gradient2() +
+  theme_void()
+</code></pre>
+
+<p><img src="figure/unnamed-chunk-23-1.png" title="plot of chunk unnamed-chunk-23" alt="plot of chunk unnamed-chunk-23" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Interesting! This model shows a clear-cut picture: The eastern part is too &ldquo;afd-ic&rdquo; for its foreigner ratio; the North-West is less afd-ic than what would be expected by the foreigner rate. The rest (middle and south) parts over-and-above show the AfD levels that would be expected by their foreigner rate.</p>
+
+<hr />
+
+<p>EDIT: Let&rsquo;s include <code>east</code> as a predictor to the linear model:</p>
+
+<pre><code class="language-r">lm3 &lt;- lm(afd_prop ~ for_prop*east, data = chloro_data)
+
+glance(lm3)
+#&gt;   r.squared adj.r.squared  sigma statistic  p.value df logLik   AIC   BIC
+#&gt; 1     0.672         0.669 0.0314       202 3.85e-71  4    612 -1215 -1196
+#&gt;   deviance df.residual
+#&gt; 1    0.291         295
+tidy(lm3)
+#&gt;                term  estimate std.error statistic  p.value
+#&gt; 1       (Intercept)  0.112378   0.00495    22.692 1.17e-66
+#&gt; 2          for_prop -0.000371   0.00040    -0.928 3.54e-01
+#&gt; 3          eastTRUE  0.166620   0.01302    12.798 3.97e-30
+#&gt; 4 for_prop:eastTRUE -0.013637   0.00302    -4.521 8.93e-06
+</code></pre>
+
+<p>R squared increased dramatically, fostering the line of thought in the EDIT above. Now, we see that the <em>general</em> foreigner quote is not significiant anymore; we may infer that it plays no important role. But whether a wahlrkeis is East or not does play a strong role. For the East, the slope decreases quite a bit indicating some negative effect on foreigner quotes to AfD success.</p>
+
+<p>Thanks Ilya Kashnitsky (@ikashnitsky)!</p>
+
+<hr />
+
+<h1 id="conclusion">Conclusion</h1>
+
+<p>The regression model provides a quite clear-cut picture. The story of the data may thus be summarized in easy words: The higher the foreigner ratio, the <em>lower</em> the AfD ratio. However, this is only <em>part</em> of the story. The foreigner explains a rather small fraction of AfD votes. Yet, given the multitude of potential influences on voting behavior, a correlation coefficient of -.46 is strikingly strong.</p>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/train-test/" data-toggle="tooltip" data-placement="top" title="Simple way to separate train and test sample in R">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/de-elec-data/" data-toggle="tooltip" data-placement="top" title="Data, machine-friendly, of the 2017 German federal elections">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/afd-map-foreigners\/';
+    var disqus_title = 'Mapping foreigner ratio to AfD election results in the German Wahlkreise';
+    var disqus_url = '\/..\/post\/afd-map-foreigners\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

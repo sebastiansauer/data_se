@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Sentiment-Wörterbuch erstellen</title>
+  <meta property="og:title" content="Sentiment-Wörterbuch erstellen" />
+  <meta name="twitter:title" content="Sentiment-Wörterbuch erstellen" />
+  <meta name="description" content="Bei der Textanalyse (Textmining) ist die Sentiment-Analyse eine typische Tätigkeit. Natürlich steht und fällt die Qualität der Sentiment-Analyse mit der Qualität des verwendeten Wörterbuchs (was nicht heißt, dass man nicht auch auf andere Klippen schellen kann).
+Der Zweck dieses Posts ist es, eine Sentiment-Lexikon in deutscher Sprache einzulesen.
+Dazu wird das Sentiment-Lexikon dieser Quelle verwendet (CC-BY-NC-SA 3.0). In diesem Paper finden sich Hintergründe. Von dort lassen sich die Daten herunter laden.">
+  <meta property="og:description" content="Bei der Textanalyse (Textmining) ist die Sentiment-Analyse eine typische Tätigkeit. Natürlich steht und fällt die Qualität der Sentiment-Analyse mit der Qualität des verwendeten Wörterbuchs (was nicht heißt, dass man nicht auch auf andere Klippen schellen kann).
+Der Zweck dieses Posts ist es, eine Sentiment-Lexikon in deutscher Sprache einzulesen.
+Dazu wird das Sentiment-Lexikon dieser Quelle verwendet (CC-BY-NC-SA 3.0). In diesem Paper finden sich Hintergründe. Von dort lassen sich die Daten herunter laden.">
+  <meta name="twitter:description" content="Bei der Textanalyse (Textmining) ist die Sentiment-Analyse eine typische Tätigkeit. Natürlich steht und fällt die Qualität der Sentiment-Analyse mit der Qualität des verwendeten Wörterbuchs (was nicht …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/sentiment_dictionary/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/sentiment_dictionary/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>Sentiment-Wörterbuch erstellen</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on February 4, 2017
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<p>Bei der Textanalyse (Textmining) ist die Sentiment-Analyse eine typische Tätigkeit. Natürlich steht und fällt die Qualität der Sentiment-Analyse mit der Qualität des verwendeten Wörterbuchs (was nicht heißt, dass man nicht auch auf andere Klippen schellen kann).</p>
+
+<p>Der Zweck dieses Posts ist es, eine Sentiment-Lexikon in deutscher Sprache einzulesen.</p>
+
+<p>Dazu wird das Sentiment-Lexikon <a href="http://asv.informatik.uni-leipzig.de/download/sentiws.html">dieser Quelle</a> verwendet (CC-BY-NC-SA 3.0). In <a href="http://asv.informatik.uni-leipzig.de/publication/file/155/490_Paper.pdf">diesem Paper</a> finden sich Hintergründe. Von dort lassen sich die Daten herunter laden. Im folgenden gehe ich davon aus, dass die Daten herunter geladen sind und sich im Working Directory befinden.</p>
+
+<p>Wir benötigen diese Pakete (es ginge auch über base):</p>
+
+<pre><code class="language-r">library(stringr)
+library(readr)
+library(dplyr)
+</code></pre>
+
+<p>Dann lesen wir die Daten ein, zuerst die Datei mit den negativen Konnotationen:</p>
+
+<pre><code class="language-r">neg_df &lt;- read_tsv(&quot;SentiWS_v1.8c_Negative.txt&quot;, col_names = FALSE)
+names(neg_df) &lt;- c(&quot;Wort_POS&quot;, &quot;Wert&quot;, &quot;Inflektionen&quot;)
+
+glimpse(neg_df)
+#&gt; Observations: 1,818
+#&gt; Variables: 3
+#&gt; $ Wort_POS     &lt;chr&gt; &quot;Abbau|NN&quot;, &quot;Abbruch|NN&quot;, &quot;Abdankung|NN&quot;, &quot;Abdämp...
+#&gt; $ Wert         &lt;dbl&gt; -0.0580, -0.0048, -0.0048, -0.0048, -0.0048, -0.3...
+#&gt; $ Inflektionen &lt;chr&gt; &quot;Abbaus,Abbaues,Abbauen,Abbaue&quot;, &quot;Abbruches,Abbrü...
+</code></pre>
+
+<p>Dann parsen wir aus der ersten Spalte (<code>Wort_POS</code>) zum einen den entsprechenden Begriff (z.B. &ldquo;Abbau&rdquo;) und zum anderen die Wortarten-Tags (eine Erläuterung zu den Wortarten-Tags findet sich <a href="http://www.jlcl.org/2013_Heft1/H2013-1.pdf">hier</a>).</p>
+
+<pre><code class="language-r">neg_df %&gt;% 
+  mutate(Wort = str_sub(Wort_POS, 1, regexpr(&quot;\\|&quot;, .$Wort_POS)-1),
+         POS = str_sub(Wort_POS, start = regexpr(&quot;\\|&quot;, .$Wort_POS)+1)) -&gt; neg_df
+</code></pre>
+
+<p><code>str_sub</code> parst zuerst das Wort. Dazu nehmen wir den Wort-Vektor <code>Wort_POS</code>, und für jedes Element wird der Text von Position 1 bis vor dem Zeichen <code>|</code> geparst; da der Querstrich ein Steuerzeichen in Regex muss er escaped werden. Für <code>POS</code> passiert das gleiche von Position <code>|</code>+1 bis zum Ende des Text-Elements.</p>
+
+<p>Das gleiche wiederholen wir für positiv konnotierte Wörter.</p>
+
+<pre><code class="language-r">pos_df &lt;- read_tsv(&quot;SentiWS_v1.8c_Positive.txt&quot;, col_names = FALSE)
+names(pos_df) &lt;- c(&quot;Wort_POS&quot;, &quot;Wert&quot;, &quot;Inflektionen&quot;)
+pos_df %&gt;% 
+  mutate(Wort = str_sub(Wort_POS, 1, regexpr(&quot;\\|&quot;, .$Wort_POS)-1),
+         POS = str_sub(Wort_POS, start = regexpr(&quot;\\|&quot;, .$Wort_POS)+1)) -&gt; pos_df
+</code></pre>
+
+<p>Schließlich schweißen wir beide Dataframes in einen:</p>
+
+<pre><code class="language-r">bind_rows(&quot;neg&quot; = neg_df, &quot;pos&quot; = pos_df, .id = &quot;neg_pos&quot;) -&gt; sentiment_df
+sentiment_df %&gt;% select(neg_pos, Wort, Wert, Inflektionen, -Wort_POS) -&gt; sentiment_df
+</code></pre>
+
+<pre><code class="language-r">knitr::kable(head(sentiment_df))
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="left">neg_pos</th>
+<th align="left">Wort</th>
+<th align="right">Wert</th>
+<th align="left">Inflektionen</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="left">neg</td>
+<td align="left">Abbau</td>
+<td align="right">-0.058</td>
+<td align="left">Abbaus,Abbaues,Abbauen,Abbaue</td>
+</tr>
+
+<tr>
+<td align="left">neg</td>
+<td align="left">Abbruch</td>
+<td align="right">-0.005</td>
+<td align="left">Abbruches,Abbrüche,Abbruchs,Abbrüchen</td>
+</tr>
+
+<tr>
+<td align="left">neg</td>
+<td align="left">Abdankung</td>
+<td align="right">-0.005</td>
+<td align="left">Abdankungen</td>
+</tr>
+
+<tr>
+<td align="left">neg</td>
+<td align="left">Abdämpfung</td>
+<td align="right">-0.005</td>
+<td align="left">Abdämpfungen</td>
+</tr>
+
+<tr>
+<td align="left">neg</td>
+<td align="left">Abfall</td>
+<td align="right">-0.005</td>
+<td align="left">Abfalles,Abfälle,Abfalls,Abfällen</td>
+</tr>
+
+<tr>
+<td align="left">neg</td>
+<td align="left">Abfuhr</td>
+<td align="right">-0.337</td>
+<td align="left">Abfuhren</td>
+</tr>
+</tbody>
+</table>
+
+<h1 id="literatur">Literatur</h1>
+
+<p>R. Remus, U. Quasthoff &amp; G. Heyer: SentiWS - a Publicly Available German-language Resource for Sentiment Analysis.
+In: Proceedings of the 7th International Language Ressources and Evaluation (LREC&rsquo;10), 2010</p>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/data_test_inference/" data-toggle="tooltip" data-placement="top" title="Dataset &#39;performance in stats test&#39;">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/data_cleansing/" data-toggle="tooltip" data-placement="top" title="Checklist for Data Cleansing">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/sentiment_dictionary\/';
+    var disqus_title = 'Sentiment-Wörterbuch erstellen';
+    var disqus_url = '\/..\/post\/sentiment_dictionary\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

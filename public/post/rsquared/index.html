@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Gentle intro to &#39;R-squared equals squared r&#39;</title>
+  <meta property="og:title" content="Gentle intro to &#39;R-squared equals squared r&#39;" />
+  <meta name="twitter:title" content="Gentle intro to &#39;R-squared equals squared r&#39;" />
+  <meta name="description" content="It comes as no surprise that $$R^2$$ (&ldquo;coefficient of determination&rdquo;) equals $$r^2$$ in simple regression (predictor X, criterion Y), where $$r(X,Y)$$ is Pearson&rsquo;s correlation coefficient. $$R^2$$ equals the fraction of explained variance in a simple regression. However, the statistical (mathematical) background is often less clear or buried in less-intuitive formula.
+The goal of this post is to offer a gentle explanantion why
+$$R^2 = r^2$$,
+where $$r$$ is $$r(Y,\hat{Y})$$ and $$\hat{Y}$$ are the predicted values.">
+  <meta property="og:description" content="It comes as no surprise that $$R^2$$ (&ldquo;coefficient of determination&rdquo;) equals $$r^2$$ in simple regression (predictor X, criterion Y), where $$r(X,Y)$$ is Pearson&rsquo;s correlation coefficient. $$R^2$$ equals the fraction of explained variance in a simple regression. However, the statistical (mathematical) background is often less clear or buried in less-intuitive formula.
+The goal of this post is to offer a gentle explanantion why
+$$R^2 = r^2$$,
+where $$r$$ is $$r(Y,\hat{Y})$$ and $$\hat{Y}$$ are the predicted values.">
+  <meta name="twitter:description" content="It comes as no surprise that $$R^2$$ (&ldquo;coefficient of determination&rdquo;) equals $$r^2$$ in simple regression (predictor X, criterion Y), where $$r(X,Y)$$ is Pearson&rsquo;s correlation …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/rsquared/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/rsquared/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>Gentle intro to &#39;R-squared equals squared r&#39;</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on January 20, 2017
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        <p>It comes as no surprise that $$R^2$$ (&ldquo;coefficient of determination&rdquo;) equals $$r^2$$ in simple regression (predictor X, criterion Y), where $$r(X,Y)$$ is Pearson&rsquo;s correlation coefficient. $$R^2$$ equals the fraction of explained variance in a simple regression. However, the statistical (mathematical) background is often less clear or buried in less-intuitive formula.</p>
+
+<p>The goal of this post is to offer a <em>gentle</em> explanantion why</p>
+
+<p>$$R^2 = r^2$$,</p>
+
+<p>where $$r$$ is $$r(Y,\hat{Y})$$ and $$\hat{Y}$$ are the predicted values.</p>
+
+<p>Some more notation: $$Y_i$$ are the individual values of the criterion, and $$\bar{Y}$$ is the mean of the criterion.</p>
+
+<p>As an example, suppose we wanted to predict the grades ($$Y$$) of some students based on their studying time ($$X$$). Of course, our prediction won&rsquo;t be perfect most of the time, so there will be gaps (errors or residuals) between what we predict and what the actual grade in some particular $$Y_i$$ case will be. So</p>
+
+<p>$$Y_i - \hat{Y_i} \ne 0$$, or, similarly $$(Y_i - \hat{Y_i})^2 &gt; 0$$.</p>
+
+<p>Let&rsquo;s start with the idea that the variance is additive, see <a href="https://en.wikipedia.org/wiki/Variance">here</a> or <a href="https://sebastiansauer.github.io/additivity_variance/">here</a> for details. The additivity of variance implies that the whole variation in the students&rsquo; grades is the sum of the variance of our prediction errors and the improvement of our prediction/ regression model:</p>
+
+<p>$$\sum_i{(Y_i - \hat{Y})}^2 = \sum_i{(Y_i - \hat{Y_i})}^2 + \sum_i{(\hat{Y_i} - \bar{Y})}^2$$.</p>
+
+<p>In words:</p>
+
+<blockquote>
+<p>Total = Error^2 + Improvement^2.</p>
+</blockquote>
+
+<p>Or:</p>
+
+<blockquote>
+<p>Total variance in simple regression equals error variance plus variance explained by model.</p>
+</blockquote>
+
+<p>This expression can be rearranged to</p>
+
+<blockquote>
+<p>1 = Error^2 / Total + Improvement^2 / Total.</p>
+</blockquote>
+
+<p>As formula:</p>
+
+<p>$$1 = \frac{\sum_i{(Y_i - \hat{Y_i})}^2}{\sum_i{(Y_i - \bar{Y})}^2} + \frac{\sum_i{(\hat{Y_i} - \bar{Y})}^2}{\sum_i{(Y_i - \bar{Y})}^2}$$.</p>
+
+<p>Puh, quite some stuff. Now we apply a property of least square regression stating that there is <em>no correlation</em> between the <em>residuals</em> (e) and the <em>predicted value</em> (we don&rsquo;t discuss that property here further). More formally:</p>
+
+<p>$$r { (Y_i - \hat{Y_i}, \hat{Y}) } = 0$$.</p>
+
+<p>A bit more readable:</p>
+
+<p>$$r(e, \hat{Y}) = 0$$.</p>
+
+<p>Now we write the (sample) correlation between actual (observed) and predicted (fitted) values as follows:</p>
+
+<p>$$r(Y, \hat{Y}) = \frac{n^{-1} \sum_i({Y_i - \bar{Y}) \cdot (\hat{Y_i} - \bar{Y})}}{\sqrt{n^{-1} \sum_i{(Y_i - \bar{Y})^2} \cdot n^{-1} \sum_i{(\hat{Y_i} - \bar{Y})^2}}}$$</p>
+
+<p>In other words,</p>
+
+<p>$$r(Y, \hat{Y}) = \frac{Cov(Y, \hat{Y})} {\sqrt{Var(Y) \cdot Var(\hat{Y})}}$$</p>
+
+<p>Note that $$n^{-1}$$ cancel out, leaving</p>
+
+<p>$$r(Y, \hat{Y}) = \frac{\sum_i({Y_i - \bar{Y}) \cdot (\hat{Y_i} - \bar{Y})}}{\sqrt{ \sum_i{(Y_i - \bar{Y})^2} \cdot \sum_i{(\hat{Y_i} - \bar{Y})^2}}}$$</p>
+
+<p>The variance can be seen as the average of the squared sums (SS) of some delta (d): $$Var(X) = n^{-1}\sum{d}$$. If we on our way &ldquo;lose&rdquo; the $$n^{-1}$$ part (as it happened in the line above), we are left with the <em>sum of squares</em> (SS), as they are called. Now, as we are concerned with the variance of the error, variance of the model improvement and the total variance, we can in the same way speak of the according SS-terms. We will come back to the SS-terms later on.</p>
+
+<p>Now a little trick. We add the term $$-\hat{Y_i} + \hat{Y_i}$$, which is zero, so no harm caused. We get:</p>
+
+<p>$$r(Y, \hat{Y}) = \frac{\sum_i({Y_i - \hat{Y_i}) + (\hat{Y_i} - \bar{Y})) \cdot (\hat{Y_i} - \bar{Y})}}{\sqrt{ \sum_i{(Y_i - \bar{Y})^2} \cdot \sum_i{(\hat{Y_i} - \bar{Y})^2}}}$$</p>
+
+<p>Now stay close. Observe that we have three terms in the numerator, let&rsquo;s call them $$a$$, $$b$$, and $$c$$. We can multiplicate that out resulting in $$(a+b)c = ac + bc$$. So:</p>
+
+<p>$$ = \frac{\sum{(Y_i - \hat{Y_i})(\hat{Y_i} - \bar{Y}) + (\hat{Y_i} - \bar{Y})(\hat{Y_i} - \bar{Y})}}{D}$$</p>
+
+<p>As the denominator did not change, we just abbreviated it in the obvious way. Note that the numerator now is of the form $$ac + cc$$ (as b = c). Thus we can further simplify to</p>
+
+<p>$$ = \frac{\sum{{ (Y_i - \hat{Y_i})(\hat{Y_i} - \bar{Y}) + (\hat{Y_i} + \bar{Y})^2 }}}{D}$$</p>
+
+<p>Referring back to our notion of the two parts of the total variance in regression we can think of the numerator above as $$\sum{(e \cdot m + m^2)}$$, where <em>e</em> indicates the error or residual term, and <em>m</em> the model improvement. However, as the correlation between <em>m</em> and <em>e</em> (which is zero, see above) is nothing but average product of <em>m</em> and <em>e</em>, their sum also is zero. Thus we are left with</p>
+
+<p>$$ = \frac{\sum_i{(\hat{Y_i} - \bar{Y})^2}}{\sqrt{ \sum_i{(Y_i - \bar{Y})^2} \cdot \sum_i{(\hat{Y_i} - \bar{Y})^2}}}$$</p>
+
+<p>Think of the numerator as <em>a</em> and then $$a = \sqrt{a^2}$$, thus</p>
+
+<p>$$ = \sqrt{ \frac{\sum_i{(\hat{Y_i} - \bar{Y})^2 \cdot \sum_i(\hat{Y_i} - \bar{Y})^2}}{ \sum_i{(Y_i - \bar{Y})^2} \cdot \sum_i{(\hat{Y_i} - \bar{Y})^2}}}$$</p>
+
+<p>After canceling out the obvious we are left with</p>
+
+<p>$$ = \sqrt{ \frac{\sum_i{(\hat{Y_i} - \bar{Y})^2}}{ \sum_i{(Y_i - \bar{Y})^2}}}$$</p>
+
+<p>This term is nothing but</p>
+
+<blockquote>
+<p>Model variance / Total variance.</p>
+</blockquote>
+
+<p>And we are there! To summarise</p>
+
+<p>$$r(Y, \hat{Y})^2 = \frac{SS_M}{SS_T} = R^2$$</p>
+
+<p>OK, quite some ride. At least we arrived where we headed to. Some algebra kungfu turned out to be handy. It took me some time to decypher the algebra without any explanation. So I hope me comments make the voyage a bit shorter for you.</p>
+
+<p>Without some expertise in algebra (multiplicating out, adding zero-terms, &hellip;) and some knowledge of regression properties we would not have arrived at the end. The good news are that each of the steps is not really difficult to understand (I am not saying it is easy to discover these steps).</p>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/two_ways_barplots_with_ggplot2/" data-toggle="tooltip" data-placement="top" title="The two ggplot2-ways of plottings bars">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/convert_logit2prob/" data-toggle="tooltip" data-placement="top" title="Convert logit to probability">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/rsquared\/';
+    var disqus_title = 'Gentle intro to \x27R-squared equals squared r\x27';
+    var disqus_url = '\/..\/post\/rsquared\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

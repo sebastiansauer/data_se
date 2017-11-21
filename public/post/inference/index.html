@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title> Wie gut schätzt eine Stichprobe die Grundgesamtheit?</title>
+  <meta property="og:title" content=" Wie gut schätzt eine Stichprobe die Grundgesamtheit?" />
+  <meta name="twitter:title" content=" Wie gut schätzt eine Stichprobe die Grundgesamtheit?" />
+  <meta name="description" content="Daten Sie arbeiten bei der Flughafenaufsicht von NYC. Cooler Job.
+library(nycflights13) data(flights)  Pakete laden library(mosaic)  Stichprobe ziehen Die Aufsichtsbehörde zieht eine Probe von 100 Flügen und ermittelt die &ldquo;typische&rdquo; Verspätung.
+set.seed(42) sample(flights$arr_delay, size = 100) -&gt; flights_sample  Und berechnen wir die typischen Kennwerte:
+favstats(~flights_sample, na.rm = TRUE) #&gt; min Q1 median Q3 max mean sd n missing #&gt; -51 -18.75 -5 11.75 150 0.4387755 31.1604 98 2  Ob $n=3$ ausreichen würde?">
+  <meta property="og:description" content="Daten Sie arbeiten bei der Flughafenaufsicht von NYC. Cooler Job.
+library(nycflights13) data(flights)  Pakete laden library(mosaic)  Stichprobe ziehen Die Aufsichtsbehörde zieht eine Probe von 100 Flügen und ermittelt die &ldquo;typische&rdquo; Verspätung.
+set.seed(42) sample(flights$arr_delay, size = 100) -&gt; flights_sample  Und berechnen wir die typischen Kennwerte:
+favstats(~flights_sample, na.rm = TRUE) #&gt; min Q1 median Q3 max mean sd n missing #&gt; -51 -18.75 -5 11.75 150 0.4387755 31.1604 98 2  Ob $n=3$ ausreichen würde?">
+  <meta name="twitter:description" content="Daten Sie arbeiten bei der Flughafenaufsicht von NYC. Cooler Job.
+library(nycflights13) data(flights)  Pakete laden library(mosaic)  Stichprobe ziehen Die Aufsichtsbehörde zieht eine Probe von 100 …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/inference/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/inference/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1> Wie gut schätzt eine Stichprobe die Grundgesamtheit?</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on November 17, 2017
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<h1 id="daten">Daten</h1>
+
+<p>Sie arbeiten bei der Flughafenaufsicht von NYC. Cooler Job.</p>
+
+<pre><code class="language-r">library(nycflights13)
+data(flights)
+</code></pre>
+
+<h2 id="pakete-laden">Pakete laden</h2>
+
+<pre><code class="language-r">library(mosaic)
+</code></pre>
+
+<h2 id="stichprobe-ziehen">Stichprobe ziehen</h2>
+
+<p>Die Aufsichtsbehörde zieht eine Probe von 100 Flügen und ermittelt die &ldquo;typische&rdquo; Verspätung.</p>
+
+<pre><code class="language-r">set.seed(42)
+sample(flights$arr_delay, size = 100) -&gt; flights_sample
+</code></pre>
+
+<p>Und berechnen wir die typischen Kennwerte:</p>
+
+<pre><code class="language-r">favstats(~flights_sample, na.rm = TRUE)
+#&gt;  min     Q1 median    Q3 max      mean      sd  n missing
+#&gt;  -51 -18.75     -5 11.75 150 0.4387755 31.1604 98       2
+</code></pre>
+
+<p>Ob $n=3$ ausreichen würde? Wäre billiger. &ldquo;Fühlt&rdquo; sich klein an&hellip;</p>
+
+<pre><code class="language-r">set.seed(42)
+sample(flights$arr_delay, size = 3) -&gt; flights_small
+favstats(~flights_small, na.rm = TRUE)
+#&gt;  min  Q1 median   Q3 max      mean       sd n missing
+#&gt;  -34 -28    -22 -0.5  21 -11.66667 28.91943 3       0
+</code></pre>
+
+<p>Hm, deutlich ungenauer.</p>
+
+<h1 id="wie-repräsentativ-ist-die-stichprobe">Wie repräsentativ ist die Stichprobe?</h1>
+
+<p>Die Flughafenbetreiber beschweren sich. Die Stichprobe sei &ldquo;nicht repräsentativ&rdquo;; es sei &ldquo;dumm gelaufen&rdquo;.</p>
+
+<p>Wie repräsentativ ist die Stichprobe? Keine Ahnung. Dazu müssten wir die Grundgesamtheit kennen. Die kennt man normalerweiß nicht.</p>
+
+<p>In diesem Fall ausnahmsweise schon:</p>
+
+<pre><code class="language-r">favstats(~arr_delay, data = flights, na.rm = TRUE)
+#&gt;  min  Q1 median Q3  max     mean       sd      n missing
+#&gt;  -86 -17     -5 14 1272 6.895377 44.63329 327346    9430
+</code></pre>
+
+<p>Median und MW der Sichprobe treffen die Wirklichkeit (Grundgesamtheit) &ldquo;ganz gut&rdquo;. Max und Min kaum.</p>
+
+<h2 id="pech-für-die-flughafenbetreiber">Pech für die Flughafenbetreiber</h2>
+
+<p>Die Stichprobe entspricht der &ldquo;typischen&rdquo; Verspätung ganz gut. Ohne großes Aufsehen einigt man sich im Hinterzimmer. Kuh vom Eis.</p>
+
+<h2 id="eine-zweite-mysteriöse-stichprobe-taucht-auf">Eine zweite, mysteriöse Stichprobe taucht auf</h2>
+
+<p>Die Presse bekommt eine <em>weitere</em> Stichprobe zugespielt: Mittlere Verspätung in NYC sei 42 Minuten ($n=100$)! Der Bürgermeister tobt. So lahm? Schlimmer als die Deutsche Bahn. Sie müssen schnell was tun. Nur was&hellip;</p>
+
+<p>Ob die Stichprobe überhaupt echt ist?</p>
+
+<h2 id="die-zündende-idee">Die zündende Idee</h2>
+
+<p>Sie ziehen viele vergleichbare Stichprobe aus der Grundgesamtheit (<code>flights</code>) und schauen, wie oft so ein Wert wie 42 als Mittelwert vorkommt!</p>
+
+<p>Sagen wir, wir ziehen 10000 Stichproben und rechnen jeweils die mittlere Verspätung aus.</p>
+
+<blockquote>
+<p>In wie vielen Stichproben ist die Verspätung 42 Minuten oder noch größer???</p>
+</blockquote>
+
+<pre><code class="language-r">do(10000) * mean(sample(flights$arr_delay,
+                        size = 100),
+                 na.rm = TRUE) -&gt; flights_vtlg
+</code></pre>
+
+<p>Schauen wir, wie oft 42 vorkommt:</p>
+
+<pre><code class="language-r">gf_histogram(~mean, data = flights_vtlg)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-11-17/figure/unnamed-chunk-9-1.png" title="plot of chunk unnamed-chunk-9" alt="plot of chunk unnamed-chunk-9" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Praktisch nie! Fast keine Stichprobe hatte eine mittlere Verspätung von 42 Minuten.</p>
+
+<p>Wir könenn mit hoher Sicherheit <em>ausschließen</em>, dass die Stichprobe echt ist! Der Bürgermeister überlegt öffentlich, Ihnen einen Orden zu verpassen (aber keine Gehaltserhöhung).</p>
+
+<h2 id="das-nennt-man-eine-stichprobenverteilung">Das nennt man eine Stichprobenverteilung</h2>
+
+<p>Das Histogramm oben zeigt die Verteilung der 10000 Stichproben, die wir gerade gezogen haben (Danke, R). Man nennt es eine Stichprobenverteilung.</p>
+
+<p>Die genauen Kennwerte dieser Stichprobenverteilung lauten:</p>
+
+<pre><code class="language-r">favstats(~mean, data = flights_vtlg, na.rm = TRUE)
+#&gt;       min       Q1   median       Q3      max     mean       sd     n
+#&gt;  -7.43299 3.677004 6.567716 9.721649 33.42105 6.850973 4.528796 10000
+#&gt;  missing
+#&gt;        0
+</code></pre>
+
+<h2 id="die-typische-stichprobe">Die &ldquo;typische&rdquo; Stichprobe</h2>
+
+<p>Jetzt können wir genau sagen, wie die typische Stichprobe an New Yorker Verspätungne aussieht: Mittlere Verspätung: Etwa 7 Minuten (arith. Mittel); sd beträgt etwa 5 Minuten.</p>
+
+<h2 id="die-ungewöhnlichen-stichproben">Die &ldquo;ungewöhnlichen&rdquo; Stichproben</h2>
+
+<p>Sagen wir, die 2.5% Stichproben mit der <em>geringsten</em> und die 2.5% Stichproben mit der <em>höchsten</em> Verspätung sind &ldquo;ungewöhnlich&rdquo;:</p>
+
+<pre><code class="language-r">quantile(~mean, data= flights_vtlg,
+         probs = c(.025, .975))
+#&gt;      2.5%     97.5%
+#&gt; -1.234694 16.394142
+</code></pre>
+
+<p>Ah: Stichproben mit weniger als -1.24 Minuten und Stichproben mit mehr als 16 Minuten sind &ldquo;ungewöhnlich&rdquo;. Alles dazwischen ist &ldquo;normal&rdquo;.</p>
+
+<h1 id="in-der-wirklichkeit-ist-die-grundgesamtheit-unbekannt">In der Wirklichkeit ist die Grundgesamtheit unbekannt</h1>
+
+<p>Nettes Beispiel. Aber in Wirklichkeit haben wir praktisch <em>nie</em> die Grundgesamtheit, nur unsere einsame, einzige Stichprobe. Beispiele:</p>
+
+<ul>
+<li>Mittlerer Umsatz bei 30 Kunden: 42$. Umsatzpotenzial bei allen Deutschen? Unbekannt.</li>
+<li>Mittlere Anzahl von Handies in einer Stichprobe Ihrer Zielgruppe: 2.8 - Mittlere Anzahl Handies bei allen deutschen Jugendlichen?  Unbekannt.</li>
+<li>Mittlere Zufriedenheit bei 100 befragten Nutzer: 4.2 von 5. Zufriedenheit aller Nutzer der Webseite? Unbekannt.</li>
+</ul>
+
+<blockquote>
+<p>Die Grundgesamtheit ist in der Praxis oft unbekannt.</p>
+</blockquote>
+
+<h1 id="durch-einen-trick-kann-man-die-grundgesamtheit-schätzen">Durch einen Trick kann man die Grundgesamtheit schätzen</h1>
+
+<p>Der Trick lautet: Wir tun so, als sei unsere einzige Stichprobe die Grundgesamtheit. Dann machen wir weiter wie gerade: Wir ziehen viele Stichproben aus ihr.</p>
+
+<h2 id="das-nennt-man-bootstrapping">Das nennt man Bootstrapping</h2>
+
+<p>Diese Idee nennt man Bootstrapping. Probieren wir es aus. Wichtig ist, immer mit Zurücklegen zu ziehen. Stellen Sie sich vor, jedes Element der Stichprobe kommt unendlich oft darin vor. Das ist ja die Idee einer Grundgesamtheit. Ziehen mit Zurücklegen ist die Umsetzung dieser Idee.</p>
+
+<p>Mit <code>resample</code> geht das:</p>
+
+<pre><code class="language-r">resample(flights_small)
+#&gt; [1] 21 21 21
+resample(flights_sample)
+#&gt;   [1] -26  -5 -41 -27   9 -16  13  27  -4  -8   3   7   4  20  -5 -19  21
+#&gt;  [18] -20  25  -1   9  -1 -18 -20 -13 -21  -8  37   0  37 -13  -6  -8 -20
+#&gt;  [35]  -9 -28  -6 -39  -6  43 -19  32 -28 -29  -1  19  50  -3 -28 -28 -12
+#&gt;  [52]  -3  -5   3   8 -19 -41  32  27 -19  12 -16 -41 -13  -5 -22 -11  -9
+#&gt;  [69]  27  -9  NA -21  25  20  -6 -34  25 -13  27  -6 -22  -5 -20  27 -34
+#&gt;  [86]  -5  -5  -1 -31 -26   5   0   7 -15  16 -16 -14  -1 -13  23
+</code></pre>
+
+<p>Was ist der Mittelwert?</p>
+
+<pre><code class="language-r">mean(resample(flights_sample), na.rm = TRUE)
+#&gt; [1] -0.4343434
+</code></pre>
+
+<p>Kann man übrigens auch so schreiben:</p>
+
+<pre><code class="language-r">resample(flights_sample) %&gt;% mean(na.rm = TRUE)
+#&gt; [1] 0.43
+</code></pre>
+
+<p>Wir wiederholen diesen Schritt oft, sagen wir 10000 Mal:</p>
+
+<pre><code class="language-r">flights_boot &lt;- do(10000) * mean(resample(flights_sample), na.rm = TRUE)
+</code></pre>
+
+<p>Und schauen uns das Histogramm an:</p>
+
+<pre><code class="language-r">#rename(flights_boot, arr_delay_avg = &quot;mean&quot;) -&gt; flights_boot
+gf_histogram(~mean, data = flights_boot)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-11-17/figure/unnamed-chunk-16-1.png" title="plot of chunk unnamed-chunk-16" alt="plot of chunk unnamed-chunk-16" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Die genauen Statistiken sehen so aus:</p>
+
+<pre><code class="language-r">favstats(~mean, data = flights_boot, na.rm = TRUE)
+#&gt;        min        Q1    median      Q3      max     mean       sd     n
+#&gt;  -10.36082 -1.693878 0.3787755 2.56701 12.81818 0.477432 3.127597 10000
+#&gt;  missing
+#&gt;        0
+</code></pre>
+
+<h2 id="die-bootstrapping-ergebnisse-gleichen-der-stichprobenverteilung">Die Bootstrapping-Ergebnisse gleichen der Stichprobenverteilung</h2>
+
+<p>Hey, wie durch Zauberei haben wir mit unserer Bootstrap-Methode eine Verteilung erhalten, die der Stichprobenverteilung sehr ähnlich ist. Anhand der Bootstrap-Verteilung können wir jetzt sagen, was eine &ldquo;typische&rdquo; Stichprobe ist und ob die 42-Minuten-Stichprobe zu den ungewöhnlichen Stichproben gehört.</p>
+
+<pre><code class="language-r">quantile(~mean, data= flights_boot, probs = c(.025, .975))
+#&gt;      2.5%     97.5%
+#&gt; -5.316582  6.909258
+</code></pre>
+
+<p>Stichproben mit mehr als 22 Minuten Verspätung gehören zu den &ldquo;ungewöhnlihen&rdquo; Stichproben; die 42-Minuten-Stichprobe ist also ungewöhnlich.</p>
+
+<h2 id="ungewöhnlich-könnte-auch-heißen-gefälscht">Ungewöhnlich könnte auch heißen - gefälscht</h2>
+
+<p>Wenn jemand sagt, heute (am 17. November) hätte es in Novisibirsk 27 Grad, dann wäre das &ldquo;ungewöhnlich&rdquo; für Novisibirsk und diese Jahreszeit. Oder: die Daten stammen nicht aus Novisibirsk (das ist freundlicher als zu sagen, sie seien gefälscht).</p>
+
+<h2 id="die-flüge-der-42-minuten-stichprobe-stammen-vermutlich-nicht-aus-new-york">Die Flüge der 42-Minuten-Stichprobe stammen vermutlich nicht aus New York</h2>
+
+<p>So die Pressemitteilung, die der Bürgermeister schließlich herausgibt. Er lässt sich so zitieren: &ldquo;42 Minuten Verspätung sind seehr ungewöhnlich für NYC. Daher sind diese Daten vermutlich gef&hellip; äh stammen nicht von unseren Flughäfen&rdquo;.</p>
+
+<h1 id="fazit">Fazit</h1>
+
+<p>Mit der Bootverteilung kann man einschätzen, wie &ldquo;typisch&rdquo; eine Stichprobe für eine Grundgesamtheit ist. Außerdem kann man sagen, ob eine Stichprobe &ldquo;ungewöhnlich&rdquo; für eine Grundgesamtheit ist.</p>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/tidyeval_basense/" data-toggle="tooltip" data-placement="top" title="Some thoughts on tidyveal and environments in R">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/great-dataviz-examples-in-rstats/" data-toggle="tooltip" data-placement="top" title="Great dataviz examples in rstats">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/inference\/';
+    var disqus_title = ' Wie gut schätzt eine Stichprobe die Grundgesamtheit?';
+    var disqus_url = '\/..\/post\/inference\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

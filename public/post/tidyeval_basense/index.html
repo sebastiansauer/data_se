@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Some thoughts on tidyveal and environments in R</title>
+  <meta property="og:title" content="Some thoughts on tidyveal and environments in R" />
+  <meta name="twitter:title" content="Some thoughts on tidyveal and environments in R" />
+  <meta name="description" content="The tidyeval framework is a rather new, and in parts complementary, framework to dealing with non-standarde evaluation (NSE) in R. In short, NSE is about capturing some R-code, witholding execution, maybe editing the code, and finally execuing it later and/or somewhere else.
+This post borrows heavily by Edwin Thon&rsquo;s great post, and this post by the same author.
+In addtion, most of the knowledge is derived from Hadley Wickham&rsquo;s book Advanced R.">
+  <meta property="og:description" content="The tidyeval framework is a rather new, and in parts complementary, framework to dealing with non-standarde evaluation (NSE) in R. In short, NSE is about capturing some R-code, witholding execution, maybe editing the code, and finally execuing it later and/or somewhere else.
+This post borrows heavily by Edwin Thon&rsquo;s great post, and this post by the same author.
+In addtion, most of the knowledge is derived from Hadley Wickham&rsquo;s book Advanced R.">
+  <meta name="twitter:description" content="The tidyeval framework is a rather new, and in parts complementary, framework to dealing with non-standarde evaluation (NSE) in R. In short, NSE is about capturing some R-code, witholding execution, …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/tidyeval_basense/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/tidyeval_basense/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>Some thoughts on tidyveal and environments in R</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on November 16, 2017
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<p>The tidyeval framework is a rather new, and in parts complementary,
+framework to dealing with non-standarde evaluation (NSE) in R. In short, NSE
+is about capturing some R-code, witholding execution, maybe editing the code,
+and finally execuing it later and/or somewhere else.</p>
+
+<hr />
+
+<p>This post borrows heavily by Edwin Thon&rsquo;s great <a href="https://edwinth.github.io/blog/nse/">post</a>, and <a href="https://edwinth.github.io/blog/dplyr-recipes/">this post</a> by the same author.</p>
+
+<p>In addtion, most of the knowledge is derived from Hadley Wickham&rsquo;s book <a href="http://adv-r.had.co.nz/">Advanced R</a>.</p>
+
+<hr />
+
+<p>The typical base R culprits are <code>eval()</code>, and <code>quote()</code> or <code>substitute()</code>,
+respectively.</p>
+
+<pre><code class="language-r">library(tidyverse)  # load tidyeval too
+library(rlang)  # more on tidyeval
+library(pryr)  # working with environments
+</code></pre>
+
+<pre><code>## 
+## Attaching package: 'pryr'
+</code></pre>
+
+<pre><code>## The following object is masked from 'package:rlang':
+## 
+##     bytes
+</code></pre>
+
+<pre><code>## The following objects are masked from 'package:purrr':
+## 
+##     compose, partial
+</code></pre>
+
+<h1 id="what-s-the-difference-between-base-nse-and-tidyeval-nse">What&rsquo;s the difference between base nse and tidyeval nse?</h1>
+
+<p>And why should I bother?</p>
+
+<p>Let&rsquo;s look at some border case that show the difference quite strikingly.</p>
+
+<p>Consider this base nse code:</p>
+
+<pre><code class="language-r">base_NSE_fun &lt;- function(some_arg) {
+  some_var &lt;- 10
+  quote(some_var + some_arg)
+}
+base_NSE_fun(4) %&gt;% eval()
+</code></pre>
+
+<pre><code>## Error in eval(.): object 'some_var' not found
+</code></pre>
+
+<p>It does not work. <code>eval()</code> has no idea about the environment in which <code>some_var</code> is defined. (And in addition, <code>quote()</code> will take its arguments too literally, but we spare that for later.)</p>
+
+<p>We might had expected the code above to work, however. That&rsquo;s where tidyeval comes into play:</p>
+
+<p>See here:</p>
+
+<pre><code class="language-r">tidy_eval_fun &lt;- function(some_arg) {
+  some_var &lt;- 10
+  quo(some_var + some_arg)
+}
+tidy_eval_fun(4) %&gt;% rlang::eval_tidy()
+</code></pre>
+
+<pre><code>## [1] 14
+</code></pre>
+
+<p>Does work. With tidyeval, the environment of the variables are memorized. With base R, the environment is forgotton.</p>
+
+<h1 id="looking-at-the-chain-of-environments">Looking at the chain of environments</h1>
+
+<p>What&rsquo;s the enclosing environment of <code>eval()</code>? We can get hold of that environment using the function <code>environment()</code>:</p>
+
+<pre><code class="language-r">environment(eval)
+</code></pre>
+
+<pre><code>## &lt;environment: namespace:base&gt;
+</code></pre>
+
+<p>What&rsquo;s that for a strange environment? Well, that&rsquo;s the NAMESPACE of package <code>base</code>,  the exported objects of that package. A namespace is useful so the searchpath will not be cluttered by too many objects. Using a namespace we can define which objects should be made (easily) accessible to the users.</p>
+
+<p>But in this environment, for sure, we will not have put some variable.  How comes that this code does wor:</p>
+
+<pre><code class="language-r">vanilla_x &lt;- 1
+eval(vanilla_x)
+</code></pre>
+
+<pre><code>## [1] 1
+</code></pre>
+
+<p>What&rsquo;s the environment of <code>vanilla_x</code>? We can access the enclosing environment of some object using this code:</p>
+
+<pre><code class="language-r">pryr::where(&quot;vanilla_x&quot;)
+</code></pre>
+
+<pre><code>## &lt;environment: R_GlobalEnv&gt;
+</code></pre>
+
+<p>So, if <code>eval()</code> looks in the namespace of <code>base</code> how comes that it finds some object in the global environment?</p>
+
+<p>The answer is called <em>lexical scoping</em>. There&rsquo;s a chain or ladder of enclosing environments, where the value is looked for. The total of this chaining is the search path.</p>
+
+<p>Hadley Wickham illustrates this chain using this diagram in <a href="http://adv-r.had.co.nz/Environments.html">this chapter of Adv R</a>:</p>
+
+<p><img src="http://adv-r.had.co.nz/diagrams/environments.png/namespace.png" alt="" /></p>
+
+<p>Each arrow coming from a grey dot refers to the enclosing environment of some object or function. The enclosing environment is the &ldquo;home&rdquo; environment, where the object was created.</p>
+
+<p>We see that each object has an environment, and each environment has exactly one &ldquo;parent&rdquo; environment - with the notably execption of the <code>emptyenv</code> which is the first &ldquo;ancestor&rdquo; of this sequence.</p>
+
+<h1 id="different-types-of-environments">Different types of environments</h1>
+
+<p>A function can and does have <em>four</em> environments:</p>
+
+<ol>
+<li>The <em>enclosing environment</em>: The environment where the fun was created; this environment is used for lexical scoping</li>
+<li>The <em>executing environment</em>: The environment where a fun is executed</li>
+<li>The <em>binding environment</em>: The environment(s) where some object is bound to the function</li>
+<li>The <em>calling environment</em>: The environment where the fun was called from</li>
+</ol>
+
+<h1 id="what-substitute-can-and-cannot-do">What <code>substitute()</code> can and cannot do</h1>
+
+<p><code>substitute()</code> is the counterpart of <code>quote()</code> for use within functions. Do not use <code>quote()</code> within functions, use <code>substitue()</code> instead (or the tidyeval counterpart).</p>
+
+<p>Consider:</p>
+
+<pre><code class="language-r">base_eval_fun2 &lt;- function(some_arg) {
+  some_var &lt;- 10
+  substitute(some_var + some_arg)
+}
+base_eval_fun2(4) %&gt;% rlang::eval_tidy()
+</code></pre>
+
+<pre><code>## [1] 14
+</code></pre>
+
+<p>Great! Appears to work, does is not? Not exactly. Look what the function
+call <code>tidy_eval_fun2(4)</code> is actually returning:</p>
+
+<pre><code class="language-r">base_eval_fun2(4)
+</code></pre>
+
+<pre><code>## 10 + 4
+</code></pre>
+
+<p>The result is quite hard coded (Thanks Edwin for pointing that out!). Compare the tidyeval variant:</p>
+
+<pre><code class="language-r">tidy_eval_fun2 &lt;- function(some_arg) {
+  some_var &lt;- 10
+  quo(some_var + some_arg)
+}
+tidy_eval_fun2(4)
+</code></pre>
+
+<pre><code>## &lt;quosure: local&gt;
+## ~some_var + some_arg
+</code></pre>
+
+<p>Now we do <em>not</em> get the &ldquo;hard&rdquo; values but the variables AND their environment is carried over. We might change the expression or carry it to another environment where <code>some_arg</code> has some other value.</p>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/yart/" data-toggle="tooltip" data-placement="top" title="Yart - Yet Another Markdown Report Template">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/inference/" data-toggle="tooltip" data-placement="top" title=" Wie gut schätzt eine Stichprobe die Grundgesamtheit?">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/tidyeval_basense\/';
+    var disqus_title = 'Some thoughts on tidyveal and environments in R';
+    var disqus_url = '\/..\/post\/tidyeval_basense\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

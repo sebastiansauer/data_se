@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Summary for multiple variables using purrr</title>
+  <meta property="og:title" content="Summary for multiple variables using purrr" />
+  <meta name="twitter:title" content="Summary for multiple variables using purrr" />
+  <meta name="description" content="A frequent task in data analysis is to get a summary of a bunch of variables. Often, graphical summaries (diagrams) are wanted. However, at times numerical summaries are in order. How to get that in R? That&rsquo;s the question of the present post.
+Of course, there are several ways. One way, using purrr, is the following. I liked it quite a bit that&rsquo;s why I am showing it here.
+First, let&rsquo;s load some data and some packages we will make use of.">
+  <meta property="og:description" content="A frequent task in data analysis is to get a summary of a bunch of variables. Often, graphical summaries (diagrams) are wanted. However, at times numerical summaries are in order. How to get that in R? That&rsquo;s the question of the present post.
+Of course, there are several ways. One way, using purrr, is the following. I liked it quite a bit that&rsquo;s why I am showing it here.
+First, let&rsquo;s load some data and some packages we will make use of.">
+  <meta name="twitter:description" content="A frequent task in data analysis is to get a summary of a bunch of variables. Often, graphical summaries (diagrams) are wanted. However, at times numerical summaries are in order. How to get that in …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/summary-mult-cols-purrr/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/summary-mult-cols-purrr/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>Summary for multiple variables using purrr</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on September 28, 2016
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        <p>A frequent task in data analysis is to get a summary of a bunch of variables. Often, graphical summaries (diagrams) are wanted. However, at times numerical summaries are in order. How to get that in R? That&rsquo;s the question of the present post.</p>
+
+<p>Of course, there are several ways. One way, using <code>purrr</code>, is the following. I liked it quite a bit that&rsquo;s why I am showing it here.</p>
+
+<p>First, let&rsquo;s load some data and some packages we will make use of.</p>
+
+<pre><code class="language-r">data(Affairs, package = &quot;AER&quot;)
+
+library(purrr)
+library(dplyr)
+library(broom)
+</code></pre>
+
+<p>Define two helper functions we will need later on:</p>
+
+<pre><code class="language-r">add_na_col &lt;- function(x){
+  mutate(x, na = 0)
+}
+
+has_n_col &lt;- function(x, n = 6){
+  return(ncol(x) == n)
+}
+</code></pre>
+
+<p>Set one value to <code>NA</code> for illustration purposes:</p>
+
+<pre><code class="language-r">Affairs$affairs[1] &lt;- NA  # one NA for illustrative purposes
+</code></pre>
+
+<p>Now comes the show:</p>
+
+<pre><code class="language-r">Affairs %&gt;%
+  select_if(is.numeric)  %&gt;%
+  map(~tidy(summary(.x))) %&gt;%  # compute tidy summary of each var
+  map_if(., has_n_col, add_na_col) %&gt;%   # add na-col if missing
+  do.call(rbind, .) -&gt; Affairs_summary  # bind list elements into df
+
+Affairs_summary
+</code></pre>
+
+<pre><code>##               minimum q1 median   mean    q3 maximum na
+## affairs         0.000  0      0  1.458  0.25      12  1
+## age            17.500 27     32 32.490 37.00      57  0
+## yearsmarried    0.125  4      7  8.178 15.00      15  0
+## religiousness   1.000  2      3  3.116  4.00       5  0
+## education       9.000 14     16 16.170 18.00      20  0
+## occupation      1.000  3      5  4.195  6.00       7  0
+## rating          1.000  3      4  3.932  5.00       5  0
+</code></pre>
+
+<p>What we did was:</p>
+
+<ol>
+<li>Get the <code>Affairs</code> data, and select the numeric columns</li>
+<li>Map the <code>summary</code> function to each column, and tidy up each column. We will get a list of tidy summaries.</li>
+<li>If a list element has 6 elements (or columns, because we want to end up with a data frame), then we know there is no <code>NA</code>-column. In this case, <code>add_na_col</code>, else not. That&rsquo;s what the <code>map_if</code> bit does.</li>
+<li>Lastly, bind the list elements row wise. To that end, give a bag of summary-elements to <code>rbind</code> by help of <code>do.call</code>.</li>
+</ol>
+
+<p>Instead of <code>purr::map</code>, a more familiar approach would have been this:</p>
+
+<pre><code class="language-r">Affairs %&gt;%
+  dplyr::select_if(is.numeric)  %&gt;%
+  lapply(., function(x) tidy(summary(x)))  # compute tidy summary of each var
+</code></pre>
+
+<pre><code>## $affairs
+##   minimum q1 median  mean   q3 maximum na
+## 1       0  0      0 1.458 0.25      12  1
+## 
+## $age
+##   minimum q1 median  mean q3 maximum
+## 1    17.5 27     32 32.49 37      57
+## 
+## $yearsmarried
+##   minimum q1 median  mean q3 maximum
+## 1   0.125  4      7 8.178 15      15
+## 
+## $religiousness
+##   minimum q1 median  mean q3 maximum
+## 1       1  2      3 3.116  4       5
+## 
+## $education
+##   minimum q1 median  mean q3 maximum
+## 1       9 14     16 16.17 18      20
+## 
+## $occupation
+##   minimum q1 median  mean q3 maximum
+## 1       1  3      5 4.195  6       7
+## 
+## $rating
+##   minimum q1 median  mean q3 maximum
+## 1       1  3      4 3.932  5       5
+</code></pre>
+
+<p>And, finally, a quite nice formatting tool for html tables is <code>DT:datatable</code> (output not shown):</p>
+
+<pre><code class="language-r">library(DT)
+datatable(Affairs_summary)
+</code></pre>
+
+<p>Although this approach may not work in each environment, particularly not with <code>knitr</code> (as far as I know of).</p>
+
+<p>That&rsquo;s why an alternative html table approach is used:</p>
+
+<pre><code class="language-r">library(htmlTable)
+
+htmlTable(Affairs_summary)
+</code></pre>
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey;'> </th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>minimum</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>q1</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>median</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>mean</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>q3</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>maximum</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>na</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>affairs</td>
+<td style='text-align: center;'>0</td>
+<td style='text-align: center;'>0</td>
+<td style='text-align: center;'>0</td>
+<td style='text-align: center;'>1.458</td>
+<td style='text-align: center;'>0.25</td>
+<td style='text-align: center;'>12</td>
+<td style='text-align: center;'>1</td>
+</tr>
+<tr>
+<td style='text-align: left;'>age</td>
+<td style='text-align: center;'>17.5</td>
+<td style='text-align: center;'>27</td>
+<td style='text-align: center;'>32</td>
+<td style='text-align: center;'>32.49</td>
+<td style='text-align: center;'>37</td>
+<td style='text-align: center;'>57</td>
+<td style='text-align: center;'>0</td>
+</tr>
+<tr>
+<td style='text-align: left;'>yearsmarried</td>
+<td style='text-align: center;'>0.125</td>
+<td style='text-align: center;'>4</td>
+<td style='text-align: center;'>7</td>
+<td style='text-align: center;'>8.178</td>
+<td style='text-align: center;'>15</td>
+<td style='text-align: center;'>15</td>
+<td style='text-align: center;'>0</td>
+</tr>
+<tr>
+<td style='text-align: left;'>religiousness</td>
+<td style='text-align: center;'>1</td>
+<td style='text-align: center;'>2</td>
+<td style='text-align: center;'>3</td>
+<td style='text-align: center;'>3.116</td>
+<td style='text-align: center;'>4</td>
+<td style='text-align: center;'>5</td>
+<td style='text-align: center;'>0</td>
+</tr>
+<tr>
+<td style='text-align: left;'>education</td>
+<td style='text-align: center;'>9</td>
+<td style='text-align: center;'>14</td>
+<td style='text-align: center;'>16</td>
+<td style='text-align: center;'>16.17</td>
+<td style='text-align: center;'>18</td>
+<td style='text-align: center;'>20</td>
+<td style='text-align: center;'>0</td>
+</tr>
+<tr>
+<td style='text-align: left;'>occupation</td>
+<td style='text-align: center;'>1</td>
+<td style='text-align: center;'>3</td>
+<td style='text-align: center;'>5</td>
+<td style='text-align: center;'>4.195</td>
+<td style='text-align: center;'>6</td>
+<td style='text-align: center;'>7</td>
+<td style='text-align: center;'>0</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>rating</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>3</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>4</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>3.932</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>5</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>5</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>0</td>
+</tr>
+</tbody>
+</table>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/edit-multiple_lm_purrr_edit/" data-toggle="tooltip" data-placement="top" title="EDIT: Running multiple simple regressions with purrr">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/purrr-effsize/" data-toggle="tooltip" data-placement="top" title="Using purrr to build a data frame of vectors (eg., from effect size statistics)">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/summary-mult-cols-purrr\/';
+    var disqus_title = 'Summary for multiple variables using purrr';
+    var disqus_url = '\/..\/post\/summary-mult-cols-purrr\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

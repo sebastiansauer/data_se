@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Bind lists to data frame for aggregating linear models results</title>
+  <meta property="og:title" content="Bind lists to data frame for aggregating linear models results" />
+  <meta name="twitter:title" content="Bind lists to data frame for aggregating linear models results" />
+  <meta name="description" content="I found myself doing the following: I had a bunch of predictors, one (numeric) outcome, and wanted to run I simple regression for each of the predictors. Having a bunch of model results, I would like to have them bundled in one data frame.
+So, here is one way to do it.
+First, load some data.
+data(mtcars) str(mtcars)  ## &#39;data.frame&#39;:	32 obs. of 11 variables: ## $ mpg : num 21 21 22.">
+  <meta property="og:description" content="I found myself doing the following: I had a bunch of predictors, one (numeric) outcome, and wanted to run I simple regression for each of the predictors. Having a bunch of model results, I would like to have them bundled in one data frame.
+So, here is one way to do it.
+First, load some data.
+data(mtcars) str(mtcars)  ## &#39;data.frame&#39;:	32 obs. of 11 variables: ## $ mpg : num 21 21 22.">
+  <meta name="twitter:description" content="I found myself doing the following: I had a bunch of predictors, one (numeric) outcome, and wanted to run I simple regression for each of the predictors. Having a bunch of model results, I would like …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/bind_list_to_dataframe_lm/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/bind_list_to_dataframe_lm/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>Bind lists to data frame for aggregating linear models results</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on November 4, 2016
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        <p>I found myself doing the following: I had a bunch of predictors, one (numeric) outcome, and wanted to run I simple regression for each of the predictors. Having a bunch of model results, I would like to have them bundled in one data frame.</p>
+
+<p>So, here is one way to do it.</p>
+
+<p>First, load some data.</p>
+
+<pre><code class="language-r">data(mtcars)
+str(mtcars)
+</code></pre>
+
+<pre><code>## 'data.frame':	32 obs. of  11 variables:
+##  $ mpg : num  21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 ...
+##  $ cyl : num  6 6 4 6 8 6 8 4 4 6 ...
+##  $ disp: num  160 160 108 258 360 ...
+##  $ hp  : num  110 110 93 110 175 105 245 62 95 123 ...
+##  $ drat: num  3.9 3.9 3.85 3.08 3.15 2.76 3.21 3.69 3.92 3.92 ...
+##  $ wt  : num  2.62 2.88 2.32 3.21 3.44 ...
+##  $ qsec: num  16.5 17 18.6 19.4 17 ...
+##  $ vs  : num  0 0 1 1 0 1 0 1 1 1 ...
+##  $ am  : num  1 1 1 0 0 0 0 0 0 0 ...
+##  $ gear: num  4 4 4 3 3 3 3 4 4 4 ...
+##  $ carb: num  4 4 1 1 2 1 4 2 2 4 ...
+</code></pre>
+
+<p>Say, <code>mpg</code> is our outcome/ criterion. The rest of the variables are predictors.</p>
+
+<p>Then, some packages.</p>
+
+<pre><code class="language-r">library(dplyr)
+library(purrr)
+library(tibble)
+library(ggplot2)
+library(stringr)
+library(tidyr)
+library(broom)
+library(scales)
+</code></pre>
+
+<p>For illustration, let&rsquo;s run a regression with each and all of the predictors as a preliminary step.</p>
+
+<pre><code class="language-r">lm(mpg ~ ., data = mtcars) %&gt;% glance
+</code></pre>
+
+<pre><code>##   r.squared adj.r.squared    sigma statistic      p.value df    logLik
+## 1 0.8690158     0.8066423 2.650197  13.93246 3.793152e-07 11 -69.85491
+##        AIC      BIC deviance df.residual
+## 1 163.7098 181.2986 147.4944          21
+</code></pre>
+
+<pre><code class="language-r">lm(mpg ~ ., data = mtcars) %&gt;% summary %&gt;% tidy
+</code></pre>
+
+<pre><code>##           term    estimate   std.error  statistic    p.value
+## 1  (Intercept) 12.30337416 18.71788443  0.6573058 0.51812440
+## 2          cyl -0.11144048  1.04502336 -0.1066392 0.91608738
+## 3         disp  0.01333524  0.01785750  0.7467585 0.46348865
+## 4           hp -0.02148212  0.02176858 -0.9868407 0.33495531
+## 5         drat  0.78711097  1.63537307  0.4813036 0.63527790
+## 6           wt -3.71530393  1.89441430 -1.9611887 0.06325215
+## 7         qsec  0.82104075  0.73084480  1.1234133 0.27394127
+## 8           vs  0.31776281  2.10450861  0.1509915 0.88142347
+## 9           am  2.52022689  2.05665055  1.2254035 0.23398971
+## 10        gear  0.65541302  1.49325996  0.4389142 0.66520643
+## 11        carb -0.19941925  0.82875250 -0.2406258 0.81217871
+</code></pre>
+
+<p>Of interest, no p-value is below .05.</p>
+
+<p>Now come the main part, let&rsquo;s run multiple regression and then combine the results.</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  dplyr::select(-mpg) %&gt;% 
+  map(~lm(mtcars$mpg ~ .x, data = mtcars)) %&gt;% 
+  map(summary) %&gt;% 
+  map(&quot;coefficients&quot;) %&gt;% 
+  do.call(rbind.data.frame, .) %&gt;% 
+  rownames_to_column %&gt;% 
+  as_tibble %&gt;% 
+  setNames(c(&quot;predictor&quot;, &quot;b&quot;, &quot;SE&quot;, &quot;t&quot;, &quot;p&quot;)) %&gt;% 
+  dplyr::arrange(p) %&gt;% 
+  dplyr::filter(!str_detect(predictor, &quot;(Intercept)&quot;)) %&gt;% 
+  mutate(predictor = str_sub(predictor, start = 1, end = str_length(predictor)-3))
+</code></pre>
+
+<pre><code>## # A tibble: 10 × 5
+##    predictor           b          SE         t            p
+##        &lt;chr&gt;       &lt;dbl&gt;       &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt;
+## 1         wt -5.34447157 0.559101045 -9.559044 1.293959e-10
+## 2        cyl -2.87579014 0.322408883 -8.919699 6.112687e-10
+## 3       disp -0.04121512 0.004711833 -8.747152 9.380327e-10
+## 4         hp -0.06822828 0.010119304 -6.742389 1.787835e-07
+## 5       drat  7.67823260 1.506705108  5.096042 1.776240e-05
+## 6         vs  7.94047619 1.632370025  4.864385 3.415937e-05
+## 7         am  7.24493927 1.764421632  4.106127 2.850207e-04
+## 8       carb -2.05571870 0.568545640 -3.615750 1.084446e-03
+## 9       gear  3.92333333 1.308130699  2.999191 5.400948e-03
+## 10      qsec  1.41212484 0.559210130  2.525213 1.708199e-02
+</code></pre>
+
+<p>Some explanation:</p>
+
+<ul>
+<li>l2: deselect the outcome variable, so that we can address &ldquo;all&rdquo; variables in the next lines</li>
+<li>l3: map each list element to <code>lm</code>; <code>.x</code> is a placeholder for all the list elements (here predictors)</li>
+<li>l4: now get the summary of each lm. More specifically, we have a number of lm models, which are stored as list elements. Now we apply the <code>summary</code> function to each of those list elements (lm results).</li>
+<li>l5: address (extract) the <code>coefficients</code> subelement from each list element</li>
+<li>l6: rownames should be their own column</li>
+<li>l7: tibbles are nic</li>
+<li>l8: make the col names typing-friendly</li>
+<li>l9: filter those lines, where <code>predictor</code> is <em>not</em> equal to &ldquo;(Intercept)&rdquo;.</li>
+<li>l10: change the values of <code>predictor</code> such that the strange end part &ldquo;..x&rdquo; is removed</li>
+</ul>
+
+<p>Puh, quite some hassle.</p>
+
+<p>Now, for completeness, let&rsquo;s look at the $R^2$.</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  dplyr::select(-mpg) %&gt;% 
+  map(~lm(mtcars$mpg ~ .x, data = mtcars)) %&gt;% 
+  map(glance) %&gt;% 
+  do.call(rbind.data.frame, .) %&gt;% 
+  rownames_to_column %&gt;% 
+  as_tibble 
+</code></pre>
+
+<pre><code>## # A tibble: 10 × 12
+##    rowname r.squared adj.r.squared    sigma statistic      p.value    df
+##      &lt;chr&gt;     &lt;dbl&gt;         &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt; &lt;int&gt;
+## 1      cyl 0.7261800     0.7170527 3.205902 79.561028 6.112687e-10     2
+## 2     disp 0.7183433     0.7089548 3.251454 76.512660 9.380327e-10     2
+## 3       hp 0.6024373     0.5891853 3.862962 45.459803 1.787835e-07     2
+## 4     drat 0.4639952     0.4461283 4.485409 25.969645 1.776240e-05     2
+## 5       wt 0.7528328     0.7445939 3.045882 91.375325 1.293959e-10     2
+## 6     qsec 0.1752963     0.1478062 5.563738  6.376702 1.708199e-02     2
+## 7       vs 0.4409477     0.4223126 4.580827 23.662241 3.415937e-05     2
+## 8       am 0.3597989     0.3384589 4.902029 16.860279 2.850207e-04     2
+## 9     gear 0.2306734     0.2050292 5.373695  8.995144 5.400948e-03     2
+## 10    carb 0.3035184     0.2803024 5.112961 13.073646 1.084446e-03     2
+## # ... with 5 more variables: logLik &lt;dbl&gt;, AIC &lt;dbl&gt;, BIC &lt;dbl&gt;,
+## #   deviance &lt;dbl&gt;, df.residual &lt;int&gt;
+</code></pre>
+
+<p>Ok, I admit, I like plotting, particularly with <code>ggplot2</code>.</p>
+
+<p>First, the $R^2$ for all models:</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  dplyr::select(-mpg) %&gt;% 
+  map(~lm(mtcars$mpg ~ .x, data = mtcars)) %&gt;% 
+  map(glance) %&gt;% 
+  do.call(rbind.data.frame, .) %&gt;% 
+  rownames_to_column %&gt;% 
+  as_tibble %&gt;% 
+  ggplot(aes(x = reorder(rowname, -adj.r.squared), y = adj.r.squared)) +
+  geom_point() +
+  coord_flip() + 
+  scale_y_continuous(labels = scales::percent)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-04/p1-1.png" alt="plot of chunk p1" /></p>
+
+<p>Last, the p-values of each predictor (OMG).</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  dplyr::select(-mpg) %&gt;% 
+  map(~lm(mtcars$mpg ~ .x, data = mtcars)) %&gt;% 
+  map(summary) %&gt;% 
+  map(&quot;coefficients&quot;) %&gt;% 
+  do.call(rbind.data.frame, .) %&gt;% 
+  rownames_to_column %&gt;% 
+  as_tibble %&gt;% 
+  setNames(c(&quot;predictor&quot;, &quot;b&quot;, &quot;SE&quot;, &quot;t&quot;, &quot;p&quot;)) %&gt;% 
+  dplyr::arrange(p) %&gt;% 
+  dplyr::filter(!str_detect(predictor, &quot;(Intercept)&quot;)) %&gt;% 
+  mutate(predictor = str_sub(predictor, start = 1, end = str_length(predictor)-3)) %&gt;% 
+  ggplot(aes(x = reorder(predictor,p), y = p)) +
+  geom_point() +
+  geom_hline(yintercept = .05, color = &quot;red&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-04/p2-1.png" alt="plot of chunk p2" /></p>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/percentage_plot_ggplot2_v2/" data-toggle="tooltip" data-placement="top" title="How to plot a &#39;percentage plot&#39; with ggplot2">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/stochastic_independence/" data-toggle="tooltip" data-placement="top" title="Some reflections on stochastic independence">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/bind_list_to_dataframe_lm\/';
+    var disqus_title = 'Bind lists to data frame for aggregating linear models results';
+    var disqus_url = '\/..\/post\/bind_list_to_dataframe_lm\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

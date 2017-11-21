@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Drawing a country map</title>
+  <meta property="og:title" content="Drawing a country map" />
+  <meta name="twitter:title" content="Drawing a country map" />
+  <meta name="description" content="Let&rsquo;s draw a map of Bavaria, a state of Germany, in this post.
+Packages library(tidyverse) library(maptools) library(sf) library(RColorBrewer) library(ggmap) library(viridis) library(stringr)  Data Let&rsquo;s get the data first. Basically, we need to data files:
+ the shape file, ie., a geographic details of state borders and points of interest the semantic information to points of interest eg., town names  Shape file The shape file can be downloaded from this source: http://www.">
+  <meta property="og:description" content="Let&rsquo;s draw a map of Bavaria, a state of Germany, in this post.
+Packages library(tidyverse) library(maptools) library(sf) library(RColorBrewer) library(ggmap) library(viridis) library(stringr)  Data Let&rsquo;s get the data first. Basically, we need to data files:
+ the shape file, ie., a geographic details of state borders and points of interest the semantic information to points of interest eg., town names  Shape file The shape file can be downloaded from this source: http://www.">
+  <meta name="twitter:description" content="Let&rsquo;s draw a map of Bavaria, a state of Germany, in this post.
+Packages library(tidyverse) library(maptools) library(sf) library(RColorBrewer) library(ggmap) library(viridis) library(stringr) …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/chloromap/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/chloromap/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>Drawing a country map</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on October 6, 2017
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<p>Let&rsquo;s draw a map of Bavaria, a state of Germany, in this post.</p>
+
+<h1 id="packages">Packages</h1>
+
+<pre><code class="language-r">library(tidyverse)
+library(maptools)
+library(sf)
+library(RColorBrewer)
+library(ggmap)
+library(viridis)
+library(stringr)
+</code></pre>
+
+<h1 id="data">Data</h1>
+
+<p>Let&rsquo;s get the data first. Basically, we need to data files:</p>
+
+<ul>
+<li>the shape file, ie., a geographic details of state borders and points of interest</li>
+<li>the semantic information to points of interest eg., town names</li>
+</ul>
+
+<h2 id="shape-file">Shape file</h2>
+
+<p>The shape file can be downloaded from this source: <a href="http://www.metaspatial.net/download/plz.tar.gz">http://www.metaspatial.net/download/plz.tar.gz</a></p>
+
+<p><a href="http://gadm.org/country">This site</a> also looks great to get geospatial data.</p>
+
+<p>These data are PD as stated <a href="http://arnulf.us/PLZ">here</a>. Download and unpack the data. Let&rsquo;s assume that the data are stored in a path called <code>my_path</code>. See for instance in my case:</p>
+
+<pre><code class="language-r"># replace the following path with your path:
+my_path &lt;- &quot;/Users/sebastiansauer/Documents/Datensaetze/plz/&quot;
+my_shape &lt;- &quot;post_pl.shp&quot;
+
+shape_dest &lt;- paste0(my_path, my_shape)
+file.exists(shape_dest)
+#&gt; [1] TRUE
+</code></pre>
+
+<p>Parse the shape data:</p>
+
+<pre><code class="language-r">de_shape &lt;- sf::st_read(shape_dest)  # &quot;de&quot; is for Germany
+#&gt; Reading layer `post_pl' from data source `/Users/sebastiansauer/Documents/Datensaetze/plz/post_pl.shp' using driver `ESRI Shapefile'
+#&gt; Simple feature collection with 8270 features and 3 fields
+#&gt; geometry type:  MULTIPOLYGON
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 5.866286 ymin: 47.2736 xmax: 15.04863 ymax: 55.05826
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    NA
+</code></pre>
+
+<p>Check the result:</p>
+
+<pre><code class="language-r">head(de_shape)
+#&gt; Simple feature collection with 6 features and 3 fields
+#&gt; geometry type:  MULTIPOLYGON
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 13.69598 ymin: 51.02433 xmax: 13.91312 ymax: 51.14665
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    NA
+#&gt;   PLZ99 PLZ99_N PLZORT99                       geometry
+#&gt; 1 01067    1067  Dresden MULTIPOLYGON (((13.7189358 ...
+#&gt; 2 01069    1069  Dresden MULTIPOLYGON (((13.74983892...
+#&gt; 3 01097    1097  Dresden MULTIPOLYGON (((13.727583 5...
+#&gt; 4 01099    1099  Dresden MULTIPOLYGON (((13.82015592...
+#&gt; 5 01109    1109  Dresden MULTIPOLYGON (((13.75953588...
+#&gt; 6 01127    1127  Dresden MULTIPOLYGON (((13.72007952...
+de_shape$PLZORT99 %&gt;% head
+#&gt; [1] Dresden Dresden Dresden Dresden Dresden Dresden
+#&gt; 6359 Levels: Aach Aachen Aalen Aarbergen Abenberg Abensberg ... \xdfxheim
+</code></pre>
+
+<p>Note that the file contains semantic data, too (zip code, town names).</p>
+
+<p>Some encoding problems. More often than not, text data is in the wrong format. Blind guessing: Data was stored on a Windows machine, hence in Latin1. My system assumes UTF-8, so culture clash is to expected. Let&rsquo;s try to fix.</p>
+
+<pre><code class="language-r">de_shape$PLZORT99 &lt;- as.character(de_shape$PLZORT99)
+Encoding(de_shape$PLZORT99) &lt;- &quot;latin1&quot;
+slice(de_shape$PLZORT99, 90:100)
+#&gt; Error in UseMethod(&quot;slice_&quot;): no applicable method for 'slice_' applied to an object of class &quot;character&quot;
+</code></pre>
+
+<p>Ok, fixed.</p>
+
+<h2 id="shape-semantics">Shape semantics</h2>
+
+<p>&ldquo;Shape semantics&rdquo; is a rather fancy word for the county/community/town names. We can access the data <a href="http://download.geonames.org/export/zip/DE.zip">here</a>.</p>
+
+<p>Download and unzip the data, then move it to <code>my_path</code>. The German word for &ldquo;zip code&rdquo; is &ldquo;PLZ&rdquo;, so that&rsquo;s why I call it <code>my_plz</code>:</p>
+
+<pre><code class="language-r">my_plz &lt;- &quot;PLZ_Ort_Long_Lat_Land_DE.txt&quot;
+de_plz &lt;- paste0(my_path, my_plz)
+file.exists(de_plz)
+#&gt; [1] TRUE
+
+plz_df &lt;- read_tsv(file = de_plz, col_names = FALSE)  # tab separated data
+</code></pre>
+
+<p>In the help file from the downloaded data, we find some explanation as to the columns:</p>
+
+<pre><code class="language-r">plz_df &lt;- plz_df %&gt;%
+  rename(country_code = X1,
+         postal_code = X2,
+         place_name = X3,
+         state = X4,
+         state_code = X5,
+         county = X6,
+         county_code = X7,
+         community = X8,
+         community_code = X9,
+         lat = X10,
+         long = X11,
+         accuracy = X12)  # accuracy of lat/lng from 1=estimated to 6=centroid
+
+
+glimpse(plz_df)
+#&gt; Observations: 16,481
+#&gt; Variables: 12
+#&gt; $ country_code   &lt;chr&gt; &quot;DE&quot;, &quot;DE&quot;, &quot;DE&quot;, &quot;DE&quot;, &quot;DE&quot;, &quot;DE&quot;, &quot;DE&quot;, &quot;DE&quot;,...
+#&gt; $ postal_code    &lt;chr&gt; &quot;01945&quot;, &quot;01945&quot;, &quot;01945&quot;, &quot;01945&quot;, &quot;01945&quot;, &quot;0...
+#&gt; $ place_name     &lt;chr&gt; &quot;Hohenbocka&quot;, &quot;Lindenau&quot;, &quot;Schwarzbach&quot;, &quot;Grüne...
+#&gt; $ state          &lt;chr&gt; &quot;Brandenburg&quot;, &quot;Brandenburg&quot;, &quot;Brandenburg&quot;, &quot;B...
+#&gt; $ state_code     &lt;chr&gt; &quot;BB&quot;, &quot;BB&quot;, &quot;BB&quot;, &quot;BB&quot;, &quot;BB&quot;, &quot;BB&quot;, &quot;BB&quot;, &quot;BB&quot;,...
+#&gt; $ county         &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
+#&gt; $ county_code    &lt;chr&gt; &quot;00&quot;, &quot;00&quot;, &quot;00&quot;, &quot;00&quot;, &quot;00&quot;, &quot;00&quot;, &quot;00&quot;, &quot;00&quot;,...
+#&gt; $ community      &lt;chr&gt; &quot;Landkreis Oberspreewald-Lausitz&quot;, &quot;Landkreis O...
+#&gt; $ community_code &lt;int&gt; 12066, 12066, 12066, 12066, 12066, 12066, 12066...
+#&gt; $ lat            &lt;dbl&gt; 51.4, 51.4, 51.5, 51.4, 51.4, 51.5, 51.4, 51.4,...
+#&gt; $ long           &lt;dbl&gt; 14.0, 13.7, 13.9, 14.0, 13.9, 13.9, 13.9, 13.7,...
+#&gt; $ accuracy       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
+</code></pre>
+
+<h2 id="test-it">Test it</h2>
+
+<p>Now, enough of grey theory! Unfortunately, I don&rsquo;t know any nice Hamlet citation here, which would certainly be impressive.</p>
+
+<pre><code class="language-r">my_col &lt;- sample(1:7, length(de_shape), replace = T)
+plot(de_shape[c(&quot;PLZ99&quot;, &quot;geometry&quot;)],
+     col = brewer.pal(7, &quot;Greens&quot;)[my_col], border = F)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-06/unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" width="70%" style="display: block; margin: auto;" /></p>
+
+<h2 id="filter-bavaria">Filter Bavaria</h2>
+
+<pre><code class="language-r">plz_bavaria &lt;- plz_df %&gt;%
+  filter(state == &quot;Bayern&quot;)
+
+plz_bavaria_vec &lt;- plz_bavaria$postal_code
+</code></pre>
+
+<p>Easy; ~2259 zip codes in Bavaria.</p>
+
+<p>Now let&rsquo;s filter the shape file.</p>
+
+<pre><code class="language-r">my_rows &lt;- de_shape$PLZ99 %in% plz_bavaria_vec
+</code></pre>
+
+<p>And plot Bavaria:</p>
+
+<pre><code class="language-r">my_col &lt;- sample(1:7, length(de_shape), replace = T)
+
+bav_data &lt;- de_shape[my_rows,c(&quot;PLZ99&quot;, &quot;geometry&quot;)]
+plot(bav_data,
+     col = brewer.pal(7, &quot;Oranges&quot;)[my_col], border = F)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-06/unnamed-chunk-11-1.png" title="plot of chunk unnamed-chunk-11" alt="plot of chunk unnamed-chunk-11" width="70%" style="display: block; margin: auto;" /></p>
+
+<h2 id="now-plot-with-ggplot2">Now plot with ggplot2</h2>
+
+<pre><code class="language-r">
+bav_data$PLZ2 &lt;- str_extract(bav_data$PLZ99, &quot;\\d\\d&quot;)
+
+
+ggplot(data = bav_data) +
+  geom_sf(aes(fill = PLZ2)) +
+  scale_fill_viridis_d() +
+  guides(fill = FALSE) -&gt; p_bavaria
+p_bavaria
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-06/unnamed-chunk-12-1.png" title="plot of chunk unnamed-chunk-12" alt="plot of chunk unnamed-chunk-12" width="70%" style="display: block; margin: auto;" /></p>
+
+<h2 id="sample-some-counties">Sample some counties</h2>
+
+<p>FWIW, let&rsquo;s sample some counties, and fill them in a distinct color.</p>
+
+<pre><code class="language-r">
+bav_data$PLZ_sample &lt;- sample(c(0,1),
+                              size = nrow(bav_data),
+                              prob = c(.99, .01),
+                              replace = TRUE)
+
+
+ggplot(data = bav_data) +
+  geom_sf(aes(fill = PLZ_sample)) +
+  scale_fill_viridis() +
+  guides(fill = FALSE) -&gt; p_bavaria2
+p_bavaria2
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-06/unnamed-chunk-13-1.png" title="plot of chunk unnamed-chunk-13" alt="plot of chunk unnamed-chunk-13" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Let&rsquo;s define our own palette:</p>
+
+<pre><code class="language-r">bav_data$PLZ_sample &lt;- sample(c(0,1),
+                              size = nrow(bav_data),
+                              prob = c(.99, .01),
+                              replace = TRUE) %&gt;% factor
+my_pal &lt;- c(&quot;grey80&quot;, &quot;firebrick&quot;)
+ggplot(data = bav_data) +
+  geom_sf(aes(fill = PLZ_sample)) +
+  scale_fill_manual(values = my_pal) +
+  guides(fill = FALSE) -&gt; p_bavaria3
+p_bavaria3
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-06/unnamed-chunk-14-1.png" title="plot of chunk unnamed-chunk-14" alt="plot of chunk unnamed-chunk-14" width="70%" style="display: block; margin: auto;" /></p>
+
+<h1 id="bigger-visual-chunks">Bigger visual chunks</h1>
+
+<p>Let&rsquo;s cut the polygons in bigger chunks, say, according to the first digit in the zip code.</p>
+
+<pre><code class="language-r">bav_data$PLZ1 &lt;- str_extract(bav_data$PLZ99, &quot;\\d&quot;)
+
+my_pal &lt;- c(&quot;grey80&quot;, &quot;firebrick&quot;)
+ggplot(data = bav_data) +
+  geom_sf(aes(fill = PLZ1)) +
+  scale_fill_viridis_d() -&gt; p_bavaria4
+p_bavaria4
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-06/unnamed-chunk-15-1.png" title="plot of chunk unnamed-chunk-15" alt="plot of chunk unnamed-chunk-15" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Happy map painting!</p>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/kongresse_2018/" data-toggle="tooltip" data-placement="top" title="Kongresse 2018 - Wirtschaftspsychologie und verwandte Gebiete">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/unemp-map/" data-toggle="tooltip" data-placement="top" title="Mapping unemployment rate to German district areas">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/chloromap\/';
+    var disqus_title = 'Drawing a country map';
+    var disqus_url = '\/..\/post\/chloromap\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

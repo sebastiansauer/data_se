@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>New bar stacking with ggplot 2.2.0</title>
+  <meta property="og:title" content="New bar stacking with ggplot 2.2.0" />
+  <meta name="twitter:title" content="New bar stacking with ggplot 2.2.0" />
+  <meta name="description" content="Recently, ggplot2 2.2.0 was released. Among other news, stacking bar plot was improved. Here is a short demonstration.
+Load libraries
+library(tidyverse) library(htmlTable)  &hellip; and load data:
+data &lt;- read.csv(&quot;https://osf.io/meyhp/?action=download&quot;)  DOI for this piece of data is 10.17605/OSF.IO/4KGZH.
+The data consists of results of a survey on extraversion and associated behavior.
+Say, we would like to visualize the responsed to the extraversion items (there are 10 of them).
+So, let&rsquo;s see.">
+  <meta property="og:description" content="Recently, ggplot2 2.2.0 was released. Among other news, stacking bar plot was improved. Here is a short demonstration.
+Load libraries
+library(tidyverse) library(htmlTable)  &hellip; and load data:
+data &lt;- read.csv(&quot;https://osf.io/meyhp/?action=download&quot;)  DOI for this piece of data is 10.17605/OSF.IO/4KGZH.
+The data consists of results of a survey on extraversion and associated behavior.
+Say, we would like to visualize the responsed to the extraversion items (there are 10 of them).
+So, let&rsquo;s see.">
+  <meta name="twitter:description" content="Recently, ggplot2 2.2.0 was released. Among other news, stacking bar plot was improved. Here is a short demonstration.
+Load libraries
+library(tidyverse) library(htmlTable)  &hellip; and load data: …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/improved_bar_stacking_ggplot2_220/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/improved_bar_stacking_ggplot2_220/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>New bar stacking with ggplot 2.2.0</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on November 13, 2016
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        <p>Recently, <code>ggplot2</code> 2.2.0 was released. Among other news, stacking bar plot was improved. Here is a short demonstration.</p>
+
+<p>Load libraries</p>
+
+<pre><code class="language-r">library(tidyverse)
+library(htmlTable)
+</code></pre>
+
+<p>&hellip; and load data:</p>
+
+<pre><code class="language-r">data &lt;- read.csv(&quot;https://osf.io/meyhp/?action=download&quot;)
+</code></pre>
+
+<p>DOI for this piece of data is 10.17605/OSF.IO/4KGZH.</p>
+
+<p>The data consists of results of a survey on extraversion and associated behavior.</p>
+
+<p>Say, we would like to visualize the responsed to the extraversion items (there are 10 of them).</p>
+
+<p>So, let&rsquo;s see. First, compute summary of the responses.</p>
+
+<pre><code class="language-r">data %&gt;% 
+  select(i01:i10) %&gt;% 
+  gather %&gt;% 
+  dplyr::count(key, value) %&gt;% 
+  ungroup -&gt; data2
+  
+htmlTable(head(data2))
+</code></pre>
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey;'> </th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>key</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>value</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>n</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>1</td>
+<td style='text-align: center;'>i01</td>
+<td style='text-align: center;'>1</td>
+<td style='text-align: center;'>7</td>
+</tr>
+<tr>
+<td style='text-align: left;'>2</td>
+<td style='text-align: center;'>i01</td>
+<td style='text-align: center;'>2</td>
+<td style='text-align: center;'>39</td>
+</tr>
+<tr>
+<td style='text-align: left;'>3</td>
+<td style='text-align: center;'>i01</td>
+<td style='text-align: center;'>3</td>
+<td style='text-align: center;'>230</td>
+</tr>
+<tr>
+<td style='text-align: left;'>4</td>
+<td style='text-align: center;'>i01</td>
+<td style='text-align: center;'>4</td>
+<td style='text-align: center;'>223</td>
+</tr>
+<tr>
+<td style='text-align: left;'>5</td>
+<td style='text-align: center;'>i01</td>
+<td style='text-align: center;'></td>
+<td style='text-align: center;'>2</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>6</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>i02</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>1</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>176</td>
+</tr>
+</tbody>
+</table>
+
+<p>Ok, so now let&rsquo;s plot.</p>
+
+<pre><code class="language-r">ggplot(data2) +
+  geom_col(aes(x = key, fill = value, y = n))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-13-03/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
+
+<p>Note that <code>geom_col</code> is short-hand vor <code>geom_bar(stat = &quot;identity&quot;)</code>.</p>
+
+<p>Of interest, &ldquo;negative&rdquo; stacking is now possible.</p>
+
+<pre><code class="language-r">data %&gt;% 
+  select(i01:i10) %&gt;% 
+  gather %&gt;% 
+  na.omit %&gt;% 
+  count(key, value) %&gt;% 
+  ungroup %&gt;% 
+  group_by(key) %&gt;% 
+  mutate(rel_n = round(n - mean(n), 2)) %&gt;% 
+  ungroup -&gt; data3
+
+
+
+htmlTable(head(data3))
+</code></pre>
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey;'> </th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>key</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>value</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>n</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>rel_n</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>1</td>
+<td style='text-align: center;'>i01</td>
+<td style='text-align: center;'>1</td>
+<td style='text-align: center;'>7</td>
+<td style='text-align: center;'>-117.75</td>
+</tr>
+<tr>
+<td style='text-align: left;'>2</td>
+<td style='text-align: center;'>i01</td>
+<td style='text-align: center;'>2</td>
+<td style='text-align: center;'>39</td>
+<td style='text-align: center;'>-85.75</td>
+</tr>
+<tr>
+<td style='text-align: left;'>3</td>
+<td style='text-align: center;'>i01</td>
+<td style='text-align: center;'>3</td>
+<td style='text-align: center;'>230</td>
+<td style='text-align: center;'>105.25</td>
+</tr>
+<tr>
+<td style='text-align: left;'>4</td>
+<td style='text-align: center;'>i01</td>
+<td style='text-align: center;'>4</td>
+<td style='text-align: center;'>223</td>
+<td style='text-align: center;'>98.25</td>
+</tr>
+<tr>
+<td style='text-align: left;'>5</td>
+<td style='text-align: center;'>i02</td>
+<td style='text-align: center;'>1</td>
+<td style='text-align: center;'>176</td>
+<td style='text-align: center;'>51.5</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>6</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>i02</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>2</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>224</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>99.5</td>
+</tr>
+</tbody>
+</table>
+
+<pre><code class="language-r">ggplot(data3) +
+  geom_col(aes(x = key, fill = value, y = rel_n))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-13-03/unnamed-chunk-6-1.png" alt="plot of chunk unnamed-chunk-6" /></p>
+
+<p>Hm, at it comes to the color, we need to change to discrete colors. It appears that the color scheme is not able (out of the box) to adapt to this &ldquo;negative stacking&rdquo;.</p>
+
+<p>So:</p>
+
+<pre><code class="language-r">ggplot(data3) +
+  geom_col(aes(x = key, fill = factor(value), y = rel_n))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-13-03/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7" /></p>
+
+<pre><code class="language-r">sessionInfo()
+</code></pre>
+
+<pre><code>## R version 3.3.2 (2016-10-31)
+## Platform: x86_64-apple-darwin13.4.0 (64-bit)
+## Running under: macOS Sierra 10.12.1
+## 
+## locale:
+## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+## [1] purrr_0.2.2.9000 readr_1.0.0      tibble_1.2       tidyverse_1.0.0 
+## [5] knitr_1.15       htmlTable_1.7    ggplot2_2.2.0    tidyr_0.6.0     
+## [9] dplyr_0.5.0     
+## 
+## loaded via a namespace (and not attached):
+##  [1] Rcpp_0.12.7         magrittr_1.5        munsell_0.4.3      
+##  [4] colorspace_1.3-0    R6_2.2.0            highr_0.6          
+##  [7] stringr_1.1.0       plyr_1.8.4          tools_3.3.2        
+## [10] grid_3.3.2          gtable_0.2.0        DBI_0.5-1          
+## [13] htmltools_0.3.5     yaml_2.1.13         lazyeval_0.2.0.9000
+## [16] assertthat_0.1      digest_0.6.10       rprojroot_1.1      
+## [19] rsconnect_0.5       evaluate_0.10       rmarkdown_1.1.9016 
+## [22] labeling_0.3        stringi_1.1.2       scales_0.4.1       
+## [25] backports_1.0.4
+</code></pre>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/overfitting_simulation/" data-toggle="tooltip" data-placement="top" title="Some thoughts (and simulation) on overfitting">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/crashkurs_barplots/" data-toggle="tooltip" data-placement="top" title="Crashkurs zur Erstellung von Barplots für Umfrage-Daten">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/improved_bar_stacking_ggplot2_220\/';
+    var disqus_title = 'New bar stacking with ggplot 2.2.0';
+    var disqus_url = '\/..\/post\/improved_bar_stacking_ggplot2_220\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

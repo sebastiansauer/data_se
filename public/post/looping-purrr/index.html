@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Looping through dataframe columns using purrr::map()</title>
+  <meta property="og:title" content="Looping through dataframe columns using purrr::map()" />
+  <meta name="twitter:title" content="Looping through dataframe columns using purrr::map()" />
+  <meta name="description" content="Let&rsquo;s get purrr. Recently, I ran across this issue: A data frame with many columns; I wanted to select all numeric columns and submit them to a t-test with some grouping variables.
+As this is a quite common task, and the purrr-approach (package purrr by @HadleyWickham) is quite elegant, I present the approach in this post.
+Let&rsquo;s load the data, the Affairs data set, and some packages:
+data(Affairs, package = &quot;AER&quot;) library(purrr) # functional programming library(dplyr) # dataframe wrangling library(ggplot2) # plotting library(tidyr) # reshaping df  Don&rsquo;t forget that the four packages need to be installed in the first place.">
+  <meta property="og:description" content="Let&rsquo;s get purrr. Recently, I ran across this issue: A data frame with many columns; I wanted to select all numeric columns and submit them to a t-test with some grouping variables.
+As this is a quite common task, and the purrr-approach (package purrr by @HadleyWickham) is quite elegant, I present the approach in this post.
+Let&rsquo;s load the data, the Affairs data set, and some packages:
+data(Affairs, package = &quot;AER&quot;) library(purrr) # functional programming library(dplyr) # dataframe wrangling library(ggplot2) # plotting library(tidyr) # reshaping df  Don&rsquo;t forget that the four packages need to be installed in the first place.">
+  <meta name="twitter:description" content="Let&rsquo;s get purrr. Recently, I ran across this issue: A data frame with many columns; I wanted to select all numeric columns and submit them to a t-test with some grouping variables.
+As this is a …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/looping-purrr/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/looping-purrr/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>Looping through dataframe columns using purrr::map()</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on August 16, 2016
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        <p>Let&rsquo;s get purrr. Recently, I ran across this issue: A data frame with many columns; I wanted to select all numeric columns and submit them to a t-test with some grouping variables.</p>
+
+<p>As this is a quite common task, and the purrr-approach (package <a href="https://github.com/hadley/purrr">purrr</a> by @HadleyWickham) is quite elegant, I present the approach in this post.</p>
+
+<p>Let&rsquo;s load the data, the Affairs data set, and some packages:</p>
+
+<pre><code class="language-r">data(Affairs, package = &quot;AER&quot;)
+library(purrr)  # functional programming
+library(dplyr)  # dataframe wrangling
+library(ggplot2)  # plotting
+library(tidyr)  # reshaping df
+</code></pre>
+
+<p>Don&rsquo;t forget that the four packages need to be installed in the first place.</p>
+
+<p>So, now let&rsquo;s select all numeric variables from the data set. <a href="https://github.com/hadley/dplyr">dplyr</a> and <code>purrr</code> provide functions for that purpose, very convenient:</p>
+
+<pre><code class="language-r">Affairs %&gt;% 
+select_if(is.numeric) %&gt;% head
+</code></pre>
+
+<pre><code>##    affairs age yearsmarried religiousness education occupation rating
+## 4        0  37        10.00             3        18          7      4
+## 5        0  27         4.00             4        14          6      4
+## 11       0  32        15.00             1        12          1      4
+## 16       0  57        15.00             5        18          6      5
+## 23       0  22         0.75             2        17          6      3
+## 29       0  32         1.50             2        17          5      5
+</code></pre>
+
+<p>In the next step, we &ldquo;map&rdquo; each of these columns to a function, here the t-test.</p>
+
+<pre><code class="language-r">Affairs %&gt;% 
+  select_if(is.numeric) %&gt;%
+  map(~t.test(. ~ Affairs$gender)$p.value)
+</code></pre>
+
+<pre><code>## $affairs
+## [1] 0.7739606
+## 
+## $age
+## [1] 2.848452e-06
+## 
+## $yearsmarried
+## [1] 0.458246
+## 
+## $religiousness
+## [1] 0.8513998
+## 
+## $education
+## [1] 9.772643e-24
+## 
+## $occupation
+## [1] 8.887471e-35
+## 
+## $rating
+## [1] 0.8533625
+</code></pre>
+
+<p>the <code>map</code> function may look obscure if you have not seen it before. As said, the map function maps each column to the function you mention. The <code>~t.test()</code> bit means that you define an anonymous function, just as you would for normal <code>apply</code> calls, for example. So equivalently, one could write:</p>
+
+<pre><code class="language-r">Affairs %&gt;% 
+  select_if(is.numeric) %&gt;%
+  #map(~t.test(. ~ Affairs$gender)$p.value) %&gt;% 
+  map(function(x) t.test(x ~ Affairs$gender)$p.value)
+</code></pre>
+
+<pre><code>## $affairs
+## [1] 0.7739606
+## 
+## $age
+## [1] 2.848452e-06
+## 
+## $yearsmarried
+## [1] 0.458246
+## 
+## $religiousness
+## [1] 0.8513998
+## 
+## $education
+## [1] 9.772643e-24
+## 
+## $occupation
+## [1] 8.887471e-35
+## 
+## $rating
+## [1] 0.8533625
+</code></pre>
+
+<p>The <code>~</code> is just a convenient short hand for the normal way of writing anonymous functions. And the dot <code>.</code> is then again a shorthand for the column that is handed through the function (just as <code>x</code>in the normal <code>apply</code> call).</p>
+
+<p>Well, that&rsquo;s basically it! The <code>$p.value</code> bit just extracts the p-value statistic out of the t-test object.</p>
+
+<p>The more familiar, <code>lapply</code> approach would be something like:</p>
+
+<pre><code class="language-r">lapply(Affairs[c(&quot;affairs&quot;, &quot;age&quot;, &quot;yearsmarried&quot;)], function(x) t.test(x ~ Affairs$gender))
+</code></pre>
+
+<pre><code>## $affairs
+## 
+## 	Welch Two Sample t-test
+## 
+## data:  x by Affairs$gender
+## t = -0.28733, df = 594.01, p-value = 0.774
+## alternative hypothesis: true difference in means is not equal to 0
+## 95 percent confidence interval:
+##  -0.6068861  0.4519744
+## sample estimates:
+## mean in group female   mean in group male 
+##             1.419048             1.496503 
+## 
+## 
+## $age
+## 
+## 	Welch Two Sample t-test
+## 
+## data:  x by Affairs$gender
+## t = -4.7285, df = 575.26, p-value = 2.848e-06
+## alternative hypothesis: true difference in means is not equal to 0
+## 95 percent confidence interval:
+##  -5.014417 -2.071219
+## sample estimates:
+## mean in group female   mean in group male 
+##             30.80159             34.34441 
+## 
+## 
+## $yearsmarried
+## 
+## 	Welch Two Sample t-test
+## 
+## data:  x by Affairs$gender
+## t = -0.74222, df = 595.53, p-value = 0.4582
+## alternative hypothesis: true difference in means is not equal to 0
+## 95 percent confidence interval:
+##  -1.2306829  0.5556058
+## sample estimates:
+## mean in group female   mean in group male 
+##             8.017070             8.354608
+</code></pre>
+
+<p>Now, finally, let&rsquo;s plot the result for easier comprehension. Some minor wrangling of the data is necessary:</p>
+
+<pre><code class="language-r">Affairs %&gt;% 
+  select_if(is.numeric) %&gt;%
+  #na.omit() %&gt;% 
+  map(~t.test(. ~ Affairs$gender)$p.value) %&gt;% 
+  as.data.frame %&gt;% 
+  gather %&gt;% 
+  mutate(signif = ifelse(value &lt; .05, &quot;significant&quot;, &quot;ns&quot;)) %&gt;% 
+  ggplot(aes(x = reorder(key, value), y = value)) + 
+  geom_point(aes(color = signif)) + 
+  coord_flip() +
+  ylab(&quot;p value&quot;)
+</code></pre>
+
+<p><img src="{{ site.url }}/images/purrr_1.png" alt="output" /></p>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/correlation-intuition/" data-toggle="tooltip" data-placement="top" title="Intuition on correlation">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/intro_measurement/" data-toggle="tooltip" data-placement="top" title="Introduction to the measurement theory, and conjoint measurement theory">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/looping-purrr\/';
+    var disqus_title = 'Looping through dataframe columns using purrr::map()';
+    var disqus_url = '\/..\/post\/looping-purrr\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

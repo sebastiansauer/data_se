@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Multiple t-Tests with dplyr</title>
+  <meta property="og:title" content="Multiple t-Tests with dplyr" />
+  <meta name="twitter:title" content="Multiple t-Tests with dplyr" />
+  <meta name="description" content="t-Test on multiple columns Suppose you have a data set where you want to perform a t-Test on multiple columns with some grouping variable. As an example, say you a data frame where each column depicts the score on some test (1st, 2nd, 3rd assignment&hellip;). In each row is a different student. So you glance at the grading list (OMG!) of a teacher!
+How to do do that in R?">
+  <meta property="og:description" content="t-Test on multiple columns Suppose you have a data set where you want to perform a t-Test on multiple columns with some grouping variable. As an example, say you a data frame where each column depicts the score on some test (1st, 2nd, 3rd assignment&hellip;). In each row is a different student. So you glance at the grading list (OMG!) of a teacher!
+How to do do that in R?">
+  <meta name="twitter:description" content="t-Test on multiple columns Suppose you have a data set where you want to perform a t-Test on multiple columns with some grouping variable. As an example, say you a data frame where each column depicts …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/multiple-t-tests-with-dplyr/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/multiple-t-tests-with-dplyr/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>Multiple t-Tests with dplyr</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on August 18, 2016
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<h2 id="t-test-on-multiple-columns">t-Test on multiple columns</h2>
+
+<p>Suppose you have a data set where you want to perform a t-Test on multiple columns with some grouping variable. As an example, say you a data frame where each column depicts the score on some test (1st, 2nd, 3rd assignment&hellip;). In each row is a different student. So you glance at the grading list (OMG!) of a teacher!</p>
+
+<p>How to do do that in R? Probably, the most &ldquo;natural&rdquo; solution would be some <code>lapply()</code> call.</p>
+
+<p>But I like <code>dplyr</code> (see <a href="https://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html">intro here</a>); so, is there some nice way to perform that with <code>dplyr</code>? The short answer is: no. <code>dplyr</code> basically wants to deliver back a data frame, and the t-test does not output a single value, so you cannot use the t-test (right away) for <code>dplyr</code>&rsquo;s <code>summarise</code>. One way out is using list-columns&hellip; Let&rsquo;s see.</p>
+
+<p>Load some <code>dplyr</code>, <code>tidyr</code> and some data:</p>
+
+<pre><code class="language-r">library(dplyr)
+library(tidyr)
+data(tips, package = &quot;reshape2&quot;)
+glimpse(tips)
+</code></pre>
+
+<pre><code>## Observations: 244
+## Variables: 7
+## $ total_bill &lt;dbl&gt; 16.99, 10.34, 21.01, 23.68, 24.59, 25.29, 8.77, 26....
+## $ tip        &lt;dbl&gt; 1.01, 1.66, 3.50, 3.31, 3.61, 4.71, 2.00, 3.12, 1.9...
+## $ sex        &lt;fctr&gt; Female, Male, Male, Male, Female, Male, Male, Male...
+## $ smoker     &lt;fctr&gt; No, No, No, No, No, No, No, No, No, No, No, No, No...
+## $ day        &lt;fctr&gt; Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, ...
+## $ time       &lt;fctr&gt; Dinner, Dinner, Dinner, Dinner, Dinner, Dinner, Di...
+## $ size       &lt;int&gt; 2, 3, 3, 2, 4, 4, 2, 4, 2, 2, 2, 4, 2, 4, 2, 2, 3, ...
+</code></pre>
+
+<p>Well, it looks crude, but that&rsquo;s a way:</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  select(tip, total_bill, sex) %&gt;% 
+  gather(key = variable, value = value, -sex) %&gt;% 
+  group_by(sex, variable) %&gt;% 
+  summarise(value = list(value)) %&gt;% 
+  spread(sex, value) %&gt;% 
+  group_by(variable) %&gt;% 
+  mutate(p_value = t.test(unlist(Female), unlist(Male))$p.value,
+         t_value = t.test(unlist(Female), unlist(Male))$statistic)
+</code></pre>
+
+<pre><code>## Source: local data frame [2 x 5]
+## Groups: variable [2]
+## 
+##     variable     Female        Male    p_value   t_value
+##        &lt;chr&gt;     &lt;list&gt;      &lt;list&gt;      &lt;dbl&gt;     &lt;dbl&gt;
+## 1        tip &lt;dbl [87]&gt; &lt;dbl [157]&gt; 0.13780684 -1.489536
+## 2 total_bill &lt;dbl [87]&gt; &lt;dbl [157]&gt; 0.01857339 -2.373398
+</code></pre>
+
+<p>Let&rsquo;s go through this code step by step. First, this bit</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  select(tip, total_bill, sex) %&gt;% head
+</code></pre>
+
+<pre><code>##    tip total_bill    sex
+## 1 1.01      16.99 Female
+## 2 1.66      10.34   Male
+## 3 3.50      21.01   Male
+## 4 3.31      23.68   Male
+## 5 3.61      24.59 Female
+## 6 4.71      25.29   Male
+</code></pre>
+
+<p>is used to select the columns we want to perform the t-Test on (here: <code>tip</code> and <code>total_bill</code>) plus the grouping variable (<code>sex</code>).</p>
+
+<p>Then by the next bit</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  select(tip, total_bill, sex) %&gt;% 
+  gather(key = variable, value = value, -sex) %&gt;% head
+</code></pre>
+
+<pre><code>##      sex variable value
+## 1 Female      tip  1.01
+## 2   Male      tip  1.66
+## 3   Male      tip  3.50
+## 4   Male      tip  3.31
+## 5 Female      tip  3.61
+## 6   Male      tip  4.71
+</code></pre>
+
+<p>we &ldquo;melt&rdquo; the data frame down, so that all numeric variables are put in one column (underneath each other).</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  select(tip, total_bill, sex) %&gt;% 
+  gather(key = variable, value = value, -sex) %&gt;% 
+  group_by(sex, variable) %&gt;% 
+  summarise(value = list(value)) 
+</code></pre>
+
+<pre><code>## Source: local data frame [4 x 3]
+## Groups: sex [?]
+## 
+##      sex   variable       value
+##   &lt;fctr&gt;      &lt;chr&gt;      &lt;list&gt;
+## 1 Female        tip  &lt;dbl [87]&gt;
+## 2 Female total_bill  &lt;dbl [87]&gt;
+## 3   Male        tip &lt;dbl [157]&gt;
+## 4   Male total_bill &lt;dbl [157]&gt;
+</code></pre>
+
+<p>Now it get&rsquo;s interesting. We put all the <code>values</code> per group (e.g., male-tip or female-total_bill&hellip;) in one cell. Yes, that&rsquo;s right. In each cell of column <code>value</code> there is now a list (a bunch) of values. That&rsquo;s what is called a &ldquo;list-column&rdquo;. We will now use this list column for the t-test.</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  select(tip, total_bill, sex) %&gt;% 
+  gather(key = variable, value = value, -sex) %&gt;% 
+  group_by(sex, variable) %&gt;% 
+  summarise(value = list(value)) %&gt;% 
+  spread(sex, value) %&gt;% 
+  group_by(variable) 
+</code></pre>
+
+<pre><code>## Source: local data frame [2 x 3]
+## Groups: variable [2]
+## 
+##     variable     Female        Male
+## *      &lt;chr&gt;     &lt;list&gt;      &lt;list&gt;
+## 1        tip &lt;dbl [87]&gt; &lt;dbl [157]&gt;
+## 2 total_bill &lt;dbl [87]&gt; &lt;dbl [157]&gt;
+</code></pre>
+
+<p>But before we do the t-Test, we &ldquo;spread&rdquo; the data frame. That is, we convert from &ldquo;long&rdquo; to &ldquo;wide&rdquo; format. Next, we group for <code>variable</code>. That means in practice, that the following t-test will be applied to each member of this group (ie., each variable, here <code>tip</code> and <code>total_bill</code>).</p>
+
+<p>And now the t-Test:</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  select(tip, total_bill, sex) %&gt;% 
+  gather(key = variable, value = value, -sex) %&gt;% 
+  group_by(sex, variable) %&gt;% 
+  summarise(value = list(value)) %&gt;% 
+  spread(sex, value) %&gt;% 
+  group_by(variable) %&gt;% 
+  mutate(p_value = t.test(unlist(Female), unlist(Male))$p.value,
+         t_value = t.test(unlist(Female), unlist(Male))$statistic)
+</code></pre>
+
+<pre><code>## Source: local data frame [2 x 5]
+## Groups: variable [2]
+## 
+##     variable     Female        Male    p_value   t_value
+##        &lt;chr&gt;     &lt;list&gt;      &lt;list&gt;      &lt;dbl&gt;     &lt;dbl&gt;
+## 1        tip &lt;dbl [87]&gt; &lt;dbl [157]&gt; 0.13780684 -1.489536
+## 2 total_bill &lt;dbl [87]&gt; &lt;dbl [157]&gt; 0.01857339 -2.373398
+</code></pre>
+
+<p>That&rsquo;s it.</p>
+
+<h2 id="you-can-have-it-very-simple">You can have it very simple</h2>
+
+<p>That was quite cumbersome for something which could have been achieved very simple with</p>
+
+<pre><code class="language-r">t.test(tip ~ sex, data = tips)$p.value
+</code></pre>
+
+<pre><code>## [1] 0.1378068
+</code></pre>
+
+<pre><code class="language-r">t.test(total_bill ~ sex, data = tips)$p.value
+</code></pre>
+
+<pre><code>## [1] 0.01857339
+</code></pre>
+
+<p>So our way (OK, my way) does not seem advisable. However, it may has been instructive for the &ldquo;thinking&rdquo; of dplyr.</p>
+
+<p>By the way, another simpler approach with <code>dplyr</code> could have been:</p>
+
+<pre><code class="language-r">tips %&gt;%
+    summarise_each(funs(t.test(.[sex == &quot;Female&quot;], .[sex == &quot;Male&quot;])$p.value), vars = total_bill:tip)
+</code></pre>
+
+<pre><code>##        vars1     vars2
+## 1 0.01857339 0.1378068
+</code></pre>
+
+<h2 id="acknowledgment">Acknowledgment</h2>
+
+<p>This post was inspired by <a href="http://stackoverflow.com/questions/32477863/r-run-t-test-on-previous-years-by-group-using-dplyr">this post</a> on Stack Overflow, and also by <a href="http://stackoverflow.com/questions/26244321/dplyr-summarise-multiple-columns-using-t-test">this one</a>.</p>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/intro_measurement/" data-toggle="tooltip" data-placement="top" title="Introduction to the measurement theory, and conjoint measurement theory">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/data_status_dating/" data-toggle="tooltip" data-placement="top" title="The effect of a status symbol on success in online dating: an experimental study (data paper)">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/multiple-t-tests-with-dplyr\/';
+    var disqus_title = 'Multiple t-Tests with dplyr';
+    var disqus_url = '\/..\/post\/multiple-t-tests-with-dplyr\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

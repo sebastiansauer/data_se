@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Visualizing Interaction Effects with ggplot2</title>
+  <meta property="og:title" content="Visualizing Interaction Effects with ggplot2" />
+  <meta name="twitter:title" content="Visualizing Interaction Effects with ggplot2" />
+  <meta name="description" content="Moderator effects or interaction effect are a frequent topic of scientific endeavor. Put bluntly, such effects respond to the question whether the input variable X (predictor or independent variable IV) has an effect on the output variable (dependent variable DV) Y: &ldquo;it depends&rdquo;. More precisely, it depends on a second variable, M (Moderator).
+More formally, a moderation effect can be summarized as follows:
+ If the effect of X on Y depends on M, a moderator effect takes place.">
+  <meta property="og:description" content="Moderator effects or interaction effect are a frequent topic of scientific endeavor. Put bluntly, such effects respond to the question whether the input variable X (predictor or independent variable IV) has an effect on the output variable (dependent variable DV) Y: &ldquo;it depends&rdquo;. More precisely, it depends on a second variable, M (Moderator).
+More formally, a moderation effect can be summarized as follows:
+ If the effect of X on Y depends on M, a moderator effect takes place.">
+  <meta name="twitter:description" content="Moderator effects or interaction effect are a frequent topic of scientific endeavor. Put bluntly, such effects respond to the question whether the input variable X (predictor or independent variable …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/vis_interaction_effects/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/vis_interaction_effects/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>Visualizing Interaction Effects with ggplot2</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on January 17, 2017
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<p>Moderator effects or interaction effect are a frequent topic of scientific endeavor. Put bluntly, such effects respond to the question whether the input variable X (predictor or independent variable IV) has an effect on the output variable (dependent variable DV) Y: &ldquo;it depends&rdquo;. More precisely, it depends on a second variable, M (Moderator).</p>
+
+<p>More formally, a moderation effect can be summarized as follows:</p>
+
+<blockquote>
+<p>If the effect of X on Y depends on M, a moderator effect takes place.</p>
+</blockquote>
+
+<p>There exist some typical procedures to detect such effects. In this post, however we are concerned only with the visualization of moderation.</p>
+
+<p>To do so, we will distinguish three situations: Where X and M are nominal, where X and M are numeric, and situations where one of them is nominal and the other numeric.</p>
+
+<p>We will look at some visualization methods based on <code>ggplot2</code> (don&rsquo;t forget to install upfront if not yet installed). We will use the dataset <code>tips</code> from <code>reshape2</code>. <code>dplyr</code> will be used for data mingling.</p>
+
+<pre><code class="language-r">library(ggplot2) 
+library(dplyr) 
+tips &lt;- read.csv(&quot;https://sebastiansauer.github.io/data/tips.csv&quot;)
+</code></pre>
+
+<h1 id="iv-numeric-m-nominal">IV: numeric, M: nominal</h1>
+
+<p>Let&rsquo;s assume we take <code>total_bill</code> as predictor (X), and <code>sex</code> as moderator; <code>tip</code> is the criterion (outcome).</p>
+
+<pre><code class="language-r">qplot(x = total_bill, y = tip, facets = ~sex, data = tips) +
+  geom_smooth(method = &quot;lm&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-2-1.png" alt="plot of chunk unnamed-chunk-2" /></p>
+
+<p>The data set is split in two facets; a regression line indicates the strength of association in each level of the moderator.</p>
+
+<p>However, as the two lines are not aligned, they are of limited use for visual comparison. Better place the lines in one, single diagram.</p>
+
+<pre><code class="language-r">qplot(x = total_bill, y = tip, data = tips, color = sex) +
+  geom_smooth(method = &quot;lm&quot;) 
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3" /></p>
+
+<p>Now we see clearly that there are little differences between the groups, if at all.</p>
+
+<p>Some tweaks:</p>
+
+<pre><code class="language-r">ggplot(tips) +
+  aes(x = total_bill, y = tip, color = sex) +
+  geom_point(color = &quot;grey&quot;) +
+  geom_smooth(method = &quot;lm&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
+
+<p>Or:</p>
+
+<pre><code class="language-r">tips_f &lt;- filter(tips, sex == &quot;Female&quot;)
+tips_m &lt;- filter(tips, sex == &quot;Male&quot;)
+
+
+ggplot(tips) +
+  aes(x = total_bill, y = tip, color = sex) +
+  geom_point(color = &quot;grey&quot;) +
+  geom_smooth(method = &quot;lm&quot;, data = tips_f) +
+   geom_smooth(method = &quot;lm&quot;, data = tips_m)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-5-1.png" alt="plot of chunk unnamed-chunk-5" /></p>
+
+<h1 id="iv-nominal-m-nominal">IV: nominal, M: nominal</h1>
+
+<pre><code class="language-r">ggplot(tips) +
+  aes(x = sex, y = tip) +
+  geom_boxplot() +
+  facet_wrap(~smoker)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-6-1.png" alt="plot of chunk unnamed-chunk-6" /></p>
+
+<p>The moderator effect can be put in this question here &ldquo;Is the difference between the sexes of equal size in non-smokers the same as in smokers&rdquo;? It appears that there is little difference in the differences, hence little indication for a moderator effect.</p>
+
+<p>We can also do the statistical summary ourselves:</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  group_by(sex, smoker) %&gt;% 
+  summarise(tip_groups = mean(tip)) -&gt; tips2
+
+
+tips2 %&gt;% 
+  ggplot() +
+  aes(x = sex, y = tip_groups, color = smoker) +
+  geom_line(aes(group = smoker)) +
+  geom_point()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7" /></p>
+
+<p>This plot argues for some interaction of the two predictors, as the lines are not parallel (in fact they are crossed here).</p>
+
+<p>Similarly, in <code>ggplot2</code>:</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  ggplot() +
+  aes(x = sex, color = smoker, group = smoker, y = tip) +
+  stat_summary(fun.y = mean, geom = &quot;point&quot;) +
+  stat_summary(fun.y = mean, geom = &quot;line&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8" /></p>
+
+<h1 id="iv-metric-m-metric">IV: metric, M: metric</h1>
+
+<p>As the effect of the metric moderator is not straight-forward to plot, it is convenient to discretize the metric moderator. For example, in two groups (median split) or in three (1 sd below the mean, mean, 1 sd above the mean, or in terciles&hellip;). Then we proceed as above.</p>
+
+<pre><code class="language-r">tips$tip_2tile &lt;- ntile(tips$tip, 2)
+head(tips$tip_2tile)
+</code></pre>
+
+<pre><code>## [1] 1 1 2 2 2 2
+</code></pre>
+
+<pre><code class="language-r">tips$tip_3tile &lt;- ntile(tips$tip, 3)
+head(tips$tip_3tile)
+</code></pre>
+
+<pre><code>## [1] 1 1 3 3 3 3
+</code></pre>
+
+<pre><code class="language-r">x &lt;- tips$tip
+
+tips$tip_3group &lt;-
+  case_when(x &gt; mean(x)+sd(x) ~ &quot;high&quot;,
+            x &lt; mean(x)+sd(x) &amp; x &gt; mean(x)-sd(x) ~ &quot;average&quot;,
+            x &lt; mean(x)-sd(x) ~ &quot;low&quot;)
+
+count(tips, tip_3group)
+</code></pre>
+
+<pre><code>## # A tibble: 3 × 2
+##   tip_3group     n
+##        &lt;chr&gt; &lt;int&gt;
+## 1    average   182
+## 2       high    32
+## 3        low    30
+</code></pre>
+
+<pre><code class="language-r">tips %&gt;% 
+  ggplot() +
+  aes(x = total_bill, y = size, group = tip_3group, color = tip_3group) +
+  geom_point(color = &quot;grey&quot;, alpha = .7) +
+    geom_smooth(method = &quot;lm&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9" /></p>
+
+<h1 id="debrief">Debrief</h1>
+
+<p>In sum, <code>ggplot2</code> provides some handy functions for visualizing moderator effects. In addition to traditional regression analyses, such plots can help to better grasp what actually is going on.</p>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/strange_csvs/" data-toggle="tooltip" data-placement="top" title="How to import a strange CSV">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/kongresstermine_2017/" data-toggle="tooltip" data-placement="top" title="Kongresse 2017 - Wirtschaftspsychologie und verwandte Gebiete">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/vis_interaction_effects\/';
+    var disqus_title = 'Visualizing Interaction Effects with ggplot2';
+    var disqus_url = '\/..\/post\/vis_interaction_effects\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+

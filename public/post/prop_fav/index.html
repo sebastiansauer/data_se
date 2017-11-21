@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+
+  <title>Programming with dplyr: Part 02, writing a function</title>
+  <meta property="og:title" content="Programming with dplyr: Part 02, writing a function" />
+  <meta name="twitter:title" content="Programming with dplyr: Part 02, writing a function" />
+  <meta name="description" content="Recently, since dplyr &lt;= 0.6.0 a new way of dealing with NSE was introduced, called tidyeval. As with every topic that begs our attention, the question &ldquo;why bother&rdquo; is in place. Theone answer is &ldquo;you&rsquo;ll need this stuff if you want to lock dplyr verbs inside a function&rdquo;. Once you like dplyr and friends, a natural second step is to use the ideas not only for interactive use, but for more &ldquo;programming&rdquo; type, ie.">
+  <meta property="og:description" content="Recently, since dplyr &lt;= 0.6.0 a new way of dealing with NSE was introduced, called tidyeval. As with every topic that begs our attention, the question &ldquo;why bother&rdquo; is in place. Theone answer is &ldquo;you&rsquo;ll need this stuff if you want to lock dplyr verbs inside a function&rdquo;. Once you like dplyr and friends, a natural second step is to use the ideas not only for interactive use, but for more &ldquo;programming&rdquo; type, ie.">
+  <meta name="twitter:description" content="Recently, since dplyr &lt;= 0.6.0 a new way of dealing with NSE was introduced, called tidyeval. As with every topic that begs our attention, the question &ldquo;why bother&rdquo; is in place. Theone …">
+  <meta name="author" content="Sebastiuan Sauer"/>
+  <link href='/img/favicon.ico' rel='icon' type='image/x-icon'/>
+  <meta property="og:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:image" content="/img/logo-data-se-small.png" />
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:site" content="@sauer_sebasitan" />
+  <meta name="twitter:creator" content="@sauer_sebasitan" />
+  <meta property="og:url" content="/post/prop_fav/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Data Se" />
+
+  <meta name="generator" content="Hugo 0.21" />
+  <link rel="canonical" href="/post/prop_fav/" />
+  <link rel="alternate" href="" type="application/rss+xml" title="Data Se">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.css" integrity="sha384-wITovz90syo1dJWVh32uuETPVEtGigN07tkttEqPv+uR2SE/mbQcG7ATL28aI9H0" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" />
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+  <link rel="stylesheet" href="/css/main.css" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lora:400,700,400italic,700italic" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" />
+  <link rel="stylesheet" href="/css/highlighting.css" />
+  <link rel="stylesheet" href="/css/pygment_highlights.css" />
+  <link rel="stylesheet" href="/css/highlight.min.css" />
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.css" integrity="sha256-sCl5PUOGMLfFYctzDW3MtRib0ctyUvI9Qsmq2wXOeBY=" crossorigin="anonymous" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/default-skin/default-skin.min.css" integrity="sha256-BFeI1V+Vh1Rk37wswuOYn5lsTcaU96hGaI7OUVCLjPc=" crossorigin="anonymous" />
+
+
+
+<div class="pswp" tabindex="-1" role="dialog" aria-hidden="true">
+
+<div class="pswp__bg"></div>
+
+<div class="pswp__scroll-wrap">
+    
+    <div class="pswp__container">
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+      <div class="pswp__item"></div>
+    </div>
+    
+    <div class="pswp__ui pswp__ui--hidden">
+    <div class="pswp__top-bar">
+      
+      <div class="pswp__counter"></div>
+      <button class="pswp__button pswp__button--close" title="Close (Esc)"></button>
+      <button class="pswp__button pswp__button--share" title="Share"></button>
+      <button class="pswp__button pswp__button--fs" title="Toggle fullscreen"></button>
+      <button class="pswp__button pswp__button--zoom" title="Zoom in/out"></button>
+      
+      
+      <div class="pswp__preloader">
+        <div class="pswp__preloader__icn">
+          <div class="pswp__preloader__cut">
+            <div class="pswp__preloader__donut"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="pswp__share-modal pswp__share-modal--hidden pswp__single-tap">
+      <div class="pswp__share-tooltip"></div>
+    </div>
+    <button class="pswp__button pswp__button--arrow--left" title="Previous (arrow left)">
+    </button>
+    <button class="pswp__button pswp__button--arrow--right" title="Next (arrow right)">
+    </button>
+    <div class="pswp__caption">
+      <div class="pswp__caption__center"></div>
+    </div>
+    </div>
+    </div>
+</div>
+
+<script>
+window.ga=window.ga||function(){(ga.q=ga.q||[]).push(arguments)};ga.l=+new Date;
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+<script async src='//www.google-analytics.com/analytics.js'></script>
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-default navbar-fixed-top navbar-custom">
+  <div class="container-fluid">
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#main-navbar">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="/">Data Se</a>
+    </div>
+
+    <div class="collapse navbar-collapse" id="main-navbar">
+      <ul class="nav navbar-nav navbar-right">
+        
+          
+            <li>
+              <a title="Blog" href="/">Blog</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="Tags" href="/tags">Tags</a>
+            </li>
+          
+        
+          
+            <li>
+              <a title="About" href="/page/about/">About</a>
+            </li>
+          
+        
+
+        
+
+        
+      </ul>
+    </div>
+
+    <div class="avatar-container">
+      <div class="avatar-img-border">
+        
+          <a title="Data Se" href="/">
+            <img class="avatar-img" src="/img/logo-data-se-small.png" alt="Data Se" />
+          </a>
+        
+      </div>
+    </div>
+
+  </div>
+</nav>
+
+
+
+
+    
+  
+  
+  
+
+
+
+
+  
+
+  <header class="header-section ">
+    
+    <div class="intro-header no-img">
+      
+      <div class="container">
+        <div class="row">
+          <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+            <div class="post-heading">
+              <h1>Programming with dplyr: Part 02, writing a function</h1>
+                
+                
+                  <span class="post-meta">
+  Posted on July 6, 2017
+  
+</span>
+
+
+                
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+
+    
+<div class="container" role="main">
+  <div class="row">
+    <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+      <article role="main" class="blog-post">
+        
+
+<p>Recently, since <code>dplyr</code> &lt;= 0.6.0 a new way of dealing with <a href="http://adv-r.had.co.nz/Computing-on-the-language.html">NSE</a> was introduced, called <a href="https://cran.r-project.org/web/packages/rlang/vignettes/tidy-evaluation.html">tidyeval</a>. As with every topic that begs our attention, the question &ldquo;why bother&rdquo; is in place. <del>The</del>one answer is &ldquo;you&rsquo;ll need this stuff if you want to lock dplyr verbs inside a function&rdquo;. Once you like <code>dplyr</code> and friends, a natural second step is to use the ideas not only for interactive use, but for more &ldquo;programming&rdquo; type, ie., writing functions.</p>
+
+<p>The topic of this post is to explain some of the &lsquo;tidyeval&rsquo; thinking. That is, let&rsquo;s write a function using tidyeval thinking.</p>
+
+<h2 id="build-a-function-using-tidyeval-ideas">Build a function using tidyeval ideas</h2>
+
+<p>As an example, assume we want to have a function that takes two numeric vectors (ie., two groups), performs all pairwise comparisons (&gt;), and returns the proportion &lsquo;favorable&rsquo; for the first group. Say, out of 20 comparisons, 16 showed that group1 &gt; group2. Hence, the &lsquo;proportion of favorable comparisons&rsquo; would be <sup>16</sup>&frasl;<sub>20</sub> or .8. This measure can be seen as an effect size for the Mann Whitney U Test, Wilcoxon Test or even some type of rank biserial correlation. See the nice paper on the &ldquo;Simple Difference Formula&rdquo; of <a href="https://www.google.de/url?sa=t&amp;rct=j&amp;q=&amp;esrc=s&amp;source=web&amp;cd=1&amp;ved=0ahUKEwjbn4LN7vTUAhXMblAKHUP8Ca8QFggnMAA&amp;url=http%3A%2F%2Fjournals.sagepub.com%2Fdoi%2Fpdf%2F10.2466%2F11.IT.3.1&amp;usg=AFQjCNG4Pm-o5KhfYitW2mGF2PUa8M84KA&amp;cad=rja">Kerby 2014</a> for details and background.</p>
+
+<p>First, load tidyverse.</p>
+
+<pre><code class="language-r">library(tidyverse)
+</code></pre>
+
+<p>Let&rsquo;s take the mtcars dataset, I know it&rsquo;s boring, but instructive, I hope.</p>
+
+<p>So, here comes the function <code>prop_fav</code>:</p>
+
+<pre><code class="language-r">prop_fav &lt;- function(df, value, group, g1, g2){
+  value &lt;- enquo(value)
+  group &lt;- enquo(group)
+
+
+  df %&gt;%
+   filter((!!group) == g1) %&gt;%
+   select(!!value) %&gt;%
+   pull -&gt; values_g1
+
+  df %&gt;%
+    filter((!!group) == g2) %&gt;%
+    select(!!value) %&gt;%
+    pull -&gt; values_g2
+
+  values_g1 &lt;- na.omit(values_g1)
+  values_g2 &lt;- na.omit(values_g2)
+
+  comp_grid &lt;- expand.grid(values_g1, values_g2)
+
+  fav_vec &lt;- comp_grid[[&quot;Var1&quot;]] &gt; comp_grid[[&quot;Var2&quot;]]
+
+  fav_sum &lt;- sum(fav_vec)
+
+  fav_prop &lt;- fav_sum / nrow(comp_grid)
+
+  return(fav_prop)
+
+}
+</code></pre>
+
+<h1 id="tidyeval-steps-explained">tidyeval steps explained</h1>
+
+<p>What did we do? Let&rsquo;s look at the steps in turn:</p>
+
+<pre><code class="language-r"># don't run these lines, only run function 'fav_prop'
+
+value &lt;- enquo(value)
+group &lt;- enquo(group)
+</code></pre>
+
+<p>With <code>enquo</code> we take the parameter of a function as <em>expression</em>. That means, we do not evaluate it, we just take the expression, leave it on hold, and use it later on.</p>
+
+<p>Then we extract the values of group 1 and group2 out of the data frame (assumed tidy). In tidy data frames, each variable has its own column. So we need to do some work to get the values extracted.</p>
+
+<blockquote>
+<p>Don&rsquo; t run the following lines, simply run the function &lsquo;fav_prop&rsquo;.</p>
+</blockquote>
+
+<pre><code class="language-r"># don't run these lines, only run function 'fav_prop'
+
+df %&gt;%
+   filter((!!group) == g1) %&gt;%
+   select(!!value) %&gt;%
+   pull -&gt; values_g1
+
+  df %&gt;%
+    filter((!!group) == g2) %&gt;%
+    select(!!value) %&gt;%
+    pull -&gt; values_g2
+</code></pre>
+
+<p>See the <code>!!</code>; they mean &ldquo;hey R, remember the expression I stored recently? Now take it, and &lsquo;unquote&rsquo; it, that is, just run it!&rdquo;. The double exclamation mark is just syntactic sugar for that phrase.</p>
+
+<p><code>pull</code>, also recently added to dplyr, pulls out a vector (column) out of a data frame.</p>
+
+<p>And in the last bit, we take the two vectors, span a Cartesian product and do a comparison of each element. More bluntly, take the first value of group 1 and compare it with value 1 of group 2. Decide which is greater. Go on comparing value 1 with the rest of values in group 2. And then go on with the rest of the values of group 1 in the same manner.</p>
+
+<p>Then we simple compute the proportion where a member of group 1 had a greater value than a member of group 2. The proportion resulting is a measure of the effect size for the difference in distribution of the two groups.</p>
+
+<pre><code class="language-r"># don't run these lines, only run function 'fav_prop'
+
+ comp_grid &lt;- expand.grid(values_g1, values_g2)
+
+  fav_vec &lt;- comp_grid[[&quot;Var1&quot;]] &gt; comp_grid[[&quot;Var2&quot;]]
+
+  fav_sum &lt;- sum(fav_vec)
+
+  fav_prop &lt;- fav_sum / nrow(comp_grid)
+</code></pre>
+
+<h2 id="convenience-sourcing">Convenience sourcing</h2>
+
+<p>For convenience, this function can be sourced like this:</p>
+
+<pre><code class="language-r">source(&quot;https://sebastiansauer.github.io/Rcode/prop_fav.R&quot;)
+</code></pre>
+
+<h2 id="example-time">Example time</h2>
+
+<p>Now, some examples. Comparing cars with 4 and 6 cylinders, how many of the 4 cylinder group has more horse power? Or, more precisely, &ldquo;Out of 100 comparisons of 4 and 6 cyl cars, what&rsquo;s the proportion of 4 cyl cars having more hp (than the 6 cyl group)?&rdquo;.</p>
+
+<pre><code class="language-r">prop_fav(df = mtcars, value = hp, group = cyl, g1 = 4, g2 = 6)
+</code></pre>
+
+<pre><code>## [1] 0.06493506
+</code></pre>
+
+<p>About 6%. Accordingly, in ~94% of the comparisons, a 6 cyl car had more horse power.</p>
+
+<pre><code class="language-r">prop_fav(df = mtcars, value = hp, group = cyl, g1 = 6, g2 = 4)
+</code></pre>
+
+<pre><code>## [1] 0.9350649
+</code></pre>
+
+<p>Let&rsquo;s look at extraversion, coming from this dataset:</p>
+
+<pre><code class="language-r"># devtools::install_github(&quot;sebastiansauer/prada&quot;)
+data(extra, package = &quot;prada&quot;)
+</code></pre>
+
+<p>Let&rsquo;s compare women and men to see how is more extrovert.</p>
+
+<pre><code class="language-r">prop_fav(df = extra, value = extra_mean, group = sex, g1 = &quot;Frau&quot;, g2 = &quot;Mann&quot;)
+</code></pre>
+
+<pre><code>## [1] 0.4867873
+</code></pre>
+
+<p>Women are about as extroverted as men.</p>
+
+<p>What about the number of Facebook friends?</p>
+
+<pre><code class="language-r">prop_fav(extra, n_facebook_friends, sex, g1 = &quot;Frau&quot;, g2 = &quot;Mann&quot;)
+</code></pre>
+
+<pre><code>## [1] NA
+</code></pre>
+
+<p>Men have slightly more Facebook friends (in this sample).</p>
+
+<h1 id="concluding-thoughts">Concluding thoughts</h1>
+
+<p>Note that this measure can be applied for non-metric, ie., ordinal variables. It is quite straight forward, that makes it easy to comprehend.</p>
+
+<p>Using tidyeval can give a headache at start, but it is worthwhile if you want to dig deeper, and write your own functions. However, there may be some similar alternatives such as <code>wrapr::let</code>, see <a href="http://www.win-vector.com/blog/2017/05/why-to-use-wraprlet/">here</a>.</p>
+
+<p>This was just a tiny little start. Hadley Wickham&rsquo;s book &lsquo;Advances R&rsquo; gives a much more thorough introduction.</p>
+
+      </article>
+
+      <ul class="pager blog-pager">
+        
+          <li class="previous">
+            <a href="/../post/effsize_utest/" data-toggle="tooltip" data-placement="top" title="Effect sizes for the Mann-Whitney U Test: an intuition">&larr; Previous Post</a>
+          </li>
+        
+        
+          <li class="next">
+            <a href="/../post/weather/" data-toggle="tooltip" data-placement="top" title="Precipitation - It never rains in Southern Nuremberg (?). Working with dates/times.">Next Post &rarr;</a>
+          </li>
+        
+      </ul>
+
+      
+        
+          <div class="disqus-comments">
+            <div id="disqus_thread"></div>
+<script type="text/javascript">
+    var disqus_shortname = 'https-sebastiansauer-github-io';
+    var disqus_identifier = '\/..\/post\/prop_fav\/';
+    var disqus_title = 'Programming with dplyr: Part 02, writing a function';
+    var disqus_url = '\/..\/post\/prop_fav\/';
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+          </div>
+        
+      
+
+    </div>
+  </div>
+</div>
+
+    <footer>
+  <div class="container">
+    <div class="row">
+      <div class="col-lg-8 col-lg-offset-2 col-md-10 col-md-offset-1">
+        <ul class="list-inline text-center footer-links">
+          
+              <li>
+                <a href="mailto:ssauer@posteo.de" title="Email me">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-envelope fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/sebastian_sauer" title="GitHub">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-github fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://twitter.com/sauer_sebasitan" title="Twitter">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-twitter fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://reddit.com/u/username" title="Reddit">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-reddit-alien fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://linkedin.com/in/https://www.linkedin.com/in/dr-sebastian-sauer-4791762/" title="LinkedIn">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-linkedin fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+              <li>
+                <a href="https://www.xing.com/profile/https://www.xing.com/profile/Sebastian_Sauer2" title="Xing">
+                  <span class="fa-stack fa-lg">
+                    <i class="fa fa-circle fa-stack-2x"></i>
+                    <i class="fa fa-xing fa-stack-1x fa-inverse"></i>
+                  </span>
+                </a>
+              </li>
+          
+          <li>
+            <a href="" title="RSS">
+              <span class="fa-stack fa-lg">
+                <i class="fa fa-circle fa-stack-2x"></i>
+                <i class="fa fa-rss fa-stack-1x fa-inverse"></i>
+              </span>
+            </a>
+          </li>
+          
+        </ul>
+        <p class="credits copyright text-muted">
+          
+            
+              <a href="yourwebsite.com">Sebastiuan Sauer</a>
+            
+          
+
+          &nbsp;&bull;&nbsp;
+          2017
+
+          
+            &nbsp;&bull;&nbsp;
+            <a href="/">Data Se</a>
+          
+        </p>
+        
+        <p class="credits theme-by text-muted">
+          <a href="http://gohugo.io">Hugo v0.21</a> powered &nbsp;&bull;&nbsp; Theme by <a href="http://deanattali.com/beautiful-jekyll/">Beautiful Jekyll</a> adapted to <a href="https://github.com/halogenica/beautifulhugo">Beautiful Hugo</a>
+          
+        </p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/katex.min.js" integrity="sha384-/y1Nn9+QQAipbNQWU65krzJralCnuOasHncUFXGkdwntGeSvQicrYkiUBwsgUqc1" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.7.1/contrib/auto-render.min.js" integrity="sha384-dq1/gEHSxPZQ7DdrM82ID4YVol9BYyU7GbWlIwnwyPzotpoc57wDw/guX8EaYGPx" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="/js/main.js"></script>
+<script src="/js/highlight.min.js"></script>
+<script> hljs.initHighlightingOnLoad(); </script><script> renderMathInElement(document.body); </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe.min.js" integrity="sha256-UplRCs9v4KXVJvVY+p+RSo5Q4ilAUXh7kpjyIP5odyc=" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/photoswipe/4.1.1/photoswipe-ui-default.min.js" integrity="sha256-PWHOlUzc96pMc8ThwRIXPn8yH4NOLu42RQ0b9SpnpFk=" crossorigin="anonymous"></script>
+<script src="/js/load-photoswipe.js"></script>
+
+
+
+  </body>
+</html>
+
