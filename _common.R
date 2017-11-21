@@ -1,3 +1,4 @@
+```{r knitr-setup, echo = FALSE}
 knitr::opts_chunk$set(
   comment = "#>",
   collapse = TRUE,
@@ -11,3 +12,4 @@ knitr::opts_chunk$set(
   fig.show = "hold",
   size = "tiny"
 )
+```
