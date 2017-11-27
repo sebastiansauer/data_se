@@ -1,0 +1,180 @@
+---
+title: Interactive diagrams in lieu of shiny?
+author: Sebastian Sauer
+date: '2017-11-27'
+slug: interactive-diagrams-in-lieu-of-shiny
+categories:
+  - rstats
+  - dataviz
+tags:
+  - rstats
+  - plotting
+  - interactive
+  - tidyverse
+---
+
+One frequent use of the Shiny server software is displaying interactive data diagrams. The pro of using
+Shiny is the great flexibility; much more than "just graphics" can be done. Basically Shiny provides a flexible
+GUI for your R program. *But* if you simply aiming at displaying or exploring some data interactively, a much
+simplor approach may do it for you; there are some nice libraries available in R for that. The aim of this post is to present some examples, and to that's easy to use them in R.
+
+The point is that the computations necessary for interactivity are done by a JavaScript rendered by the browser, ie., on the local machine. 
+No server reosources are needed. In addition, it appears to be a stable technology. Popular JS libraries which are connected with R included [Leaflet](http://leafletjs.com/), [D3](https://d3js.org/), among others. In fact, as of today, 92 JS libraries have been linked to the R library [htmlwidgets](http://gallery.htmlwidgets.org/).
+
+
+As quite a bit of JS is computed in the background, this site may take a while to render.
+
+
+
+
+```{r}
+library(tidyverse)
+data(mtcars)
+glimpse(mtcars)
+```
+
+
+# Mouseover
+
+Highlighting values by hovering the mose over some plot area is a builtin feature in the respective libraries.
+
+```{r}
+mtcars %>% 
+  ggplot() +
+  aes(x  = factor(cyl), y = mpg, color = factor(cyl)) +
+  geom_point(position = "jitter") -> p1
+p1
+```
+
+Introducing plotly:
+
+```{r}
+library(plotly)
+
+ggplotly(p1)
+
+```
+
+
+
+
+
+Say you want a plot where some data cats (group A vs. group B etc.) can be selected. Plotly supports that out of the box for subgroups; click on the `cyl` values in the legend of the plot above. Plotly does that out of the box. JavaScript inside.
+
+BTW, zooming is also possible in Plotly.
+
+
+
+
+# Rbokeh
+
+Rbokey is another JS library hooked to R. Subgrouping is not possibly, as far as I have seen in the first instant.
+
+```{r}
+library(rbokeh)
+figure() %>%
+  ly_points(Sepal.Length, Sepal.Width, data = iris,
+    color = Species, glyph = Species,
+    hover = list(Sepal.Length, Sepal.Width))
+```
+
+Rbokeh allows for easy map plotting.
+
+
+
+
+```{r}
+library(maps)
+data(world.cities)
+caps <- subset(world.cities, capital == 1)
+caps$population <- prettyNum(caps$pop, big.mark = ",")
+figure(width = 800, height = 450, padding_factor = 0) %>%
+  ly_map("world", col = "gray") %>%
+  ly_points(long, lat, data = caps, size = 5,
+    hover = c(name, country.etc, population))
+```
+
+A maps example, taken from [this source](https://hafen.github.io/rbokeh/#preview).
+
+# Scatter3D
+
+Scatter3D looks quite promising, too; eg., subdata cats are possible.
+
+
+```{r}
+library(scatterD3)
+mtcars$names <- rownames(mtcars)
+scatterD3(data = mtcars, x = wt, y = mpg, lab = names,
+          col_var = cyl, symbol_var = am,
+          xlab = "Weight", ylab = "Mpg", col_lab = "Cylinders",
+          symbol_lab = "Manual transmission")
+```
+
+
+
+# pairsD3
+
+This example is taken from [here](https://github.com/garthtarr/pairsD3). 
+
+
+```{r results = "asis"}
+data(iris)
+library(pairsD3)
+pairsD3(iris[,1:4],group=iris[,5])
+```
+
+As it appears not to run in this environment, check out [this example](https://bl.ocks.org/mbostock/4063663).
+
+Here's a static version:
+
+![static pairsD3](https://bl.ocks.org/mbostock/3213173)
+
+# Radarchart
+
+Consider [this example](https://github.com/MangoTheCat/radarchart), which does not show in this environment, but ran on my local machine.
+
+```{r}
+library(radarchart)
+
+labs <- c("Communicator", "Data Wangler", "Programmer",
+          "Technologist",  "Modeller", "Visualizer")
+
+scores <- list(
+  "Rich" = c(9, 7, 4, 5, 3, 7),
+  "Andy" = c(7, 6, 6, 2, 6, 9),
+  "Aimee" = c(6, 5, 8, 4, 7, 6)
+)
+
+chartJSRadar(scores = scores, labs = labs, maxScale = 10)
+```
+
+
+Static version:
+
+![Static version](https://github.com/MangoTheCat/radarchart/raw/master/inst/figs/readmePlot03.jpg)
+
+
+## GoogleVis
+
+[GoogleVis](https://cran.r-project.org/web/packages/googleVis/vignettes/googleVis_examples.html) is very versatile, too. Consider this example:
+
+```{r}
+library(googleVis)
+mtcars_cyl <- mtcars %>% 
+  rownames_to_column() %>% 
+  select(rowname, cyl, am) %>% 
+  count(cyl, am) %>% 
+  mutate(cyl = factor(cyl))
+mtcars_bars <- gvisBarChart(mtcars_cyl)
+plot(mtcars_bars)
+```
+
+The different bars can be selected and highlighted. 
+
+Many more plot types are available.
+
+# More
+
+More examples and libraries can be found [here](http://www.htmlwidgets.org/showcase_metricsgraphics.html).
+
+
