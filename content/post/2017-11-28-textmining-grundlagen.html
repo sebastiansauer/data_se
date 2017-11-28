@@ -1,0 +1,548 @@
+---
+title: Grundlagen des Textminings mit R
+draft: TRUE
+author: Sebastian Sauer
+date: '2017-11-28'
+slug: textmining-grundlagen
+categories:
+  - rstats
+tags:
+  - rstats
+  - textmining
+  - polit
+---
+
+
+
+<blockquote>
+<p>Lernziele:</p>
+</blockquote>
+<pre><code>  - Sie kennen zentrale Ziele und Begriffe des Textminings.
+  - Sie wissen, was ein &#39;tidy text dataframe&#39; ist.
+  - Sie können Worthäufigkeiten auszählen.
+  - Sie können Worthäufigkeiten anhand einer Wordcloud visualisieren.</code></pre>
+<p>In diesem Kapitel benötigte R-Pakete:</p>
+<pre class="r"><code>library(tidyverse)  # Datenjudo
+library(stringr)  # Textverarbeitung
+library(tidytext)  # Textmining
+library(lsa)  # Stopwörter 
+library(SnowballC)  # Wörter trunkieren
+library(wordcloud)  # Wordcloud anzeigen
+library(skimr)  # Überblicksstatistiken</code></pre>
+<p>Ein großer Teil der zur Verfügung stehenden Daten liegt nicht als braves Zahlenmaterial vor, sondern in “unstrukturierter” Form, z.B. in Form von Texten. Im Gegensatz zur Analyse von numerischen Daten ist die Analyse von Texten weniger verbreitet bisher. In Anbetracht der Menge und der Informationsreichhaltigkeit von Text erscheint die Analyse von Text als vielversprechend.</p>
+<p>In gewisser Weise ist das Textmining ein alternative zu klassischen qualitativen Verfahren der Sozialforschung. Geht es in der qualitativen Sozialforschung primär um das Verstehen eines Textes, so kann man für das Textmining ähnliche Ziele formulieren. Allerdings: Das Textmining ist wesentlich schwächer und beschränkter in der Tiefe des Verstehens. Der Computer ist einfach noch (?) wesentlich <em>dümmer</em> als ein Mensch, zumindest in dieser Hinsicht. Allerdings ist er auch wesentlich <em>schneller</em> als ein Mensch, was das Lesen betrifft. Daher bietet sich das Textmining für das Lesen großer Textmengen an, in denen eine geringe Informationsdichte vermutet wird. Sozusagen maschinelles Sieben im großen Stil. Da fällt viel durch die Maschen, aber es werden Tonnen von Sand bewegt.</p>
+<p>In der Regel wird das Textmining als <em>gemischte</em> Methode verwendet: sowohl qualitative als auch qualitative Aspekte spielen eine Rolle. Damit vermittelt das Textmining auf konstruktive Art und Weise zwischen den manchmal antagonierenden Schulen der qualitativ-idiographischen und der quantitativ-nomothetischen Sichtweise auf die Welt. Man könnte es auch als qualitative Forschung mit moderner Technik bezeichnen - mit den skizzierten Einschränkungen wohlgemerkt.</p>
+<div id="zentrale-begriffe" class="section level2">
+<h2>Zentrale Begriffe</h2>
+<p>Die computergestützte Analyse von Texten speiste (und speist) sich reichhaltig aus Quellen der Linguistik; entsprechende Fachtermini finden Verwendung:</p>
+<ul>
+<li><p>Ein <em>Corpus</em> bezeichnet die Menge der zu analysierenden Dokumente; das könnten z.B. alle Reden der Bundeskanzlerin Angela Merkel sein oder alle Tweets von “@realDonaldTrump”.</p></li>
+<li><p>Ein <em>Token</em> (<em>Term</em>) ist ein elementarer Baustein eines Texts, die kleinste Analyseeinheit, häufig ein Wort.</p></li>
+<li><p>Unter <em>tidy text</em> versteht man einen Dataframe, in dem pro Zeile nur <em>ein</em> Token (z.B. Wort) steht <span class="citation">[@Silge2016]</span>. Synonym könnte man von einem “langen” Dataframe sprechen.</p></li>
+</ul>
+</div>
+<div id="grundlegende-analyse" class="section level2">
+<h2>Grundlegende Analyse</h2>
+<div id="tidy-text-dataframes" class="section level3">
+<h3>Tidy Text Dataframes</h3>
+<p>Wozu ist es nützlich, einen Text-Dataframe in einen langen Dataframe umzuwandeln? Der Grund ist, dass immer wenn nur ein Wort (allgemeiner: Term) pro Zelle steht, dann können wir die Spalte einfach auszählen. Wir können z.B. <code>count</code> nutzen, um zu zählen, wie häufig ein Wort vorkommt. Sprich: Sobald wir einen langen (Text-)Dataframe haben, können wir unsere bekannte Methoden einsetzen.</p>
+<p>Basteln wir uns einen <em>tidy text</em> Dataframe. Wir gehen dabei von einem Vektor mit mehreren Text-Elementen aus, das ist ein realistischer Startpunkt. Unser Text-Vektor<a href="#fn1" class="footnoteRef" id="fnref1"><sup>1</sup></a> besteht aus 4 Elementen.</p>
+<pre class="r"><code>text &lt;- c(&quot;Wir haben die Frauen zu Bett gebracht,&quot;,
+          &quot;als die Männer in Frankreich standen.&quot;,
+          &quot;Wir hatten uns das viel schöner gedacht.&quot;,
+          &quot;Wir waren nur Konfirmanden.&quot;)</code></pre>
+<p>Als nächstes machen wir daraus einen Dataframe.</p>
+<pre class="r"><code>text_df &lt;- data_frame(Zeile = 1:4,
+                      text = text)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">Zeile</th>
+<th align="left">text</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="left">Wir haben die Frauen zu Bett gebracht,</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="left">als die Männer in Frankreich standen.</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="left">Wir hatten uns das viel schöner gedacht.</td>
+</tr>
+<tr class="even">
+<td align="right">4</td>
+<td align="left">Wir waren nur Konfirmanden.</td>
+</tr>
+</tbody>
+</table>
+<p>Übrigens, falls Sie eine beliebige Textdatei einlesen möchten, können Sie das so tun:</p>
+<pre class="r"><code>text &lt;- read_lines(&quot;Brecht.txt&quot;)</code></pre>
+<p>Der Befehl <code>read_lines</code> (aus <code>readr</code><a href="#fn2" class="footnoteRef" id="fnref2"><sup>2</sup></a>) liest Zeilen (Zeile für Zeile) aus einer Textdatei.</p>
+<blockquote>
+<p>Wenn Sie <em>keinen</em> Pfad angeben, dann geht R davon aus, dass sich die angegebene Datei im Arbeitsverzeichnis befindet. Welcher Ordner ist Ihr Arbeitsverzeichnis? Klicken Sie in RStudio auf <em>Session &gt; Set Working Directory…</em> um zu erfahren, welcher Ordner im Moment Ihr Arbeitsverzeichnis ist. Dort können Sie auch Ihr Arbeitsverzeichnis einstellen.</p>
+</blockquote>
+<p>Als nächstes “dehnen” wir den Dataframe zu einem <em>tidy text</em> Dataframe (s. Abb. <a href="#fig:tidytextdf">1</a>); das besorgt die Funktion <code>unnest_tokens</code> aus `tidytext. ‘unnest’ heißt dabei so viel wie ‘Entschachteln’, also von breit auf lang dehnen. Mit ‘tokens’ sind hier einfach die Wörter gemeint (es könnten aber auch andere Analyseeinheiten sein, Sätze zum Beispiel).</p>
+<div class="figure" style="text-align: center"><span id="fig:tidytextdf"></span>
+<img src="images/textmining/tidytext-crop.png" alt="Illustration eines Tidy Text Dataframe" width="100%" />
+<p class="caption">
+Figure 1: Illustration eines Tidy Text Dataframe
+</p>
+</div>
+<pre class="r"><code>text_df %&gt;% 
+  unnest_tokens(output = wort, input = text) -&gt; tidytext_df
+
+head(tidytext_df)
+#&gt; # A tibble: 6 x 2
+#&gt;   Zeile   wort
+#&gt;   &lt;int&gt;  &lt;chr&gt;
+#&gt; 1     1    wir
+#&gt; 2     1  haben
+#&gt; 3     1    die
+#&gt; 4     1 frauen
+#&gt; 5     1     zu
+#&gt; 6     1   bett</code></pre>
+<p>Der Parameter <code>output</code> sagt, wie neue ‘saubere’ (lange) Spalte heißen soll; <code>input</code> sagt der Funktion, welche Spalte sie als ihr Futter (Input) betrachten soll (welche Spalte in tidy text umgewandelt werden soll).</p>
+<pre><code>Nehme den Datensatz &quot;text_df&quot; UND DANN  
+dehne die einzelnen Elemente der Spalte &quot;text&quot;, so dass jedes Element seine eigene Spalte bekommt.  
+Ach ja: Diese &quot;gedehnte&quot; Spalte soll &quot;wort&quot; heißen (weil nur einzelne Wörter drinnen stehen) UND DANN  
+speichere den resultierenden Dataframe ab als `tidytext_df`.</code></pre>
+<blockquote>
+<p>In einem ‘tidy text Dataframe’ steht in jeder Zeile ein Wort (token) und die Häufigkeit des Worts im Dokument.</p>
+</blockquote>
+<p>Überprüfen Sie, ob das stimmt: Betrachten Sie den Dataframe <code>tidytext_df</code>.</p>
+<p>Das <code>unnest_tokens</code> kann übersetzt werden als “entschachtele” oder “dehne” die Tokens - so dass in <em>jeder Zeile</em> nur noch <em>ein Wort</em> (genauer: Token) steht. Die Syntax ist <code>unnest_tokens(Ausgabespalte, Eingabespalte)</code>. Nebenbei werden übrigens alle Buchstaben auf Kleinschreibung getrimmt.</p>
+<p>Als nächstes filtern wir die Satzzeichen heraus, da die Wörter für die Analyse wichtiger (oder zumindest einfacher) sind.</p>
+<pre class="r"><code>tidytext_df %&gt;% 
+  filter(str_detect(wort, &quot;[a-z]&quot;)) -&gt; tidytext_df_lowercase</code></pre>
+<p>In Pseudo-Code heißt dieser Abschnitt:</p>
+<pre><code>Nehme den Datensatz &quot;tidytext_df&quot; UND DANN  
+filtere die Spalte &quot;wort&quot;, so dass nur noch Kleinbuchstaben übrig bleiben (keine Ziffern etc.). FERTIG.  </code></pre>
+</div>
+<div id="text-daten-einlesen" class="section level3">
+<h3>Text-Daten einlesen</h3>
+<div id="als-csv-datei-einlesen" class="section level4">
+<h4>Als CSV-Datei einlesen</h4>
+<p>Nun lesen wir Text-Daten ein; das können beliebige Daten sein<a href="#fn3" class="footnoteRef" id="fnref3"><sup>3</sup></a>. Eine gewisse Reichhaltigkeit im Text ist von Vorteil. Nehmen wir das Parteiprogramm der Partei AfD<a href="#fn4" class="footnoteRef" id="fnref4"><sup>4</sup></a>. Vor dem Hintergrund des Erstarkens des Populismus weltweit und der großen Gefahr, die davon ausgeht - man blicke auf die Geschichte Europas in der ersten Hälfte des 20. Jahrhunderts - <del>verdient</del>erfordert der politische Prozess und speziell Neuentwicklungen darin unsere besondere Beachtung. Das Parteiprogramm kann hier als CSV-Datei von <a href="https://osf.io/b35r7/" class="uri">https://osf.io/b35r7/</a> eingelesen werden:</p>
+<pre class="r"><code>osf_link &lt;- paste0(&quot;https://osf.io/b35r7//?action=download&quot;)
+afd &lt;- read_csv(osf_link)</code></pre>
+</div>
+<div id="als-pdf-oder-unstrukturierte-text-datei-einlesen" class="section level4">
+<h4>Als PDF oder unstrukturierte Text-Datei einlesen</h4>
+<p>Häufig sind Textdateien in Textdateien gespeichert, dann kann man mit <code>readr::read_lines</code> Daten, die keine Tabellenstruktur haben einlesen. Ein anderes häufiges Format sind PDF-Dateien; dafür bietet das Paket <code>pdftools</code> die Funktion <code>pdf_text</code>, die den Inhalt einer PDF-Datei einliest. Jede Seite wird dabei als ein Element eines Vektors abgespeichert. Hätten wir die PDF-Datei vorliegen, so könnten wir sie mit <code>pdf_text</code> einlesen. Der resultierende Vektor <code>afd_raw</code> hat 96 Elemente (entsprechend der Seitenzahl des Dokuments). Wandeln wir als nächstes den Vektor in einen Dataframe um.</p>
+<pre class="r"><code>afd_pfad &lt;- &quot;data/afd_programm.pdf&quot;
+afd_raw &lt;- pdf_text(afd_pfad)
+afd &lt;- data_frame(Zeile = 1:96, 
+                  afd_raw)</code></pre>
+</div>
+<div id="daten-sind-da---jetzt-aufhubschen" class="section level4">
+<h4>Daten sind da - jetzt aufhübschen</h4>
+<p>Im Ergebnis hätten wir einen Dataframe, ein Prachtstück. Mit <code>head(afd)</code> können Sie sich den Beginn dieses Textvektor anzeigen lassen. Auch die Stopwörter entfernen wir wieder wie gehabt.</p>
+<pre class="r"><code>afd %&gt;% 
+  unnest_tokens(output = token, input = content) %&gt;% 
+  dplyr::filter(str_detect(token, &quot;[a-z]&quot;)) -&gt; afd_long</code></pre>
+<p>Insgesamt 96 Wörter<a href="#fn5" class="footnoteRef" id="fnref5"><sup>5</sup></a>; eine substanzielle Menge von Text. Was wohl die häufigsten Wörter sind?</p>
+</div>
+</div>
+<div id="worthaufigkeiten-auszahlen" class="section level3">
+<h3>Worthäufigkeiten auszählen</h3>
+<pre class="r"><code>afd_long %&gt;% 
+  na.omit() %&gt;%  # fehlende Werte löschen
+  count(token, sort = TRUE)
+#&gt; # A tibble: 7,087 x 2
+#&gt;    token     n
+#&gt;    &lt;chr&gt; &lt;int&gt;
+#&gt;  1   die  1151
+#&gt;  2   und  1147
+#&gt;  3   der   870
+#&gt;  4    zu   435
+#&gt;  5   für   392
+#&gt;  6    in   392
+#&gt;  7   den   271
+#&gt;  8   von   257
+#&gt;  9   ist   251
+#&gt; 10   das   225
+#&gt; # ... with 7,077 more rows</code></pre>
+<p>Die häufigsten Wörter sind inhaltsleere Partikel, Präpositionen, Artikel… Solche sogenannten “Stopwörter” sollten wir besser herausfischen, um zu den inhaltlich tragenden Wörtern zu kommen. Praktischerweise gibt es frei verfügbare Listen von Stopwörtern, z.B. im Paket <code>lsa</code>.</p>
+<pre class="r"><code>data(stopwords_de, package = &quot;lsa&quot;)
+
+stopwords_de &lt;- data_frame(word = stopwords_de)
+
+# Für das Joinen werden gleiche Spaltennamen benötigt
+stopwords_de &lt;- stopwords_de %&gt;% 
+  rename(token = word)  
+
+afd_long %&gt;% 
+  anti_join(stopwords_de) -&gt; afd_no_stop</code></pre>
+<p>Unser Datensatz hat jetzt viel weniger Zeilen; wir haben also durch <code>anti_join</code> Zeilen gelöscht (herausgefiltert). Das ist die Funktion von <code>anti_join</code>: Die Zeilen, die in beiden Dataframes vorkommen, werden herausgefiltert. Es verbleiben also nicht “Nicht-Stopwörter” in unserem Dataframe. Damit wird es schon interessanter, welche Wörter häufig sind.</p>
+<pre class="r"><code>afd_no_stop %&gt;% 
+  count(token, sort = TRUE) -&gt; afd_count</code></pre>
+<table>
+<caption><span id="tab:unnamed-chunk-13">Table 1: </span>Die häufigsten Wörter</caption>
+<thead>
+<tr class="header">
+<th align="left">token</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">deutschland</td>
+<td align="right">190</td>
+</tr>
+<tr class="even">
+<td align="left">afd</td>
+<td align="right">171</td>
+</tr>
+<tr class="odd">
+<td align="left">programm</td>
+<td align="right">80</td>
+</tr>
+<tr class="even">
+<td align="left">wollen</td>
+<td align="right">67</td>
+</tr>
+<tr class="odd">
+<td align="left">bürger</td>
+<td align="right">57</td>
+</tr>
+<tr class="even">
+<td align="left">euro</td>
+<td align="right">55</td>
+</tr>
+<tr class="odd">
+<td align="left">dafür</td>
+<td align="right">53</td>
+</tr>
+<tr class="even">
+<td align="left">eu</td>
+<td align="right">53</td>
+</tr>
+<tr class="odd">
+<td align="left">deutsche</td>
+<td align="right">47</td>
+</tr>
+<tr class="even">
+<td align="left">deutschen</td>
+<td align="right">47</td>
+</tr>
+</tbody>
+</table>
+<p>Ganz interessant; aber es gibt mehrere Varianten des Themas “deutsch”. Es ist wohl sinnvoller, diese auf den gemeinsamen Wortstamm zurückzuführen und diesen nur einmal zu zählen. Dieses Verfahren nennt man “stemming” oder “trunkieren”.</p>
+<pre class="r"><code>afd_no_stop %&gt;% 
+  mutate(token_stem = wordStem(.$token, language = &quot;de&quot;)) %&gt;% 
+  count(token_stem, sort = TRUE) -&gt; afd_count_stemmed
+
+afd_count_stemmed %&gt;% 
+  top_n(10) %&gt;% 
+  knitr::kable(caption = &quot;Die häufigsten Wörter - mit &#39;stemming&#39;&quot;)</code></pre>
+<table>
+<caption><span id="tab:unnamed-chunk-14">Table 2: </span>Die häufigsten Wörter - mit ‘stemming’</caption>
+<thead>
+<tr class="header">
+<th align="left">token_stem</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">deutschland</td>
+<td align="right">219</td>
+</tr>
+<tr class="even">
+<td align="left">afd</td>
+<td align="right">171</td>
+</tr>
+<tr class="odd">
+<td align="left">deutsch</td>
+<td align="right">119</td>
+</tr>
+<tr class="even">
+<td align="left">polit</td>
+<td align="right">88</td>
+</tr>
+<tr class="odd">
+<td align="left">staat</td>
+<td align="right">85</td>
+</tr>
+<tr class="even">
+<td align="left">programm</td>
+<td align="right">81</td>
+</tr>
+<tr class="odd">
+<td align="left">europa</td>
+<td align="right">80</td>
+</tr>
+<tr class="even">
+<td align="left">woll</td>
+<td align="right">67</td>
+</tr>
+<tr class="odd">
+<td align="left">burg</td>
+<td align="right">66</td>
+</tr>
+<tr class="even">
+<td align="left">soll</td>
+<td align="right">63</td>
+</tr>
+</tbody>
+</table>
+<p>Das ist schon informativer. Dem Befehl <code>SnowballC::wordStem</code> füttert man einen Vektor an Wörtern ein und gibt die Sprache an (Default ist Englisch). Denken Sie daran, dass <code>.</code> bei <code>dplyr</code> nur den Datensatz meint, wie er im letzten Schritt definiert war. Mit <code>.$token</code> wählen wir also die Variable <code>token</code> aus <code>afd_raw</code> aus.</p>
+</div>
+<div id="visualisierung" class="section level3">
+<h3>Visualisierung</h3>
+<p>Zum Abschluss noch eine Visualisierung mit einer “Wordcloud” dazu (Abbildung <a href="#fig:show-wordcloud">2</a>).</p>
+<pre class="r"><code>wordcloud(words = afd_count_stemmed$token_stem, 
+          freq = afd_count_stemmed$n, 
+          max.words = 100, 
+          scale = c(2,.5), 
+          colors=brewer.pal(6, &quot;Dark2&quot;))</code></pre>
+<div class="figure" style="text-align: center"><span id="fig:show-wordcloud"></span>
+<img src="images/textmining/wordcloud1.png" alt="Eine Wordwolke zum AfD-Parteiprogramm" width="100%" />
+<p class="caption">
+Figure 2: Eine Wordwolke zum AfD-Parteiprogramm
+</p>
+</div>
+<p>Man kann die Anzahl der Wörter, Farben und einige weitere Formatierungen der Wortwolke beeinflussen<a href="#fn6" class="footnoteRef" id="fnref6"><sup>6</sup></a>.</p>
+<p>Weniger verspielt ist eine schlichte visualisierte Häufigkeitsauszählung dieser Art, z.B. mit Balkendiagrammen (gedreht), s. Abbildung <a href="#fig:p-word-freq">3</a>.</p>
+<pre class="r"><code>afd_count_stemmed %&gt;% 
+  top_n(30) %&gt;% 
+  ggplot() +
+  aes(x = reorder(token_stem, n), y = n) +
+  geom_col() + 
+  labs(title = &quot;mit Trunkierung&quot;) +
+  coord_flip() -&gt; p1
+
+afd_count %&gt;% 
+  top_n(30) %&gt;% 
+  ggplot() +
+  aes(x = reorder(token, n), y = n) +
+  geom_col() +
+  labs(title = &quot;ohne Trunkierung&quot;) +
+  coord_flip() -&gt; p2</code></pre>
+<div class="figure" style="text-align: center"><span id="fig:p-word-freq"></span>
+<img src="/post/2017-11-28-textmining-grundlagen_files/figure-html/p-word-freq-1.png" alt="Worthäufigkeiten im AfD-Parteiprogramm" width="100%" />
+<p class="caption">
+Figure 3: Worthäufigkeiten im AfD-Parteiprogramm
+</p>
+</div>
+<p>Die beiden Diagramme vergleichen die trunkierten Wörter mit den nicht trunkierten Wörtern. Mit <code>reorder</code> ordnen wir die Spalte <code>token</code> nach der Spalte <code>n</code>. <code>coord_flip</code> dreht die Abbildung um 90°, d.h. die Achsen sind vertauscht.</p>
+</div>
+</div>
+<div id="aufgaben" class="section level2">
+<h2>Aufgaben<a href="#fn7" class="footnoteRef" id="fnref7"><sup>7</sup></a></h2>
+
+<div class="rmdexercises">
+<p>Richtig oder Falsch!?</p>
+<ol style="list-style-type: decimal">
+<li>Unter einem Token versteht man die größte Analyseeinheit in einem Text.</li>
+<li>In einem tidytext Dataframe steht jedes Wort in einer (eigenen) Zeile.</li>
+<li>Eine hinreichende Bedingung für einen tidytext Dataframe ist es, dass in jeder Zeile ein Wort steht (beziehen Sie sich auf den tidytext Dataframe wie in diesem Kapitel erörtert).</li>
+<li>Gibt es ‘Stop-Wörter’ in einem Dataframe, dessen Text analysiert wird, so kommt es - per definitionem - zu einem Stop.</li>
+<li>Mit dem Befehl <code>unnest_tokens</code> kann man einen tidytext Dataframe erstellen.</li>
+<li>Balkendiagramme sind sinnvolle und auch häufige Diagrammtypen, um die häufigsten Wörter (oder auch Tokens) in einem Corpus darzustellen.</li>
+<li>In einem ‘tidy text Dataframe’ steht in jeder Zeile ein Wort (token) <em>aber nicht</em> die Häufigkeit des Worts im Dokument.</li>
+<li>Unter ‘Stemming’ versteht man (bei der Textanalyse), die Etymologie eines Wort (Herkunft) zu erkunden.</li>
+</ol>
+</div>
+
+</div>
+<div id="regex" class="section level2">
+<h2>Regulärausdrücke</h2>
+<p>Das <code>&quot;[a-z]&quot;</code> in der Syntax oben steht für “alle Buchstaben von a-z”. Diese flexible Art von “String-Verarbeitung mit Jokern” nennt man <em>Regulärausdrücke</em> (regular expressions; regex). Es gibt eine ganze Reihe von diesen Regulärausdrücken, die die Verarbeitung von Texten erleichert. Mit dem Paket <code>stringr</code> geht das - mit etwas Übung - gut von der Hand. Nehmen wir als Beispiel den Text eines Tweets:</p>
+<pre class="r"><code>string &lt;-&quot;Correlation of unemployment and #AfD votes at #btw17: ***r = 0.18***\n\nhttps://t.co/YHyqTguVWx&quot;  </code></pre>
+<p>Möchte man Ziffern identifizieren, so hilft der Reulärausdruck <code>[:digit:]</code>:</p>
+<p>“Gibt es mindestens eine Ziffer in dem String?”</p>
+<pre class="r"><code>str_detect(string, &quot;[:digit:]&quot;)
+#&gt; [1] TRUE</code></pre>
+<p>“Finde die Position der ersten Ziffer! Welche Ziffer ist es?”</p>
+<pre class="r"><code>str_locate(string, &quot;[:digit:]&quot;)
+#&gt;      start end
+#&gt; [1,]    51  51
+str_extract(string, &quot;[:digit:]&quot;)
+#&gt; [1] &quot;1&quot;</code></pre>
+<p>“Finde alle Ziffern!”</p>
+<pre class="r"><code>str_extract_all(string, &quot;[:digit:]&quot;)
+#&gt; [[1]]
+#&gt; [1] &quot;1&quot; &quot;7&quot; &quot;0&quot; &quot;1&quot; &quot;8&quot;</code></pre>
+<p>“Finde alle Stellen an denen genau 2 Ziffern hintereinander folgen!”</p>
+<pre class="r"><code>str_extract_all(string, &quot;[:digit:]{2}&quot;)
+#&gt; [[1]]
+#&gt; [1] &quot;17&quot; &quot;18&quot;</code></pre>
+<p>Der Quantitätsoperator <code>{n}</code> findet alle Stellen, in der der der gesuchte Ausdruck genau <span class="math inline">\(n\)</span> mal auftaucht.</p>
+<p>“Gebe die Hashtags zurück!”</p>
+<pre class="r"><code>str_extract_all(string, &quot;#[:alnum:]+&quot;)
+#&gt; [[1]]
+#&gt; [1] &quot;#AfD&quot;   &quot;#btw17&quot;</code></pre>
+<p>Der Operator <code>[:alnum:]</code> steht für “alphanumerischer Charakter” - also eine Ziffer oder ein Buchstabe; synonym hätte man auch <code>\\w</code> schreiben können (w wie word). Warum werden zwei Backslashes gebraucht? Mit <code>\\w</code> wird signalisiert, dass nicht der Buchstabe <em>w</em>, sondern etwas Besonderes, eben der Regex-Operator <code>\w</code> gesucht wird.</p>
+<p>“Gebe URLs zurück!”</p>
+<pre class="r"><code>str_extract_all(string, &quot;https?://[:graph:]+&quot;)
+#&gt; [[1]]
+#&gt; [1] &quot;https://t.co/YHyqTguVWx&quot;</code></pre>
+<p>Das Fragezeichen <code>?</code> ist eine Quantitätsoperator, der einen Treffer liefert, wenn das vorherige Zeichen (hier <em>s</em>) null oder einmal gefunden wird. <code>[:graph:]</code> ist die Summe von <code>[:alpha:]</code> (Buchstaben, groß und klein), <code>[:digit:]</code> (Ziffern) und <code>[:punct:]</code> (Satzzeichen u.ä.).</p>
+<p>“Zähle die Wörter im String!”</p>
+<pre class="r"><code>str_count(string, boundary(&quot;word&quot;))
+#&gt; [1] 13</code></pre>
+<p>“Liefere nur Buchstaben<em>folgen</em> zurück, lösche alles übrige”</p>
+<pre class="r"><code>str_extract_all(string, &quot;[:alpha:]+&quot;)
+#&gt; [[1]]
+#&gt;  [1] &quot;Correlation&quot;  &quot;of&quot;           &quot;unemployment&quot; &quot;and&quot;         
+#&gt;  [5] &quot;AfD&quot;          &quot;votes&quot;        &quot;at&quot;           &quot;btw&quot;         
+#&gt;  [9] &quot;r&quot;            &quot;https&quot;        &quot;t&quot;            &quot;co&quot;          
+#&gt; [13] &quot;YHyqTguVWx&quot;</code></pre>
+<p>Der Quantitätsoperator <code>+</code> liefert alle Stellen zurück, in denen der gesuchte Ausdruck <em>einmal oder häufiger</em> vorkommt. Die Ergebnisse werden als Vektor von Wörtern zurückgegeben. Ein anderer Quantitätsoperator ist <code>*</code>, der für 0 oder mehr Treffer steht. Möchte man einen Vektor, der aus Stringen-Elementen besteht zu einem Strring zusammenfüngen, hilft <code>paste(string)</code> oder <code>str_c(string, collapse = &quot; &quot;)</code>.</p>
+<pre class="r"><code>str_replace_all(string, &quot;[^[:alpha:]+]&quot;, &quot;&quot;)
+#&gt; [1] &quot;CorrelationofunemploymentandAfDvotesatbtwrhttpstcoYHyqTguVWx&quot;</code></pre>
+<p>Mit dem Negationsoperator <code>[^x]</code> wird der Regulärausrck <code>x</code> negiert; die Syntax oben heißt also “ersetze in <code>string</code> alles außer Buchstaben durch Nichts”. Mit “Nichts” sind hier Strings der Länge Null gemeint; ersetzt man einen belieibgen String durch einen String der Länge Null, so hat man den String gelöscht.</p>
+<p>Das Cheatsheet zur Strings bzw zu <code>stringr</code> von RStudio gibt einen guten Überblick über Regex; im Internet finden sich viele Beispiele.</p>
+</div>
+<div id="sentiment-analyse" class="section level2">
+<h2>Sentiment-Analyse</h2>
+<p>Eine weitere interessante Analyse ist, die “Stimmung” oder “Emotionen” (Sentiments) eines Textes auszulesen. Die Anführungszeichen deuten an, dass hier ein Maß an Verständnis suggeriert wird, welches nicht (unbedingt) von der Analyse eingehalten wird. Jedenfalls ist das Prinzip der Sentiment-Analyse im einfachsten Fall so:</p>
+
+<div class="rmdpseudocode">
+<p>Schau dir jeden Token aus dem Text an.<br />
+Prüfe, ob sich das Wort im Lexikon der Sentiments wiederfindet.<br />
+Wenn ja, dann addiere den Sentimentswert dieses Tokens zum bestehenden Sentiments-Wert.<br />
+Wenn nein, dann gehe weiter zum nächsten Wort.<br />
+Liefere zum Schluss die Summenwerte pro Sentiment zurück.</p>
+</div>
+
+<p>Es gibt Sentiment-Lexika, die lediglich einen Punkt für “positive Konnotation” bzw. “negative Konnotation” geben; andere Lexiko weisen differenzierte Gefühlskonnotationen auf. Wir nutzen hier das Sentimentlexikon von <span class="citation">@remquahey2010</span>.</p>
+<pre class="r"><code>data(sentiws, package = &quot;pradadata&quot;)</code></pre>
+<p>Tabelle @ref(tab:afd_count) zeigt einen Ausschnitt aus dem Sentiment-Lexikon <em>SentiWS</em> <span class="citation">[@remquahey2010]</span>.</p>
+<table>
+<caption><span id="tab:sentiws-head">Table 3: </span>Auszug aus SentiwS</caption>
+<thead>
+<tr class="header">
+<th align="left">neg_pos</th>
+<th align="left">word</th>
+<th align="right">value</th>
+<th align="left">inflections</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">neg</td>
+<td align="left">Abbau</td>
+<td align="right">-0.0580</td>
+<td align="left">Abbaus,Abbaues,Abbauen,Abbaue</td>
+</tr>
+<tr class="even">
+<td align="left">neg</td>
+<td align="left">Abbruch</td>
+<td align="right">-0.0048</td>
+<td align="left">Abbruches,Abbrüche,Abbruchs,Abbrüchen</td>
+</tr>
+<tr class="odd">
+<td align="left">neg</td>
+<td align="left">Abdankung</td>
+<td align="right">-0.0048</td>
+<td align="left">Abdankungen</td>
+</tr>
+<tr class="even">
+<td align="left">neg</td>
+<td align="left">Abdämpfung</td>
+<td align="right">-0.0048</td>
+<td align="left">Abdämpfungen</td>
+</tr>
+<tr class="odd">
+<td align="left">neg</td>
+<td align="left">Abfall</td>
+<td align="right">-0.0048</td>
+<td align="left">Abfalles,Abfälle,Abfalls,Abfällen</td>
+</tr>
+<tr class="even">
+<td align="left">neg</td>
+<td align="left">Abfuhr</td>
+<td align="right">-0.3367</td>
+<td align="left">Abfuhren</td>
+</tr>
+</tbody>
+</table>
+<div id="ungewichtete-sentiment-analyse" class="section level3">
+<h3>Ungewichtete Sentiment-Analyse</h3>
+<p>Nun können wir jedes Token des Textes mit dem Sentiment-Lexikon abgleichen; dabei zählen wir die Treffer für positive bzw. negative Terme. Zuvor müssen wir aber noch die Daten (<code>afd_long</code>) mit dem Sentimentlexikon zusammenführen (joinen). Das geht nach bewährter Manier mit <code>inner_join</code>; “inner” sorgt dabei dafür, dass nur Zeilen behalten werden, die in beiden Dataframes vorkommen. Tabelle @ref(tab:afd_senti_tab) zeigt Summe, Anzahl und Anteil der Emotionswerte.</p>
+<pre class="r"><code>afd_long %&gt;% 
+  inner_join(sentiws, by = c(&quot;token&quot; = &quot;word&quot;)) %&gt;% 
+  select(-inflections) -&gt; afd_senti  # die Spalte brauchen wir nicht
+
+afd_senti %&gt;% 
+  group_by(neg_pos) %&gt;% 
+  summarise(polarity_sum = sum(value),
+            polarity_count = n()) %&gt;% 
+  mutate(polarity_prop = (polarity_count / sum(polarity_count)) %&gt;% round(2)) -&gt; afd_senti_tab</code></pre>
+<table>
+<caption>(#tab:afd_senti_tab)Zusammenfassung von SentiWS</caption>
+<thead>
+<tr class="header">
+<th align="left">neg_pos</th>
+<th align="right">polarity_sum</th>
+<th align="right">polarity_count</th>
+<th align="right">polarity_prop</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">neg</td>
+<td align="right">-52.6461</td>
+<td align="right">219</td>
+<td align="right">0.27</td>
+</tr>
+<tr class="even">
+<td align="left">pos</td>
+<td align="right">29.6063</td>
+<td align="right">586</td>
+<td align="right">0.73</td>
+</tr>
+</tbody>
+</table>
+<p>Die Analyse zeigt, dass die emotionale Bauart des Textes durchaus interessant ist: Es gibt viel mehr positiv getönte Wörter als negativ getönte. Allerdings sind die negativen Wörter offenbar deutlich stärker emotional aufgeladen, dennn die Summe an Emotionswert der negativen Wörter ist überraschenderweise deutlich größer als die der positiven.</p>
+<p>Betrachten wir also die intensivsten negativ und positive konnotierten Wörter näher.</p>
+<pre class="r"><code>afd_senti %&gt;% 
+  distinct(token, .keep_all = TRUE) %&gt;% 
+  mutate(value_abs = abs(value)) %&gt;% 
+  top_n(20, value_abs) %&gt;% 
+  pull(token)
+#&gt;  [1] &quot;ungerecht&quot;    &quot;besonders&quot;    &quot;gefährlich&quot;   &quot;überflüssig&quot; 
+#&gt;  [5] &quot;behindern&quot;    &quot;gefährden&quot;    &quot;brechen&quot;      &quot;unzureichend&quot;
+#&gt;  [9] &quot;gemein&quot;       &quot;verletzt&quot;     &quot;zerstören&quot;    &quot;trennen&quot;     
+#&gt; [13] &quot;falsch&quot;       &quot;vermeiden&quot;    &quot;zerstört&quot;     &quot;schwach&quot;     
+#&gt; [17] &quot;belasten&quot;     &quot;schädlich&quot;    &quot;töten&quot;        &quot;verbieten&quot;</code></pre>
+<p>Diese “Hitliste” wird zumeist (19/20) von negativ polarisierten Begriffen aufgefüllt, wobei “besonders” ein Intensivierwort ist, welches das Bezugswort verstärt (“besonders gefährlich”). Das Argument <code>keep_all = TRUE</code> sorgt dafür, dass alle Spalten zurückgegeben werden, nicht nur die durchsuchte Spalte <code>token</code>. Mit <code>pull</code> haben wir aus dem Dataframe, der von den dplyr-Verben überwegeben wird, die Spalte <code>pull</code> “herausgezogen”; hier nur um Platz zu sparen bzw. der Übersichtlichkeit halber.</p>
+<p>Nun könnte man noch den erzielten “Netto-Sentimentswert” des Corpus ins Verhältnis setzen Sentimentswert des Lexikons: Wenn es insgesamt im Sentiment-Lexikon sehr negativ zuginge, wäre ein negativer Sentimentwer in einem beliebigen Corpus nicht überraschend. <code>skimr::skim()</code> gibt uns einen Überblick der üblichen deskriptiven Statistiken.</p>
+<pre class="r"><code>sentiws %&gt;% 
+  select(value, neg_pos) %&gt;% 
+  #group_by(neg_pos) %&gt;% 
+  skim()</code></pre>
+<p>Insgesamt ist das Lexikon ziemlich ausgewogen; negative Werte sind leicht in der Überzahl im Lexikon. Unser Corpus hat eine ähnliche mittlere emotionale Konnotation wie das Lexikon:</p>
+<pre class="r"><code>afd_senti %&gt;% 
+  summarise(senti_sum = mean(value) %&gt;% round(2))
+#&gt; # A tibble: 1 x 1
+#&gt;   senti_sum
+#&gt;       &lt;dbl&gt;
+#&gt; 1     -0.03</code></pre>
+</div>
+</div>
+<div id="verweise" class="section level2">
+<h2>Verweise</h2>
+<ul>
+<li>Das Buch <em>Tidy Text Minig</em> <span class="citation">[@tidytextminig]</span> ist eine hervorragende Quelle vertieftem Wissens zum Textmining mit R.</li>
+</ul>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Nach dem Gedicht “Jahrgang 1899” von Erich Kästner<a href="#fnref1">↩</a></p></li>
+<li id="fn2"><p>Teil der Tidyverse-Familie<a href="#fnref2">↩</a></p></li>
+<li id="fn3"><p>Ggf. benötigen Sie Administrator-Rechte, um Dateien auf Ihre Festplatte zu speichern.<a href="#fnref3">↩</a></p></li>
+<li id="fn4"><p><geladen am 1. März 2017 von https://www.alternativefuer.de/wp-content/uploads/sites/7/2016/05/2016-06-27_afd-grundsatzprogramm_web-version.pdf><a href="#fnref4">↩</a></p></li>
+<li id="fn5"><p>wie kann man sich die Anzahl der Wörter ausgeben lassen? Z.B. so: <code>count(afd)</code><a href="#fnref5">↩</a></p></li>
+<li id="fn6"><p><a href="https://cran.r-project.org/web/packages/wordcloud/index.html" class="uri">https://cran.r-project.org/web/packages/wordcloud/index.html</a><a href="#fnref6">↩</a></p></li>
+<li id="fn7"><p>F, R, F, F, R, R, F, F<a href="#fnref7">↩</a></p></li>
+</ol>
+</div>
