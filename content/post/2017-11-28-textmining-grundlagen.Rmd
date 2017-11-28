@@ -10,6 +10,7 @@ tags:
   - rstats
   - textmining
   - polit
+  - German
 ---
 
 
@@ -24,7 +25,7 @@ tags:
 
 
 
-In diesem Kapitel benötigte R-Pakete:
+In dieser Übung benötigte R-Pakete:
 ```{r libs-textmining}
 library(tidyverse)  # Datenjudo
 library(stringr)  # Textverarbeitung
@@ -32,8 +33,10 @@ library(tidytext)  # Textmining
 library(lsa)  # Stopwörter 
 library(SnowballC)  # Wörter trunkieren
 library(wordcloud)  # Wordcloud anzeigen
-library(skimr)  # Überblicksstatistiken
 ```
+
+
+>   Bitte installieren Sie *rechtzeitig*  alle Pakete, z.B. in RStudio über den Reiter *Packages ... Install*.
 
 
 ```{r libs-textmining-hidden, echo = FALSE}
@@ -316,172 +319,6 @@ Richtig oder Falsch!?
 1. Unter 'Stemming' versteht man (bei der Textanalyse), die Etymologie eines Wort (Herkunft) zu erkunden.
 
 ```
-
-
-
-## Regulärausdrücke {#regex}
-
-Das `"[a-z]"` in der Syntax oben steht für "alle Buchstaben von a-z". Diese flexible Art von "String-Verarbeitung mit Jokern" nennt man *Regulärausdrücke*\index{Regulärausdrücke} (regular expressions; regex). Es gibt eine ganze Reihe von diesen Regulärausdrücken, die die Verarbeitung von Texten erleichert. Mit dem Paket `stringr` geht das - mit etwas Übung - gut von der Hand. Nehmen wir als Beispiel den Text eines Tweets:
-
-```{r}
-string <-"Correlation of unemployment and #AfD votes at #btw17: ***r = 0.18***\n\nhttps://t.co/YHyqTguVWx"  
-```
-
-Möchte man Ziffern identifizieren, so hilft der Reulärausdruck `[:digit:]`:
-
-"Gibt es mindestens eine Ziffer in dem String?"
-
-```{r}
-str_detect(string, "[:digit:]")
-```
-
-"Finde die Position der ersten Ziffer! Welche Ziffer ist es?"
-
-```{r}
-str_locate(string, "[:digit:]")
-str_extract(string, "[:digit:]")
-```
-
-"Finde alle Ziffern!"
-
-```{r}
-str_extract_all(string, "[:digit:]")
-```
-
-
-"Finde alle Stellen an denen genau 2 Ziffern hintereinander folgen!"
-```{r}
-str_extract_all(string, "[:digit:]{2}")
-```
-
-Der Quantitätsoperator `{n}` findet alle Stellen, in der der der gesuchte Ausdruck genau $n$ mal auftaucht.
-
-
-"Gebe die Hashtags zurück!"
-
-```{r}
-str_extract_all(string, "#[:alnum:]+")
-```
-
-Der Operator `[:alnum:]` steht für "alphanumerischer Charakter" - also eine Ziffer oder ein Buchstabe; synonym hätte man auch `\\w` schreiben können (w wie word). Warum werden zwei Backslashes gebraucht? Mit `\\w` wird signalisiert, dass nicht der Buchstabe *w*, sondern etwas Besonderes, eben der Regex-Operator `\w` gesucht wird. 
-
-"Gebe URLs zurück!"
-
-```{r}
-str_extract_all(string, "https?://[:graph:]+")
-```
-
-Das Fragezeichen `?` ist eine Quantitätsoperator, der einen Treffer liefert, wenn das vorherige Zeichen (hier *s*) null oder einmal gefunden wird. `[:graph:]` ist die Summe von `[:alpha:]` (Buchstaben, groß und klein), `[:digit:]` (Ziffern) und `[:punct:]` (Satzzeichen u.ä.).
-
-"Zähle die Wörter im String!"
-
-```{r}
-str_count(string, boundary("word"))
-```
-
-
-"Liefere nur Buchstaben*folgen* zurück, lösche alles übrige"
-
-```{r}
-str_extract_all(string, "[:alpha:]+")
-```
-
-Der Quantitätsoperator `+` liefert alle Stellen zurück, in denen der gesuchte Ausdruck *einmal oder häufiger*  vorkommt. Die Ergebnisse werden als Vektor von Wörtern zurückgegeben. Ein anderer Quantitätsoperator ist `*`, der für 0 oder mehr Treffer steht. Möchte man einen Vektor, der aus Stringen-Elementen besteht zu einem Strring zusammenfüngen, hilft `paste(string)` oder `str_c(string, collapse = " ")`.
-
-```{r}
-str_replace_all(string, "[^[:alpha:]+]", "")
-```
-
-Mit dem Negationsoperator `[^x]` wird der Regulärausrck `x` negiert; die Syntax oben heißt also "ersetze in `string` alles außer Buchstaben durch Nichts". Mit "Nichts" sind hier Strings der Länge Null gemeint; ersetzt man einen belieibgen String durch einen String der Länge Null, so hat man den String gelöscht.
-
-Das Cheatsheet zur Strings bzw zu `stringr` von RStudio gibt einen guten Überblick über Regex; im Internet finden sich viele Beispiele.
-
-
-
-## Sentiment-Analyse
-Eine weitere interessante Analyse ist, die "Stimmung" oder "Emotionen" (Sentiments) eines Textes auszulesen. Die Anführungszeichen deuten an, dass hier ein Maß an Verständnis suggeriert wird, welches nicht (unbedingt) von der Analyse eingehalten wird. Jedenfalls ist das Prinzip der Sentiment-Analyse im einfachsten Fall so: 
-
-
-
-```{block2, sentiment-pseudocode, type='rmdpseudocode', echo = TRUE}
-Schau dir jeden Token aus dem Text an.  
-Prüfe, ob sich das Wort im Lexikon der Sentiments wiederfindet.  
-Wenn ja, dann addiere den Sentimentswert dieses Tokens zum bestehenden Sentiments-Wert.  
-Wenn nein, dann gehe weiter zum nächsten Wort.  
-Liefere zum Schluss die Summenwerte pro Sentiment zurück.  
-
-```
-
-
-     
-Es gibt Sentiment-Lexika, die lediglich einen Punkt für "positive Konnotation" bzw. "negative Konnotation" geben; andere Lexiko weisen differenzierte Gefühlskonnotationen auf. Wir nutzen hier das Sentimentlexikon `sentiws`. 
-
-
-
-
-```{r parse-sentiment-dics}
-data(sentiws, package = "pradadata")
-```
-
-Tabelle \@ref(tab:afd_count) zeigt einen Ausschnitt aus dem Sentiment-Lexikon *SentiWS*.
-
-```{r sentiws-head, echo = FALSE}
-knitr::kable(head(sentiws), caption = "Auszug aus SentiwS")
-```
-
-### Ungewichtete Sentiment-Analyse
-Nun können wir jedes Token des Textes mit dem Sentiment-Lexikon abgleichen; dabei zählen wir die Treffer für positive bzw. negative Terme. Zuvor müssen wir aber noch die Daten (`afd_long`) mit dem Sentimentlexikon zusammenführen (joinen). Das geht nach bewährter Manier mit `inner_join`; "inner" sorgt dabei dafür, dass nur Zeilen behalten werden, die in beiden Dataframes vorkommen. Tabelle \@ref(tab:afd_senti_tab) zeigt Summe, Anzahl und Anteil der Emotionswerte.
-
-```{r}
-afd_long %>% 
-  inner_join(sentiws, by = c("token" = "word")) %>% 
-  select(-inflections) -> afd_senti  # die Spalte brauchen wir nicht
-
-afd_senti %>% 
-  group_by(neg_pos) %>% 
-  summarise(polarity_sum = sum(value),
-            polarity_count = n()) %>% 
-  mutate(polarity_prop = (polarity_count / sum(polarity_count)) %>% round(2)) -> afd_senti_tab
-```
-
-```{r afd_senti_tab, echo = FALSE}
-knitr::kable(afd_senti_tab, caption = "Zusammenfassung von SentiWS")
-```
-
-
-Die Analyse zeigt, dass die emotionale Bauart des Textes durchaus interessant ist: Es gibt viel mehr positiv getönte Wörter als negativ getönte. Allerdings sind die negativen Wörter offenbar deutlich stärker emotional aufgeladen, dennn die Summe an Emotionswert der negativen Wörter ist überraschenderweise deutlich größer als die der positiven.
-
-Betrachten wir also die intensivsten negativ und positive konnotierten Wörter näher.
-
-```{r}
-afd_senti %>% 
-  distinct(token, .keep_all = TRUE) %>% 
-  mutate(value_abs = abs(value)) %>% 
-  top_n(20, value_abs) %>% 
-  pull(token)
-```
-
-Diese "Hitliste" wird zumeist (19/20) von negativ polarisierten Begriffen aufgefüllt, wobei "besonders" ein Intensivierwort ist, welches das Bezugswort verstärt ("besonders gefährlich"). Das Argument `keep_all = TRUE` sorgt dafür, dass alle Spalten zurückgegeben werden, nicht nur die durchsuchte Spalte `token`. Mit `pull` haben wir aus dem Dataframe, der von den dplyr-Verben überwegeben wird, die Spalte `pull` "herausgezogen"; hier nur um Platz zu sparen bzw. der Übersichtlichkeit halber.
-
-
-     
-Nun könnte man noch den erzielten "Netto-Sentimentswert" des Corpus ins Verhältnis setzen Sentimentswert des Lexikons: Wenn es insgesamt im Sentiment-Lexikon sehr negativ zuginge, wäre ein negativer Sentimentwer in einem beliebigen Corpus nicht überraschend. `skimr::skim()` gibt uns einen Überblick der üblichen deskriptiven Statistiken.
-     
-
-```{r eval = FALSE}
-sentiws %>% 
-  select(value, neg_pos) %>% 
-  #group_by(neg_pos) %>% 
-  skim()
-```
-
-Insgesamt ist das Lexikon ziemlich ausgewogen; negative Werte sind leicht in der Überzahl im Lexikon. Unser Corpus hat eine ähnliche mittlere emotionale Konnotation wie das Lexikon:
-
-```{r}
-afd_senti %>% 
-  summarise(senti_sum = mean(value) %>% round(2))
-```
-
 
 
 

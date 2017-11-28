@@ -1,0 +1,139 @@
+---
+title: Get your stats result in a table easily
+author: Sebastian Sauer
+draft: TRUE
+date: '2017-11-21'
+slug: get-your-stats-result-in-a-table-easily
+categories:
+  - rstats
+tags:
+  - rstats
+  - writing
+---
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+
+```
+
+Having computed some staticis, one would like to display them. Either in a figure, on in a table, that's the two typical ways.
+
+Let's explore some helper functions to get your stats to a table easily.
+
+A nice overview on packages can be found [here](https://stackoverflow.com/questions/5465314/tools-for-making-latex-tables-in-r).
+
+Let's have a quick glance at these steps. We will use the dataset `flights` of the package `nycflights13`.
+
+```{r}
+data(flights, package = "nycflights13")
+```
+
+
+This post will be tidyverse-driven:
+
+```{r}
+library(tidyverse)
+library(skimr)
+```
+
+Let's shorten the dataset:
+
+```{r}
+flights %>% 
+  select(air_time, distance, arr_delay) %>% 
+  sample_n(1000) -> flights_short
+```
+
+Let's compute a summary:
+
+
+
+```{r}
+mosaic::favstats(~arr_delay, data = flights_short)
+```
+
+
+# Descriptive statistics
+
+## `ApaTables` ad `apaStyle`
+
+A number of suitables packages exist, for example, checkout `apaTables`, `apaStyle`, or `xtable`.
+
+ See:
+```{r eval = FALSE}
+apaStyle::apa.descriptives(data = flights[c("arr_delay", "distance")],
+                           variables = c("arr_delay", "distance"))
+```
+
+With the result: "Word document succesfully generated in: /Users/sebastiansauer/Documents/RRRing/data_se"
+
+
+## `kable`
+
+```{r}
+library(knitr)
+```
+
+```{r}
+kable
+```
+
+
+
+
+## `xtable`
+Remember to use the chunk option `results = "asis"`.
+
+```{r}
+library(xtable)
+```
+
+
+```{r results = "asis"}
+options(xtable.comment = FALSE)  # prevent verbose comments
+flights_short %>% 
+  head %>% 
+  xtable %>% 
+  print(type = "html")
+```
+
+
+
+
+## `stargazer`
+Remember to use the chunk option `results = "asis"`.
+
+```{r}
+library(stargazer)
+```
+
+
+```{r results = "asis"}
+flights_short %>% 
+  skim %>% 
+  stargazer(type = "html")
+```
+
+
+# Linear models
+
+```{r}
+lm1 <- lm(arr_delay ~ origin + distance, data = flights)
+```
+
+```{r results = "asis"}
+stargazer(lm1, type = "html")
+```
+
