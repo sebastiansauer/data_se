@@ -57,7 +57,7 @@ The dating portal allowed for checking for "matches", defined were both individu
 
 
 
-![]({{ site.url }}/images/experimental_setup.png)
+![](/images/experimental_setup.png)
 <div>Man icon made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="http://www.flaticon.com" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
 Car icon made by [IconShow](http://www.iconshow.de) is licenced for non-commercial use.
 

@@ -92,7 +92,7 @@ How can one get a more intuitive understanding of d?
 
 A first step is to recognize that the two distributions overlap less if d gets larger.
 
-![]({{ site.url }}/images/cohend.png)
+![](/images/cohend.png)
 
 As a sidenote: The size of the overlap can be computed quite easily:
 

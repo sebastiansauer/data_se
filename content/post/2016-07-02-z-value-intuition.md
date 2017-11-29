@@ -27,11 +27,11 @@ pnorm(2)
 
 Here, R tells us that approx. 98% of all individuals have an IQ that is smaller than that of Dr. Zack. Lucky guy! Compare the figure.
 
-![]({{ site.url }}/images/pnorm_2.png)
+![](/images/pnorm_2.png)
 
 Here an overview on some frequently used quantiles of the normal distribution:
 
-![]({{ site.url }}/images/quantiles.png)
+![](/images/quantiles.png)
 
  
 

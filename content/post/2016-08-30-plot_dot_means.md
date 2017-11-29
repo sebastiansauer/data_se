@@ -52,7 +52,7 @@ tips2 %>%
   geom_text(aes(x = smoker, y = mean_group + 0.03))
 ```
 
-![]({{ site.url }}/images/2016-08-30-05.png)
+![](/images/2016-08-30-05.png)
 
 The whole syntax can be accessed at [Github](https://gist.github.com/sebastiansauer/f555d57dfc91c1de0be04ac256928b58).
 

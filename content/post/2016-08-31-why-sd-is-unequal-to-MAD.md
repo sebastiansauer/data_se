@@ -91,7 +91,7 @@ $$ a^2 + b^2 \ne (a+b)^2 = a^2 + 2ab + b^2$$
 
 A helpful visualization is this:
 
-![visulization of binomial theorem]({{ site.url }}/images/2016-08-31-01.png).
+![visulization of binomial theorem](/images/2016-08-31-01.png).
 
 This scheme makes clear that the difference between the left hand side and the 
 right hand side are the two green marked areas. Both are $$ab$$, so $$2ab$$ in 
@@ -122,7 +122,7 @@ Now we have again a similar situation as above. The difference being that on the
 
 As a final step, let's visualize the thoughts of the previous lines.
 
-![]({{ site.url }}/images/2016-08-31-02.png)
+![](/images/2016-08-31-02.png)
 
 What this amazing forest of crossing lines wants to tell you is the following. For the left hand side, the diagonal lines divide $$a^2$$ and $$b^2$$ in two parts of equal size, i.e., $$a^2/2$$ and $$b^2/2$$.
 

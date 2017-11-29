@@ -72,7 +72,7 @@ unit: `{r fig1, fig.height = 3, fig.width = 5}`.
 plot(pressure) 
 ```
 
-![plot of chunk fig1]({{ site.url }}/images/2016-11-02/figure/fig1-1.png)
+![plot of chunk fig1](/images/2016-11-02/figure/fig1-1.png)
 
 
 For a plot of different size, change simple the numbers: `{r fig2, fig.height = 3, fig.width = 3, fig.align = "center"}`.

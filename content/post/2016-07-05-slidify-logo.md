@@ -20,7 +20,7 @@ Check [this tutorial](http://slidify.github.io/) out as a starter.
 
 Basically, slidify procudes a website:
 
-![]({{ site.url }}/images/slidify.png)
+![](/images/slidify.png)
 
 While it is quite straight forward to write up your slidify presentations, some customization is a bit more of a hassle.
 
@@ -63,11 +63,11 @@ Done!
 
 Two changes will now take place. First, you will have a logo page, where nothing but your logo will show up (biglogo.png):
 
-![]({{ site.url }}/images/logo_page.png)
+![](/images/logo_page.png)
 
 Second, a following page, the title page, will also show you logo (logo.png), but smaller and with a little animation (in the default):
 
-![]({{ site.url }}/images/logo_page2.png)
+![](/images/logo_page2.png)
 
 Note that there are a number of other variables that you can define in the YAML header.
 
@@ -77,7 +77,7 @@ Now, a little more fancy. What about a cool background image on your first page?
 
  
 
-![]({{ site.url }}/images/title_bg_pic.png)
+![](/images/title_bg_pic.png)
 
 So what did I do?
 
@@ -160,7 +160,7 @@ Now, we have to save this file under [project folder]/assets/layouts.
 
 The name does not matter; any html-file in this folder will be parsed by slidify. Here come the header with logo:
 
-![]({{ site.url }}/images/logo_header.png)
+![](/images/logo_header.png)
 
 You can adapt size and position of the logo with the img html function.
 

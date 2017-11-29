@@ -144,7 +144,7 @@ ggplot(r2s, aes(x = reorder(names, r.squared), y = r.squared)) +
   ggtitle("Explained variance per predictor from simple regressions")
 ```
 <center>
-<img src="{{ site.url }}/images/2016-09-23/unnamed-chunk-4-1.png">
+<img src="/images/2016-09-23/unnamed-chunk-4-1.png">
 </center>
 
 

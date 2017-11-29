@@ -26,7 +26,7 @@ ggplot(NULL, aes(c(-3,3))) +
   geom_area(stat = "function", fun = dnorm, fill = "grey80", xlim = c(0, 3))
 ```
 
-![plot of chunk unnamed-chunk-1]({{ site.url }}/images/2017-08-29/unnamed-chunk-1-1.png)
+![plot of chunk unnamed-chunk-1](/images/2017-08-29/unnamed-chunk-1-1.png)
 
 Simple, right?
 
@@ -43,7 +43,7 @@ Some minor beautification:
   scale_x_continuous(breaks = 1)
 ```
 
-![plot of chunk unnamed-chunk-2]({{ site.url }}/images/2017-08-29/unnamed-chunk-2-1.png)
+![plot of chunk unnamed-chunk-2](/images/2017-08-29/unnamed-chunk-2-1.png)
 
 
 
@@ -60,7 +60,7 @@ ggplot(NULL, aes(c(-3,3))) +
   scale_x_continuous(breaks = 1.65)
 ```
 
-![plot of chunk unnamed-chunk-3]({{ site.url }}/images/2017-08-29/unnamed-chunk-3-1.png)
+![plot of chunk unnamed-chunk-3](/images/2017-08-29/unnamed-chunk-3-1.png)
 
 ```r
 ggplot(NULL, aes(c(-3,3))) +
@@ -71,4 +71,4 @@ ggplot(NULL, aes(c(-3,3))) +
   scale_x_continuous(breaks = 2)
 ```
 
-![plot of chunk unnamed-chunk-3]({{ site.url }}/images/2017-08-29/unnamed-chunk-3-2.png)
+![plot of chunk unnamed-chunk-3](/images/2017-08-29/unnamed-chunk-3-2.png)

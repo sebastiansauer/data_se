@@ -14,7 +14,7 @@ What is “data cleansing” about?
 
 Data analysis, in practice, consists typically of some different steps which can be subsumed as “preparing data” and “model data” (not considering communication here):
 
-![]({{ site.url }}/images/data_science_process.png)
+![](/images/data_science_process.png)
 
 (Inspired by [this](http://r4ds.had.co.nz/introduction-1.html))
 
@@ -43,4 +43,4 @@ You can read the full post including source code [here](http://r4ds.had.co.nz/in
 
 Example: Analyse missing values
 
-![]({{ site.url }}/images/data-cleansing.png)
+![](/images/data-cleansing.png)

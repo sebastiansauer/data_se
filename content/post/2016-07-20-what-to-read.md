@@ -14,7 +14,7 @@ Lesezeit/reading time: 10-15 Min.
 
 Literaturempfehlung Sommer 2016
 
-![]({{ site.url }}/images/IMG-read.jpg)
+![](/images/IMG-read.jpg)
 
 ## Was soll ich lesen?
 

@@ -190,7 +190,7 @@ Affairs %>%
   ylab("p value")
 ```
 
-![output]({{ site.url }}/images/purrr_1.png)
+![output](/images/purrr_1.png)
 
 
 

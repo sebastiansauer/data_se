@@ -78,7 +78,7 @@ ggplot(sprinters, aes(x = ranking, y = ranking)) + geom_point(color = "red", siz
   scale_y_continuous(breaks = 1:10)
 ```
 
-![]({{ site.url }}/images/2016-09-07-01.png)
+![](/images/2016-09-07-01.png)
 
 
 But the running times clearly are not:
@@ -90,7 +90,7 @@ ggplot(sprinters, aes(x = ranking, y = time)) + geom_point(color = "red", size =
   scale_x_continuous(breaks = 1:10)
 ```
 
-![]({{ site.url }}/images/2016-09-07-02.png)
+![](/images/2016-09-07-02.png)
 
 ## Enough values = metric level?
 Some say (sorry, did not find a citation, but one of my teachers said so!) that if there are "enough" values, the variable becomes "automagically" metric. I cannot see why this must necessarily happen. Suppose we would not have 10 but 100 sprinters; the picture and the argument would in essence remain the same. Equidistance will not necessarily pop out. It *may* by chance occur, but it is not a necessity (by far not).
@@ -168,7 +168,7 @@ ggplot(df_long, aes(x = variable, y = value)) + geom_point() +
   geom_line(aes(group = ID))
 ```
 
-![]({{ site.url }}/images/2016-09-07-03.png)
+![](/images/2016-09-07-03.png)
 
 
 As can be seen in the diagram above, the lines are *not* intersecting. So the ordinal association measures should be (close to) 1. Actually, we have some ties, that's why our measures (Spearman, Kendall) are not perfectly one. Note that the raw value are depicted.
@@ -186,7 +186,7 @@ ggplot(df_z_long, aes(x = variable, y = value)) + geom_point() +
   geom_line(aes(group = ID))
 ```
 
-![]({{ site.url }}/images/2016-09-07-04.png)
+![](/images/2016-09-07-04.png)
 
 Perfect correlations amounts to horizontal lines in our diagram (remember that z-values are used instead of raw values.) Now let's look at our example data in the next step.
 
@@ -203,7 +203,7 @@ ggplot(df_z_long, aes(x = variable, y = value)) + geom_point() +
   geom_line(aes(group = ID))
 ```
 
-![]({{ site.url }}/images/2016-09-07-05.png)
+![](/images/2016-09-07-05.png)
 
 The lines are *far* from being horizontal. The z-values are quite different between the two variables as can be seen in the diagram. But still, Pearson's r is very high. We must infer that *strong ordinal assocation* is enough to get r really high.
 

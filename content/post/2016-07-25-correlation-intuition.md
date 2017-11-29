@@ -47,7 +47,7 @@ data(tips, package = "reshape2")
  plot.title = element_text(size = rel(4))))
 ```
 
-![]({{ site.url }}/images/corr1.png)
+![](/images/corr1.png)
 
 
 
@@ -101,7 +101,7 @@ data_df_1 <- data.frame(data_1)
 cor.rect.plot(y = data_df_1$X1, x = data_df_1$X2)
 ```
 
-![]({{ site.url }}/images/corr2.png)
+![](/images/corr2.png)
 
 
 We see that the average red rectangle appears roughly the average blue rectangle. Now, the red rectangle have a positive sign (+), whereas the blue ones have a negative sign.
@@ -129,14 +129,14 @@ data_df_2 <- data.frame(data_2)
 cor.rect.plot(y = data_df_2$X1, x = data_df_2$X2)
 ```
 
-![]({{ site.url }}/images/corr3.png)
+![](/images/corr3.png)
 
 
 
 
 The "averaging rectangles process" can be visualized like this:
 
-![]({{ site.url }}/images/mean_rectangle.png)
+![](/images/mean_rectangle.png)
 
 Sum up the value (area) of the deviation rectangles. Then divide by the number of rectangles to get the average rectangle (or average value). This value is the covariance (if you started with raw values). Or the correlation, if you started with z-values.
 

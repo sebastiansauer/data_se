@@ -11,7 +11,7 @@ slug: openscience
 
 I just attended the biannual [conference of the German society of psychology (DPGs)](http://www.dgpskongress.de) in Leipzig; [open science](https://en.wikipedia.org/wiki/Open_science) was a central, albeit not undisputed topic; a lot of interesting related [twitter discussion](https://twitter.com/hashtag/DPGs2016?src=hash). 
 
-<img src="{{ site.url }}/images/2016-09-22/2016-09-22-01.jpg" width="200">
+<img src="/images/2016-09-22/2016-09-22-01.jpg" width="200">
 
 image source: [Felix Schönbrodt](https://twitter.com/nicebread303)
 

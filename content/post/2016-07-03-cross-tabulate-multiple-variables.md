@@ -112,7 +112,7 @@ Wage %>%
   facet_wrap(~health)
 ```
 
-![]({{ site.url }}/images/cross-tabulate-1.png)
+![](/images/cross-tabulate-1.png)
 
 
 

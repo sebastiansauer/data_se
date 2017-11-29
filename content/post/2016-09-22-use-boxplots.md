@@ -47,7 +47,7 @@ Fair %>%
   theme_minimal()
 ```
 
-![plot of chunk unnamed-chunk-1]({{ site.url }}/images/2016-09-22-01/unnamed-chunk-1-1.png)
+![plot of chunk unnamed-chunk-1](/images/2016-09-22-01/unnamed-chunk-1-1.png)
 
 
 As can be seen, the distribution information reveals some more insight than bare means: There appear to be three distinct groups of "side lookers" (persons having extramarital relations).
@@ -65,6 +65,6 @@ Fair %>%
   ggtitle("Mean value difference in extramarital affairs between sexes")
 ```
 
-![plot of chunk unnamed-chunk-2]({{ site.url }}/images/2016-09-22-01/unnamed-chunk-2-1.png)
+![plot of chunk unnamed-chunk-2](/images/2016-09-22-01/unnamed-chunk-2-1.png)
 
 

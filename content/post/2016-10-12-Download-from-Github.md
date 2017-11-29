@@ -19,7 +19,7 @@ ___
 
 The big, green button saying "Clone or download", click it and choose "download zip".
 
-![]({{ site.url }}/images/2016-10-12/download_repo.png)
+![](/images/2016-10-12/download_repo.png)
 
 Of course, for those using [Git](https://www.google.de/webhp?sourceid=chrome-instant&rlz=1C5CHFA_enDE701DE701&ion=1&espv=2&ie=UTF-8#q=git) and [Github](https://github.com/), it would be appropriate to clone the repository. And, although appearing more advanced, cloning has the definitive advantage that you'll enjoy the whole of the Github features. In fact, the whole purpose of Github is to provide a history of the file(s), so the purpose is not really served if one just downloads the most recent snapshot. But anyhow, that depends on you own will.
 
@@ -85,7 +85,7 @@ Let's quickly deconstruct the url above from Github. In general, we need to writ
 
 In many cases, the branch will be "master". You can easily find out about that one the page of the repo you wanna download:
 
-![]({{ site.url }}/images/2016-10-12/branch.png)
+![](/images/2016-10-12/branch.png)
 
 
 

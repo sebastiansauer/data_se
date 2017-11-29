@@ -45,7 +45,7 @@ p1 <- ggplot(data = data.frame(x = c(-3, 3)), aes(x)) +
 p1
 ```
 
-![]({{ site.url }}/images/2016-08-30-01.png)
+![](/images/2016-08-30-01.png)
 
 
 Note that `cowplot` here is optional, and gives a more "clean" appearance to the plot. Without `cowplot`, ie., the standard theme of ggplot2, you will get (better restart your R session before running the next code):
@@ -62,6 +62,6 @@ p1 <- ggplot(data = data.frame(x = c(-3, 3)), aes(x)) +
 p1
 ```
 
-![]({{ site.url }}/images/2016-08-30-02.png)
+![](/images/2016-08-30-02.png)
 
 

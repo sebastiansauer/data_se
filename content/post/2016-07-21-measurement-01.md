@@ -26,7 +26,7 @@ One reason of this posited neglect is that methodology is assumed to be missing,
 It is beyond the scope of this article to describe this theory; rather, I would like to demonstrate that metric level cannot be taken for granted. Again, example and intuition based!
 
  
-![]({{ site.url }}/images/scale1.png)
+![](/images/scale1.png)
 
  
 
@@ -34,7 +34,7 @@ Imagine four students (Anna, Berta, Carla, Dora) probing some math test. Anna so
 
 So, let’s look at metric level next. Let’s stick to interval level; ratio level appears out of question for many a psychological variable.
 
-![]({{ site.url }}/images/scale2.png)
+![](/images/scale2.png)
 
  
 
@@ -48,7 +48,7 @@ One may argue that the differences could be more or less equal, so that the erro
 
 Just as there are optimistic voices about measurement in psychology ("hey no worries, it just works, no need to check") there are pessimistic voices as well ("there is no quantitative measurement in psychology, just not possible"), see e.g. [Guenter Trendler](http://tap.sagepub.com/content/19/5/579.short). For example, one could ask whether psychometric variables possess nominal or ordinal level. Consider this example:
 
-![]({{ site.url }}/images/scale3.png)
+![](/images/scale3.png)
 
 Carla has solved three items ($X_B = 3$) whereas Berta has only solved two ($X_A=2$); one less than Carla. Following the reasoning above, we conclude that Carla exhibits a higher ability compared to Berta.
 

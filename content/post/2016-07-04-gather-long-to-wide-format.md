@@ -14,7 +14,7 @@ A quite common task in data analysis is to change a dataset from wide to long fo
 For example, this is a dataset in wide format:
 
  
-![]( {{ site.url }}/images/gatherwide.png)
+![]( /images/gatherwide.png)
 
 Is is called wide, as, well, it is wide – several columns side by side.
 
@@ -22,7 +22,7 @@ For example, assume, we have measured a number of predictors (here: predictor_1,
 
 For plotting, eg. using [ggplot2](http://ggplot2.org), we have to convert this format to long format. Long datasets look like this:
 
-![]( {{ site.url }}/images/gather_long.png)
+![]( /images/gather_long.png)
 
 So, non really surprising, the dataset is now longer than in wide format. Hence the name…
 
@@ -32,11 +32,11 @@ We easily see that the variable outcome was not paired. Before and after the con
 
 Let’s visualize this transformation. First, we look at the transformation of the values:
 
-![]({{ site.url }}/images/gather_values.png)
+![](/images/gather_values.png)
 
 Second, let’s look at the transformation of the keys (column headers), and the outcome variable, which will not be paires (remains in its own, complete, tidy column):
 
-![]({{ site.url }}/images/gather_keys.png)
+![](/images/gather_keys.png)
 
  
 
@@ -64,7 +64,7 @@ Wage %>%
 ## be dropped
 ```
 
-![]( {{ site.url }}/images/gather1.png)
+![]( /images/gather1.png)
 
 
 

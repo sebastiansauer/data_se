@@ -83,7 +83,7 @@ library(tibble)
 ggplot(tibble(x, y), aes(x = x, y = y)) + geom_point(alpha = .5)
 ```
 
-![]({{ site.url }}/images/perfect_correlation_raw.png)
+![](/images/perfect_correlation_raw.png)
 
 
 
@@ -98,7 +98,7 @@ df1 <- tibble(z_x, z_y)
 ggplot(df1, aes(x = z_x, y = z_y)) + geom_point(alpha = .5)
 ```
 
-![]({{ site.url }}/images/perfect_correlation_z.png)
+![](/images/perfect_correlation_z.png)
 
 The difference is that mean X and meany Y is both zero, and SD for both X and Y is 1, so the scaling has changed (the line has a gradient of 1 now).
 
