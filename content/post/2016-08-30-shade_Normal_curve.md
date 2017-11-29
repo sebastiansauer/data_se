@@ -93,7 +93,9 @@ p1a <- ggplot(MyDF, aes(x = x, y = y)) + geom_line() +
 p1a
 ```
 
-![]({{ site.url }}/images/2016-08-30-03.png)
+![](/images/2016-08-30-03.png)
+
+
 
 OK. Another nice feature would be have printed the cumulative percentages for each shaded segment.
 
@@ -127,4 +129,4 @@ p1a + geom_text(data = MyDF_filtered,
                aes(x = x, xend = x, y = 0, yend = y), linetype = "dashed")
 ```
 
-![]({{ site.url }}/images/2016-08-30-04.png)
+![](/images/2016-08-30-04.png)
