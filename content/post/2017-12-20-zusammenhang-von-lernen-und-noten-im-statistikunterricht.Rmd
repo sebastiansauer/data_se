@@ -1,0 +1,93 @@
+---
+title: Zusammenhang von Lernen und Noten im Statistikunterricht
+author: Sebastian Sauer
+date: '2017-12-20'
+slug: zusammenhang-von-lernen-und-noten-im-statistikunterricht
+categories:
+  - rstats
+  - teaching
+tags:
+  - rstats
+  - teaching
+  - German
+  - plotting
+---
+
+```{r knitr_setup, echo = FALSE}
+source("~/Documents/RRRing/funs/_common.R")
+#file.exists("~/Documents/RRRing/funs/_common.R")
+```
+
+
+Führt Lernen zu besseren Noten? Eigene Erfahrung und allgemeiner Konsens stimmen dem zu; zumindest schadet Lernen des Stoffes nicht und hilft oft, gute Noten bei einer Prüfung zu diesem Stoff zu erzielen. Aber welche *Belege*, *wissenschaftliche* Belege gibt es dazu? An unserer Hochschule, die FOM, haben wir eine kleine Untersuchung zu dieser Frage durchgeführt. Genauer gesagt haben wir unseren Studierenden einen Statistik-Test vorlegt und gefagt, wie sehr sie sich für diesen Test vorbereitet hätten. Den Zusammenhang dieser beiden Größe haben wir dann ausgewertet; die folgende Abbildung zeigt das Ergebnis:
+
+```{r out.width = "100%"}
+data(stats_test, package = "pradadata")
+
+library(tidyverse)
+
+stats_test %>% 
+  select(bestanden, study_time, score) %>% 
+  na.omit() %>% 
+  ggplot(aes(x = factor(study_time), y = score)) +
+  geom_jitter(aes(color = bestanden), alpha = .56) +
+  geom_boxplot(alpha = .7) +
+  geom_smooth(aes(group = 1), method = "lm", se = FALSE) +
+  theme(legend.position = "bottom") +
+  labs(y = "Prozent richtiger Lösungen",
+       x = "Lernaufwand",
+       title = "Mehr Lernen, bessere Noten",
+       subtitle = "Der Zusammenhang von Lernzeit und Klausurerfolg in der Statistik",
+       caption = paste0("n = ", nrow(stats_test), " Studenten"))
+```
+
+
+```{r}
+stats_test %>% 
+  filter(study_time %in% 1:5) %>%
+  select(study_time, score) %>% 
+  drop_na() %>% 
+  cor()
+```
+
+
+Eine starke Korrelation von $r=.41$! Das geht jedem Dozenten runter wie Öl ...
+
+
+Umgekehrt gefragt: Diejenigen, die bestanden haben, haben die mehr gelernt?
+
+```{r}
+library(viridis)
+stats_test %>% 
+  drop_na(bestanden, score, study_time) %>% 
+  ggplot(aes(x = bestanden, y = study_time)) +
+  geom_boxplot(width = .5) +
+  geom_point(aes(color = study_time),
+             position = "jitter",
+             alpha = .8) +
+  scale_color_viridis()
+```
+
+
+Man sieht, dass der Anteil der "Viellerner" (gelb, grün) bei der Gruppe `bestanden == "ja"` größer ist.
+
+Stellen wir die obige Grafik noch einmal anders dar:
+
+```{r}
+stats_test %>% 
+  drop_na(bestanden, score, study_time) %>% 
+  ggplot(aes(fill = bestanden, x = study_time)) +
+  geom_bar(position = "fill") +
+  scale_fill_viridis(discrete = TRUE)
+```
+
+Das Diagramm spricht für sich: Der Anteil der Durchfaller (gelb) sinkt deutlich, wenn die Lernzeit steigt.
+
+# Fazit
+
+>   You life, you learn.  
+
+
+
+
+![](https://imgflip.com/i/21ewbd)

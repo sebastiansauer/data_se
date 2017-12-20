@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Zusammenhang von Lernen und Noten im Statistikunterricht - Data Se</title>
+<meta property="og:title" content="Zusammenhang von Lernen und Noten im Statistikunterricht - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">Zusammenhang von Lernen und Noten im Statistikunterricht</h1>
+
+    
+    <span class="article-date">2017/12/20</span>
+    
+
+    <div class="article-content">
+      <p>Führt Lernen zu besseren Noten? Eigene Erfahrung und allgemeiner Konsens stimmen dem zu; zumindest schadet Lernen des Stoffes nicht und hilft oft, gute Noten bei einer Prüfung zu diesem Stoff zu erzielen. Aber welche <em>Belege</em>, <em>wissenschaftliche</em> Belege gibt es dazu? An unserer Hochschule, die FOM, haben wir eine kleine Untersuchung zu dieser Frage durchgeführt. Genauer gesagt haben wir unseren Studierenden einen Statistik-Test vorlegt und gefagt, wie sehr sie sich für diesen Test vorbereitet hätten. Den Zusammenhang dieser beiden Größe haben wir dann ausgewertet; die folgende Abbildung zeigt das Ergebnis:</p>
+<pre class="r"><code>data(stats_test, package = &quot;pradadata&quot;)
+
+library(tidyverse)
+
+stats_test %&gt;% 
+  select(bestanden, study_time, score) %&gt;% 
+  na.omit() %&gt;% 
+  ggplot(aes(x = factor(study_time), y = score)) +
+  geom_jitter(aes(color = bestanden), alpha = .56) +
+  geom_boxplot(alpha = .7) +
+  geom_smooth(aes(group = 1), method = &quot;lm&quot;, se = FALSE) +
+  theme(legend.position = &quot;bottom&quot;) +
+  labs(y = &quot;Prozent richtiger Lösungen&quot;,
+       x = &quot;Lernaufwand&quot;,
+       title = &quot;Mehr Lernen, bessere Noten&quot;,
+       subtitle = &quot;Der Zusammenhang von Lernzeit und Klausurerfolg in der Statistik&quot;,
+       caption = paste0(&quot;n = &quot;, nrow(stats_test), &quot; Studenten&quot;))</code></pre>
+<p><img src="/post/2017-12-20-zusammenhang-von-lernen-und-noten-im-statistikunterricht_files/figure-html/unnamed-chunk-1-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>stats_test %&gt;% 
+  filter(study_time %in% 1:5) %&gt;%
+  select(study_time, score) %&gt;% 
+  drop_na() %&gt;% 
+  cor()
+#&gt;            study_time     score
+#&gt; study_time  1.0000000 0.4125879
+#&gt; score       0.4125879 1.0000000</code></pre>
+<p>Eine starke Korrelation von <span class="math inline">\(r=.41\)</span>! Das geht jedem Dozenten runter wie Öl …</p>
+<p>Umgekehrt gefragt: Diejenigen, die bestanden haben, haben die mehr gelernt?</p>
+<pre class="r"><code>library(viridis)
+stats_test %&gt;% 
+  drop_na(bestanden, score, study_time) %&gt;% 
+  ggplot(aes(x = bestanden, y = study_time)) +
+  geom_boxplot(width = .5) +
+  geom_point(aes(color = study_time),
+             position = &quot;jitter&quot;,
+             alpha = .8) +
+  scale_color_viridis()</code></pre>
+<p><img src="/post/2017-12-20-zusammenhang-von-lernen-und-noten-im-statistikunterricht_files/figure-html/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Man sieht, dass der Anteil der “Viellerner” (gelb, grün) bei der Gruppe <code>bestanden == &quot;ja&quot;</code> größer ist.</p>
+<p>Stellen wir die obige Grafik noch einmal anders dar:</p>
+<pre class="r"><code>stats_test %&gt;% 
+  drop_na(bestanden, score, study_time) %&gt;% 
+  ggplot(aes(fill = bestanden, x = study_time)) +
+  geom_bar(position = &quot;fill&quot;) +
+  scale_fill_viridis(discrete = TRUE)</code></pre>
+<p><img src="/post/2017-12-20-zusammenhang-von-lernen-und-noten-im-statistikunterricht_files/figure-html/unnamed-chunk-4-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Das Diagramm spricht für sich: Der Anteil der Durchfaller (gelb) sinkt deutlich, wenn die Lernzeit steigt.</p>
+<div id="fazit" class="section level1">
+<h1>Fazit</h1>
+<blockquote>
+<p>You life, you learn.</p>
+</blockquote>
+<p><img src="https://imgflip.com/i/21ewbd" /></p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+
