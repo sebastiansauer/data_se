@@ -1,7 +1,7 @@
 ---
 title: Simulate p-hacking - adding observations
 author: Sebastian Sauer
-draft: true
+draft: FALSE
 date: '2018-01-24'
 slug: simulate-p-hacking-adding-observations
 categories:
@@ -12,32 +12,91 @@ tags:
   - p-hacking
 ---
 
-Let's simulate p-values as a funtion of sample size. We assume that some researcher collects one data point, computes the p-value, and repeats until p-value falls below some arbitrary threshold. Oh and yes, there is no real effect.
+Let's simulate p-values as a funtion of sample size. We assume that some researcher collects one data point, computes the p-value, and repeats until p-value falls below some arbitrary threshold. Oh and yes, there is no real effect. For the sake of spending the budget, assume that our researcher collects a sample size of $n=100$.
+
+This idea stems from this great article [False-Positive Psychology: Undisclosed Flexibility in Data Collection and Analysis Allows Presenting Anything as Significant](http://journals.sagepub.com/doi/abs/10.1177/0956797611417632); cf. Figure 2. However, source coude is not given and the right to reprint is confined (AFAIK).
 
 
 ```{r}
 library(tidyverse)
+library(plotly)
 ```
+
+
+
+Next we create data:
+
+```{r}
+df <- data_frame(
+  ID = 10:100
+)
+
+```
+
+
+What we've done here is to simulate 100 samples, where each sample is the previous plus the next observation added (first observation is ID 1).
+
+However, maybe it is simpler if we build up a list column data frame, then we can use this column for the t-test:
+
+```{r}
+
+df %>% 
+  mutate(value_vec = ID %>%  map(~rnorm(n = ., mean = 0, sd = 1))) -> df
+
+```
+
+
+
+Let's glance at this column whethe it has worked out:
 
 
 ```{r}
-inc_data <- function(data){
-  if (length(data) == 0) {
-    out_data <- rnorm(n = 1, mean = 0, sd = 1)
-  } else {
-    out_data <- c(data, rnorm(n = 1, mean = 0, sd = 1))
-  }
-}
-
-
+df$value_vec[1]
+df$value_vec[2]
+df$value_vec[3]
 ```
 
+OK. Now we can compute a statistic test, let's take the t-test, test against zero, two-sided, $\alpha = .05$.
 
-
-Initital data point:
 
 ```{r}
-set.seed(42)
-data <- rnorm(n = 1, mean = 0, sd = 1)
+df$value_vec %>% 
+  map(~t.test(., mu = 0)) %>% 
+  map("p.value") %>% 
+  simplify -> p_values
+
+df %>%
+  mutate(p_values = as.numeric(p_values),
+         sig = ifelse(p_values < .05, "sig", "ns")) -> df
 ```
+
+
+Let's have again a look at the df:
+
+```{r}
+glimpse(df)
+```
+
+
+Now, let's plot:
+
+```{r out.width = "100%"}
+df %>% 
+  #filter(between(ID, 10, 60)) %>% 
+  ggplot() + 
+  aes(x = ID, y = p_values, color = sig) +
+  geom_point() +
+  geom_line(color = "grey20") +
+  geom_hline(yintercept = .05, color = "red", linetype = "dashed") -> p1
+  
+
+#ggsave(p1, file = "simu_phacking.png", width = 8, height = 5)
+ggplotly(p1)
+```
+
+
+As we can see, every little now and then some significant (p < .05) values emerge - even if there is absolutely no effect in the population. In this case, in the beginning (case 23 or so) some significant result popped out. A "clecer" investigator might decide to stop now - a lot of time and money saved. If he was suspicious about the low $n$ he might wait until he arrives at a $n$ of about 50 - lucky again. The only important thing is: check, check, check, after every observation compute your good old friend, the t-test p-value.
+
+
+** This is p-hacking, p-hacking, and nothing but p-hacking.** Wrong, bogus results are bound to happen.
 
