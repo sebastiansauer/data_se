@@ -73,8 +73,13 @@
 <script src="/rmarkdown-libs/grViz-binding/grViz.js"></script>
 
 
-<p>For modeling cause-effect relationships, linear regression is among the most typically used methods.</p>
-<p>Take, for example, the idea that the Gross Domestic Product (GDP) drives religiosity. Of course, we should have a strong theory that defends this choice and this directionality. Without a convincing theory it may be argued that the cause-relationship is the other way round or complete different (ie., some third variable accounts for any association between GDP and religiosity).</p>
+<p>For modeling cause-effect relationships, linear regression is among the most
+typically used methods.</p>
+<p>Take, for example, the idea that the Gross Domestic Product (GDP) drives religiosity.
+Of course, we should have a strong theory that defends this choice and this
+directionality. Without a convincing theory it may be argued that the cause-relationship
+is the other way round or complete different (ie., some third variable accounts for any
+association between GDP and religiosity).</p>
 <p>Let’s have a look at some data to illustrate.</p>
 <p>First, we load some packages.</p>
 <pre class="r"><code>library(tidyverse)  # do all
@@ -137,11 +142,11 @@ M2 -&gt; Religiosity
 <script type="application/json" data-for="htmlwidget-3">{"x":{"diagram":"\n                  digraph rmarkdown{\n                  graph [fontsize = 10; rankdir=LR]\n\n                  node [fontname = Helvetica]\n                  GDP; Religiosity; X; Y1; Y2; M1; M2; Region\n                  \n                  GDP -> Religiosity\n                  GDP -> M1\n                  M -> Religiosity\n                  X -> Religiosity\n                  Y1 -> GDP\nRegion -> GDP\nRegion -> Religiosity\nRegion -> M2\nY2 -> Region\nM2 -> Religiosity\n                  }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
 <p>So, in short, this model holds that both Region and GDP have an indirect and and direct effect on Religiosity, but there are other influences on Religiosity, too. And GDP and Region are in turn influenced by some other factors.</p>
 <p>Anyway, let’s try to model the simple model using a linear model.</p>
-<section id="i-have-no-column-region" class="level1">
+<div id="i-have-no-column-region" class="section level1">
 <h1>I have no column <code>Region</code></h1>
 <p>My path diagram says I need a column <code>Region</code> but there’s none in my data set! Instead, there are a bunch of columns like “Africa”, “MiddleEast” where each country is coded with <span class="math inline">\(1\)</span> or <span class="math inline">\(0\)</span> if it is part of the region or not, respectively. Variables like those are called <em>dummy variables</em> (or indicator variables, or binary variables).</p>
-</section>
-<section id="now-what" class="level1">
+</div>
+<div id="now-what" class="section level1">
 <h1>Now what?</h1>
 <p>Basically, a linear model only understands numerical data as predictor(s). Simply put, on the X-axis there must always be numeric data. A dummy variable can be seen as numeric - possessing only two distinct values, <span class="math inline">\(0\)</span> and <span class="math inline">\(1\)</span>!. That’s why dummy variables work for regression. By the way, many models think this way. So we are in the position to run our regression right away:</p>
 <pre class="r"><code>lm1 &lt;- lm(Religiosity ~ GDP + Africa + MiddleEast + Asia + WestEurope + Americas, data = data)
@@ -157,8 +162,8 @@ tidy(lm1)
 <p>That’s the way a linear model operates.</p>
 <p>The output tells us the <em>difference</em> in Religiosity between the states <code>0</code> and <code>1</code> of that variable. Hm, that works numerically, but does not make much sense. What does it mean if <em>all</em> regions are at values <span class="math inline">\(0\)</span>? Not much.</p>
 <p>We are better to take out one region, define it as baseline or comparison region, and compare each region against that region. If all the remaining region variables are at <span class="math inline">\(0\)</span> that means that we are looking at this baseline region.</p>
-</section>
-<section id="build-a-long-data-frame" class="level1">
+</div>
+<div id="build-a-long-data-frame" class="section level1">
 <h1>Build a long data frame</h1>
 <p>The good news is that <code>lm()</code> takes care of that. We don’t have to do much. We just give one column <code>Region</code> and <code>lm()</code> will sort out the rest.</p>
 <p>So let’s build this column:</p>
@@ -173,8 +178,8 @@ glimpse(data_long)
 #&gt; $ GDP         &lt;int&gt; 333, 739, 1132, 838, 657, 1401, 1066, 5685, 520, 4...
 #&gt; $ Region      &lt;chr&gt; &quot;Africa&quot;, &quot;Africa&quot;, &quot;Africa&quot;, &quot;Africa&quot;, &quot;Africa&quot;, ...
 #&gt; $ is_part     &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,...</code></pre>
-</section>
-<section id="run-the-regression-with-region" class="level1">
+</div>
+<div id="run-the-regression-with-region" class="section level1">
 <h1>Run the regression with <code>Region</code></h1>
 <pre class="r"><code>lm2 &lt;- lm(Religiosity ~ GDP + Region, data = data_long)
 tidy(lm2)
@@ -197,15 +202,15 @@ tidy(lm2)
 <pre class="r"><code>round(glance(lm2)$adj.r.squared, 2) == round(glance(lm1)$adj.r.squared, 2)
 #&gt; [1] TRUE</code></pre>
 <p>Both models are equal in their performance, which makes sense since the data is the same.</p>
-</section>
-<section id="viz" class="level1">
+</div>
+<div id="viz" class="section level1">
 <h1>Viz</h1>
 <p>For visualization and many typical reports, it is necessary to have on column <code>Region</code>.</p>
 <pre class="r"><code>qplot(y = GDP,
       x = Region,
       data = data_long,
       geom  = &quot;boxplot&quot;)</code></pre>
-<p><img src="/post/2017-11-27-dummy-variables-and-regression_files/figure-html/unnamed-chunk-12-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-12-1.png" width="100%" style="display: block; margin: auto;" /></p>
 <p>Let’s sort the boxplots and flip the axes:</p>
 <pre class="r"><code>qplot(y = Religiosity, 
       x = reorder(Region, Religiosity), 
@@ -213,8 +218,8 @@ tidy(lm2)
       geom = &quot;boxplot&quot;) +
   coord_flip() +
   labs(x = &quot;Region&quot;)</code></pre>
-<p><img src="/post/2017-11-27-dummy-variables-and-regression_files/figure-html/unnamed-chunk-13-1.png" width="100%" style="display: block; margin: auto;" /></p>
-</section>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-13-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
 
     </div>
   </article>
