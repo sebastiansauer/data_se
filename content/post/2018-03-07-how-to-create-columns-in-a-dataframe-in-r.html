@@ -1,0 +1,77 @@
+---
+title: How to create columns in a dataframe in R
+author: Sebastian Sauer
+date: '2018-03-07'
+slug: how-to-create-columns-in-a-dataframe-in-r
+categories:
+  - rstats
+tags:
+  - rstats
+  - tutorial
+---
+
+
+
+<p>Note that we will use this library for this post:</p>
+<pre class="r"><code>library(dplyr)</code></pre>
+<p>By the way, loading <code>mosaic</code>, will load <code>dplyr</code> too.</p>
+<p>One of the major data wrangling activities (in R and elsewhere) is to create a new column in a data frame. For example, assume you have some students who have completed some exercises. In each <em>row</em> of the dataframe - one student. In each column - one exercise (called item). The dataframe might then look like this:</p>
+<pre class="r"><code>
+df &lt;- data.frame(name = c(&quot;John&quot;, &quot;Joan&quot;, &quot;Jeanne&quot;),
+                 item1 = c(TRUE, TRUE, FALSE),
+                 item2 = c(TRUE, FALSE, TRUE))
+df
+#&gt;     name item1 item2
+#&gt; 1   John  TRUE  TRUE
+#&gt; 2   Joan  TRUE FALSE
+#&gt; 3 Jeanne FALSE  TRUE</code></pre>
+<p>Note that <code>TRUE</code> indicates that the exercise has been solved correctly, if otherwise, we note <code>FALSE</code>.</p>
+<p>Now assume you would like to sum up the number of correct items: How many items were solved by John, Joan, and Jeanne, respectively?</p>
+<p>R provides a number of ways to compute this.</p>
+<div id="sum-as-a-vector" class="section level1">
+<h1>Sum as a vector</h1>
+<pre class="r"><code>df$item1 + df$item2
+#&gt; [1] 2 1 1</code></pre>
+<p>So, John, solved 2 items, the other students 1 item.</p>
+<p>But we don’t want that as a freefloating column. That sum-column should be attached to our data frame. There should be a <code>items_sum</code> column in our dataframe.</p>
+</div>
+<div id="base-r-way-to-create-a-column" class="section level1">
+<h1>Base R way to create a column</h1>
+<p>The Base R way is this:</p>
+<pre class="r"><code>df$items_sum &lt;- df$item1 + df$item2</code></pre>
+<p>Let’s check the dataframe:</p>
+<pre class="r"><code>df
+#&gt;     name item1 item2 items_sum
+#&gt; 1   John  TRUE  TRUE         2
+#&gt; 2   Joan  TRUE FALSE         1
+#&gt; 3 Jeanne FALSE  TRUE         1</code></pre>
+<p>Worked. But there are other ways too.</p>
+</div>
+<div id="using-dplyr" class="section level1">
+<h1>Using <code>dplyr</code></h1>
+<pre class="r"><code>df &lt;- mutate(df, items_sum2 = item1 + item2)
+df
+#&gt;     name item1 item2 items_sum items_sum2
+#&gt; 1   John  TRUE  TRUE         2          2
+#&gt; 2   Joan  TRUE FALSE         1          1
+#&gt; 3 Jeanne FALSE  TRUE         1          1</code></pre>
+<p>Worked. Now let’s use the pipe.</p>
+</div>
+<div id="using-the-pipe" class="section level1">
+<h1>Using the pipe</h1>
+<pre class="r"><code>df &lt;- df %&gt;% 
+  mutate(items_sum3 = item1 + item2) 
+df
+#&gt;     name item1 item2 items_sum items_sum2 items_sum3
+#&gt; 1   John  TRUE  TRUE         2          2          2
+#&gt; 2   Joan  TRUE FALSE         1          1          1
+#&gt; 3 Jeanne FALSE  TRUE         1          1          1</code></pre>
+<p>Note that the assignment arrow operator can be headed to either direction, ie left or right:</p>
+<pre class="r"><code>df %&gt;% 
+  mutate(items_sum3 = item1 + item2) -&gt; df
+df
+#&gt;     name item1 item2 items_sum items_sum2 items_sum3
+#&gt; 1   John  TRUE  TRUE         2          2          2
+#&gt; 2   Joan  TRUE FALSE         1          1          1
+#&gt; 3 Jeanne FALSE  TRUE         1          1          1</code></pre>
+</div>

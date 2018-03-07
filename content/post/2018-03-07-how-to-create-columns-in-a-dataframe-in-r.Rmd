@@ -1,0 +1,99 @@
+---
+title: How to create columns in a dataframe in R
+author: Sebastian Sauer
+date: '2018-03-07'
+slug: how-to-create-columns-in-a-dataframe-in-r
+categories:
+  - rstats
+tags:
+  - rstats
+  - tutorial
+---
+
+
+Note that we will use this library for this post:
+```{r}
+library(dplyr)
+```
+
+
+By the way, loading `mosaic`, will load `dplyr` too.
+
+One of the major data wrangling activities (in R and elsewhere) is to create a new column in a data frame. For example, assume you have some students who have completed some exercises. In each *row* of the dataframe - one student. In each column - one exercise (called item). The dataframe might then look like this:
+
+
+
+```{r}
+
+df <- data.frame(name = c("John", "Joan", "Jeanne"),
+                 item1 = c(TRUE, TRUE, FALSE),
+                 item2 = c(TRUE, FALSE, TRUE))
+df
+```
+
+
+Note that `TRUE` indicates that the exercise has been solved correctly, if otherwise, we note `FALSE`. 
+
+Now assume you would like to sum up the number of correct items: How many items were solved by John, Joan, and Jeanne, respectively?
+
+
+R provides a number of ways to compute this.
+
+# Sum as a vector
+
+```{r}
+df$item1 + df$item2
+```
+
+
+So, John, solved 2 items, the other students 1 item.
+
+But we don't want that as a freefloating column. That sum-column should be attached to our data frame. There should be a `items_sum` column in our dataframe.
+
+# Base R way to create a column
+
+The Base R way is this:
+
+
+```{r}
+df$items_sum <- df$item1 + df$item2
+```
+
+Let's check the dataframe:
+
+```{r}
+df
+```
+
+Worked. But there are other ways too.
+
+
+# Using `dplyr`
+
+
+```{r}
+df <- mutate(df, items_sum2 = item1 + item2)
+df
+```
+
+Worked. Now let's use the pipe.
+
+
+# Using the pipe
+
+
+```{r}
+df <- df %>% 
+  mutate(items_sum3 = item1 + item2) 
+df
+```
+
+
+Note that the assignment arrow operator can be headed to either direction, ie left or right:
+
+
+```{r eval = TRUE}
+df %>% 
+  mutate(items_sum3 = item1 + item2) -> df
+df
+```
