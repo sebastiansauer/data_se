@@ -46,7 +46,7 @@ df$item1 + df$item2
 ```
 
 
-So, John, solved 2 items, the other students 1 item.
+So, John, solved 2 items, the other students 1 item. It comes handsome that R interpretes `TRUE` as 1 and `FALSE` as 0. As a consequence, we can add up logical variables with no hazzle.
 
 But we don't want that as a freefloating column. That sum-column should be attached to our data frame. There should be a `items_sum` column in our dataframe.
 
@@ -97,3 +97,68 @@ df %>%
   mutate(items_sum3 = item1 + item2) -> df
 df
 ```
+
+
+# Recode variable with `car::Recode`
+
+
+In R parlance, recoding a variable is different from creating one. Again, different ways exist for recoding variable. Let's assume that we would like to recode `TRUE` to 1 and `FALSE` to 0. But if we want to save the recoded variable as a new variable, then yes, we need to create a new variable with the same machinery as above. For that purpose, the package `car` comes handy:
+
+```{r}
+library(car)
+df %>% 
+  mutate(item1r = car::Recode(item1, 
+                              "1 = TRUE; 0 = FALSE")) -> df
+df
+
+```
+
+
+
+
+
+`car::recode` can be used for more complex recoding schemes, too:
+
+```{r}
+df <- df %>% 
+  mutate(items_sum3 = car::recode(items_sum, 
+                                 "lo:1 = 'failed';
+                                  2 = 'passed';
+                                  3:hi = 'cant believe'")) 
+df
+```
+
+See `?Recode` for details of the syntax.
+
+
+# Recode variable with `ifelse`
+
+
+Another frequently used way is using `ifelse`:
+
+```{r}
+df %>% 
+  mutate(item2r = ifelse(item2 == TRUE, 1L, 0L)) -> df
+df
+```
+
+The general form of `ifelse` is `ifelse(condition, what_if_true, what_if_not)`.
+
+By the way, if we want to coerce a numeric variable to integer, we can call it `1L`, instead of `1`.
+
+
+# Recode using `case_when`
+
+
+The more general form of `ifelse` is `case_when`. If generalizes `ifelse` to more than 2 cases:
+
+
+```{r}
+df %>% 
+  mutate(items_sum4 = case_when(
+    items_sum < 2 ~ "failed",
+    items_sum == 2 ~ "passed",
+    items_sum > 2 ~ "awesome")) -> df
+df
+```
+

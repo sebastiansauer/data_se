@@ -32,7 +32,7 @@ df
 <h1>Sum as a vector</h1>
 <pre class="r"><code>df$item1 + df$item2
 #&gt; [1] 2 1 1</code></pre>
-<p>So, John, solved 2 items, the other students 1 item.</p>
+<p>So, John, solved 2 items, the other students 1 item. It comes handsome that R interpretes <code>TRUE</code> as 1 and <code>FALSE</code> as 0. As a consequence, we can add up logical variables with no hazzle.</p>
 <p>But we don’t want that as a freefloating column. That sum-column should be attached to our data frame. There should be a <code>items_sum</code> column in our dataframe.</p>
 </div>
 <div id="base-r-way-to-create-a-column" class="section level1">
@@ -74,4 +74,60 @@ df
 #&gt; 1   John  TRUE  TRUE         2          2          2
 #&gt; 2   Joan  TRUE FALSE         1          1          1
 #&gt; 3 Jeanne FALSE  TRUE         1          1          1</code></pre>
+</div>
+<div id="recode-variable-with-carrecode" class="section level1">
+<h1>Recode variable with <code>car::Recode</code></h1>
+<p>In R parlance, recoding a variable is different from creating one. Again, different ways exist for recoding variable. Let’s assume that we would like to recode <code>TRUE</code> to 1 and <code>FALSE</code> to 0. But if we want to save the recoded variable as a new variable, then yes, we need to create a new variable with the same machinery as above. For that purpose, the package <code>car</code> comes handy:</p>
+<pre class="r"><code>library(car)
+df %&gt;% 
+  mutate(item1r = car::Recode(item1, 
+                              &quot;1 = TRUE; 0 = FALSE&quot;)) -&gt; df
+df
+#&gt;     name item1 item2 items_sum items_sum2 items_sum3 item1r
+#&gt; 1   John  TRUE  TRUE         2          2          2      1
+#&gt; 2   Joan  TRUE FALSE         1          1          1      1
+#&gt; 3 Jeanne FALSE  TRUE         1          1          1      0</code></pre>
+<p><code>car::recode</code> can be used for more complex recoding schemes, too:</p>
+<pre class="r"><code>df &lt;- df %&gt;% 
+  mutate(items_sum3 = car::recode(items_sum, 
+                                 &quot;lo:1 = &#39;failed&#39;;
+                                  2 = &#39;passed&#39;;
+                                  3:hi = &#39;cant believe&#39;&quot;)) 
+df
+#&gt;     name item1 item2 items_sum items_sum2 items_sum3 item1r
+#&gt; 1   John  TRUE  TRUE         2          2     passed      1
+#&gt; 2   Joan  TRUE FALSE         1          1     failed      1
+#&gt; 3 Jeanne FALSE  TRUE         1          1     failed      0</code></pre>
+<p>See <code>?Recode</code> for details of the syntax.</p>
+</div>
+<div id="recode-variable-with-ifelse" class="section level1">
+<h1>Recode variable with <code>ifelse</code></h1>
+<p>Another frequently used way is using <code>ifelse</code>:</p>
+<pre class="r"><code>df %&gt;% 
+  mutate(item2r = ifelse(item2 == TRUE, 1L, 0L)) -&gt; df
+df
+#&gt;     name item1 item2 items_sum items_sum2 items_sum3 item1r item2r
+#&gt; 1   John  TRUE  TRUE         2          2     passed      1      1
+#&gt; 2   Joan  TRUE FALSE         1          1     failed      1      0
+#&gt; 3 Jeanne FALSE  TRUE         1          1     failed      0      1</code></pre>
+<p>The general form of <code>ifelse</code> is <code>ifelse(condition, what_if_true, what_if_not)</code>.</p>
+<p>By the way, if we want to coerce a numeric variable to integer, we can call it <code>1L</code>, instead of <code>1</code>.</p>
+</div>
+<div id="recode-using-case_when" class="section level1">
+<h1>Recode using <code>case_when</code></h1>
+<p>The more general form of <code>ifelse</code> is <code>case_when</code>. If generalizes <code>ifelse</code> to more than 2 cases:</p>
+<pre class="r"><code>df %&gt;% 
+  mutate(items_sum4 = case_when(
+    items_sum &lt; 2 ~ &quot;failed&quot;,
+    items_sum == 2 ~ &quot;passed&quot;,
+    items_sum &gt; 2 ~ &quot;awesome&quot;)) -&gt; df
+df
+#&gt;     name item1 item2 items_sum items_sum2 items_sum3 item1r item2r
+#&gt; 1   John  TRUE  TRUE         2          2     passed      1      1
+#&gt; 2   Joan  TRUE FALSE         1          1     failed      1      0
+#&gt; 3 Jeanne FALSE  TRUE         1          1     failed      0      1
+#&gt;   items_sum4
+#&gt; 1     passed
+#&gt; 2     failed
+#&gt; 3     failed</code></pre>
 </div>
