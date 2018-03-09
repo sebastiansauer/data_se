@@ -1,0 +1,147 @@
+---
+title: Intuition to Simpson's paradox
+author: Sebastian Sauer
+date: '2018-03-09'
+slug: intuition-to-simpson-s-paradox
+categories:
+  - rstats
+tags:
+  - tutorial
+  - rstats
+  - dataviz
+  - plotting
+---
+
+
+
+<p>Say, you have to choose between two doctors (Anna and Berta), each is expert for two conditions (Coolities and Dummities).</p>
+<p>This is the proportion of healing (success) of the first doctor, Dr. <em>Anna</em> for each of the two conditions:</p>
+<ul>
+<li>Coolities: 7 out of 8 patients are healed from Coolities</li>
+<li>Dummieties: 1 out of 2 patients are healed from Dummities</li>
+</ul>
+<p>This is the proportion of healing (success) of the first doctor, Dr. <em>Berta</em> for each of the two conditions:</p>
+<ul>
+<li>Coolities: 2 out of 2 patients are healed from Coolities</li>
+<li>Dummieties: 5 out of 5 patients are healed from Dummities</li>
+</ul>
+<p>Now, which doc should you choose? Anna or Berta?</p>
+<p>For Coolities: Berta is better than Anna.
+For Dummities: Berta ist better than Anna.</p>
+<p>In each of the conditions, Berta is superior to Anna. So you should choose Anna, and give her a visit as soon as possible, right?</p>
+<p>See here the Data in R code:</p>
+<pre class="r"><code>library(tidyverse)
+df &lt;- tribble(
+  ~name,   ~coolities, ~dummities,
+   &quot;Anna&quot;, 7/8,         1/2,
+  &quot;Berta&quot;, 2/2,         5/5
+)
+df
+#&gt; # A tibble: 2 x 3
+#&gt;   name  coolities dummities
+#&gt;   &lt;chr&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+#&gt; 1 Anna      0.875     0.500
+#&gt; 2 Berta     1.00      1.00</code></pre>
+<pre class="r"><code>df &lt;- tribble(
+  ~name,   ~condition,  ~healed, ~lost, ~success_rate,
+   &quot;Anna&quot;, &quot;coolities&quot;,  7L, 1L, 7/8,
+  &quot;Anna&quot;, &quot;dummities&quot;,  1L, 1L, 1/2,
+  &quot;Berta&quot;, &quot;coolities&quot;,  2L, 0L, 2/2,
+  &quot;Berta&quot;, &quot;dummities&quot;, 5L, 3L, 5/8
+)
+df
+#&gt; # A tibble: 4 x 5
+#&gt;   name  condition healed  lost success_rate
+#&gt;   &lt;chr&gt; &lt;chr&gt;      &lt;int&gt; &lt;int&gt;        &lt;dbl&gt;
+#&gt; 1 Anna  coolities      7     1        0.875
+#&gt; 2 Anna  dummities      1     1        0.500
+#&gt; 3 Berta coolities      2     0        1.00 
+#&gt; 4 Berta dummities      5     3        0.625</code></pre>
+<p>Let’s plot the success rates of both doctors:</p>
+<pre class="r"><code>df %&gt;% 
+  mutate(treated = healed+lost) %&gt;% 
+  ggplot(aes(x = name, y = success_rate)) +
+  geom_col(aes(fill = name)) +
+  facet_wrap(~condition)</code></pre>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>As we see, Berta’s success rate is in both cases higher than Annas. So Berta is better!?</p>
+<p>To better understand what’s going on, let’s plot absolute values. First, reformat from long to wide:</p>
+<pre class="r"><code>df %&gt;% 
+  gather(key = outcome, value = patient_count, -c(name, success_rate, condition)) -&gt; df_long
+
+df_long
+#&gt; # A tibble: 8 x 5
+#&gt;   name  condition success_rate outcome patient_count
+#&gt;   &lt;chr&gt; &lt;chr&gt;            &lt;dbl&gt; &lt;chr&gt;           &lt;int&gt;
+#&gt; 1 Anna  coolities        0.875 healed              7
+#&gt; 2 Anna  dummities        0.500 healed              1
+#&gt; 3 Berta coolities        1.00  healed              2
+#&gt; 4 Berta dummities        0.625 healed              5
+#&gt; 5 Anna  coolities        0.875 lost                1
+#&gt; 6 Anna  dummities        0.500 lost                1
+#&gt; 7 Berta coolities        1.00  lost                0
+#&gt; 8 Berta dummities        0.625 lost                3</code></pre>
+<p>Then plot:</p>
+<pre class="r"><code>df_long %&gt;% 
+  ggplot(aes(x = name, y = patient_count, fill = outcome)) +
+  geom_bar(stat = &quot;identity&quot;, position = &quot;stack&quot;) +
+  facet_wrap(~condition)</code></pre>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Beautify somewhat:</p>
+<pre class="r"><code>df_long$outcome_f &lt;- factor(x = df_long$outcome,
+                                  levels = c(&quot;lost&quot;,
+                                             &quot;healed&quot;
+                                             ))
+df_long %&gt;% 
+  ggplot(aes(x = name, y = patient_count, fill = outcome_f)) +
+  geom_bar(stat = &quot;identity&quot;, position = &quot;stack&quot;) +
+  facet_wrap(~condition)</code></pre>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-6-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Clearly - Berta is better in each of the two conditions. But note: The counts, ie. the number of patients differ! This will explain the “paradox”.</p>
+<p>Ok. Let’s check the overall, total success rate:</p>
+<pre class="r"><code>df %&gt;% 
+  group_by(name) %&gt;% 
+  summarise(healed_total = sum(healed),
+            lost_total = sum(lost),
+            success_rate_total = healed_total / 
+              (healed_total + lost_total)) -&gt; df_grouped
+df_grouped
+#&gt; # A tibble: 2 x 4
+#&gt;   name  healed_total lost_total success_rate_total
+#&gt;   &lt;chr&gt;        &lt;int&gt;      &lt;int&gt;              &lt;dbl&gt;
+#&gt; 1 Anna             8          2              0.800
+#&gt; 2 Berta            7          3              0.700</code></pre>
+<p>Wait! Annas total success rate is better than Bertas! Can that be?</p>
+<p>Let’s plot again:</p>
+<pre class="r"><code>df_grouped %&gt;% 
+  ggplot(aes(x = name, y = success_rate_total)) +
+  geom_col(aes(fill = name))</code></pre>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-8-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Let’s plot slightly different. First, reformat the dataframe to long format:</p>
+<pre class="r"><code>df_grouped %&gt;%
+  gather(key = outcome, value = patient_count, -c(name, success_rate_total)) -&gt; df_grouped_long
+
+df_grouped_long
+#&gt; # A tibble: 4 x 4
+#&gt;   name  success_rate_total outcome      patient_count
+#&gt;   &lt;chr&gt;              &lt;dbl&gt; &lt;chr&gt;                &lt;int&gt;
+#&gt; 1 Anna               0.800 healed_total             8
+#&gt; 2 Berta              0.700 healed_total             7
+#&gt; 3 Anna               0.800 lost_total               2
+#&gt; 4 Berta              0.700 lost_total               3</code></pre>
+<p>Then plot it:</p>
+<pre class="r"><code>df_grouped_long %&gt;% 
+  ggplot(aes(x = name, y = patient_count, fill = outcome)) +
+  geom_col()</code></pre>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-10-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Beautify somewhat:</p>
+<pre class="r"><code>df_grouped_long$outcome &lt;- factor(x = df_grouped_long$outcome,
+                                  levels = c(&quot;lost_total&quot;,
+                                             &quot;healed_total&quot;
+                                             ))
+
+df_grouped_long %&gt;% 
+  ggplot(aes(x = name, y = patient_count, fill = outcome)) +
+  geom_bar(stat = &quot;identity&quot;) </code></pre>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-11-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Why is that? It needs some time to digest that there’s no paradox here going on.</p>

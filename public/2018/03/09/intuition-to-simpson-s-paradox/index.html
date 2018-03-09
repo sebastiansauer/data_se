@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Intuition to Simpson&#39;s paradox - Data Se</title>
+<meta property="og:title" content="Intuition to Simpson&#39;s paradox - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">4 min read</span>
+    
+
+    <h1 class="article-title">Intuition to Simpson&#39;s paradox</h1>
+
+    
+    <span class="article-date">2018/03/09</span>
+    
+
+    <div class="article-content">
+      <p>Say, you have to choose between two doctors (Anna and Berta), each is expert for two conditions (Coolities and Dummities).</p>
+<p>This is the proportion of healing (success) of the first doctor, Dr. <em>Anna</em> for each of the two conditions:</p>
+<ul>
+<li>Coolities: 7 out of 8 patients are healed from Coolities</li>
+<li>Dummieties: 1 out of 2 patients are healed from Dummities</li>
+</ul>
+<p>This is the proportion of healing (success) of the first doctor, Dr. <em>Berta</em> for each of the two conditions:</p>
+<ul>
+<li>Coolities: 2 out of 2 patients are healed from Coolities</li>
+<li>Dummieties: 5 out of 5 patients are healed from Dummities</li>
+</ul>
+<p>Now, which doc should you choose? Anna or Berta?</p>
+<p>For Coolities: Berta is better than Anna.
+For Dummities: Berta ist better than Anna.</p>
+<p>In each of the conditions, Berta is superior to Anna. So you should choose Anna, and give her a visit as soon as possible, right?</p>
+<p>See here the Data in R code:</p>
+<pre class="r"><code>library(tidyverse)
+df &lt;- tribble(
+  ~name,   ~coolities, ~dummities,
+   &quot;Anna&quot;, 7/8,         1/2,
+  &quot;Berta&quot;, 2/2,         5/5
+)
+df
+#&gt; # A tibble: 2 x 3
+#&gt;   name  coolities dummities
+#&gt;   &lt;chr&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+#&gt; 1 Anna      0.875     0.500
+#&gt; 2 Berta     1.00      1.00</code></pre>
+<pre class="r"><code>df &lt;- tribble(
+  ~name,   ~condition,  ~healed, ~lost, ~success_rate,
+   &quot;Anna&quot;, &quot;coolities&quot;,  7L, 1L, 7/8,
+  &quot;Anna&quot;, &quot;dummities&quot;,  1L, 1L, 1/2,
+  &quot;Berta&quot;, &quot;coolities&quot;,  2L, 0L, 2/2,
+  &quot;Berta&quot;, &quot;dummities&quot;, 5L, 3L, 5/8
+)
+df
+#&gt; # A tibble: 4 x 5
+#&gt;   name  condition healed  lost success_rate
+#&gt;   &lt;chr&gt; &lt;chr&gt;      &lt;int&gt; &lt;int&gt;        &lt;dbl&gt;
+#&gt; 1 Anna  coolities      7     1        0.875
+#&gt; 2 Anna  dummities      1     1        0.500
+#&gt; 3 Berta coolities      2     0        1.00 
+#&gt; 4 Berta dummities      5     3        0.625</code></pre>
+<p>Let’s plot the success rates of both doctors:</p>
+<pre class="r"><code>df %&gt;% 
+  mutate(treated = healed+lost) %&gt;% 
+  ggplot(aes(x = name, y = success_rate)) +
+  geom_col(aes(fill = name)) +
+  facet_wrap(~condition)</code></pre>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>As we see, Berta’s success rate is in both cases higher than Annas. So Berta is better!?</p>
+<p>To better understand what’s going on, let’s plot absolute values. First, reformat from long to wide:</p>
+<pre class="r"><code>df %&gt;% 
+  gather(key = outcome, value = patient_count, -c(name, success_rate, condition)) -&gt; df_long
+
+df_long
+#&gt; # A tibble: 8 x 5
+#&gt;   name  condition success_rate outcome patient_count
+#&gt;   &lt;chr&gt; &lt;chr&gt;            &lt;dbl&gt; &lt;chr&gt;           &lt;int&gt;
+#&gt; 1 Anna  coolities        0.875 healed              7
+#&gt; 2 Anna  dummities        0.500 healed              1
+#&gt; 3 Berta coolities        1.00  healed              2
+#&gt; 4 Berta dummities        0.625 healed              5
+#&gt; 5 Anna  coolities        0.875 lost                1
+#&gt; 6 Anna  dummities        0.500 lost                1
+#&gt; 7 Berta coolities        1.00  lost                0
+#&gt; 8 Berta dummities        0.625 lost                3</code></pre>
+<p>Then plot:</p>
+<pre class="r"><code>df_long %&gt;% 
+  ggplot(aes(x = name, y = patient_count, fill = outcome)) +
+  geom_bar(stat = &quot;identity&quot;, position = &quot;stack&quot;) +
+  facet_wrap(~condition)</code></pre>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Beautify somewhat:</p>
+<pre class="r"><code>df_long$outcome_f &lt;- factor(x = df_long$outcome,
+                                  levels = c(&quot;lost&quot;,
+                                             &quot;healed&quot;
+                                             ))
+df_long %&gt;% 
+  ggplot(aes(x = name, y = patient_count, fill = outcome_f)) +
+  geom_bar(stat = &quot;identity&quot;, position = &quot;stack&quot;) +
+  facet_wrap(~condition)</code></pre>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-6-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Clearly - Berta is better in each of the two conditions. But note: The counts, ie. the number of patients differ! This will explain the “paradox”.</p>
+<p>Ok. Let’s check the overall, total success rate:</p>
+<pre class="r"><code>df %&gt;% 
+  group_by(name) %&gt;% 
+  summarise(healed_total = sum(healed),
+            lost_total = sum(lost),
+            success_rate_total = healed_total / 
+              (healed_total + lost_total)) -&gt; df_grouped
+df_grouped
+#&gt; # A tibble: 2 x 4
+#&gt;   name  healed_total lost_total success_rate_total
+#&gt;   &lt;chr&gt;        &lt;int&gt;      &lt;int&gt;              &lt;dbl&gt;
+#&gt; 1 Anna             8          2              0.800
+#&gt; 2 Berta            7          3              0.700</code></pre>
+<p>Wait! Annas total success rate is better than Bertas! Can that be?</p>
+<p>Let’s plot again:</p>
+<pre class="r"><code>df_grouped %&gt;% 
+  ggplot(aes(x = name, y = success_rate_total)) +
+  geom_col(aes(fill = name))</code></pre>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-8-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Let’s plot slightly different. First, reformat the dataframe to long format:</p>
+<pre class="r"><code>df_grouped %&gt;%
+  gather(key = outcome, value = patient_count, -c(name, success_rate_total)) -&gt; df_grouped_long
+
+df_grouped_long
+#&gt; # A tibble: 4 x 4
+#&gt;   name  success_rate_total outcome      patient_count
+#&gt;   &lt;chr&gt;              &lt;dbl&gt; &lt;chr&gt;                &lt;int&gt;
+#&gt; 1 Anna               0.800 healed_total             8
+#&gt; 2 Berta              0.700 healed_total             7
+#&gt; 3 Anna               0.800 lost_total               2
+#&gt; 4 Berta              0.700 lost_total               3</code></pre>
+<p>Then plot it:</p>
+<pre class="r"><code>df_grouped_long %&gt;% 
+  ggplot(aes(x = name, y = patient_count, fill = outcome)) +
+  geom_col()</code></pre>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-10-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Beautify somewhat:</p>
+<pre class="r"><code>df_grouped_long$outcome &lt;- factor(x = df_grouped_long$outcome,
+                                  levels = c(&quot;lost_total&quot;,
+                                             &quot;healed_total&quot;
+                                             ))
+
+df_grouped_long %&gt;% 
+  ggplot(aes(x = name, y = patient_count, fill = outcome)) +
+  geom_bar(stat = &quot;identity&quot;) </code></pre>
+<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-11-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Why is that? It needs some time to digest that there’s no paradox here going on.</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

@@ -1,0 +1,170 @@
+---
+title: Intuition to Simpson's paradox
+author: Sebastian Sauer
+date: '2018-03-09'
+slug: intuition-to-simpson-s-paradox
+categories:
+  - rstats
+tags:
+  - tutorial
+  - rstats
+  - dataviz
+  - plotting
+---
+
+
+Say, you have to choose between two doctors (Anna and Berta), each is expert for two conditions (Coolities and Dummities).
+
+This is the proportion of healing (success) of the first doctor, Dr. *Anna* for each of the two conditions:
+
+- Coolities: 7 out of 8 patients are healed from Coolities
+- Dummieties: 1 out of 2 patients are healed from Dummities
+
+
+This is the proportion of healing (success) of the first doctor, Dr. *Berta*  for each of the two conditions:
+
+- Coolities: 2 out of 2 patients are healed from Coolities
+- Dummieties: 5 out of 5 patients are healed from Dummities
+
+
+Now, which doc should you choose? Anna or Berta?
+
+For Coolities: Berta is better than Anna.
+For Dummities: Berta ist better than Anna.
+
+In each of the conditions, Berta is superior to Anna. So you should choose Anna, and give her a visit as soon as possible, right?
+
+
+See here the Data in R code:
+```{r}
+library(tidyverse)
+df <- tribble(
+  ~name,   ~coolities, ~dummities,
+   "Anna", 7/8,         1/2,
+  "Berta", 2/2,         5/5
+)
+df
+```
+
+
+```{r}
+df <- tribble(
+  ~name,   ~condition,  ~healed, ~lost, ~success_rate,
+   "Anna", "coolities",  7L, 1L, 7/8,
+  "Anna", "dummities",  1L, 1L, 1/2,
+  "Berta", "coolities",  2L, 0L, 2/2,
+  "Berta", "dummities", 5L, 3L, 5/8
+)
+df
+```
+
+
+
+Let's plot the success rates of both doctors:
+
+```{r}
+df %>% 
+  mutate(treated = healed+lost) %>% 
+  ggplot(aes(x = name, y = success_rate)) +
+  geom_col(aes(fill = name)) +
+  facet_wrap(~condition)
+```
+
+
+
+As we see, Berta's success rate is in both cases higher than Annas. So Berta is better!?
+
+To better understand what's going on, let's plot absolute values. First, reformat from long to wide:
+
+
+```{r}
+df %>% 
+  gather(key = outcome, value = patient_count, -c(name, success_rate, condition)) -> df_long
+
+df_long
+```
+
+Then plot:
+
+```{r}
+df_long %>% 
+  ggplot(aes(x = name, y = patient_count, fill = outcome)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_wrap(~condition)
+```
+
+Beautify somewhat:
+
+
+```{r}
+df_long$outcome_f <- factor(x = df_long$outcome,
+                                  levels = c("lost",
+                                             "healed"
+                                             ))
+df_long %>% 
+  ggplot(aes(x = name, y = patient_count, fill = outcome_f)) +
+  geom_bar(stat = "identity", position = "stack") +
+  facet_wrap(~condition)
+```
+
+
+Clearly - Berta is better in each of the two conditions. But note: The counts, ie. the number of patients differ! This will explain the "paradox".
+
+
+Ok. Let's check the overall, total success rate:
+
+```{r}
+df %>% 
+  group_by(name) %>% 
+  summarise(healed_total = sum(healed),
+            lost_total = sum(lost),
+            success_rate_total = healed_total / 
+              (healed_total + lost_total)) -> df_grouped
+df_grouped
+```
+
+
+Wait! Annas total success rate is better than Bertas! Can that be?
+
+Let's plot again:
+
+```{r}
+df_grouped %>% 
+  ggplot(aes(x = name, y = success_rate_total)) +
+  geom_col(aes(fill = name))
+```
+
+Let's plot slightly different. First, reformat the dataframe to long format:
+
+```{r}
+df_grouped %>%
+  gather(key = outcome, value = patient_count, -c(name, success_rate_total)) -> df_grouped_long
+
+df_grouped_long
+```
+
+
+Then plot it:
+
+```{r}
+df_grouped_long %>% 
+  ggplot(aes(x = name, y = patient_count, fill = outcome)) +
+  geom_col()
+```
+
+Beautify somewhat:
+
+
+```{r}
+df_grouped_long$outcome <- factor(x = df_grouped_long$outcome,
+                                  levels = c("lost_total",
+                                             "healed_total"
+                                             ))
+
+df_grouped_long %>% 
+  ggplot(aes(x = name, y = patient_count, fill = outcome)) +
+  geom_bar(stat = "identity") 
+```
+
+
+Why is that? It needs some time to digest that there's no paradox here going on.  
