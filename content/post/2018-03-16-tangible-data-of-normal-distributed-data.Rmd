@@ -1,0 +1,87 @@
+---
+title: Tangible data of normal distributed data
+author: Sebastian Sauer
+date: '2018-03-16'
+slug: tangible-data-of-normal-distributed-data
+categories:
+  - rstats
+tags:
+  - rstats
+  - tutorial
+---
+
+
+A classical example for a normally distributed variable is height. However, I kept on looking for data as to the mean and sd for some populations, such as Germany. How I found some reliably looking data [here](https://tall.life/height-percentile-calculator-age-country/).
+
+We will not question whether the assumption of normality holds, we just assume it.
+
+In the source, we can read that in Germany, the adult men population has the following parameters:
+
+mean: 174cm
+sd: 7cm
+
+For women:
+
+mean: 163cm
+sd: 7cm
+
+
+Let's play around with these numbers and plug them into the normal formula. To keep things straight, we will use the comfort of the `xpnorm` and `xqnorm` functions provided by the R package `mosaic`. We can plug `174` right into `xpnorm`. The function is an extended version (hence `x`) of `pnorm` function, which gives back the percentile or probability (hence `p`) of some value which is distributed normally (hence `norm`).
+
+Say, for instance, we wonder how many men are taller than some one (male) of height 174cm:
+
+
+
+```{r}
+library(mosaic)
+xpnorm(q = 174, 
+       mean = 174,
+       sd = 7)
+```
+
+
+Simple, right? The z-value as indicated in the figure is the answer to the question: "Relative to the SD $sd$, how far are you ($X$) from the mean value $\mu$?". Mathy: $z = (X-\mu) / sd$. In this case: $z = (174 - 174) / 7 = 0$. This point falls right on the mean, zero distance from the mean, hence $z=0$. 
+
+As the normal distribution is symmetric, 50% is left of the mean, and 50% right.
+
+
+Let's say we would like to know how many women are greater than the average man:
+
+```{r}
+xpnorm(q = 174,
+       mean = 163,
+       sd = 7)
+```
+
+
+As the figure tells us, about 6% of the women (values) are greater than 174cm.
+
+
+Similarly, suppose we find a man of average female size and wonder how many of the men are greater than this guy.
+
+```{r}
+xpnorm(q = 163,
+       mean = 174,
+       sd = 7)
+```
+
+About 94%.
+
+
+We can also go the other way round: How tall must a man be in order to measure up to notorious "top 5 per cent"? Now we plug in a percentage or percentile, and we want back a value, also called a quantile. A quantile is the value of the variable of interest for some given percentile. See:
+
+```{r}
+xqnorm(p = .95,
+       mean = 174,
+       sd = 7)
+```
+
+About 186cm. All guys of this height and the taller ones are part of the 5% tallest men (of this population, given the assumptions hold). Note that the percentile counts from "left" to the "right". So we have to indicate the "red" area of the figure (the left part).
+
+If a women is of height 186, what's her percentile?
+
+```{r}
+xpnorm(186, 174, 7)
+```
+
+Around 96%; 4% are taller. Note taht we do not need to name the arguments of a R function given we stick to the standard order of the arguments (what we did here).

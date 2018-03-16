@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Tangible data of normal distributed data - Data Se</title>
+<meta property="og:title" content="Tangible data of normal distributed data - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">3 min read</span>
+    
+
+    <h1 class="article-title">Tangible data of normal distributed data</h1>
+
+    
+    <span class="article-date">2018/03/16</span>
+    
+
+    <div class="article-content">
+      <p>A classical example for a normally distributed variable is height. However, I kept on looking for data as to the mean and sd for some populations, such as Germany. How I found some reliably looking data <a href="https://tall.life/height-percentile-calculator-age-country/">here</a>.</p>
+<p>We will not question whether the assumption of normality holds, we just assume it.</p>
+<p>In the source, we can read that in Germany, the adult men population has the following parameters:</p>
+<p>mean: 174cm
+sd: 7cm</p>
+<p>For women:</p>
+<p>mean: 163cm
+sd: 7cm</p>
+<p>Let’s play around with these numbers and plug them into the normal formula. To keep things straight, we will use the comfort of the <code>xpnorm</code> and <code>xqnorm</code> functions provided by the R package <code>mosaic</code>. We can plug <code>174</code> right into <code>xpnorm</code>. The function is an extended version (hence <code>x</code>) of <code>pnorm</code> function, which gives back the percentile or probability (hence <code>p</code>) of some value which is distributed normally (hence <code>norm</code>).</p>
+<p>Say, for instance, we wonder how many men are taller than some one (male) of height 174cm:</p>
+<pre class="r"><code>library(mosaic)
+xpnorm(q = 174, 
+       mean = 174,
+       sd = 7)
+#&gt; [1] 0.5</code></pre>
+<p><img src="/post/2018-03-16-tangible-data-of-normal-distributed-data_files/figure-html/unnamed-chunk-1-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Simple, right? The z-value as indicated in the figure is the answer to the question: “Relative to the SD <span class="math inline">\(sd\)</span>, how far are you (<span class="math inline">\(X\)</span>) from the mean value <span class="math inline">\(\mu\)</span>?”. Mathy: <span class="math inline">\(z = (X-\mu) / sd\)</span>. In this case: <span class="math inline">\(z = (174 - 174) / 7 = 0\)</span>. This point falls right on the mean, zero distance from the mean, hence <span class="math inline">\(z=0\)</span>.</p>
+<p>As the normal distribution is symmetric, 50% is left of the mean, and 50% right.</p>
+<p>Let’s say we would like to know how many women are greater than the average man:</p>
+<pre class="r"><code>xpnorm(q = 174,
+       mean = 163,
+       sd = 7)
+#&gt; [1] 0.9419584</code></pre>
+<p><img src="/post/2018-03-16-tangible-data-of-normal-distributed-data_files/figure-html/unnamed-chunk-2-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>As the figure tells us, about 6% of the women (values) are greater than 174cm.</p>
+<p>Similarly, suppose we find a man of average female size and wonder how many of the men are greater than this guy.</p>
+<pre class="r"><code>xpnorm(q = 163,
+       mean = 174,
+       sd = 7)
+#&gt; [1] 0.05804157</code></pre>
+<p><img src="/post/2018-03-16-tangible-data-of-normal-distributed-data_files/figure-html/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>About 94%.</p>
+<p>We can also go the other way round: How tall must a man be in order to measure up to notorious “top 5 per cent”? Now we plug in a percentage or percentile, and we want back a value, also called a quantile. A quantile is the value of the variable of interest for some given percentile. See:</p>
+<pre class="r"><code>xqnorm(p = .95,
+       mean = 174,
+       sd = 7)
+#&gt; [1] 185.514</code></pre>
+<p><img src="/post/2018-03-16-tangible-data-of-normal-distributed-data_files/figure-html/unnamed-chunk-4-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>About 186cm. All guys of this height and the taller ones are part of the 5% tallest men (of this population, given the assumptions hold). Note that the percentile counts from “left” to the “right”. So we have to indicate the “red” area of the figure (the left part).</p>
+<p>If a women is of height 186, what’s her percentile?</p>
+<pre class="r"><code>xpnorm(186, 174, 7)
+#&gt; [1] 0.9567619</code></pre>
+<p><img src="/post/2018-03-16-tangible-data-of-normal-distributed-data_files/figure-html/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Around 96%; 4% are taller. Note taht we do not need to name the arguments of a R function given we stick to the standard order of the arguments (what we did here).</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+
