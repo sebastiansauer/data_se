@@ -1,0 +1,102 @@
+---
+title: Beispiel zu Simpsons Paradox
+author: Sebastian Sauer
+date: '2018-03-16'
+slug: beispiel-zu-simpsons-paradox
+categories:
+  - teaching
+tags:
+  - tutorial
+  - teaching
+  - german
+---
+
+
+In diesem Post diskutieren wir ein Beispiel zu *Simpson's Paradox*. Der Fokus liegt nicht auf der R-Syntax, sondern auf einer intuitiven Erläuterung des Simpson Paradox.
+
+
+Sagen wir, Sie müssen sich zwischen zwei Ärzten (Dr. *Arriba* und Dr. *Bajo*) entscheiden und fragen sich, welcher "besser" ist. Unter "besser" verstehen Sie "höhere Heilungsquote".
+
+Die beiden Ärzte behandeln die gleichen zwei Krankheiten: *Severitis* und *Nervosia maskulina*. Severitis ist eine schlimme Krankheit; die Heilungschancen sind insgesamt gering, aber manche Ärzte sind etwas besser als andere. Die Nervosia ist hingegen relativ harmlos; die meisten Ärzte haben eine hohe Heilquote (aber nicht alle Ärzte sind gleich gut).
+
+Betrachte wir die Heilquoten der beiden Ärzte für jede der beiden Krankheiten genauer:
+
+
+```{r}
+library(tidyverse)
+library(knitr)
+
+heal <- tribble(
+  ~Name,     ~Krankheit,     ~geheilt,    ~verloren,    ~Summe,     ~Heilquote,
+  "Arriba",    "Severitis",    20,          70,           20+70,          25/75,
+  "Arriba",    "Nervosia",      8,           2,           10,         8/10,
+  "Bajo",      "Severitis",     2,           8,           10,         2/10,
+  "Bajo",      "Nervosia",      50,         40,           90,          50/90,
+)
+kable(heal, digits = 2)
+```
+
+
+
+Wie man sieht, sind die Heilquote von Dr. *Arriba besser* als die von Dr. Bajo; das gilt für beide Krankheiten. Dr. Arriba ist also der besser Arzt?!
+
+
+Moment, betrachten wir die *gesamte* Heilquote der Ärzte. Mit "gesamt" ist gemeint, wie viele Fälle der Arzt heilt über alle Krankheiten hinweg.
+
+
+```{r}
+heal %>% 
+  gather(key = Ergebnis, value = Anzahl_Patienten, -c(Name, Krankheit, Summe, Heilquote)) -> heal_summary1
+```
+
+```{r}
+heal_summary1 %>% 
+  group_by(Name, Ergebnis) %>% 
+  summarise(Anzahl_pro_Ergebnis = sum(Anzahl_Patienten))  %>% 
+  ungroup %>% 
+  spread(key = Ergebnis, value = Anzahl_pro_Ergebnis) %>% 
+  mutate(Heilquote_gesamt = geheilt / (geheilt + verloren)) -> heal_summary2
+
+kable(heal_summary2)
+```
+
+
+Moment! Jetzt ist auf einmal doch *Dr. Bajo besser* als Dr. Arriba?! Wie kann das sein?
+
+Betrachten wir ein Diagramm zu:
+
+
+```{r}
+p1 <- heal_summary1 %>% 
+      ggplot() +
+      aes(x = Krankheit, y = Anzahl_Patienten, fill = Ergebnis) +
+      geom_col(position = position_stack(reverse = TRUE)) +
+      facet_wrap(~Name) +
+      labs(title = "Heilquote pro Arzt und pro Krankheit") +
+      scale_y_continuous(limits = c(0, 100)) +
+  theme(legend.position = "bottom")
+
+
+p2 <- heal_summary1 %>% 
+      ggplot(position = position_stack(reverse = TRUE)) +
+      aes(x = Name, y = Anzahl_Patienten, fill = Ergebnis) +
+      geom_col(position = position_stack(reverse = TRUE))  +
+      labs(title = "Heilquote pro Arzt insgesamt") +
+      scale_y_continuous(limits = c(0, 100)) +
+      theme(legend.position = "bottom")
+
+
+
+gridExtra::grid.arrange(p1, p2, nrow = 1)
+
+```
+
+
+Das Diagramm zeigt: Dr. Arriba hat eine höhere Heilquote für jede der beiden Krankheiten im Vergleich zu Dr. Bajo (linkes Diagramm). Allerdings: Dr. Bajo hat insgesamt die höhere Heilquote (rechts Diagramm).
+
+
+Woran liegt das: Dr. Arriba behandelt vor allem die schwere Krankheit Severitis (90 seiner 100 Fälle). Bei Severitis gibt es nur wenig Erfolge abzugreifen, daher steigt das "Gesamt-Punktekonto" von Dr. Arriba nur wenig, auch wenn er Severitis vergleichsweise erfolgreich behandelt. Dr. Bajo hingegen macht sich das Leben leicht: Er behandelt fast nur die Nervosia (90 von 100 Fällen). Die Nervosia heilt praktisch von allein. Da Dr. Bajo fast nur die Nervosia behandelt, sammelt sich eine große Menge an Erfolgen (geheilten Fällen) auf seinem Punktekonto an. Allerdings stammen diese eben von der leicht zu behandelnden Krankheit Nervosia. Dr. Bajo ist sozusagen clever - er arbeitet (fast) nur dort, wo er sich des Erfolges sicher sein kann. Kein Wunder, dass er mit einer so guten Insgesamt-Erfolgsquote aufwarten kann!
+
+
+
+Allgemeiner gesprochen: Auf der Gesamtebene (alle Krankheiten zusammengenommen) gibt es einen Effekt von Arzt auf Heilquote von einer bestimmten Höhe (einen Zusammenhang zwischen Arzt und Heilquote). Schaut man sich aber Subgruppen (Krankheit) an, so findet man einen umgekehrten Effekt; In jeder Gruppe ist die Höhe des Zusammenhangs anders (umgekehrt) als auf der Gesamtebene.  Der Zusammenhang von Arzt und Heilquote ist unterschiedlich je nach Gruppe, die man betrachtet.  Das erscheint paradox (ist es aber nicht, wenn man sich den Hintergrund vor Aguen führt).
