@@ -12,7 +12,7 @@ tags:
 ---
 
 
-It is well-known that the empirical variance underestimates the population variance. Specifallcy, the empirical variance is defined as: $var_{emp} = \frac{\sum_i x_i - \bar{x}}{n-1}$. But why $n-1$, why not just $n$, as intuition (of some) dictates? Put shortly, as the empirical variance tends to underestimates the population variance we have to inflate it artifically, to enlarge it, that's why we do put a *smaller* number in the denominator, resulting in a *larger* value of the whole fraction.
+It is well-known that the empirical variance underestimates the population variance. Specifically, the empirical variance is defined as: $var_{emp} = \frac{\sum_i x_i - \bar{x}}{n-1}$. But why $n-1$, why not just $n$, as intuition (of some) dictates? Put shortly, as the empirical variance tends to underestimates the population variance we have to inflate it artificially, to enlarge it, that's why we do put a *smaller* number in the denominator, resulting in a *larger* value of the whole fraction.
 
 In this post, we will not prove this relationship, but we will test it empirically. That is, we will let R draw samples and check whether the variance of the samples is slightly smaller than the variance in the population.
 
@@ -31,76 +31,104 @@ library(magrittr)
 ```
 
 
-Then we'll define a function that computes the empirical variance of a sample taken from a standard normal distribution.
+Then we'll define a function that computes the empirical variance `var_emp` from a sample taken of a standard normal distribution.
 
 
 ```{r}
-var_s <- function(n = 10) {
+var_emp <- function(n = 10) {
   
   rnorm(n = n, mean = 0, sd = 1) %>% 
-    var
-  
+    var()
 }
+
+# test it:
+set.seed(42)
+var_emp()
 ```
 
 
-By the way, to get the variance (or sd) of a sample as a description of the sample, we can use this computation:
+By the way, to get the variance (or sd) of a *sample* as a description of the sample, we can use this computation:
 
 
 ```{r}
 n <- 10  # sample size
-n_max <- 250  # max sample size to consider later on
+n_max <- 200  # max sample size to consider later on
 
-rnorm(n = n, mean = 0, sd = 1) %>% 
-    var(.) %>% 
-   `*`((n-1)/n)
+
+var_sample <- function(n = 10) {
+  
+  rnorm(n = n, mean = 0, sd = 1) %>% 
+      var(.) %>% 
+     `*`((n-1)/n)
+}
+
+set.seed(42)
+var_sample()
 ```
 
-The "correction" amounts to a factor of .9 in this case, ie., $(10-1)/10$.
+The "correction" amounts to a factor of .9 in the case of $n=10$, ie., $(10-1)/10$.
 
-But one sample is not sufficient to gauge an overall picture. Rather let's draw many, say 1000 (`m`).
+But one sample is not sufficient to gauge an overall picture. Rather let's draw many samples, say $m=1000$, and compute the empirical variance and the sample variance each time.
 
 
 ```{r}
 m <- 1000
-replicate(n = m, var_s()) -> var_s_simu
-  
-var_s_simu %>% 
-  as_tibble() %>% 
+df_variance <- data_frame(id = 1:m)
+
+df_variance %<>% 
+  mutate(var_emp_vec = replicate(n = m, var_emp()),
+         var_sample_vec = replicate(n = m, var_sample())) %>% 
+  gather(key = variance_type, value = variance, -id)
+```
+
+See here the distributions:
+
+```{r} 
+df_variance %>% 
   ggplot() +
-  aes(x = value) +
-  geom_histogram()
+  aes(x = variance, fill = variance_type) +
+  geom_density(alpha = .5)
 ```
 
 
-What's the central tendency?
+What's the central tendency in each case?
 ```{r}
-mean(var_s_simu)
-median(var_s_simu)
+df_variance %>% 
+  group_by(variance_type) %>% 
+  summarise(mean_variance = mean(variance))
 ```
 
 What about the quantiles of this sampling distribution?
 ```{r}
-quantile(var_s_simu, probs = c(.055, .5, .945))
+df_variance %>% 
+  split(.$variance_type) %>% 
+  map(~quantile(.$variance, probs = c(.055, .5, .945)))
+
 ```
 
 
-Our results show that the variance of the sample is smaller than the variance in the population. This trend should be reduced with increasing sample size. Let's check that.
+Our results show that the variance of the sample is smaller than the empirical variance; however even the empirical variance is a little too small compared with the population variance (which is 1). Note that sample size was $n=10$ in each draw of the simulation. With sample size increasing, both should get closer to the "real" (population) sample size (although the bias is negligible for the empirical variance). Let's check that.
 
 
 
-First, let's define a function which does the simulation for a given sample size $n$ and a given number of samples, $m$.
+First let's define a function which does the simulation for a given sample size $n$ and a given number of samples, $m$.
 
 
 
 ```{r}
 simu_mean <- function(n = 10, m = 1000, correction = 1){
-  replicate(n = m, var_s(n = n) * correction) %>% 
+  replicate(n = m, var_emp(n = n) * correction) %>% 
   mean()
 }
 ```
 
-This function draws a sample of size $n$, computes the variance, and repeats this $m$ times. Finally, all $m$ variance values are averaged. 
+This function draws a sample of size $n$, computes the (empirical) variance, and multiply the result with a correction factor if needed (to estimate the sample variance). This procedure is repeated for $m$ times. Finally, all $m$ variance values are averaged:
+
+```{r}
+simu_mean()
+
+```
+
 
 Now we let this function run for different samples sizes:
 
@@ -108,12 +136,14 @@ Now we let this function run for different samples sizes:
 ```{r}
 sizes <- 2:n_max
 
+
+
 sizes %>% 
   map_dbl(~simu_mean(n = .)) %>% 
   as_tibble -> simu_df
 
 simu_df %<>%
-  mutate(sample_size = 1:nrow(simu_df))
+  mutate(sample_size = sizes)
 
 names(simu_df)[1] <-"variance_empirical"
 ```
@@ -125,11 +155,12 @@ Finally, let's plot the resulting curve:
 simu_df %>% 
   ggplot +
   aes(x = sample_size, y = variance_empirical) +
-  geom_line()
+  geom_line() +
+  scale_y_continuous(limits = c(0.5, 1.5))
 ```
 
 
-With the sample size increasing, the variance of the sample approaches unity. 
+Even with small samples, the variance is close to the real variance in the population (1).
 
 Compare this to the sample size curve when the variance is computing with $n$ in the denominator (instead of $n-1$).
 
@@ -139,19 +170,19 @@ sizes <-2:n_max
 
 sizes %>% 
   map_dbl(~simu_mean(n = ., correction = (. -1) / .)) %>% 
-  as_tibble -> simu_df_adjusted
+  as_tibble -> simu_df_sample
 
-simu_df_adjusted %<>% 
-  mutate(sample_size = 1:nrow(simu_df_adjusted)) 
+simu_df_sample %<>% 
+  mutate(sample_size = sizes) 
 
-names(simu_df_adjusted)[1] <-"variance_adjusted"
+names(simu_df_sample)[1] <-"variance_sample"
 
 ```
 
 
 ```{r}
 simu_df %>% 
-  left_join(simu_df_adjusted, by = "sample_size") %>% 
+  left_join(simu_df_sample, by = "sample_size") %>% 
   gather(key = variance_type, value = variance_value, -sample_size) %>% 
   ggplot() +
   aes(x = sample_size, y = variance_value, color = variance_type) +
@@ -159,6 +190,6 @@ simu_df %>%
 ```
 
 
-Both variance types appear to underestimate the true value of the variance. However the bias is more pronounced for the "adjusted" variance with simply $n$ in the denominator. As can be seen, it appears useful to compute the empirical variance if the goal is to estimate the population variance.
+The sample variance underestimates the true value of the variance - at least for small samples. This bias diminishes when sample size increases.
 
 
