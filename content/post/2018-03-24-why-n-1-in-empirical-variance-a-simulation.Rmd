@@ -1,0 +1,164 @@
+---
+title: Why "n-1" in empirical variance? A simulation.
+author: Sebastian Sauer
+date: '2018-03-24'
+slug: why-n-1-in-empirical-variance-a-simulation
+categories:
+  - rstats
+tags:
+  - tutorial
+  - intuition
+  - r
+---
+
+
+It is well-known that the empirical variance underestimates the population variance. Specifallcy, the empirical variance is defined as: $var_{emp} = \frac{\sum_i x_i - \bar{x}}{n-1}$. But why $n-1$, why not just $n$, as intuition (of some) dictates? Put shortly, as the empirical variance tends to underestimates the population variance we have to inflate it artifically, to enlarge it, that's why we do put a *smaller* number in the denominator, resulting in a *larger* value of the whole fraction.
+
+In this post, we will prove this relationship, but we will test it empirially. That is, we will let R draw samples and check whether the variance of the samples is slightly smaller than the variance in the population.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      cache = TRUE, 
+                      fig.align = "center")
+```
+
+Load some packages:
+
+```{r}
+library(tidyverse)
+library(magrittr)
+```
+
+
+Then we'll define a function that computes the empirical variance of a sample taken from a standard normal distribution.
+
+
+```{r}
+var_s <- function(n = 10) {
+  
+  rnorm(n = n, mean = 0, sd = 1) %>% 
+    var
+  
+}
+```
+
+
+By the way, to get the variance (or sd) of a sample as a description of the sample, we can use this computation:
+
+
+```{r}
+n <- 10  # sample size
+n_max <- 250  # max sample size to consider later on
+
+rnorm(n = n, mean = 0, sd = 1) %>% 
+    var(.) %>% 
+   `*`((n-1)/n)
+```
+
+The "correction" amounts to a factor of .9 in this case, ie., $(10-1)/10$.
+
+But one sample is not sufficient to gauge an overall picture. Rather let's draw many, say 1000 (`m`).
+
+
+```{r}
+m <- 1000
+replicate(n = m, var_s()) -> var_s_simu
+  
+var_s_simu %>% 
+  as_tibble() %>% 
+  ggplot() +
+  aes(x = value) +
+  geom_histogram()
+```
+
+
+What's the central tendency?
+```{r}
+mean(var_s_simu)
+median(var_s_simu)
+```
+
+What about the quantiles of this sampling distribution?
+```{r}
+quantile(var_s_simu, probs = c(.055, .5, .945))
+```
+
+
+Our results show that the variance of the sample is smaller than the variance in the population. This trend should be reduced with increasing sample size. Let's check that.
+
+
+
+First, let's define a function which does the simulation for a given sample size $n$ and a given number of samples, $m$.
+
+
+
+```{r}
+simu_mean <- function(n = 10, m = 1000, correction = 1){
+  replicate(n = m, var_s(n = n) * correction) %>% 
+  mean()
+}
+```
+
+This function draws a sample of size $n$, computes the variance, and repeats this $m$ times. Finally, all $m$ variance values are averaged. 
+
+Now we let this function run for different samples sizes:
+
+
+```{r}
+sizes <- 2:n_max
+
+sizes %>% 
+  map_dbl(~simu_mean(n = .)) %>% 
+  as_tibble -> simu_df
+
+simu_df %<>%
+  mutate(sample_size = 1:nrow(simu_df))
+
+names(simu_df)[1] <-"variance_empirical"
+```
+
+
+Finally, let's plot the resulting curve:
+
+```{r}
+simu_df %>% 
+  ggplot +
+  aes(x = sample_size, y = variance_empirical) +
+  geom_line()
+```
+
+
+With the sample size increasing, the variance of the sample approaches unity. 
+
+Compare this to the sample size curve when the variance is computing with $n$ in the denominator (instead of $n-1$).
+
+
+```{r}
+sizes <-2:n_max
+
+sizes %>% 
+  map_dbl(~simu_mean(n = ., correction = (. -1) / .)) %>% 
+  as_tibble -> simu_df_adjusted
+
+simu_df_adjusted %<>% 
+  mutate(sample_size = 1:nrow(simu_df_adjusted)) 
+
+names(simu_df_adjusted)[1] <-"variance_adjusted"
+
+```
+
+
+```{r}
+simu_df %>% 
+  left_join(simu_df_adjusted, by = "sample_size") %>% 
+  gather(key = variance_type, value = variance_value, -sample_size) %>% 
+  ggplot() +
+  aes(x = sample_size, y = variance_value, color = variance_type) +
+  geom_line()
+```
+
+
+Both variance types appear to underestimate the true value of the variance. However the bias is more pronounced for the "adjusted" variance with simply $n$ in the denominator. As can be seen, it appears useful to compute the empirical variance if the goal is to estimate the population variance.
+
+

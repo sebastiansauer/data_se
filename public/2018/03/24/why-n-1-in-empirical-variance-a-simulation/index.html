@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Why &#34;n-1&#34; in empirical variance? A simulation. - Data Se</title>
+<meta property="og:title" content="Why &#34;n-1&#34; in empirical variance? A simulation. - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">3 min read</span>
+    
+
+    <h1 class="article-title">Why &#34;n-1&#34; in empirical variance? A simulation.</h1>
+
+    
+    <span class="article-date">2018/03/24</span>
+    
+
+    <div class="article-content">
+      <p>It is well-known that the empirical variance underestimates the population variance. Specifallcy, the empirical variance is defined as: <span class="math inline">\(var_{emp} = \frac{\sum_i x_i - \bar{x}}{n-1}\)</span>. But why <span class="math inline">\(n-1\)</span>, why not just <span class="math inline">\(n\)</span>, as intuition (of some) dictates? Put shortly, as the empirical variance tends to underestimates the population variance we have to inflate it artifically, to enlarge it, that’s why we do put a <em>smaller</em> number in the denominator, resulting in a <em>larger</em> value of the whole fraction.</p>
+<p>In this post, we will prove this relationship, but we will test it empirially. That is, we will let R draw samples and check whether the variance of the samples is slightly smaller than the variance in the population.</p>
+<p>Load some packages:</p>
+<pre class="r"><code>library(tidyverse)
+library(magrittr)</code></pre>
+<p>Then we’ll define a function that computes the empirical variance of a sample taken from a standard normal distribution.</p>
+<pre class="r"><code>var_s &lt;- function(n = 10) {
+  
+  rnorm(n = n, mean = 0, sd = 1) %&gt;% 
+    var
+  
+}</code></pre>
+<p>By the way, to get the variance (or sd) of a sample as a description of the sample, we can use this computation:</p>
+<pre class="r"><code>n &lt;- 10  # sample size
+n_max &lt;- 250  # max sample size to consider later on
+
+rnorm(n = n, mean = 0, sd = 1) %&gt;% 
+    var(.) %&gt;% 
+   `*`((n-1)/n)
+#&gt; [1] 0.3111226</code></pre>
+<p>The “correction” amounts to a factor of .9 in this case, ie., <span class="math inline">\((10-1)/10\)</span>.</p>
+<p>But one sample is not sufficient to gauge an overall picture. Rather let’s draw many, say 1000 (<code>m</code>).</p>
+<pre class="r"><code>m &lt;- 1000
+replicate(n = m, var_s()) -&gt; var_s_simu
+  
+var_s_simu %&gt;% 
+  as_tibble() %&gt;% 
+  ggplot() +
+  aes(x = value) +
+  geom_histogram()</code></pre>
+<p><img src="/post/2018-03-24-why-n-1-in-empirical-variance-a-simulation_files/figure-html/unnamed-chunk-4-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>What’s the central tendency?</p>
+<pre class="r"><code>mean(var_s_simu)
+#&gt; [1] 1.017897
+median(var_s_simu)
+#&gt; [1] 0.9659206</code></pre>
+<p>What about the quantiles of this sampling distribution?</p>
+<pre class="r"><code>quantile(var_s_simu, probs = c(.055, .5, .945))
+#&gt;      5.5%       50%     94.5% 
+#&gt; 0.4178350 0.9659206 1.8881991</code></pre>
+<p>Our results show that the variance of the sample is smaller than the variance in the population. This trend should be reduced with increasing sample size. Let’s check that.</p>
+<p>First, let’s define a function which does the simulation for a given sample size <span class="math inline">\(n\)</span> and a given number of samples, <span class="math inline">\(m\)</span>.</p>
+<pre class="r"><code>simu_mean &lt;- function(n = 10, m = 1000, correction = 1){
+  replicate(n = m, var_s(n = n) * correction) %&gt;% 
+  mean()
+}</code></pre>
+<p>This function draws a sample of size <span class="math inline">\(n\)</span>, computes the variance, and repeats this <span class="math inline">\(m\)</span> times. Finally, all <span class="math inline">\(m\)</span> variance values are averaged.</p>
+<p>Now we let this function run for different samples sizes:</p>
+<pre class="r"><code>sizes &lt;- 2:n_max
+
+sizes %&gt;% 
+  map_dbl(~simu_mean(n = .)) %&gt;% 
+  as_tibble -&gt; simu_df
+
+simu_df %&lt;&gt;%
+  mutate(sample_size = 1:nrow(simu_df))
+
+names(simu_df)[1] &lt;-&quot;variance_empirical&quot;</code></pre>
+<p>Finally, let’s plot the resulting curve:</p>
+<pre class="r"><code>simu_df %&gt;% 
+  ggplot +
+  aes(x = sample_size, y = variance_empirical) +
+  geom_line()</code></pre>
+<p><img src="/post/2018-03-24-why-n-1-in-empirical-variance-a-simulation_files/figure-html/unnamed-chunk-9-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>With the sample size increasing, the variance of the sample approaches unity.</p>
+<p>Compare this to the sample size curve when the variance is computing with <span class="math inline">\(n\)</span> in the denominator (instead of <span class="math inline">\(n-1\)</span>).</p>
+<pre class="r"><code>sizes &lt;-2:n_max
+
+sizes %&gt;% 
+  map_dbl(~simu_mean(n = ., correction = (. -1) / .)) %&gt;% 
+  as_tibble -&gt; simu_df_adjusted
+
+simu_df_adjusted %&lt;&gt;% 
+  mutate(sample_size = 1:nrow(simu_df_adjusted)) 
+
+names(simu_df_adjusted)[1] &lt;-&quot;variance_adjusted&quot;</code></pre>
+<pre class="r"><code>simu_df %&gt;% 
+  left_join(simu_df_adjusted, by = &quot;sample_size&quot;) %&gt;% 
+  gather(key = variance_type, value = variance_value, -sample_size) %&gt;% 
+  ggplot() +
+  aes(x = sample_size, y = variance_value, color = variance_type) +
+  geom_line()</code></pre>
+<p><img src="/post/2018-03-24-why-n-1-in-empirical-variance-a-simulation_files/figure-html/unnamed-chunk-11-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Both variance types appear to underestimate the true value of the variance. However the bias is more pronounced for the “adjusted” variance with simply <span class="math inline">\(n\)</span> in the denominator. As can be seen, it appears useful to compute the empirical variance if the goal is to estimate the population variance.</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+
