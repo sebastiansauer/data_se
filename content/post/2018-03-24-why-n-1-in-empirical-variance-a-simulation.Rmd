@@ -12,9 +12,9 @@ tags:
 ---
 
 
-It is well-known that the empirical variance underestimates the population variance. Specifically, the empirical variance is defined as: $var_{emp} = \frac{\sum_i x_i - \bar{x}}{n-1}$. But why $n-1$, why not just $n$, as intuition (of some) dictates? Put shortly, as the empirical variance tends to underestimates the population variance we have to inflate it artificially, to enlarge it, that's why we do put a *smaller* number in the denominator, resulting in a *larger* value of the whole fraction.
+It is well-known that the empirical variance underestimates the population variance. Specifically, the empirical variance is defined as: $var_{emp} = \frac{\sum_i x_i - \bar{x}}{n-1}$. But why $n-1$, why not just $n$, as intuition (of some) dictates? Put shortly, as the variance of a sample tends to underestimates the population variance we have to inflate it artificially, to enlarge it, that's why we do put a *smaller* number (the "n-1") in the denominator, resulting in a *larger* value of the whole fraction. This larger value is called the empirical variance, it estimates the "real" population variance well.
 
-In this post, we will not prove this relationship, but we will test it empirically. That is, we will let R draw samples and check whether the variance of the samples is slightly smaller than the variance in the population.
+In this post, we will not prove these ideas, but we will test it empirically. That is, we will let R draw samples and check whether the variance of the samples is slightly smaller than the variance in the population.
 
 
 ```{r setup, include=FALSE}
@@ -66,7 +66,7 @@ set.seed(42)
 var_sample()
 ```
 
-The "correction" amounts to a factor of .9 in the case of $n=10$, ie., $(10-1)/10$.
+The "correction factor" (` \`*\`((n-1)/n))`) amounts to a factor of .9 in the case of $n=10$, ie., $(10-1)/10$.
 
 But one sample is not sufficient to gauge an overall picture. Rather let's draw many samples, say $m=1000$, and compute the empirical variance and the sample variance each time.
 
@@ -77,7 +77,8 @@ df_variance <- data_frame(id = 1:m)
 
 df_variance %<>% 
   mutate(var_emp_vec = replicate(n = m, var_emp()),
-         var_sample_vec = replicate(n = m, var_sample())) %>% 
+         var_sample_vec = replicate(n = m, 
+                                    var_sample())) %>% 
   gather(key = variance_type, value = variance, -id)
 ```
 
@@ -89,6 +90,8 @@ df_variance %>%
   aes(x = variance, fill = variance_type) +
   geom_density(alpha = .5)
 ```
+
+The sample variance distribution leans towards slightly smlaler values, it appears.
 
 
 What's the central tendency in each case?
@@ -107,7 +110,7 @@ df_variance %>%
 ```
 
 
-Our results show that the variance of the sample is smaller than the empirical variance; however even the empirical variance is a little too small compared with the population variance (which is 1). Note that sample size was $n=10$ in each draw of the simulation. With sample size increasing, both should get closer to the "real" (population) sample size (although the bias is negligible for the empirical variance). Let's check that.
+Our results show that the variance of the sample is smaller than the empirical variance; however even the empirical variance too is a little too small compared with the population variance (which is 1). Note that sample size was $n=10$ in each draw of the simulation. With sample size increasing, both should get closer to the "real" (population) sample size (although the bias is negligible for the empirical variance). Let's check that.
 
 
 
@@ -125,6 +128,7 @@ simu_mean <- function(n = 10, m = 1000, correction = 1){
 This function draws a sample of size $n$, computes the (empirical) variance, and multiply the result with a correction factor if needed (to estimate the sample variance). This procedure is repeated for $m$ times. Finally, all $m$ variance values are averaged:
 
 ```{r}
+set.seed(42)
 simu_mean()
 
 ```
@@ -137,7 +141,6 @@ Now we let this function run for different samples sizes:
 sizes <- 2:n_max
 
 
-
 sizes %>% 
   map_dbl(~simu_mean(n = .)) %>% 
   as_tibble -> simu_df
@@ -145,7 +148,7 @@ sizes %>%
 simu_df %<>%
   mutate(sample_size = sizes)
 
-names(simu_df)[1] <-"variance_empirical"
+names(simu_df)[1] <- "variance_empirical"
 ```
 
 
@@ -191,5 +194,137 @@ simu_df %>%
 
 
 The sample variance underestimates the true value of the variance - at least for small samples. This bias diminishes when sample size increases.
+
+
+Of interest, what is the variability of the mean variance for a given sample size? Let's add these estimates of uncertainty.
+
+
+This function computes the sd of the variances in the $m$ samples (additionally to the mean values of the variances):
+
+```{r}
+simu_mean_sd <- function(n = 10, m = 1000, correction = 1){
+  simu_var_vec <- replicate(n = m, var_emp(n = n) * correction) 
+  simu_var_mean <- mean(simu_var_vec)
+  simu_var_sd <- sd(simu_var_vec)
+  
+  return(list(simu_var_mean = simu_var_mean,
+              simu_var_sd = simu_var_sd))
+}
+```
+
+
+Again, we run the function for different samples sizes:
+
+
+
+```{r}
+sizes <- 2:n_max
+
+
+df_variance_sds <- data_frame(sample_size = sizes)
+
+df_variance_sds %<>% 
+  rowwise() %>% 
+  mutate(simu_mean_sd = simu_mean_sd(n = sample_size)[[2]])
+
+
+df_variance_sds %<>%
+  left_join(simu_df)
+
+```
+
+
+Again, let's plot the resulting curve:
+
+```{r}
+df_variance_sds %>% 
+  ggplot +
+  aes(x = sample_size, y = variance_empirical) +
+  geom_ribbon(aes(ymin = variance_empirical - simu_mean_sd,
+                  ymax = variance_empirical + simu_mean_sd),
+              fill = "grey80") +
+  geom_line() +
+  scale_y_continuous(limits = c(0.5, 1.5))
+```
+
+
+Hey, the sd is still huge. Would be interesting too know at which sample size the sd gets "small", smaller than a desired width, $w$. Say, we would like to know the sample size for $w = 0.2$ which amounts to an sd of 0.1.
+
+Let's run our simulation a longer distance:
+
+
+```{r}
+n_max <- 1000
+sizes <- 2:n_max
+
+
+df_variance_sds <- data_frame(sample_size = sizes)
+
+df_variance_sds %<>% 
+  rowwise() %>% 
+  mutate(simu_mean_sd = simu_mean_sd(n = sample_size)[[2]],
+         simu_mean_avg = simu_mean_sd(n = sample_size)[[1]])
+
+
+```
+
+
+Puh! Needs some computation time.
+
+How let's glimpse at the course of the sd interval:
+
+```{r}
+df_variance_sds %>% 
+  ggplot +
+  aes(x = sample_size, y = simu_mean_avg) +
+  geom_ribbon(aes(ymin = simu_mean_avg - simu_mean_sd,
+                  ymax = simu_mean_avg + simu_mean_sd),
+              fill = "grey80") +
+  geom_line() +
+  scale_y_continuous(limits = c(0.5, 1.5))
+```
+
+
+What about the actual numbers. What are the smallest widths $w$?
+
+```{r}
+df_variance_sds %<>% 
+  mutate(width = 2 * simu_mean_sd) %>% 
+  arrange(width) 
+
+df_variance_sds
+```
+
+
+Straightforward `max` and `min` vlaues:
+```{r}
+max(df_variance_sds$width)
+min(df_variance_sds$width)
+
+```
+
+
+And, the answer to the actual question asked, at what sample size falls $w$ below 0.2?
+
+```{r}
+quantile(df_variance_sds$width, probs = c(0.1, 0.5, 0.9)) 
+```
+
+
+```{r}
+df_variance_sds %>% 
+  filter(width < 0.201 & width > 0.199) %>% 
+  arrange(sample_size)
+```
+
+So, at about $n=200$, our sample size falls within the $w=0.2$ corridor.
+
+
+
+Same question for sd:
+
+```{r}
+quantile(df_variance_sds$simu_mean_sd, probs = c(0.01, 0.1, 0.5, 0.9, .99)) 
+```
 
 
