@@ -1,0 +1,122 @@
+---
+title: Visualisation of interaction for logistic regression
+author: Sebastian Sauer
+date: '2018-04-02'
+slug: visualisation-of-interaction-for-logistic-regression
+categories:
+  - rstats
+tags:
+  - plotting
+  - rstats
+---
+
+
+
+<p>In this post we are plotting an interaction for a logistic regression. Interaction per se is a concept difficult to grasp; for a GLM it may be even more difficult especially for continuous variables’ interaction.</p>
+<p>First, load some packages.</p>
+<pre class="r"><code>
+library(tidyverse)
+library(titanic)
+library(broom)
+library(modelr)
+library(knitr)</code></pre>
+<p>We will deal with the well-known Titanic data, ie., we check which predictors augment survival probability:</p>
+<pre class="r"><code>data(titanic_train)
+d &lt;- titanic_train</code></pre>
+<p>Let’s glimpse the data:</p>
+<pre class="r"><code>glimpse(d) 
+#&gt; Observations: 891
+#&gt; Variables: 12
+#&gt; $ PassengerId &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,...
+#&gt; $ Survived    &lt;int&gt; 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0,...
+#&gt; $ Pclass      &lt;int&gt; 3, 1, 3, 1, 3, 3, 1, 3, 3, 2, 3, 1, 3, 3, 3, 2, 3,...
+#&gt; $ Name        &lt;chr&gt; &quot;Braund, Mr. Owen Harris&quot;, &quot;Cumings, Mrs. John Bra...
+#&gt; $ Sex         &lt;chr&gt; &quot;male&quot;, &quot;female&quot;, &quot;female&quot;, &quot;female&quot;, &quot;male&quot;, &quot;mal...
+#&gt; $ Age         &lt;dbl&gt; 22, 38, 26, 35, 35, NA, 54, 2, 27, 14, 4, 58, 20, ...
+#&gt; $ SibSp       &lt;int&gt; 1, 1, 0, 1, 0, 0, 0, 3, 0, 1, 1, 0, 0, 1, 0, 0, 4,...
+#&gt; $ Parch       &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 1, 0, 0, 5, 0, 0, 1,...
+#&gt; $ Ticket      &lt;chr&gt; &quot;A/5 21171&quot;, &quot;PC 17599&quot;, &quot;STON/O2. 3101282&quot;, &quot;1138...
+#&gt; $ Fare        &lt;dbl&gt; 7.2500, 71.2833, 7.9250, 53.1000, 8.0500, 8.4583, ...
+#&gt; $ Cabin       &lt;chr&gt; &quot;&quot;, &quot;C85&quot;, &quot;&quot;, &quot;C123&quot;, &quot;&quot;, &quot;&quot;, &quot;E46&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, ...
+#&gt; $ Embarked    &lt;chr&gt; &quot;S&quot;, &quot;C&quot;, &quot;S&quot;, &quot;S&quot;, &quot;S&quot;, &quot;Q&quot;, &quot;S&quot;, &quot;S&quot;, &quot;S&quot;, &quot;C&quot;, ...</code></pre>
+<p>Let’s compute the logistic regression using the standard <code>glm()</code>, using the following notation, the interaction term will be included. Note that this type of glm assumes a flat, unregulatated prior and a Gaussian likelihood, in Bayesian parlance. The interaction term is also linear. If you are not satisfied with this default values, better switch to a fully Bayesian analysis.</p>
+<pre class="r"><code>glm1 &lt;- glm(Survived ~ Fare*Sex, data = d,
+            family = &quot;binomial&quot;)
+tidy(glm1)
+#&gt;           term    estimate   std.error statistic      p.value
+#&gt; 1  (Intercept)  0.40842776 0.189998621  2.149635 3.158407e-02
+#&gt; 2         Fare  0.01987848 0.005371548  3.700698 2.150071e-04
+#&gt; 3      Sexmale -2.09934529 0.230290839 -9.116061 7.790454e-20
+#&gt; 4 Fare:Sexmale -0.01161711 0.005933729 -1.957809 5.025241e-02</code></pre>
+<p>Now, consider plotting the interaction. Note first that the glm is a linear model. However, linear for the logits, ie:</p>
+<p><span class="math display">\[l(y_i) = b_0 + b_1x_i + \dots\]</span></p>
+<p>where <span class="math inline">\(l(y_i)\)</span> is the logit of the probability of the modeled event for case <span class="math inline">\(i\)</span>.</p>
+<p>In other words: It’s just a linear model, just like “normal” regression. Hence, we can plot it using straight, linear lines; that’s true for the interaction as well. Plotting the interaction of a glm is nothing new in this sense.</p>
+<pre class="r"><code>d %&gt;% 
+  mutate(pred_logit = predict(glm1)) -&gt; d</code></pre>
+<p>Let’s glimpse the distribution of the logits:</p>
+<pre class="r"><code>ggplot(d) +
+  aes(x = pred_logit, fill = Sex) +
+  geom_density(alpha = .5)</code></pre>
+<p><img src="/post/2018-04-02-visualisation-of-interaction-for-logistic-regression_files/figure-html/unnamed-chunk-6-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Now let’s plot the interaction on logit scale:</p>
+<pre class="r"><code>d %&gt;% 
+  ggplot() +
+  aes(x = Fare, y = pred_logit, color = Sex) +
+  geom_point() +
+  geom_line()</code></pre>
+<p><img src="/post/2018-04-02-visualisation-of-interaction-for-logistic-regression_files/figure-html/unnamed-chunk-7-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Just lines - diverging lines in this case, indicating the presence of an interaction effect between <code>Sex</code> and <code>Fare</code>.</p>
+<p>For the sake of curiosity, let’s compute a linear model with <code>Survived</code> as criterion:</p>
+<pre class="r"><code>lm1 &lt;- lm(Survived ~ Fare*Sex, data = d)
+tidy(lm1)
+#&gt;           term      estimate    std.error   statistic      p.value
+#&gt; 1  (Intercept)  6.686174e-01 0.0285775663  23.3965815 1.140525e-94
+#&gt; 2         Fare  1.650656e-03 0.0003913826   4.2174980 2.723902e-05
+#&gt; 3      Sexmale -5.194145e-01 0.0345572667 -15.0305444 1.175042e-45
+#&gt; 4 Fare:Sexmale -9.504183e-05 0.0005510358  -0.1724785 8.631007e-01</code></pre>
+<p>Again, an interaction effect is present.</p>
+<p>Now let’s plot <code>Survived</code> on the y-axis. We just plugin the estimates from <code>lm1</code> at the slope and intercept parameter for <code>geom_abline</code> which draws a straight line.</p>
+<pre class="r"><code>d %&gt;% 
+  ggplot() +
+  aes(x = Fare, y = Survived, color = Sex) +
+  geom_point() +
+  geom_abline(mapping = aes(slope = 1.65e-03, intercept = 6.69e-01), color = &quot;#F8766D&quot;) +
+  geom_abline(mapping = aes(slope = 1.65e-03 - 9.50e-05, intercept = 6.69e-01 - 6.19e-01), color = &quot;#00BFC4&quot;)
+  
+ </code></pre>
+<p><img src="/post/2018-04-02-visualisation-of-interaction-for-logistic-regression_files/figure-html/unnamed-chunk-9-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>As a side note, that’s how to get the names of the standard ggplot color palette:</p>
+<pre class="r"><code>library(scales)
+show_col(hue_pal()(2))</code></pre>
+<p><img src="/post/2018-04-02-visualisation-of-interaction-for-logistic-regression_files/figure-html/unnamed-chunk-10-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>As can be seen, not much interaction appears to be there (although a little bit of an interaction effect is there). Why that? That’s just because the scaling of the data does not readily show the interaction. Let’s use ggplot’s build in geom <code>geom_smooth()</code> which should give the same output as above:</p>
+<pre class="r"><code> d %&gt;% 
+  ggplot() +
+  aes(x = Fare, y = Survived, color = Sex) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;, se = FALSE)</code></pre>
+<p><img src="/post/2018-04-02-visualisation-of-interaction-for-logistic-regression_files/figure-html/unnamed-chunk-11-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Of course, probabilities greater 1 do not make sense. That’s the reason why we prefer a “bended” graph, such as the s-type ogive in logistic regression. Let’s plot that instead.</p>
+<p>First, we need to get the survival probabilities:</p>
+<pre class="r"><code>d %&gt;% 
+  mutate(pred_prob = predict(glm1, type = &quot;response&quot;)) -&gt; d</code></pre>
+<p>Notice that <code>type = &quot;response</code> gives you the probabilities of survival (ie., of the modeled event).</p>
+<p>Check, check, double-check:</p>
+<pre class="r"><code>ggplot(d) +
+  geom_density(aes(x = pred_prob, fill  = Sex), alpha = .5)</code></pre>
+<p><img src="/post/2018-04-02-visualisation-of-interaction-for-logistic-regression_files/figure-html/unnamed-chunk-13-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Now let’s plot the ogive including the interaction effects:</p>
+<pre class="r"><code> d %&gt;% 
+  ggplot() +
+  aes(x = Fare, y = Survived, color = Sex) +
+  geom_point() +
+  geom_smooth(method = &quot;glm&quot;,
+              aes(x = Fare, y= pred_prob),
+              method.args = list(family = &quot;binomial&quot;),
+              se = FALSE)</code></pre>
+<p><img src="/post/2018-04-02-visualisation-of-interaction-for-logistic-regression_files/figure-html/unnamed-chunk-14-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<div id="debrief" class="section level1">
+<h1>Debrief</h1>
+<p>Plotting helps. Instead of inspecting the numbers in the glm output table only, it helps to plot the curves. In that way, the overall trend can be easier understood. Remember that the coefficients of a linear model are different if an interaction effect is modeled, compared with an model where no interaction is modeled. The coefficient of a predictor, such as <code>Fare</code> means: “That’s the estimate of the mean statistical influence of Fare, if Fare is zero, which makes no sense, and if the other predictors are all at zero too, which make no sense either in the most cases”. This difficulty in interpretation is the reason why people like to center their models. Centered models have the mean value as the zero, which is easier to interpret. However, for an interaction of two groups and one single continuous parameter, things are not too difficult.</p>
+</div>
