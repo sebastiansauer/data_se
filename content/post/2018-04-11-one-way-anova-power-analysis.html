@@ -1,0 +1,78 @@
+---
+title: One-way ANOVA power analysis
+author: Sebastian Sauer
+date: '2018-04-11'
+slug: one-way-anova-power-analysis
+categories:
+  - rstats
+tags:
+  - r
+  - tutorial
+---
+
+
+
+<p>Computing or estimating power is a very useful procedure in order to weigh the reliability of study results.</p>
+<p>One frequent procedure in inferential statistics is the ANOVA, with the simplest form being the one-way ANOVA. This post shows how to compute power for this test.</p>
+<div id="whats-the-effect-size" class="section level1">
+<h1>What’s the effect size?</h1>
+<p>The first thing to not is that there is no such thing as “power” - in the sense that a sample or a test would have “its power”. Rather power is relative to the sample size and the effect size, that are the most important factors at least.</p>
+<p>So what’s the effect size for the one-way ANOVA? Cohen in his 1992 <a href="http://personal.kent.edu/~marmey/quant2spring04/Cohen%20(1992)%20-%20PB.pdf">paper</a> suggested the f value for this situation:</p>
+<p><span class="math display">\[f = \frac{\sigma_m}{\sigma}\]</span></p>
+<p>That is, <span class="math inline">\(f\)</span> is defined as the ratio of the sd of the population means divided by the within-population means (equal sample sizes assumed).</p>
+<p>A small effect size value is estimated at 0.1 by Cohen. But it’s more convenient to use this helper function:</p>
+<pre class="r"><code>library(pwr)
+cohen.ES(&quot;f&quot;, size = &quot;small&quot;)
+#&gt; 
+#&gt;      Conventional effect size from Cohen (1982) 
+#&gt; 
+#&gt;            test = f2
+#&gt;            size = small
+#&gt;     effect.size = 0.02
+cohen.ES(&quot;f&quot;, size = &quot;medium&quot;)
+#&gt; 
+#&gt;      Conventional effect size from Cohen (1982) 
+#&gt; 
+#&gt;            test = f2
+#&gt;            size = medium
+#&gt;     effect.size = 0.15
+cohen.ES(&quot;f&quot;, size = &quot;large&quot;)
+#&gt; 
+#&gt;      Conventional effect size from Cohen (1982) 
+#&gt; 
+#&gt;            test = f2
+#&gt;            size = large
+#&gt;     effect.size = 0.35</code></pre>
+<p>Hang on, that’s actually <span class="math inline">\(f2\)</span> given back, not <span class="math inline">\(f\)</span>. So the values of <span class="math inline">\(f\)</span> are (Cohen, 1992):</p>
+<ul>
+<li>small: 0.10</li>
+<li>medium: 0.25</li>
+<li>large: 0.40</li>
+</ul>
+</div>
+<div id="compute-the-power-estimate" class="section level1">
+<h1>Compute the power estimate</h1>
+<p>Computing the power is quite straight forward. Assume there are <span class="math inline">\(k=3\)</span> groups, and we would like to achieve a power of .80:</p>
+<pre class="r"><code>p &lt;- pwr.anova.test(k = 3,
+                    f = 0.25,
+                    power = .8)
+p
+#&gt; 
+#&gt;      Balanced one-way analysis of variance power calculation 
+#&gt; 
+#&gt;               k = 3
+#&gt;               n = 52.3966
+#&gt;               f = 0.25
+#&gt;       sig.level = 0.05
+#&gt;           power = 0.8
+#&gt; 
+#&gt; NOTE: n is number in each group</code></pre>
+<p>So we would need about 52 persons - in each group.</p>
+</div>
+<div id="plot-it" class="section level1">
+<h1>Plot it</h1>
+<p>There’s a convenient plotting function in the <code>pwr</code> package available:</p>
+<pre class="r"><code>plot(p)</code></pre>
+<p><img src="/post/2018-04-11-one-way-anova-power-analysis_files/figure-html/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>This graph shows the relation between sample size and power assuming that there are 3 groups, alpha is .05, and effect size is <span class="math inline">\(f = 0.25\)</span>.</p>
+</div>

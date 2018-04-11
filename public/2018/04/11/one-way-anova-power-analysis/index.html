@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>One-way ANOVA power analysis - Data Se</title>
+<meta property="og:title" content="One-way ANOVA power analysis - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">One-way ANOVA power analysis</h1>
+
+    
+    <span class="article-date">2018/04/11</span>
+    
+
+    <div class="article-content">
+      <p>Computing or estimating power is a very useful procedure in order to weigh the reliability of study results.</p>
+<p>One frequent procedure in inferential statistics is the ANOVA, with the simplest form being the one-way ANOVA. This post shows how to compute power for this test.</p>
+<div id="whats-the-effect-size" class="section level1">
+<h1>What’s the effect size?</h1>
+<p>The first thing to not is that there is no such thing as “power” - in the sense that a sample or a test would have “its power”. Rather power is relative to the sample size and the effect size, that are the most important factors at least.</p>
+<p>So what’s the effect size for the one-way ANOVA? Cohen in his 1992 <a href="http://personal.kent.edu/~marmey/quant2spring04/Cohen%20(1992)%20-%20PB.pdf">paper</a> suggested the f value for this situation:</p>
+<p><span class="math display">\[f = \frac{\sigma_m}{\sigma}\]</span></p>
+<p>That is, <span class="math inline">\(f\)</span> is defined as the ratio of the sd of the population means divided by the within-population means (equal sample sizes assumed).</p>
+<p>A small effect size value is estimated at 0.1 by Cohen. But it’s more convenient to use this helper function:</p>
+<pre class="r"><code>library(pwr)
+cohen.ES(&quot;f&quot;, size = &quot;small&quot;)
+#&gt; 
+#&gt;      Conventional effect size from Cohen (1982) 
+#&gt; 
+#&gt;            test = f2
+#&gt;            size = small
+#&gt;     effect.size = 0.02
+cohen.ES(&quot;f&quot;, size = &quot;medium&quot;)
+#&gt; 
+#&gt;      Conventional effect size from Cohen (1982) 
+#&gt; 
+#&gt;            test = f2
+#&gt;            size = medium
+#&gt;     effect.size = 0.15
+cohen.ES(&quot;f&quot;, size = &quot;large&quot;)
+#&gt; 
+#&gt;      Conventional effect size from Cohen (1982) 
+#&gt; 
+#&gt;            test = f2
+#&gt;            size = large
+#&gt;     effect.size = 0.35</code></pre>
+<p>Hang on, that’s actually <span class="math inline">\(f2\)</span> given back, not <span class="math inline">\(f\)</span>. So the values of <span class="math inline">\(f\)</span> are (Cohen, 1992):</p>
+<ul>
+<li>small: 0.10</li>
+<li>medium: 0.25</li>
+<li>large: 0.40</li>
+</ul>
+</div>
+<div id="compute-the-power-estimate" class="section level1">
+<h1>Compute the power estimate</h1>
+<p>Computing the power is quite straight forward. Assume there are <span class="math inline">\(k=3\)</span> groups, and we would like to achieve a power of .80:</p>
+<pre class="r"><code>p &lt;- pwr.anova.test(k = 3,
+                    f = 0.25,
+                    power = .8)
+p
+#&gt; 
+#&gt;      Balanced one-way analysis of variance power calculation 
+#&gt; 
+#&gt;               k = 3
+#&gt;               n = 52.3966
+#&gt;               f = 0.25
+#&gt;       sig.level = 0.05
+#&gt;           power = 0.8
+#&gt; 
+#&gt; NOTE: n is number in each group</code></pre>
+<p>So we would need about 52 persons - in each group.</p>
+</div>
+<div id="plot-it" class="section level1">
+<h1>Plot it</h1>
+<p>There’s a convenient plotting function in the <code>pwr</code> package available:</p>
+<pre class="r"><code>plot(p)</code></pre>
+<p><img src="/post/2018-04-11-one-way-anova-power-analysis_files/figure-html/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>This graph shows the relation between sample size and power assuming that there are 3 groups, alpha is .05, and effect size is <span class="math inline">\(f = 0.25\)</span>.</p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+
