@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Parse libraries from R project - Data Se</title>
+<meta property="og:title" content="Parse libraries from R project - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">4 min read</span>
+    
+
+    <h1 class="article-title">Parse libraries from R project</h1>
+
+    
+    <span class="article-date">2018/04/11</span>
+    
+
+    <div class="article-content">
+      <p>Having written a larger R project is may be of interest which packages have been used. As I did not find a read-to-use package, a colleage of mine - Norman Markgraf - came up with a nice solution. In this post, I build on his solution to provide a function that suits my needs of todays:</p>
+<p><span class="citation">@Norman</span>: Thanks for your great idea!</p>
+<p>First, some libraries:</p>
+<pre class="r"><code>library(tidyverse)
+library(bibtex)
+library(testthat)</code></pre>
+<p>Then, here is some path of an R project where we want to parse all rmd files:</p>
+<pre class="r"><code>path_project &lt;- &quot;/Users/sebastiansauer/Documents/Publikationen/In_Arbeit/Statistik__21/&quot;</code></pre>
+<p>And here a sample rmd file from this folder:</p>
+<pre class="r"><code>file_test &lt;- &quot;112_NSE.Rmd&quot;</code></pre>
+<p>All the source file names share this pattern in this order</p>
+<ul>
+<li>three digits <code>\\d\\d\\d</code></li>
+<li>underscore <code>_</code></li>
+<li>one word <code>w+</code></li>
+<li>file extension <code>.rmd</code></li>
+</ul>
+<p>So should be quite straight forward to regex it.</p>
+<p>Within the files, we will search for all instances of “library(xxx)”, where “xxx” is the name of one library.</p>
+<p>Now, let’s build a funtion that parses all libraries (as explained above):</p>
+<pre class="r"><code>parse_libraries &lt;- function(file){
+  # parses all libraries, ie., all strings as &quot;library(ggplot2)&quot;
+  # returns vector of libraries parsed
+  # input: source file
+  
+  libstring &lt;- regex(&quot;library\\((\\w+)\\)&quot;, multiline = TRUE)
+  file_to_parse &lt;- read_lines(file)
+  libs_raw &lt;-  na.omit(str_extract(file_to_parse, libstring))
+  libs &lt;- str_remove(libs_raw, &quot;library\\(&quot;)
+  libs &lt;- str_remove(libs, &quot;\\)&quot;)
+  return(libs)
+}</code></pre>
+<p>Test:</p>
+<pre class="r"><code>
+path_file &lt;- file.path(paste0(path_project, file_test))
+
+parse_libraries(path_file)
+#&gt; [1] &quot;rlang&quot;     &quot;pryr&quot;      &quot;tidyverse&quot; &quot;gridExtra&quot; &quot;ggplot2&quot;   &quot;ggplot2&quot;</code></pre>
+<p>Looks good. Now cycle over all files in that folder:</p>
+<pre class="r"><code>parse_libraries_project &lt;- function(folder, tidy = FALSE){
+  # parses all .rmd files in a folder
+  # returnes list of string vectors with libraries
+  # input: folder name
+  # if folder == &quot;&quot; doc_root &lt;- &quot;./&quot;
+  files &lt;- list.files(folder, 
+                      pattern=&quot;\\d\\d\\d_\\w+.Rmd&quot;)
+   
+  files %&gt;% 
+    map(~parse_libraries(file.path(paste0(folder, .)))) -&gt; libs_project
+  
+  # some tidying, default is no tidying
+  if (tidy) {
+    libs_project &lt;- unlist(libs_project) 
+    libs_project &lt;- sort(libs_project)
+    libs_project &lt;- unique(libs_project)
+    
+    if (&quot;name_des_pakets&quot; %in% libs_project) {
+      libs_project[libs_project == &quot;name_des_pakets&quot;] &lt;- NA}
+    libs_project &lt;- na.omit(libs_project)
+  }
+  
+  return(libs_project)
+}</code></pre>
+<p>Test it:</p>
+<pre class="r"><code>libs_in_project &lt;- parse_libraries_project(path_project, tidy = TRUE)
+libs_in_project
+#&gt;  [1] &quot;apaTables&quot;     &quot;BayesFactor&quot;   &quot;BaylorEdPsych&quot; &quot;boot&quot;         
+#&gt;  [5] &quot;bootES&quot;        &quot;broom&quot;         &quot;car&quot;           &quot;caret&quot;        
+#&gt;  [9] &quot;cluster&quot;       &quot;corrplot&quot;      &quot;corrr&quot;         &quot;cowplot&quot;      
+#&gt; [13] &quot;datasets&quot;      &quot;devtools&quot;      &quot;doMC&quot;          &quot;dplyr&quot;        
+#&gt; [17] &quot;extrafont&quot;     &quot;formattable&quot;   &quot;GGally&quot;        &quot;ggmap&quot;        
+#&gt; [21] &quot;ggmosaic&quot;      &quot;ggplot2&quot;       &quot;ggplot2movies&quot; &quot;ggthemes&quot;     
+#&gt; [25] &quot;googleVis&quot;     &quot;gplots&quot;        &quot;grid&quot;          &quot;gridExtra&quot;    
+#&gt; [29] &quot;huxtable&quot;      &quot;ISOcodes&quot;      &quot;kableExtra&quot;    &quot;knitr&quot;        
+#&gt; [33] &quot;latex2exp&quot;     &quot;leaflet&quot;       &quot;likert&quot;        &quot;lsa&quot;          
+#&gt; [37] &quot;lsr&quot;           &quot;magrittr&quot;      &quot;MASS&quot;          &quot;methods&quot;      
+#&gt; [41] &quot;mice&quot;          &quot;modelr&quot;        &quot;mosaic&quot;        &quot;nFactors&quot;     
+#&gt; [45] &quot;pander&quot;        &quot;papaja&quot;        &quot;partykit&quot;      &quot;pdftools&quot;     
+#&gt; [49] &quot;plot3D&quot;        &quot;plotROC&quot;       &quot;png&quot;           &quot;prada&quot;        
+#&gt; [53] &quot;pradadata&quot;     &quot;pROC&quot;          &quot;pryr&quot;          &quot;psych&quot;        
+#&gt; [57] &quot;pwr&quot;           &quot;RColorBrewer&quot;  &quot;rlang&quot;         &quot;rpart&quot;        
+#&gt; [61] &quot;rworldmap&quot;     &quot;scales&quot;        &quot;SDMTools&quot;      &quot;sf&quot;           
+#&gt; [65] &quot;skimr&quot;         &quot;SnowballC&quot;     &quot;stargazer&quot;     &quot;stringr&quot;      
+#&gt; [69] &quot;tidyr&quot;         &quot;tidytext&quot;      &quot;tidyverse&quot;     &quot;twitteR&quot;      
+#&gt; [73] &quot;VIM&quot;           &quot;viridis&quot;       &quot;wesanderson&quot;   &quot;wordcloud&quot;    
+#&gt; [77] &quot;xtable&quot;        &quot;yart&quot;         
+#&gt; attr(,&quot;na.action&quot;)
+#&gt; [1] 44
+#&gt; attr(,&quot;class&quot;)
+#&gt; [1] &quot;omit&quot;
+expect_true(&quot;tidyverse&quot; %in% libs_in_project)
+expect_false(&quot;name_des_pakets&quot; %in% libs_in_project)
+length(libs_in_project)
+#&gt; [1] 78</code></pre>
+<p>Software should be cited, so let’s get the citation of each package. Unfortunately, no id (bibtex key) for the record is rendered. So let’s try to build one for each record. Fortunately, there’s a function for that:</p>
+<pre class="r"><code>write.bib(libs_in_project)</code></pre>
+<p>Finally, let’s create a text that cites all these packages as in-text citations so that the functions will appear in the bibliogrphay. We will use the pandoc citation format, which is “<span class="citation">@id</span>”.</p>
+<pre class="r"><code>format_cite_string &lt;- function(libs){
+  libs %&gt;% 
+    map(~str_glue(&quot;@{.}, &quot;, sep = &quot;&quot;)) %&gt;% 
+    unlist() %&gt;% 
+    paste0(., collapse = &quot;&quot;)
+}</code></pre>
+<pre class="r"><code>format_cite_string(libs_in_project)
+#&gt; [1] &quot;@apaTables, @BayesFactor, @BaylorEdPsych, @boot, @bootES, @broom, @car, @caret, @cluster, @corrplot, @corrr, @cowplot, @datasets, @devtools, @doMC, @dplyr, @extrafont, @formattable, @GGally, @ggmap, @ggmosaic, @ggplot2, @ggplot2movies, @ggthemes, @googleVis, @gplots, @grid, @gridExtra, @huxtable, @ISOcodes, @kableExtra, @knitr, @latex2exp, @leaflet, @likert, @lsa, @lsr, @magrittr, @MASS, @methods, @mice, @modelr, @mosaic, @nFactors, @pander, @papaja, @partykit, @pdftools, @plot3D, @plotROC, @png, @prada, @pradadata, @pROC, @pryr, @psych, @pwr, @RColorBrewer, @rlang, @rpart, @rworldmap, @scales, @SDMTools, @sf, @skimr, @SnowballC, @stargazer, @stringr, @tidyr, @tidytext, @tidyverse, @twitteR, @VIM, @viridis, @wesanderson, @wordcloud, @xtable, @yart, &quot;</code></pre>
+<p>We (or I at the least) can use this string to cite all the R packages used, somthing like this “The following R packages were used in this project: <code>format_cite_string(libs_in_project)</code>”.</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

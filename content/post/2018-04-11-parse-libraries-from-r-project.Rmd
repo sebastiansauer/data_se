@@ -1,0 +1,169 @@
+---
+title: Parse libraries from R project
+author: Sebastian Sauer
+date: '2018-04-11'
+slug: parse-libraries-from-r-project
+categories:
+  - rstats
+tags:
+  - r
+---
+
+
+Having written a larger R project is may be of interest which packages have been used. As I did not find a read-to-use package, a colleage of mine - Norman Markgraf - came up with a nice solution. In this post, I build on his solution to provide a function that suits my needs of todays:
+
+@Norman: Thanks for your great idea!
+
+
+```{r setup, include = FALSE, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold"
+)
+
+```
+
+
+First, some libraries:
+
+```{r}
+library(tidyverse)
+library(bibtex)
+library(testthat)
+```
+
+
+Then, here is some path of an R project where we want to parse all rmd files:
+
+```{r}
+path_project <- "/Users/sebastiansauer/Documents/Publikationen/In_Arbeit/Statistik__21/"
+```
+
+And here a sample rmd file from this folder:
+
+```{r}
+file_test <- "112_NSE.Rmd"
+```
+
+All the source file names share this pattern in this order
+
+- three digits `\\d\\d\\d`
+- underscore `_`
+- one word `w+`
+- file extension `.rmd`
+
+
+So should be quite straight forward to regex it.
+
+
+Within the files, we will search for all instances of "library(xxx)", where "xxx" is the name of one library.
+
+
+Now, let's build a funtion that parses all libraries (as explained above):
+
+
+```{r}
+parse_libraries <- function(file){
+  # parses all libraries, ie., all strings as "library(ggplot2)"
+  # returns vector of libraries parsed
+  # input: source file
+  
+  libstring <- regex("library\\((\\w+)\\)", multiline = TRUE)
+  file_to_parse <- read_lines(file)
+  libs_raw <-  na.omit(str_extract(file_to_parse, libstring))
+  libs <- str_remove(libs_raw, "library\\(")
+  libs <- str_remove(libs, "\\)")
+  return(libs)
+}
+```
+
+
+Test:
+
+```{r}
+
+path_file <- file.path(paste0(path_project, file_test))
+
+parse_libraries(path_file)
+```
+
+
+Looks good. Now cycle over all files in that folder:
+
+
+```{r}
+parse_libraries_project <- function(folder, tidy = FALSE){
+  # parses all .rmd files in a folder
+  # returnes list of string vectors with libraries
+  # input: folder name
+  # if folder == "" doc_root <- "./"
+  files <- list.files(folder, 
+                      pattern="\\d\\d\\d_\\w+.Rmd")
+   
+  files %>% 
+    map(~parse_libraries(file.path(paste0(folder, .)))) -> libs_project
+  
+  # some tidying, default is no tidying
+  if (tidy) {
+    libs_project <- unlist(libs_project) 
+    libs_project <- sort(libs_project)
+    libs_project <- unique(libs_project)
+    
+    if ("name_des_pakets" %in% libs_project) {
+      libs_project[libs_project == "name_des_pakets"] <- NA}
+    libs_project <- na.omit(libs_project)
+  }
+  
+  return(libs_project)
+}
+```
+
+
+Test it:
+
+```{r}
+libs_in_project <- parse_libraries_project(path_project, tidy = TRUE)
+libs_in_project
+expect_true("tidyverse" %in% libs_in_project)
+expect_false("name_des_pakets" %in% libs_in_project)
+length(libs_in_project)
+```
+
+
+
+
+Software should be cited, so let's get the citation of each package. Unfortunately, no id (bibtex key) for the record is rendered. So let's try to build one for each record. Fortunately, there's a function for that:
+
+```{r}
+write.bib(libs_in_project)
+```
+
+
+Finally, let's create a text that cites all these packages as in-text citations so that the functions will appear in the bibliogrphay. We will use the pandoc citation format, which is "@id".
+
+```{r}
+format_cite_string <- function(libs){
+  libs %>% 
+    map(~str_glue("@{.}, ", sep = "")) %>% 
+    unlist() %>% 
+    paste0(., collapse = "")
+}
+```
+
+
+```{r}
+format_cite_string(libs_in_project)
+```
+
+
+We (or I at the least) can use this string to cite all the R packages used, somthing like this "The following R packages were used in this project: `format_cite_string(libs_in_project)`".
+
+
