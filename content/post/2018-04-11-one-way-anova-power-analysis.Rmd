@@ -1,0 +1,75 @@
+---
+title: One-way ANOVA power analysis
+author: Sebastian Sauer
+date: '2018-04-11'
+slug: one-way-anova-power-analysis
+categories:
+  - rstats
+tags:
+  - r
+  - tutorial
+---
+
+
+Computing or estimating power is a very useful procedure in order to weigh the reliability of study results.
+
+One frequent procedure in inferential statistics is the ANOVA, with the simplest form being the one-way ANOVA. This post shows how to compute power for this test.
+
+
+# What's the effect size?
+
+The first thing to not is that there is no such thing as "power" - in the sense that a sample or a test would have "its power". Rather power is relative to the sample size and the effect size, that are the most important factors at least.
+
+So what's the effect size for the one-way ANOVA? Cohen in his 1992 [paper](http://personal.kent.edu/~marmey/quant2spring04/Cohen%20(1992)%20-%20PB.pdf) suggested the f value for this situation:
+
+$$f = \frac{\sigma_m}{\sigma}$$
+
+That is, $f$ is defined as the ratio of the sd of the population means divided by the within-population means (equal sample sizes assumed).
+
+A small effect size value is estimated at 0.1 by Cohen. But it's more convenient to use this helper function:
+
+```{r}
+library(pwr)
+cohen.ES("f", size = "small")
+cohen.ES("f", size = "medium")
+cohen.ES("f", size = "large")
+
+
+```
+
+Hang on, that's actually $f2$ given back, not $f$. So the values of $f$ are (Cohen, 1992):
+
+- small: 0.10
+- medium: 0.25
+- large: 0.40
+
+
+# Compute the power estimate 
+
+
+Computing the power is quite straight forward. Assume there are $k=3$ groups, and we would like to achieve a power of .80:
+
+```{r}
+p <- pwr.anova.test(k = 3,
+                    f = 0.25,
+                    power = .8)
+p
+
+```
+
+So we would need about 52 persons - in each group.
+
+
+# Plot it
+
+There's a convenient plotting function in the `pwr` package available:
+
+```{r}
+plot(p)
+```
+
+This graph shows the relation between sample size and power assuming that there are 3 groups, alpha is .05, and effect size is $f = 0.25$.
+
+
+
+

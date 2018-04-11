@@ -1,0 +1,65 @@
+---
+title: Metrics for readability of slide decks for teaching
+author: Sebastian Sauer
+date: '2018-04-09'
+slug: metrics-for-readability-of-slide-decks-for-teaching
+draft: TRUE
+categories:
+  - rstats
+tags:
+  - textmining
+  - r
+---
+
+
+Some thoughts on the "quality" of slide decks used in teaching: How many visuals are there? How much text is squeezed on a slide? What's the average word and sentence length? How much buzz words and complicated jargon is present?
+
+
+Let's have an initial look at some meaures in that regard. Hey, this post is just playing around a little. We will work with this [slide deck](https://github.com/sebastiansauer/sebastiansauer.github.io/blob/master/download/slides.pdf), published under CC-BY 3, with parts as GNU - so all "open" in short. That deck comprises teaching material we have compiled for stats courses at our institution; Karsten Luebke at teh driver seat. Norman Markgraf did the TeX magic and more.
+
+
+Let's parse the PDF file first:
+
+
+```{r}
+library(pdftools)
+library(tidytext)
+library(tidyverse)
+library(stringr)
+library(mosaic)
+library(stringi)
+
+file_url <- "https://github.com/sebastiansauer/sebastiansauer.github.io/raw/master/download/slides.pdf"
+download.file(file_url, "slidedeck.pdf")
+slidedeck <- pdf_text(file_url)
+```
+
+
+How does that text object look like:
+
+```{r}
+head(slidedeck)
+```
+
+
+Let's have a look at the distribution of word count per page:
+
+
+```{r}
+slidedeck %>% 
+  map_int(~str_count(.)) %>% 
+  as_tibble() -> slide_word_count
+
+slide_word_count %>% 
+  ggplot() +
+  aes(x = value) +
+  geom_histogram()
+```
+
+
+Some quantiles:
+
+```{r}
+mosaic::qdata(~value, data = slide_word_count)
+```
+
