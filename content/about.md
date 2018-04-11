@@ -10,7 +10,9 @@ I blog about data science, particularly using R, and with an applied interest to
 
 As a non-virtual person, I work as a professor at [FOM University of Applied Sciences](https://www.fom.de/die-fom-englisch/the-university-for-the-professionals.html).
 
-Posts reflect mostly my current thinking; and posts are not immune to thought updates. With luck things get less wrong in the course of time. All opions are my own. Faults are my own.
+Posts reflect mostly my current thinking; and posts are not immune to thought updates. With luck things get less wrong in the course of time. All opions are my own. Faults are my own. Posts are organized as note books, as the crow flies, which is, as my thinking went. 
+
+The posts  ~~are cool~~ ~~are certainly correct and precise~~ ~~may be in parts correct and mostly creative~~ ~~are ok~~ ~~are not completeley wrong~~ may include ideas that cannot be proven wrong.
 
 See also my [Google Scholar profile](https://scholar.google.de/citations?user=r-2ssnAAAAAJ&hl=de) and my [ORCID](http://orcid.org/0000-0003-1515-8348).
 
