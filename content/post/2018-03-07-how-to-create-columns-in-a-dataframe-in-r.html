@@ -14,24 +14,31 @@ tags:
 
 <p>Note that we will use this library for this post:</p>
 <pre class="r"><code>library(dplyr)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
 <p>By the way, loading <code>mosaic</code>, will load <code>dplyr</code> too.</p>
 <p>One of the major data wrangling activities (in R and elsewhere) is to create a new column in a data frame. For example, assume you have some students who have completed some exercises. In each <em>row</em> of the dataframe - one student. In each column - one exercise (called item). The dataframe might then look like this:</p>
-<pre class="r"><code>
-df &lt;- data.frame(name = c(&quot;John&quot;, &quot;Joan&quot;, &quot;Jeanne&quot;),
+<pre class="r"><code>df &lt;- data.frame(name = c(&quot;John&quot;, &quot;Joan&quot;, &quot;Jeanne&quot;),
                  item1 = c(TRUE, TRUE, FALSE),
                  item2 = c(TRUE, FALSE, TRUE))
-df
-#&gt;     name item1 item2
-#&gt; 1   John  TRUE  TRUE
-#&gt; 2   Joan  TRUE FALSE
-#&gt; 3 Jeanne FALSE  TRUE</code></pre>
+df</code></pre>
+<pre><code>##     name item1 item2
+## 1   John  TRUE  TRUE
+## 2   Joan  TRUE FALSE
+## 3 Jeanne FALSE  TRUE</code></pre>
 <p>Note that <code>TRUE</code> indicates that the exercise has been solved correctly, if otherwise, we note <code>FALSE</code>.</p>
 <p>Now assume you would like to sum up the number of correct items: How many items were solved by John, Joan, and Jeanne, respectively?</p>
 <p>R provides a number of ways to compute this.</p>
 <div id="sum-as-a-vector" class="section level1">
 <h1>Sum as a vector</h1>
-<pre class="r"><code>df$item1 + df$item2
-#&gt; [1] 2 1 1</code></pre>
+<pre class="r"><code>df$item1 + df$item2</code></pre>
+<pre><code>## [1] 2 1 1</code></pre>
 <p>So, John, solved 2 items, the other students 1 item. It comes handsome that R interpretes <code>TRUE</code> as 1 and <code>FALSE</code> as 0. As a consequence, we can add up logical variables with no hazzle.</p>
 <p>But we don’t want that as a freefloating column. That sum-column should be attached to our data frame. There should be a <code>items_sum</code> column in our dataframe.</p>
 </div>
@@ -40,64 +47,70 @@ df
 <p>The Base R way is this:</p>
 <pre class="r"><code>df$items_sum &lt;- df$item1 + df$item2</code></pre>
 <p>Let’s check the dataframe:</p>
-<pre class="r"><code>df
-#&gt;     name item1 item2 items_sum
-#&gt; 1   John  TRUE  TRUE         2
-#&gt; 2   Joan  TRUE FALSE         1
-#&gt; 3 Jeanne FALSE  TRUE         1</code></pre>
+<pre class="r"><code>df</code></pre>
+<pre><code>##     name item1 item2 items_sum
+## 1   John  TRUE  TRUE         2
+## 2   Joan  TRUE FALSE         1
+## 3 Jeanne FALSE  TRUE         1</code></pre>
 <p>Worked. But there are other ways too.</p>
 </div>
 <div id="using-dplyr" class="section level1">
 <h1>Using <code>dplyr</code></h1>
 <pre class="r"><code>df &lt;- mutate(df, items_sum2 = item1 + item2)
-df
-#&gt;     name item1 item2 items_sum items_sum2
-#&gt; 1   John  TRUE  TRUE         2          2
-#&gt; 2   Joan  TRUE FALSE         1          1
-#&gt; 3 Jeanne FALSE  TRUE         1          1</code></pre>
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2
+## 1   John  TRUE  TRUE         2          2
+## 2   Joan  TRUE FALSE         1          1
+## 3 Jeanne FALSE  TRUE         1          1</code></pre>
 <p>Worked. Now let’s use the pipe.</p>
 </div>
 <div id="using-the-pipe" class="section level1">
 <h1>Using the pipe</h1>
 <pre class="r"><code>df &lt;- df %&gt;% 
   mutate(items_sum3 = item1 + item2) 
-df
-#&gt;     name item1 item2 items_sum items_sum2 items_sum3
-#&gt; 1   John  TRUE  TRUE         2          2          2
-#&gt; 2   Joan  TRUE FALSE         1          1          1
-#&gt; 3 Jeanne FALSE  TRUE         1          1          1</code></pre>
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2 items_sum3
+## 1   John  TRUE  TRUE         2          2          2
+## 2   Joan  TRUE FALSE         1          1          1
+## 3 Jeanne FALSE  TRUE         1          1          1</code></pre>
 <p>Note that the assignment arrow operator can be headed to either direction, ie left or right:</p>
 <pre class="r"><code>df %&gt;% 
   mutate(items_sum3 = item1 + item2) -&gt; df
-df
-#&gt;     name item1 item2 items_sum items_sum2 items_sum3
-#&gt; 1   John  TRUE  TRUE         2          2          2
-#&gt; 2   Joan  TRUE FALSE         1          1          1
-#&gt; 3 Jeanne FALSE  TRUE         1          1          1</code></pre>
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2 items_sum3
+## 1   John  TRUE  TRUE         2          2          2
+## 2   Joan  TRUE FALSE         1          1          1
+## 3 Jeanne FALSE  TRUE         1          1          1</code></pre>
 </div>
 <div id="recode-variable-with-carrecode" class="section level1">
 <h1>Recode variable with <code>car::Recode</code></h1>
 <p>In R parlance, recoding a variable is different from creating one. Again, different ways exist for recoding variable. Let’s assume that we would like to recode <code>TRUE</code> to 1 and <code>FALSE</code> to 0. But if we want to save the recoded variable as a new variable, then yes, we need to create a new variable with the same machinery as above. For that purpose, the package <code>car</code> comes handy:</p>
-<pre class="r"><code>library(car)
-df %&gt;% 
+<pre class="r"><code>library(car)</code></pre>
+<pre><code>## Loading required package: carData</code></pre>
+<pre><code>## 
+## Attaching package: &#39;car&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     recode</code></pre>
+<pre class="r"><code>df %&gt;% 
   mutate(item1r = car::Recode(item1, 
                               &quot;1 = TRUE; 0 = FALSE&quot;)) -&gt; df
-df
-#&gt;     name item1 item2 items_sum items_sum2 items_sum3 item1r
-#&gt; 1   John  TRUE  TRUE         2          2          2      1
-#&gt; 2   Joan  TRUE FALSE         1          1          1      1
-#&gt; 3 Jeanne FALSE  TRUE         1          1          1      0</code></pre>
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2 items_sum3 item1r
+## 1   John  TRUE  TRUE         2          2          2      1
+## 2   Joan  TRUE FALSE         1          1          1      1
+## 3 Jeanne FALSE  TRUE         1          1          1      0</code></pre>
 <p><code>car::recode</code> can be used for more complex recoding schemes, too:</p>
 <pre class="r"><code>df &lt;- df %&gt;% 
   mutate(items_sum3 = car::recode(items_sum, 
                                  &quot;lo:1 = &#39;failed&#39;;
                                   2 = &#39;passed&#39;;
                                   3:hi = &#39;cant believe&#39;&quot;)) 
-df
-#&gt;     name item1 item2 items_sum items_sum2 items_sum3 item1r
-#&gt; 1   John  TRUE  TRUE         2          2     passed      1
-#&gt; 2   Joan  TRUE FALSE         1          1     failed      1
-#&gt; 3 Jeanne FALSE  TRUE         1          1     failed      0</code></pre>
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2 items_sum3 item1r
+## 1   John  TRUE  TRUE         2          2     passed      1
+## 2   Joan  TRUE FALSE         1          1     failed      1
+## 3 Jeanne FALSE  TRUE         1          1     failed      0</code></pre>
 <p>See <code>?Recode</code> for details of the syntax.</p>
 </div>
 <div id="recode-variable-with-ifelse" class="section level1">
@@ -105,11 +118,11 @@ df
 <p>Another frequently used way is using <code>ifelse</code>:</p>
 <pre class="r"><code>df %&gt;% 
   mutate(item2r = ifelse(item2 == TRUE, 1L, 0L)) -&gt; df
-df
-#&gt;     name item1 item2 items_sum items_sum2 items_sum3 item1r item2r
-#&gt; 1   John  TRUE  TRUE         2          2     passed      1      1
-#&gt; 2   Joan  TRUE FALSE         1          1     failed      1      0
-#&gt; 3 Jeanne FALSE  TRUE         1          1     failed      0      1</code></pre>
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2 items_sum3 item1r item2r
+## 1   John  TRUE  TRUE         2          2     passed      1      1
+## 2   Joan  TRUE FALSE         1          1     failed      1      0
+## 3 Jeanne FALSE  TRUE         1          1     failed      0      1</code></pre>
 <p>The general form of <code>ifelse</code> is <code>ifelse(condition, what_if_true, what_if_not)</code>.</p>
 <p>By the way, if we want to coerce a numeric variable to integer, we can call it <code>1L</code>, instead of <code>1</code>.</p>
 </div>
@@ -121,13 +134,13 @@ df
     items_sum &lt; 2 ~ &quot;failed&quot;,
     items_sum == 2 ~ &quot;passed&quot;,
     items_sum &gt; 2 ~ &quot;awesome&quot;)) -&gt; df
-df
-#&gt;     name item1 item2 items_sum items_sum2 items_sum3 item1r item2r
-#&gt; 1   John  TRUE  TRUE         2          2     passed      1      1
-#&gt; 2   Joan  TRUE FALSE         1          1     failed      1      0
-#&gt; 3 Jeanne FALSE  TRUE         1          1     failed      0      1
-#&gt;   items_sum4
-#&gt; 1     passed
-#&gt; 2     failed
-#&gt; 3     failed</code></pre>
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2 items_sum3 item1r item2r
+## 1   John  TRUE  TRUE         2          2     passed      1      1
+## 2   Joan  TRUE FALSE         1          1     failed      1      0
+## 3 Jeanne FALSE  TRUE         1          1     failed      0      1
+##   items_sum4
+## 1     passed
+## 2     failed
+## 3     failed</code></pre>
 </div>

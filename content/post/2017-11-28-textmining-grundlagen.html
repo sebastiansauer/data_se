@@ -23,12 +23,22 @@ tags:
   - Sie können Worthäufigkeiten auszählen.
   - Sie können Worthäufigkeiten anhand einer Wordcloud visualisieren.</code></pre>
 <p>In dieser Übung benötigte R-Pakete:</p>
-<pre class="r"><code>library(tidyverse)  # Datenjudo
-library(stringr)  # Textverarbeitung
+<pre class="r"><code>library(tidyverse)  # Datenjudo</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ✔ ggplot2 2.2.1.9000     ✔ purrr   0.2.4     
+## ✔ tibble  1.4.2          ✔ dplyr   0.7.4     
+## ✔ tidyr   0.8.0          ✔ stringr 1.3.1     
+## ✔ readr   1.1.1          ✔ forcats 0.3.0</code></pre>
+<pre><code>## ── Conflicts ────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>library(stringr)  # Textverarbeitung
 library(tidytext)  # Textmining
-library(lsa)  # Stopwörter 
-library(SnowballC)  # Wörter trunkieren
+library(lsa)  # Stopwörter </code></pre>
+<pre><code>## Loading required package: SnowballC</code></pre>
+<pre class="r"><code>library(SnowballC)  # Wörter trunkieren
 library(wordcloud)  # Wordcloud anzeigen</code></pre>
+<pre><code>## Loading required package: RColorBrewer</code></pre>
 <blockquote>
 <p>Bitte installieren Sie <em>rechtzeitig</em> alle Pakete, z.B. in RStudio über den Reiter <em>Packages … Install</em>.</p>
 </blockquote>
@@ -90,8 +100,8 @@ library(wordcloud)  # Wordcloud anzeigen</code></pre>
 <p>Wenn Sie <em>keinen</em> Pfad angeben, dann geht R davon aus, dass sich die angegebene Datei im Arbeitsverzeichnis befindet. Welcher Ordner ist Ihr Arbeitsverzeichnis? Klicken Sie in RStudio auf <em>Session &gt; Set Working Directory…</em> um zu erfahren, welcher Ordner im Moment Ihr Arbeitsverzeichnis ist. Dort können Sie auch Ihr Arbeitsverzeichnis einstellen.</p>
 </blockquote>
 <p>Als nächstes “dehnen” wir den Dataframe zu einem <em>tidy text</em> Dataframe (s. Abb. <a href="#fig:tidytextdf">1</a>); das besorgt die Funktion <code>unnest_tokens</code> aus `tidytext. ‘unnest’ heißt dabei so viel wie ‘Entschachteln’, also von breit auf lang dehnen. Mit ‘tokens’ sind hier einfach die Wörter gemeint (es könnten aber auch andere Analyseeinheiten sein, Sätze zum Beispiel).</p>
-<div class="figure" style="text-align: center"><span id="fig:tidytextdf"></span>
-<img src="/images/textmining/tidytext-crop.png" alt="Illustration eines Tidy Text Dataframe" width="100%" />
+<div class="figure"><span id="fig:tidytextdf"></span>
+<img src="/images/textmining/tidytext-crop.png" alt="Illustration eines Tidy Text Dataframe"  />
 <p class="caption">
 Figure 1: Illustration eines Tidy Text Dataframe
 </p>
@@ -99,16 +109,16 @@ Figure 1: Illustration eines Tidy Text Dataframe
 <pre class="r"><code>text_df %&gt;% 
   unnest_tokens(output = wort, input = text) -&gt; tidytext_df
 
-head(tidytext_df)
-#&gt; # A tibble: 6 x 2
-#&gt;   Zeile wort  
-#&gt;   &lt;int&gt; &lt;chr&gt; 
-#&gt; 1     1 wir   
-#&gt; 2     1 haben 
-#&gt; 3     1 die   
-#&gt; 4     1 frauen
-#&gt; 5     1 zu    
-#&gt; 6     1 bett</code></pre>
+head(tidytext_df)</code></pre>
+<pre><code>## # A tibble: 6 x 2
+##   Zeile wort  
+##   &lt;int&gt; &lt;chr&gt; 
+## 1     1 wir   
+## 2     1 haben 
+## 3     1 die   
+## 4     1 frauen
+## 5     1 zu    
+## 6     1 bett</code></pre>
 <p>Der Parameter <code>output</code> sagt, wie neue ‘saubere’ (lange) Spalte heißen soll; <code>input</code> sagt der Funktion, welche Spalte sie als ihr Futter (Input) betrachten soll (welche Spalte in tidy text umgewandelt werden soll).</p>
 <pre><code>Nehme den Datensatz &quot;text_df&quot; UND DANN  
 dehne die einzelnen Elemente der Spalte &quot;text&quot;, so dass jedes Element seine eigene Spalte bekommt.  
@@ -133,6 +143,11 @@ filtere die Spalte &quot;wort&quot;, so dass nur noch Kleinbuchstaben übrig ble
 <p>Nun lesen wir Text-Daten ein; das können beliebige Daten sein<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a>. Eine gewisse Reichhaltigkeit im Text ist von Vorteil. Nehmen wir das Parteiprogramm der Partei AfD<a href="#fn4" class="footnote-ref" id="fnref4"><sup>4</sup></a>. Vor dem Hintergrund des Erstarkens des Populismus weltweit und der großen Gefahr, die davon ausgeht - man blicke auf die Geschichte Europas in der ersten Hälfte des 20. Jahrhunderts - <del>verdient</del>erfordert der politische Prozess und speziell Neuentwicklungen darin unsere besondere Beachtung. Das Parteiprogramm kann hier als CSV-Datei von <a href="https://osf.io/b35r7/" class="uri">https://osf.io/b35r7/</a> eingelesen werden, hier schon als CSV-Datei:</p>
 <pre class="r"><code>osf_link &lt;- paste0(&quot;https://osf.io/b35r7/?action=download&quot;)
 afd &lt;- read_csv(osf_link)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   page = col_integer(),
+##   content = col_character()
+## )</code></pre>
 </div>
 <div id="als-pdf-oder-unstrukturierte-text-datei-einlesen" class="section level4">
 <h4>Als PDF oder unstrukturierte Text-Datei einlesen</h4>
@@ -155,21 +170,21 @@ afd &lt;- data_frame(Zeile = 1:96,
 <h3>Worthäufigkeiten auszählen</h3>
 <pre class="r"><code>afd_long %&gt;% 
   na.omit() %&gt;%  # fehlende Werte löschen
-  count(token, sort = TRUE)
-#&gt; # A tibble: 7,087 x 2
-#&gt;    token     n
-#&gt;    &lt;chr&gt; &lt;int&gt;
-#&gt;  1 die    1151
-#&gt;  2 und    1147
-#&gt;  3 der     870
-#&gt;  4 zu      435
-#&gt;  5 für     392
-#&gt;  6 in      392
-#&gt;  7 den     271
-#&gt;  8 von     257
-#&gt;  9 ist     251
-#&gt; 10 das     225
-#&gt; # ... with 7,077 more rows</code></pre>
+  count(token, sort = TRUE)</code></pre>
+<pre><code>## # A tibble: 7,087 x 2
+##    token     n
+##    &lt;chr&gt; &lt;int&gt;
+##  1 die    1151
+##  2 und    1147
+##  3 der     870
+##  4 zu      435
+##  5 für     392
+##  6 in      392
+##  7 den     271
+##  8 von     257
+##  9 ist     251
+## 10 das     225
+## # ... with 7,077 more rows</code></pre>
 <p>Die häufigsten Wörter sind inhaltsleere Partikel, Präpositionen, Artikel… Solche sogenannten “Stopwörter” sollten wir besser herausfischen, um zu den inhaltlich tragenden Wörtern zu kommen. Praktischerweise gibt es frei verfügbare Listen von Stopwörtern, z.B. im Paket <code>lsa</code>.</p>
 <pre class="r"><code>data(stopwords_de, package = &quot;lsa&quot;)
 
@@ -181,9 +196,11 @@ stopwords_de &lt;- stopwords_de %&gt;%
 
 afd_long %&gt;% 
   anti_join(stopwords_de) -&gt; afd_no_stop</code></pre>
+<pre><code>## Joining, by = &quot;token&quot;</code></pre>
 <p>Unser Datensatz hat jetzt viel weniger Zeilen; wir haben also durch <code>anti_join</code> Zeilen gelöscht (herausgefiltert). Das ist die Funktion von <code>anti_join</code>: Die Zeilen, die in beiden Dataframes vorkommen, werden herausgefiltert. Es verbleiben also nicht “Nicht-Stopwörter” in unserem Dataframe. Damit wird es schon interessanter, welche Wörter häufig sind.</p>
 <pre class="r"><code>afd_no_stop %&gt;% 
   count(token, sort = TRUE) -&gt; afd_count</code></pre>
+<pre><code>## Selecting by n</code></pre>
 <table>
 <caption><span id="tab:unnamed-chunk-13">Table 1: </span>Die häufigsten Wörter</caption>
 <thead>
@@ -243,6 +260,7 @@ afd_long %&gt;%
 afd_count_stemmed %&gt;% 
   top_n(10) %&gt;% 
   knitr::kable(caption = &quot;Die häufigsten Wörter - mit &#39;stemming&#39;&quot;)</code></pre>
+<pre><code>## Selecting by n</code></pre>
 <table>
 <caption><span id="tab:unnamed-chunk-14">Table 2: </span>Die häufigsten Wörter - mit ‘stemming’</caption>
 <thead>
@@ -304,8 +322,8 @@ afd_count_stemmed %&gt;%
           max.words = 100, 
           scale = c(2,.5), 
           colors=brewer.pal(6, &quot;Dark2&quot;))</code></pre>
-<div class="figure" style="text-align: center"><span id="fig:show-wordcloud"></span>
-<img src="/images/textmining/wordcloud1.png" alt="Eine Wordwolke zum AfD-Parteiprogramm" width="100%" />
+<div class="figure"><span id="fig:show-wordcloud"></span>
+<img src="/images/textmining/wordcloud1.png" alt="Eine Wordwolke zum AfD-Parteiprogramm"  />
 <p class="caption">
 Figure 2: Eine Wordwolke zum AfD-Parteiprogramm
 </p>
@@ -318,17 +336,18 @@ Figure 2: Eine Wordwolke zum AfD-Parteiprogramm
   aes(x = reorder(token_stem, n), y = n) +
   geom_col() + 
   labs(title = &quot;mit Trunkierung&quot;) +
-  coord_flip() -&gt; p1
-
-afd_count %&gt;% 
+  coord_flip() -&gt; p1</code></pre>
+<pre><code>## Selecting by n</code></pre>
+<pre class="r"><code>afd_count %&gt;% 
   top_n(30) %&gt;% 
   ggplot() +
   aes(x = reorder(token, n), y = n) +
   geom_col() +
   labs(title = &quot;ohne Trunkierung&quot;) +
   coord_flip() -&gt; p2</code></pre>
-<div class="figure" style="text-align: center"><span id="fig:p-word-freq"></span>
-<img src="/rmarkdown-libs/figure-html4/p-word-freq-1.png" alt="Worthäufigkeiten im AfD-Parteiprogramm" width="100%" />
+<pre><code>## Selecting by n</code></pre>
+<div class="figure"><span id="fig:p-word-freq"></span>
+<img src="/post/2017-11-28-textmining-grundlagen_files/figure-html/p-word-freq-1.png" alt="Worthäufigkeiten im AfD-Parteiprogramm" width="672" />
 <p class="caption">
 Figure 3: Worthäufigkeiten im AfD-Parteiprogramm
 </p>

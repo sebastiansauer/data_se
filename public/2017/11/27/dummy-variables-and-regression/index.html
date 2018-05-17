@@ -57,7 +57,7 @@
 
   <article class="article">
     
-    <span class="article-duration">6 min read</span>
+    <span class="article-duration">7 min read</span>
     
 
     <h1 class="article-title">Dummy variables and regression</h1>
@@ -82,24 +82,46 @@ is the other way round or complete different (ie., some third variable accounts 
 association between GDP and religiosity).</p>
 <p>Let’s have a look at some data to illustrate.</p>
 <p>First, we load some packages.</p>
-<pre class="r"><code>library(tidyverse)  # do all
-library(broom)  # tidy
+<pre class="r"><code>library(tidyverse)  # do all</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ✔ ggplot2 2.2.1.9000     ✔ purrr   0.2.4     
+## ✔ tibble  1.4.2          ✔ dplyr   0.7.4     
+## ✔ tidyr   0.8.0          ✔ stringr 1.3.1     
+## ✔ readr   1.1.1          ✔ forcats 0.3.0</code></pre>
+<pre><code>## ── Conflicts ────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>library(broom)  # tidy
 library(DiagrammeR)  # graphs</code></pre>
 <p>This dataset deals with the aforementioned association:</p>
-<pre class="r"><code>data &lt;- read_csv(&quot;https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/master/csv/Stat2Data/ReligionGDP.csv&quot;)
-glimpse(data)
-#&gt; Observations: 44
-#&gt; Variables: 10
-#&gt; $ X1          &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,...
-#&gt; $ Country     &lt;chr&gt; &quot;United_States&quot;, &quot;Canada&quot;, &quot;Argentina&quot;, &quot;Bolivia&quot;,...
-#&gt; $ Religiosity &lt;dbl&gt; 1.70, 0.88, 1.07, 1.86, 2.34, 1.35, 1.38, 1.95, 1....
-#&gt; $ GDP         &lt;int&gt; 47440, 45085, 8171, 1656, 8295, 10117, 10200, 4448...
-#&gt; $ Africa      &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,...
-#&gt; $ EastEurope  &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,...
-#&gt; $ MiddleEast  &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,...
-#&gt; $ Asia        &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,...
-#&gt; $ WestEurope  &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0,...
-#&gt; $ Americas    &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,...</code></pre>
+<pre class="r"><code>data &lt;- read_csv(&quot;https://raw.githubusercontent.com/vincentarelbundock/Rdatasets/master/csv/Stat2Data/ReligionGDP.csv&quot;)</code></pre>
+<pre><code>## Warning: Missing column names filled in: &#39;X1&#39; [1]</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   X1 = col_integer(),
+##   Country = col_character(),
+##   Religiosity = col_double(),
+##   GDP = col_integer(),
+##   Africa = col_integer(),
+##   EastEurope = col_integer(),
+##   MiddleEast = col_integer(),
+##   Asia = col_integer(),
+##   WestEurope = col_integer(),
+##   Americas = col_integer()
+## )</code></pre>
+<pre class="r"><code>glimpse(data)</code></pre>
+<pre><code>## Observations: 44
+## Variables: 10
+## $ X1          &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,...
+## $ Country     &lt;chr&gt; &quot;United_States&quot;, &quot;Canada&quot;, &quot;Argentina&quot;, &quot;Bolivia&quot;,...
+## $ Religiosity &lt;dbl&gt; 1.70, 0.88, 1.07, 1.86, 2.34, 1.35, 1.38, 1.95, 1....
+## $ GDP         &lt;int&gt; 47440, 45085, 8171, 1656, 8295, 10117, 10200, 4448...
+## $ Africa      &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,...
+## $ EastEurope  &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,...
+## $ MiddleEast  &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,...
+## $ Asia        &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,...
+## $ WestEurope  &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0,...
+## $ Americas    &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,...</code></pre>
 <p>The path (cause-effect) diagram would look like this:</p>
 <pre class="r"><code>DiagrammeR::grViz(&quot;
                   digraph rmarkdown{
@@ -107,7 +129,7 @@ glimpse(data)
                   GDP -&gt; Religiosity;
                   }&quot;,
                   height = 200)</code></pre>
-<div id="htmlwidget-1" style="width:100%;height:200px;" class="grViz html-widget"></div>
+<div id="htmlwidget-1" style="width:672px;height:200px;" class="grViz html-widget"></div>
 <script type="application/json" data-for="htmlwidget-1">{"x":{"diagram":"\n                  digraph rmarkdown{\n                  rankdir=LR;\n                  GDP -> Religiosity;\n                  }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
 <p>Let’s say our model insists this:</p>
 <pre class="r"><code>DiagrammeR::grViz(&quot;
@@ -117,7 +139,7 @@ glimpse(data)
                   Region -&gt; Religiosity
                   }&quot;,
                   height = 200)</code></pre>
-<div id="htmlwidget-2" style="width:100%;height:200px;" class="grViz html-widget"></div>
+<div id="htmlwidget-2" style="width:672px;height:200px;" class="grViz html-widget"></div>
 <script type="application/json" data-for="htmlwidget-2">{"x":{"diagram":"\n                  digraph rmarkdown{\n                  rankdir=LR;\n                  GDP -> Religiosity;\n                  Region -> Religiosity\n                  }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
 <p>Of course, a more realistic path diagram might look like this:</p>
 <pre class="r"><code>DiagrammeR::grViz(&quot;
@@ -138,7 +160,7 @@ Region -&gt; M2
 Y2 -&gt; Region
 M2 -&gt; Religiosity
                   }&quot;)</code></pre>
-<div id="htmlwidget-3" style="width:100%;height:415.296px;" class="grViz html-widget"></div>
+<div id="htmlwidget-3" style="width:672px;height:480px;" class="grViz html-widget"></div>
 <script type="application/json" data-for="htmlwidget-3">{"x":{"diagram":"\n                  digraph rmarkdown{\n                  graph [fontsize = 10; rankdir=LR]\n\n                  node [fontname = Helvetica]\n                  GDP; Religiosity; X; Y1; Y2; M1; M2; Region\n                  \n                  GDP -> Religiosity\n                  GDP -> M1\n                  M -> Religiosity\n                  X -> Religiosity\n                  Y1 -> GDP\nRegion -> GDP\nRegion -> Religiosity\nRegion -> M2\nY2 -> Region\nM2 -> Religiosity\n                  }","config":{"engine":"dot","options":null}},"evals":[],"jsHooks":[]}</script>
 <p>So, in short, this model holds that both Region and GDP have an indirect and and direct effect on Religiosity, but there are other influences on Religiosity, too. And GDP and Region are in turn influenced by some other factors.</p>
 <p>Anyway, let’s try to model the simple model using a linear model.</p>
@@ -150,15 +172,15 @@ M2 -&gt; Religiosity
 <h1>Now what?</h1>
 <p>Basically, a linear model only understands numerical data as predictor(s). Simply put, on the X-axis there must always be numeric data. A dummy variable can be seen as numeric - possessing only two distinct values, <span class="math inline">\(0\)</span> and <span class="math inline">\(1\)</span>!. That’s why dummy variables work for regression. By the way, many models think this way. So we are in the position to run our regression right away:</p>
 <pre class="r"><code>lm1 &lt;- lm(Religiosity ~ GDP + Africa + MiddleEast + Asia + WestEurope + Americas, data = data)
-tidy(lm1)
-#&gt;          term      estimate    std.error statistic      p.value
-#&gt; 1 (Intercept)  9.260837e-01 2.078164e-01  4.456258 7.457347e-05
-#&gt; 2         GDP -1.726154e-05 6.357360e-06 -2.715205 1.000511e-02
-#&gt; 3      Africa  1.513056e+00 2.532534e-01  5.974475 6.798788e-07
-#&gt; 4  MiddleEast  1.321729e+00 2.730159e-01  4.841218 2.301614e-05
-#&gt; 5        Asia  1.262075e+00 2.623877e-01  4.809962 2.533764e-05
-#&gt; 6  WestEurope  4.092005e-01 3.359364e-01  1.218089 2.309009e-01
-#&gt; 7    Americas  9.188045e-01 2.493940e-01  3.684149 7.299699e-04</code></pre>
+tidy(lm1)</code></pre>
+<pre><code>##          term      estimate    std.error statistic      p.value
+## 1 (Intercept)  9.260837e-01 2.078164e-01  4.456258 7.457347e-05
+## 2         GDP -1.726154e-05 6.357360e-06 -2.715205 1.000511e-02
+## 3      Africa  1.513056e+00 2.532534e-01  5.974475 6.798788e-07
+## 4  MiddleEast  1.321729e+00 2.730159e-01  4.841218 2.301614e-05
+## 5        Asia  1.262075e+00 2.623877e-01  4.809962 2.533764e-05
+## 6  WestEurope  4.092005e-01 3.359364e-01  1.218089 2.309009e-01
+## 7    Americas  9.188045e-01 2.493940e-01  3.684149 7.299699e-04</code></pre>
 <p>That’s the way a linear model operates.</p>
 <p>The output tells us the <em>difference</em> in Religiosity between the states <code>0</code> and <code>1</code> of that variable. Hm, that works numerically, but does not make much sense. What does it mean if <em>all</em> regions are at values <span class="math inline">\(0\)</span>? Not much.</p>
 <p>We are better to take out one region, define it as baseline or comparison region, and compare each region against that region. If all the remaining region variables are at <span class="math inline">\(0\)</span> that means that we are looking at this baseline region.</p>
@@ -169,38 +191,38 @@ tidy(lm1)
 <p>So let’s build this column:</p>
 <pre class="r"><code>data_long &lt;- gather(data, key = Region, value = is_part, -c(X1, Country, Religiosity, GDP))
 data_long &lt;- filter(data_long, is_part == 1)
-glimpse(data_long)
-#&gt; Observations: 44
-#&gt; Variables: 6
-#&gt; $ X1          &lt;int&gt; 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 16, 17, 18...
-#&gt; $ Country     &lt;chr&gt; &quot;Ethiopia&quot;, &quot;Ghana&quot;, &quot;Ivory_Coast&quot;, &quot;Kenya&quot;, &quot;Mali...
-#&gt; $ Religiosity &lt;dbl&gt; 2.39, 2.26, 2.43, 2.40, 2.60, 2.63, 2.83, 2.11, 2....
-#&gt; $ GDP         &lt;int&gt; 333, 739, 1132, 838, 657, 1401, 1066, 5685, 520, 4...
-#&gt; $ Region      &lt;chr&gt; &quot;Africa&quot;, &quot;Africa&quot;, &quot;Africa&quot;, &quot;Africa&quot;, &quot;Africa&quot;, ...
-#&gt; $ is_part     &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,...</code></pre>
+glimpse(data_long)</code></pre>
+<pre><code>## Observations: 44
+## Variables: 6
+## $ X1          &lt;int&gt; 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 16, 17, 18...
+## $ Country     &lt;chr&gt; &quot;Ethiopia&quot;, &quot;Ghana&quot;, &quot;Ivory_Coast&quot;, &quot;Kenya&quot;, &quot;Mali...
+## $ Religiosity &lt;dbl&gt; 2.39, 2.26, 2.43, 2.40, 2.60, 2.63, 2.83, 2.11, 2....
+## $ GDP         &lt;int&gt; 333, 739, 1132, 838, 657, 1401, 1066, 5685, 520, 4...
+## $ Region      &lt;chr&gt; &quot;Africa&quot;, &quot;Africa&quot;, &quot;Africa&quot;, &quot;Africa&quot;, &quot;Africa&quot;, ...
+## $ is_part     &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,...</code></pre>
 </div>
 <div id="run-the-regression-with-region" class="section level1">
 <h1>Run the regression with <code>Region</code></h1>
 <pre class="r"><code>lm2 &lt;- lm(Religiosity ~ GDP + Region, data = data_long)
-tidy(lm2)
-#&gt;               term      estimate    std.error  statistic      p.value
-#&gt; 1      (Intercept)  2.439140e+00 1.491222e-01 16.3566514 1.606260e-18
-#&gt; 2              GDP -1.726154e-05 6.357360e-06 -2.7152052 1.000511e-02
-#&gt; 3   RegionAmericas -5.942515e-01 2.365027e-01 -2.5126626 1.646994e-02
-#&gt; 4       RegionAsia -2.509809e-01 2.386768e-01 -1.0515516 2.998249e-01
-#&gt; 5 RegionEastEurope -1.513056e+00 2.532534e-01 -5.9744746 6.798788e-07
-#&gt; 6 RegionMiddleEast -1.913266e-01 2.614182e-01 -0.7318796 4.688527e-01
-#&gt; 7 RegionWestEurope -1.103855e+00 3.619934e-01 -3.0493800 4.221427e-03</code></pre>
+tidy(lm2)</code></pre>
+<pre><code>##               term      estimate    std.error  statistic      p.value
+## 1      (Intercept)  2.439140e+00 1.491222e-01 16.3566514 1.606260e-18
+## 2              GDP -1.726154e-05 6.357360e-06 -2.7152052 1.000511e-02
+## 3   RegionAmericas -5.942515e-01 2.365027e-01 -2.5126626 1.646994e-02
+## 4       RegionAsia -2.509809e-01 2.386768e-01 -1.0515516 2.998249e-01
+## 5 RegionEastEurope -1.513056e+00 2.532534e-01 -5.9744746 6.798788e-07
+## 6 RegionMiddleEast -1.913266e-01 2.614182e-01 -0.7318796 4.688527e-01
+## 7 RegionWestEurope -1.103855e+00 3.619934e-01 -3.0493800 4.221427e-03</code></pre>
 <p>As we can see, the effect of <code>GDP</code> remains the same. What has changed is that <code>Africa</code>, being the first value in alphabetical order, is not defined as the baseline region. Hence, <code>Africa</code> does not appear as predictor, because the remaining regions are compared with Africa.</p>
 <p>What about model performance:</p>
-<pre class="r"><code>glance(lm2)
-#&gt;   r.squared adj.r.squared     sigma statistic      p.value df    logLik
-#&gt; 1 0.7208819     0.6756195 0.4708603  15.92673 6.036585e-09  7 -25.48079
-#&gt;        AIC      BIC deviance df.residual
-#&gt; 1 66.96157 81.23509 8.203248          37</code></pre>
+<pre class="r"><code>glance(lm2)</code></pre>
+<pre><code>##   r.squared adj.r.squared     sigma statistic      p.value df    logLik
+## 1 0.7208819     0.6756195 0.4708603  15.92673 6.036585e-09  7 -25.48079
+##        AIC      BIC deviance df.residual
+## 1 66.96157 81.23509 8.203248          37</code></pre>
 <p>Is model 2 better (<span class="math inline">\(R^2\)</span>) than model 1?</p>
-<pre class="r"><code>round(glance(lm2)$adj.r.squared, 2) == round(glance(lm1)$adj.r.squared, 2)
-#&gt; [1] TRUE</code></pre>
+<pre class="r"><code>round(glance(lm2)$adj.r.squared, 2) == round(glance(lm1)$adj.r.squared, 2)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
 <p>Both models are equal in their performance, which makes sense since the data is the same.</p>
 </div>
 <div id="viz" class="section level1">
@@ -210,7 +232,7 @@ tidy(lm2)
       x = Region,
       data = data_long,
       geom  = &quot;boxplot&quot;)</code></pre>
-<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-12-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2017-11-27-dummy-variables-and-regression_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
 <p>Let’s sort the boxplots and flip the axes:</p>
 <pre class="r"><code>qplot(y = Religiosity, 
       x = reorder(Region, Religiosity), 
@@ -218,7 +240,7 @@ tidy(lm2)
       geom = &quot;boxplot&quot;) +
   coord_flip() +
   labs(x = &quot;Region&quot;)</code></pre>
-<p><img src="/rmarkdown-libs/figure-html4/unnamed-chunk-13-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2017-11-27-dummy-variables-and-regression_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
 </div>
 
     </div>

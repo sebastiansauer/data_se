@@ -57,7 +57,7 @@
 
   <article class="article">
     
-    <span class="article-duration">6 min read</span>
+    <span class="article-duration">7 min read</span>
     
 
     <h1 class="article-title">Grundlagen des Textminings mit R - Teil 2</h1>
@@ -68,21 +68,47 @@
 
     <div class="article-content">
       <p>In dieser Übung benötigte R-Pakete:</p>
-<pre class="r"><code>library(tidyverse)  # Datenjudo
-library(stringr)  # Textverarbeitung
+<pre class="r"><code>library(tidyverse)  # Datenjudo</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ✔ ggplot2 2.2.1.9000     ✔ purrr   0.2.4     
+## ✔ tibble  1.4.2          ✔ dplyr   0.7.4     
+## ✔ tidyr   0.8.0          ✔ stringr 1.3.1     
+## ✔ readr   1.1.1          ✔ forcats 0.3.0</code></pre>
+<pre><code>## ── Conflicts ────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>library(stringr)  # Textverarbeitung
 library(tidytext)  # Textmining
-library(lsa)  # Stopwörter 
-library(SnowballC)  # Wörter trunkieren
-library(wordcloud)  # Wordcloud anzeigen
-library(skimr)  # Überblicksstatistiken</code></pre>
+library(lsa)  # Stopwörter </code></pre>
+<pre><code>## Loading required package: SnowballC</code></pre>
+<pre class="r"><code>library(SnowballC)  # Wörter trunkieren
+library(wordcloud)  # Wordcloud anzeigen</code></pre>
+<pre><code>## Loading required package: RColorBrewer</code></pre>
+<pre class="r"><code>library(skimr)  # Überblicksstatistiken</code></pre>
+<pre><code>## 
+## Attaching package: &#39;skimr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
+## 
+##     contains, ends_with, everything, matches, num_range, one_of,
+##     starts_with</code></pre>
 <blockquote>
 <p>Bitte installieren Sie <em>rechtzeitig</em> alle Pakete, z.B. in RStudio über den Reiter <em>Packages … Install</em>.</p>
 </blockquote>
+<pre><code>## 
+## Attaching package: &#39;knitr&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:skimr&#39;:
+## 
+##     kable</code></pre>
 <div id="aus-dem-letzten-post" class="section level2">
 <h2>Aus dem letzten Post</h2>
 <p>Daten einlesen:</p>
 <pre class="r"><code>osf_link &lt;- paste0(&quot;https://osf.io/b35r7//?action=download&quot;)
 afd &lt;- read_csv(osf_link)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   page = col_integer(),
+##   content = col_character()
+## )</code></pre>
 <p>Aus breit mach lang:</p>
 <pre class="r"><code>afd %&gt;% 
   unnest_tokens(output = token, input = content) %&gt;% 
@@ -98,6 +124,7 @@ stopwords_de &lt;- stopwords_de %&gt;%
 
 afd_long %&gt;% 
   anti_join(stopwords_de) -&gt; afd_no_stop</code></pre>
+<pre><code>## Joining, by = &quot;token&quot;</code></pre>
 <p>Wörter zählen:</p>
 <pre class="r"><code>afd_no_stop %&gt;% 
   count(token, sort = TRUE) -&gt; afd_count</code></pre>
@@ -112,46 +139,46 @@ afd_long %&gt;%
 <pre class="r"><code>string &lt;-&quot;Correlation of unemployment and #AfD votes at #btw17: ***r = 0.18***\n\nhttps://t.co/YHyqTguVWx&quot;  </code></pre>
 <p>Möchte man Ziffern identifizieren, so hilft der Reulärausdruck <code>[:digit:]</code>:</p>
 <p>“Gibt es mindestens eine Ziffer in dem String?”</p>
-<pre class="r"><code>str_detect(string, &quot;[:digit:]&quot;)
-#&gt; [1] TRUE</code></pre>
+<pre class="r"><code>str_detect(string, &quot;[:digit:]&quot;)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
 <p>“Finde die Position der ersten Ziffer! Welche Ziffer ist es?”</p>
-<pre class="r"><code>str_locate(string, &quot;[:digit:]&quot;)
-#&gt;      start end
-#&gt; [1,]    51  51
-str_extract(string, &quot;[:digit:]&quot;)
-#&gt; [1] &quot;1&quot;</code></pre>
+<pre class="r"><code>str_locate(string, &quot;[:digit:]&quot;)</code></pre>
+<pre><code>##      start end
+## [1,]    51  51</code></pre>
+<pre class="r"><code>str_extract(string, &quot;[:digit:]&quot;)</code></pre>
+<pre><code>## [1] &quot;1&quot;</code></pre>
 <p>“Finde alle Ziffern!”</p>
-<pre class="r"><code>str_extract_all(string, &quot;[:digit:]&quot;)
-#&gt; [[1]]
-#&gt; [1] &quot;1&quot; &quot;7&quot; &quot;0&quot; &quot;1&quot; &quot;8&quot;</code></pre>
+<pre class="r"><code>str_extract_all(string, &quot;[:digit:]&quot;)</code></pre>
+<pre><code>## [[1]]
+## [1] &quot;1&quot; &quot;7&quot; &quot;0&quot; &quot;1&quot; &quot;8&quot;</code></pre>
 <p>“Finde alle Stellen an denen genau 2 Ziffern hintereinander folgen!”</p>
-<pre class="r"><code>str_extract_all(string, &quot;[:digit:]{2}&quot;)
-#&gt; [[1]]
-#&gt; [1] &quot;17&quot; &quot;18&quot;</code></pre>
+<pre class="r"><code>str_extract_all(string, &quot;[:digit:]{2}&quot;)</code></pre>
+<pre><code>## [[1]]
+## [1] &quot;17&quot; &quot;18&quot;</code></pre>
 <p>Der Quantitätsoperator <code>{n}</code> findet alle Stellen, in der der der gesuchte Ausdruck genau <span class="math inline">\(n\)</span> mal auftaucht.</p>
 <p>“Gebe die Hashtags zurück!”</p>
-<pre class="r"><code>str_extract_all(string, &quot;#[:alnum:]+&quot;)
-#&gt; [[1]]
-#&gt; [1] &quot;#AfD&quot;   &quot;#btw17&quot;</code></pre>
+<pre class="r"><code>str_extract_all(string, &quot;#[:alnum:]+&quot;)</code></pre>
+<pre><code>## [[1]]
+## [1] &quot;#AfD&quot;   &quot;#btw17&quot;</code></pre>
 <p>Der Operator <code>[:alnum:]</code> steht für “alphanumerischer Charakter” - also eine Ziffer oder ein Buchstabe; synonym hätte man auch <code>\\w</code> schreiben können (w wie word). Warum werden zwei Backslashes gebraucht? Mit <code>\\w</code> wird signalisiert, dass nicht der Buchstabe <em>w</em>, sondern etwas Besonderes, eben der Regex-Operator <code>\w</code> gesucht wird.</p>
 <p>“Gebe URLs zurück!”</p>
-<pre class="r"><code>str_extract_all(string, &quot;https?://[:graph:]+&quot;)
-#&gt; [[1]]
-#&gt; [1] &quot;https://t.co/YHyqTguVWx&quot;</code></pre>
+<pre class="r"><code>str_extract_all(string, &quot;https?://[:graph:]+&quot;)</code></pre>
+<pre><code>## [[1]]
+## [1] &quot;https://t.co/YHyqTguVWx&quot;</code></pre>
 <p>Das Fragezeichen <code>?</code> ist eine Quantitätsoperator, der einen Treffer liefert, wenn das vorherige Zeichen (hier <em>s</em>) null oder einmal gefunden wird. <code>[:graph:]</code> ist die Summe von <code>[:alpha:]</code> (Buchstaben, groß und klein), <code>[:digit:]</code> (Ziffern) und <code>[:punct:]</code> (Satzzeichen u.ä.).</p>
 <p>“Zähle die Wörter im String!”</p>
-<pre class="r"><code>str_count(string, boundary(&quot;word&quot;))
-#&gt; [1] 13</code></pre>
+<pre class="r"><code>str_count(string, boundary(&quot;word&quot;))</code></pre>
+<pre><code>## [1] 13</code></pre>
 <p>“Liefere nur Buchstaben<em>folgen</em> zurück, lösche alles übrige”</p>
-<pre class="r"><code>str_extract_all(string, &quot;[:alpha:]+&quot;)
-#&gt; [[1]]
-#&gt;  [1] &quot;Correlation&quot;  &quot;of&quot;           &quot;unemployment&quot; &quot;and&quot;         
-#&gt;  [5] &quot;AfD&quot;          &quot;votes&quot;        &quot;at&quot;           &quot;btw&quot;         
-#&gt;  [9] &quot;r&quot;            &quot;https&quot;        &quot;t&quot;            &quot;co&quot;          
-#&gt; [13] &quot;YHyqTguVWx&quot;</code></pre>
+<pre class="r"><code>str_extract_all(string, &quot;[:alpha:]+&quot;)</code></pre>
+<pre><code>## [[1]]
+##  [1] &quot;Correlation&quot;  &quot;of&quot;           &quot;unemployment&quot; &quot;and&quot;         
+##  [5] &quot;AfD&quot;          &quot;votes&quot;        &quot;at&quot;           &quot;btw&quot;         
+##  [9] &quot;r&quot;            &quot;https&quot;        &quot;t&quot;            &quot;co&quot;          
+## [13] &quot;YHyqTguVWx&quot;</code></pre>
 <p>Der Quantitätsoperator <code>+</code> liefert alle Stellen zurück, in denen der gesuchte Ausdruck <em>einmal oder häufiger</em> vorkommt. Die Ergebnisse werden als Vektor von Wörtern zurückgegeben. Ein anderer Quantitätsoperator ist <code>*</code>, der für 0 oder mehr Treffer steht. Möchte man einen Vektor, der aus Stringen-Elementen besteht zu einem Strring zusammenfüngen, hilft <code>paste(string)</code> oder <code>str_c(string, collapse = &quot; &quot;)</code>.</p>
-<pre class="r"><code>str_replace_all(string, &quot;[^[:alpha:]+]&quot;, &quot;&quot;)
-#&gt; [1] &quot;CorrelationofunemploymentandAfDvotesatbtwrhttpstcoYHyqTguVWx&quot;</code></pre>
+<pre class="r"><code>str_replace_all(string, &quot;[^[:alpha:]+]&quot;, &quot;&quot;)</code></pre>
+<pre><code>## [1] &quot;CorrelationofunemploymentandAfDvotesatbtwrhttpstcoYHyqTguVWx&quot;</code></pre>
 <p>Mit dem Negationsoperator <code>[^x]</code> wird der Regulärausrck <code>x</code> negiert; die Syntax oben heißt also “ersetze in <code>string</code> alles außer Buchstaben durch Nichts”. Mit “Nichts” sind hier Strings der Länge Null gemeint; ersetzt man einen belieibgen String durch einen String der Länge Null, so hat man den String gelöscht.</p>
 <p>Das Cheatsheet zur Strings bzw zu <code>stringr</code> von RStudio gibt einen guten Überblick über Regex; im Internet finden sich viele Beispiele.</p>
 </div>
@@ -169,6 +196,19 @@ Liefere zum Schluss die Summenwerte pro Sentiment zurück.</p>
 
 <p>Es gibt Sentiment-Lexika, die lediglich einen Punkt für “positive Konnotation” bzw. “negative Konnotation” geben; andere Lexiko weisen differenzierte Gefühlskonnotationen auf. Wir nutzen hier das Sentimentlexikon <code>sentiws</code>. Sie können es hier herunterladen:</p>
 <pre class="r"><code>sentiws &lt;- read_csv(&quot;https://osf.io/4h95m/?action=download&quot;)</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   country_short = col_character(),
+##   country_long = col_character(),
+##   harmony = col_double(),
+##   embedded = col_double(),
+##   hierarchy = col_double(),
+##   mastery = col_double(),
+##   aff_auton = col_double(),
+##   intel_auton = col_double(),
+##   egalitar = col_double(),
+##   comment = col_character()
+## )</code></pre>
 <p>Alternativ können Sie die Daten aus dem Paket <code>pradadata</code> laden. Allerdings müssen Sie dieses Paket von Github installieren:</p>
 <pre class="r"><code>install.packages(&quot;devtools&quot;, dep = TRUE)
 devtools::install_github(&quot;sebastiansauer/pradadata&quot;)</code></pre>
@@ -266,12 +306,12 @@ afd_senti %&gt;%
   distinct(token, .keep_all = TRUE) %&gt;% 
   mutate(value_abs = abs(value)) %&gt;% 
   top_n(20, value_abs) %&gt;% 
-  pull(token)
-#&gt;  [1] &quot;ungerecht&quot;    &quot;besonders&quot;    &quot;gefährlich&quot;   &quot;überflüssig&quot; 
-#&gt;  [5] &quot;behindern&quot;    &quot;gefährden&quot;    &quot;brechen&quot;      &quot;unzureichend&quot;
-#&gt;  [9] &quot;gemein&quot;       &quot;verletzt&quot;     &quot;zerstören&quot;    &quot;trennen&quot;     
-#&gt; [13] &quot;falsch&quot;       &quot;vermeiden&quot;    &quot;zerstört&quot;     &quot;schwach&quot;     
-#&gt; [17] &quot;belasten&quot;     &quot;schädlich&quot;    &quot;töten&quot;        &quot;verbieten&quot;</code></pre>
+  pull(token)</code></pre>
+<pre><code>##  [1] &quot;ungerecht&quot;    &quot;besonders&quot;    &quot;gefährlich&quot;   &quot;überflüssig&quot; 
+##  [5] &quot;behindern&quot;    &quot;gefährden&quot;    &quot;brechen&quot;      &quot;unzureichend&quot;
+##  [9] &quot;gemein&quot;       &quot;verletzt&quot;     &quot;zerstören&quot;    &quot;trennen&quot;     
+## [13] &quot;falsch&quot;       &quot;vermeiden&quot;    &quot;zerstört&quot;     &quot;schwach&quot;     
+## [17] &quot;belasten&quot;     &quot;schädlich&quot;    &quot;töten&quot;        &quot;verbieten&quot;</code></pre>
 <p>Diese “Hitliste” wird zumeist (19/20) von negativ polarisierten Begriffen aufgefüllt, wobei “besonders” ein Intensivierwort ist, welches das Bezugswort verstärt (“besonders gefährlich”). Das Argument <code>keep_all = TRUE</code> sorgt dafür, dass alle Spalten zurückgegeben werden, nicht nur die durchsuchte Spalte <code>token</code>. Mit <code>pull</code> haben wir aus dem Dataframe, der von den dplyr-Verben überwegeben wird, die Spalte <code>pull</code> “herausgezogen”; hier nur um Platz zu sparen bzw. der Übersichtlichkeit halber.</p>
 <p>Nun könnte man noch den erzielten “Netto-Sentimentswert” des Corpus ins Verhältnis setzen Sentimentswert des Lexikons: Wenn es insgesamt im Sentiment-Lexikon sehr negativ zuginge, wäre ein negativer Sentimentwer in einem beliebigen Corpus nicht überraschend. <code>skimr::skim()</code> gibt uns einen Überblick der üblichen deskriptiven Statistiken.</p>
 <pre class="r"><code>sentiws %&gt;% 
@@ -280,11 +320,11 @@ afd_senti %&gt;%
   skim()</code></pre>
 <p>Insgesamt ist das Lexikon ziemlich ausgewogen; negative Werte sind leicht in der Überzahl im Lexikon. Unser Corpus hat eine ähnliche mittlere emotionale Konnotation wie das Lexikon:</p>
 <pre class="r"><code>afd_senti %&gt;% 
-  summarise(senti_sum = mean(value) %&gt;% round(2))
-#&gt; # A tibble: 1 x 1
-#&gt;   senti_sum
-#&gt;       &lt;dbl&gt;
-#&gt; 1   -0.0300</code></pre>
+  summarise(senti_sum = mean(value) %&gt;% round(2))</code></pre>
+<pre><code>## # A tibble: 1 x 1
+##   senti_sum
+##       &lt;dbl&gt;
+## 1     -0.03</code></pre>
 </div>
 </div>
 
