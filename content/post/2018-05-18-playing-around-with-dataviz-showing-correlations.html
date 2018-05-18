@@ -1,0 +1,49 @@
+---
+title: 'Playing around with dataviz: Showing correlations'
+author: Sebastian Sauer
+date: '2018-05-18'
+slug: playing-around-with-dataviz-showing-correlations
+categories:
+  - dataviz
+tags:
+  - rstats
+  - plotting
+---
+
+
+
+<p>In this plot, we are looking into some ways of displaying association between (two) quantitative variables, aka correlation. Our goal is to present a rich representation of the correlation.</p>
+<p>Let’s take the dataset <code>flights</code> as an example.</p>
+<pre class="r"><code>data(flights, package = &quot;nycflights13&quot;)
+library(tidyverse)</code></pre>
+<pre><code>## ── Attaching packages ───────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ✔ ggplot2 2.2.1.9000     ✔ purrr   0.2.4     
+## ✔ tibble  1.4.2          ✔ dplyr   0.7.4     
+## ✔ tidyr   0.8.0          ✔ stringr 1.3.1     
+## ✔ readr   1.1.1          ✔ forcats 0.3.0</code></pre>
+<pre><code>## ── Conflicts ──────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>library(viridis)</code></pre>
+<pre><code>## Loading required package: viridisLite</code></pre>
+<pre class="r"><code>flights %&gt;% 
+  filter(arr_delay &lt; 100, dep_delay &lt; 100) %&gt;% 
+  ggplot(aes(x = dep_delay, y = arr_delay, color = origin)) +
+  geom_point(alpha = .01) +
+  geom_smooth(se = FALSE, color = &quot;grey20&quot;) +
+  geom_rug() +
+  facet_wrap(~origin) +
+  scale_color_viridis_d()</code></pre>
+<pre><code>## `geom_smooth()` using method = &#39;gam&#39; and formula &#39;y ~ s(x, bs = &quot;cs&quot;)&#39;</code></pre>
+<p><img src="/post/2018-05-18-playing-around-with-dataviz-showing-correlations_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+<p>Points are not the only geom that make sense here. Let’s try some more, e.g., <code>geom_hex()</code>.</p>
+<pre class="r"><code>flights %&gt;% 
+  filter(arr_delay &lt; 100, dep_delay &lt; 100) %&gt;% 
+  ggplot(aes(x = dep_delay, y = arr_delay)) +
+  geom_hex() +
+  geom_smooth(se = FALSE, color = &quot;grey20&quot;) +
+  geom_rug() +
+  facet_wrap(~origin) +
+  scale_color_viridis_d()</code></pre>
+<pre><code>## `geom_smooth()` using method = &#39;gam&#39; and formula &#39;y ~ s(x, bs = &quot;cs&quot;)&#39;</code></pre>
+<p><img src="/post/2018-05-18-playing-around-with-dataviz-showing-correlations_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>

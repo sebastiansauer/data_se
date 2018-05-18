@@ -1,0 +1,159 @@
+---
+title: Why is the sample mean a good point estimator of the population mean? A simulation
+  and some thoughts.
+author: Sebastian Sauer
+date: '2018-05-18'
+slug: why-is-the-sample-mean-a-good-point-estimator-of-the-population-mean-a-simulation-and-some-thoughts
+categories:
+  - rstats
+tags:
+  - inference
+  - simulation
+  - rstats
+---
+
+---
+title: Why is the sample mean a good point estimator for the population parameter?
+  A simulation.
+author: Sebastian Sauer
+date: '2018-05-18'
+slug: why-is-the-sample-mean-a-good-point-estimator-for-the-population-parameter-a-simulation
+categories:
+  - R
+tags:
+  - rstats
+  - inference
+  - intuition
+  - simulation
+---
+
+
+It is frequently stated that the sample mean is a good or even the best point estimator of the according population value. But why is that? In this post we are trying to get an intuition by using simulation inference methods.
+
+
+Assume you played throwing coins with some one at some dark corner. "Some one" throws the coin 10 times, and wins 8 times (he was betting on heads, but that's only for the sake of the story). With boiling suspicion (and empty pockets) you head home. Did this guy cheated? Was he playing tricks on you? It appear that the coin was unfair, ie., biased? It appears that 80% is a good estimator of the "true" value of the coin (for heads). But let's try to see better why this is plausible or even rationale.
+
+Let's turn the question around, and assume for the moment that 80% *is* the true parameter, $\pi=.8$. If we were to draw many samples from this distribution (binomial with parameter $\pi = .8$), how would our sample distribtion look like?
+
+Let's try it.
+
+```{r}
+library(mosaic)
+library(tidyverse)
+```
+
+```{r}
+pi = .8
+```
+
+First, we let R draw 10000 samples of size $n=10$ from the ($H_0$) distribution where $\pi = .8$:
+
+```{r}
+h0_samples <- do(10000) * rflip(n = 10, prob = .8)
+```
+
+Plotting it gives us a "big picture" of typial and rare events:
+
+```{r}
+gf_bar(~heads, data = h0_samples) +
+  scale_x_continuous(breaks = 0:10)
+```
+
+As can be seen, 8 (the sample value) is the most frequent value. In more elaborate terms, 8 is the most probable value if many samples of this size are drawn from the $H_0$ distribution. Divide all values by 10 (the sample size), and you will get mean values:
+
+```{r}
+h0_samples %>% 
+  mutate(heads_avg = heads / 10) %>% 
+  summarise(heads_avg = mean(heads_avg),
+            heads = mean(heads))
+```
+
+Similarly, say we  draw many samples of $n=30$ from a normal distribution with $\mu=0$ and $\sigma=1$, the most frequent mean will be (approximately) $\mu$:
+
+```{r}
+h0_samples_norm <- 
+  do(10000) * mean(rnorm(n = 30, mean = 0, sd = 1))
+```
+
+```{r}
+gf_histogram(~mean, data = h0_samples_norm)
+```
+
+Intuitively, there is some plausibility in the results: The population mean is the most frequent value, hence it should appear often (most often) if we draw many samples.
+
+
+Now we argue as follows:
+
+*If* the data are distributed as given by the $H_0$, *then* the most frequent value of the sample distribution will be the most likely value in the population.
+
+But are *my* data really drawn from this distribution? There are infinitely many others. Why just this one, one may counter. Good point. One could argue that our conclusion is not warranted, because we have no evidence of preferring one distribution in favor of some other. One the other hand, some argue that all we know for sure is our data. And our data favors one certain value. So there is some rationality in choosing this value, because we know no other value for sure (actually we don't have no other values at all). 
+
+We could ofcourse assign some probability on each distribution we deem plausible. Then we would get a distribution of parameters. That's the Bayesian way. For the sake of simplicity, we will not pursue this path further in this post (although it is a great path).
+
+Coming back to the coin examples; let's do some more "hard" reasoning. It is well known that the distribution of a fair coin, flipped 10 times, follows this distribution:
+
+$p(k|\pi, n) = \binom {n}{k} \cdot \pi^k\cdot  (1-\pi)^{n-k}$
+
+
+Given the fact that $\pi=.8$ how probable is, say, 8 hits? This probability is called likelihood; this function is called likelihood function. The likelihoods sum up to more than 100%.
+
+The binomial coefficient is the same as `chooose(n, k)`, in R. 
+
+```{r}
+choose(n = 10, k = 8) * .8^8 * (1-.8)^(10-8)
+```
+
+More convenient is this off-the-shelf function.
+```{r}
+dbinom(x = 8, size = 10, prob = .8)
+```
+
+Let's compute that for each of the possible 11 hits (0 to 10):
+
+```{r}
+0:10 %>% 
+  dbinom(x = ., size = 10, prob = .8) %>% 
+  as_tibble() %>% 
+  add_column(hits = 0:10) %>% 
+  gf_col(value~hits, data = .) +
+  scale_x_continuous(breaks = 0:10)
+```
+
+Looks similar to our simulation above, doesn't it? Reassuring. Again, 8 of 10 hits is the most frequent.
+
+Somewhat more stringent, we could compute the maximum of the likelihood function. To get the maximum of a function, one computes the first derivation, and then sets it to zero.
+
+To make computation easier, we can take the logarithm of the likelihood function; taking the logarithm will not change the position of the maximum. But products will become sums by the log function, hence computation will become easier:
+
+$\ln p(k| \pi, n) = \ln \binom {n} {k} + k \ln \pi + (n-k) \ln (1-\pi)$
+
+Now we take the first derivation with respect to $\pi$, regarding the other variables as constants:
+
+$\frac{d \ln p(k| \pi, n)}{d\pi} = 0 + k \frac{1}{p} + (n-k) \frac {1}{1-\pi}(-1)$
+
+Setting this term to zero:
+
+$\frac{k}{\pi} + (n-k)\frac{-1}{1-\pi}=0$
+
+Moving the second term to the rhs:
+
+$\frac{k}{\pi}=(n-k)\frac{-1}{1-\pi}$
+
+Multiplying by $\frac{\pi}{1-\pi}$:
+
+$k(1-\pi) = (n-k)\pi$
+
+Multiplying out:
+
+$k - k\pi = n\pi - k\pi$ 
+
+Adding $k\pi$ yields:
+
+$k  = n\pi$, rearringing:
+
+$\pi = \frac{k}{n}$
+
+
+Hence, the relative number of hits (in the sample) is the best estimator of $\pi$. In the absence of other information, it appears plausible to take $k/n$ as the "best guess" for $\pi$. In other words, $k/n$ maximizes the probabilty of $\pi$.
+
+
