@@ -1,0 +1,89 @@
+---
+title: Showcase of Viridis, maps, and ggounty
+author: Sebastian Sauer
+date: '2018-05-18'
+slug: showcase-of-viridis-maps-and-ggounty
+categories:
+  - dataviz
+tags:
+  - r
+  - plotting
+---
+
+
+This posts shows how easy it can be to build an visually pleasing plot. We will use [hrbrmster](https://github.com/hrbrmstr)'s `ggcounty`, which is an R package at this [Github repo](https://github.com/hrbrmstr/ggcounty). Graphics engine is as mostly in my plots, Hadley Wickhams `ggplot`. All build on R. Standing on shoulders...
+
+Disclaimer: This example heavily draws on hrbrmster example on [this page](https://github.com/hrbrmstr/ggcounty). All credit is due to Rudy, and those on whose work he built up on.
+
+
+First, load the relevant packages:
+
+```{r}
+library(ggcounty)  # us maps
+library(viridis)  # color scheme
+library(tidyverse)  # data handling
+```
+
+
+Load population data:
+
+```{r}
+data(population, package = "ggcounty")
+```
+
+
+Split population figures in bins:
+
+
+```{r}
+population$brk <- cut(population$count, 
+                      breaks=c(0, 100, 1000, 10000, 100000, 1000000, 10000000), 
+                      labels=c("0-99", "100-1K", "1K-10K", "10K-100K", 
+                               "100K-1M", "1M-10M"),
+                      include.lowest=TRUE)
+```
+
+
+Get the US counties map:
+
+```{r}
+us <- ggcounty.us()
+gg <- us$g
+```
+
+`us$g` contains base map:
+
+```{r}
+us$g
+```
+
+
+Add population data, this plot is called *choropleth*:
+
+```{r}
+gg <- gg + geom_map(data=population, map=us$map,
+                    aes(map_id=FIPS, fill=brk), 
+                    color="white", size=0.125)
+```
+
+
+Now give it the viridis color scheme:
+
+
+```{r}
+gg + scale_fill_viridis_d()
+```
+
+
+Besides the default scale of virids, there are some other scales, such as `magma` and `inferno`:
+
+
+
+```{r}
+gg + scale_fill_viridis_d(option = "magma")
+```
+
+
+Stunning, isn't it? And simple. Enjoy!
+
+
