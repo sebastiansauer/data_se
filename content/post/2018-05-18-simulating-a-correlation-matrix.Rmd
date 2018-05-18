@@ -1,0 +1,50 @@
+---
+title: Simulating a correlation matrix.
+author: Sebastian Sauer
+date: '2018-05-18'
+slug: simulating-a-correlation-matrix
+draft: TRUE
+categories:
+  - rstats
+tags:
+  - rstats
+  - simulation
+  - inference
+---
+
+
+Simulation based inference is a powerful tool as it lets you derive population estimates without having to solve difficult equations. As a more advanced example for simulation, consider the following situation. You are interested in the correlation of air time and delay of planes. More precisely you assume that this correlation is the same for different carriers (airlines). In other words, the (absolute) difference between all different pairs of correlation coefficient is zero, according to the hypothesis.
+
+First, some data and the usual culprits:
+
+```{r message = FALSE}
+data(flights, package = "nycflights13")
+library(tidyverse)
+```
+
+
+Let's check the correlation matrix consisting of the correlations for different carriers.
+
+```{r}
+flights %>% 
+  select(dep_delay, air_time, carrier) %>% 
+  drop_na() %>% 
+  group_by(carrier) %>% 
+  summarise(cor_delay_carrier = cor(dep_delay, air_time)) %>% 
+  mutate(cor_delay_carrier_abs = abs(cor_delay_carrier)) -> cor_df
+
+```
+
+
+```{r}
+expand.grid(cor_df$cor_delay_carrier_abs,
+            cor_df$cor_delay_carrier_abs)
+```
+
+
+Combining all correlations with all shoud give us:
+
+```{r}
+n_carriers <- length(unique(flights$carrier))
+```
+
