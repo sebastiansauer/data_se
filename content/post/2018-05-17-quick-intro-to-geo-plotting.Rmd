@@ -50,7 +50,7 @@ data_path <- "https://biogeo.ucdavis.edu/data/gadm3.6/Rsf/gadm36_DEU_2_sf.rds"
 Load some packages:
 
 
-```{r}
+```{r message=FALSE}
 library(sf)
 library(tidyverse)
 library(downloader)
@@ -60,21 +60,21 @@ library(downloader)
 Download the maps data:
 
 ```{r}
-download(url = data_path, "d.Rds")
-d <- readRDS("d.Rds")
+if (!file.exists("gadm36_DEU_2_sf.rds")) download(url = data_path, "gadm36_DEU_2_sf.rds")
+d <- readRDS("gadm36_DEU_2_sf.rds")
 ```
 
 
 We have downloaded map data from Germany, detail level 2 (administrative discticts "Landkreise"). Now plot:
 
-```{r out.width="100%", out.width=5}
+```{r out.width="100%", out.width=7}
 d %>% 
   ggplot() + 
   geom_sf()
 ```
 
 
-Data for each Landkreis can be access from various sources, most prominently maybe, for Germany, the Statistisches Bundesamt.
+Data for each Landkreis can be accessed from various sources, most prominently maybe, for Germany, the Statistisches Bundesamt.
 
 Here are some unemployment figures from this source:
 
@@ -84,16 +84,15 @@ download_osf <- function(repo){
   out <- read.csv(osf_link)
   return(out)
 }
-
-alz <- download_osf("mrxh3")
+if (!file.exists("alz_mrxh3.csv")) alz <- download_osf("mrxh3")
 ```
 
 We can now try to join the two tables, but it turns out this may not be so easy as the district name are only similar, not identical.
 
 Let's do some checks.
 
-```{r}
+```{r message=FALSE}
 library(stringr)
-str_detect(d$NAME_1, as.character(alz$name) )
+
 ```
 

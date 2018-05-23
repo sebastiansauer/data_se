@@ -1,0 +1,152 @@
+---
+title: Playing around with dumbbell plots
+author: Sebastian Sauer
+date: '2018-05-23'
+slug: playing-around-with-dumbbell-plots
+categories:
+  - dataviz
+tags:
+  - rstats
+  - plotting
+---
+
+
+Dumbbell plots can be used to show differences between two groups. [Bob Rudis](https://rud.is/b/) demonstrated a beautiful application of such plots using ggplot2 board methods. 
+
+In this plot, I will explain or comment his code, and adapt a few changes.
+
+
+First, load some packages.
+
+
+```{r}
+pacman::p_load(tidyverse, ggalt)
+```
+
+
+Let's make up some data. Tipp: Make up some data conveniently in Excel, copy it to the clipboard, and then paste it as tribble (see below) into R. For the last step, there is this RStudio Addin available "Dataset Loads". Then use the menu item "Paste as Tribble".
+
+This procedure will result in a data frame like this:
+
+```{r}
+d <- tibble::tribble(
+    ~country, ~last_year, ~this_year,
+  "Region A",       0.37,       0.82, 
+  "Region B",       0.41,       0.84, 
+  "Region D",       0.44,       0.79, 
+  "Region E",       0.52,       0.87, 
+  "Region F",       0.58,       0.92, 
+  "Region C",       0.47,       0.79, 
+  "Region G",       0.63,       0.92, 
+  "Region J",       0.55,       0.86, 
+  "Region H",       0.47,       0.76, 
+  "Region I",       0.94,       0.72
+  )
+
+```
+
+
+Let's add the difference between last year and this year as an extra column, in case we may need it later...
+
+```{r}
+d %>% 
+  mutate(diff = this_year - last_year) -> d 
+
+```
+
+
+In order to convince ggplot to plot the qualitative categories of `country` in the right order, better change them to tye factor:
+
+```{r}
+d$country <- factor(d$country, levels = rev(d$country))
+```
+
+
+We `rev()`erse the levels, so that the *last* category is a the intercept, and the first category is at the end of the axis, ie., on top of the diagram. See the diagram to better undersand this cryptic explanation.
+
+Now let's build up the plot:
+
+
+```{r}
+d %>% 
+  ggplot() + 
+  geom_dumbbell(aes(y = country,
+                    x = last_year, xend = this_year),
+                colour = "grey60", size = 5,
+                colour_x = "#F7BC08", colour_xend = "#395B74") -> gg1
+gg1
+```
+
+The workhorse is, obviously, `geom_dumbbell()`; its parameters are the starting point (`x`), and the end point of the dumbbell (`xend`), as well as the grouping variable name (`y`). In addition, colors can be specified.
+
+Now, some aesthetic choices. Let's use a clean white background, and provide some type horizontal grid line using `geom_segment`
+
+```{r}
+gg1 +  theme_minimal() -> gg2
+gg2
+```
+
+
+Now, some decoration.
+
+
+```{r}
+gg2 + geom_text(data = filter(d, country == "Region A"),
+               aes(x = this_year, y = country),
+               label = "This year", fontface = "bold",
+               color = "#395B74",
+               vjust = -2) +
+  geom_text(data = filter(d, country == "Region A"),
+               aes(x = last_year, y = country),
+               label = "Last year", fontface = "bold",
+               color = "#F7BC08",
+               vjust = -2) +
+  labs(x = "Satisfaction level",
+       y = "",
+       title =  "Customer Satisfaction") +
+  theme(title = element_text(size = rel(1.4)))-> gg3
+gg3
+```
+
+
+Now let's adjust the axes.
+
+```{r}
+gg3 +
+  scale_x_continuous(expand = c(0,0.1),
+                     labels = scales::percent,
+                     breaks = c(0.25, 5., .75, 1)) +
+  coord_cartesian(xlim = c(.2, 1.2)) -> gg4
+gg4
+```
+
+
+Finally, let's add the change or difference value to the right of the plot.
+
+
+```{r}
+gg4 +
+  geom_text(aes(y = country, label = diff),
+            x = 1.2, hjust  = 1) +
+  annotate(x = 1.2, y = "Region A", label = "Diff",
+           geom = "text", vjust = -2,
+           fontface = "bold",
+           hjust = 1) -> gg5
+gg5
+```
+
+
+Oh, finally-finally, let's highlight "interesting" groups, ie., where the change is negative.
+
+```{r}
+gg5 +
+  annotate(geom = "rect",
+                xmin = .25,
+                xmax = 1,
+                ymin = as.numeric(d$country[d$country =="Region I"]) - 0.3,
+                ymax = as.numeric(d$country[d$country =="Region I"]) + 0.3,
+                alpha = .3,
+                fill = "firebrick")
+```
+
+

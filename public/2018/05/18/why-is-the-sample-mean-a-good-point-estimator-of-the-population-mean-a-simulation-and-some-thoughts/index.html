@@ -57,7 +57,7 @@
 
   <article class="article">
     
-    <span class="article-duration">6 min read</span>
+    <span class="article-duration">5 min read</span>
     
 
     <h1 class="article-title">Why is the sample mean a good point estimator of the population mean? A simulation and some thoughts.</h1>
@@ -68,75 +68,26 @@
 
     <div class="article-content">
       <p>It is frequently stated that the sample mean is a good or even the best point estimator of the according population value. But why is that? In this post we are trying to get an intuition by using simulation inference methods.</p>
-<p>Assume you played throwing coins with some one at some dark corner. “Some one” throws the coin 10 times, and wins 8 times (he was betting on heads, but that’s only for the sake of the story). With boiling suspicion (and empty pockets) you head home. Did this guy cheated? Was he playing tricks on you? It appear that the coin was unfair, ie., biased? It appears that 80% is a good estimator of the “true” value of the coin (for heads). But let’s try to see better why this is plausible or even rationale.</p>
+<p>Assume you played throwing coins with some one at some dark corner. “Some one” throws the coin 10 times, and wins 8 times (the guy was betting on heads, but that’s only for the sake of the story). With boiling suspicion (and empty pockets) you head home. Did this guy cheat? Was he playing tricks on you? It appears that the coin was unfair, ie., biased. It appears that 80% is a good estimator of the “true” value of the coin (for heads), does it not? But let’s try to see better why this is plausible or even rationale.</p>
 <p>Let’s turn the question around, and assume for the moment that 80% <em>is</em> the true parameter, <span class="math inline">\(\pi=.8\)</span>. If we were to draw many samples from this distribution (binomial with parameter <span class="math inline">\(\pi = .8\)</span>), how would our sample distribtion look like?</p>
 <p>Let’s try it.</p>
-<pre class="r"><code>library(mosaic)</code></pre>
-<pre><code>## Loading required package: dplyr</code></pre>
-<pre><code>## 
-## Attaching package: &#39;dplyr&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     filter, lag</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     intersect, setdiff, setequal, union</code></pre>
-<pre><code>## Loading required package: lattice</code></pre>
-<pre><code>## Loading required package: ggformula</code></pre>
-<pre><code>## Loading required package: ggplot2</code></pre>
-<pre><code>## 
-## New to ggformula?  Try the tutorials: 
-##  learnr::run_tutorial(&quot;introduction&quot;, package = &quot;ggformula&quot;)
-##  learnr::run_tutorial(&quot;refining&quot;, package = &quot;ggformula&quot;)</code></pre>
-<pre><code>## Loading required package: mosaicData</code></pre>
-<pre><code>## Loading required package: Matrix</code></pre>
-<pre><code>## 
-## The &#39;mosaic&#39; package masks several functions from core packages in order to add 
-## additional features.  The original behavior of these functions should not be affected by this.
-## 
-## Note: If you use the Matrix package, be sure to load it BEFORE loading mosaic.</code></pre>
-<pre><code>## 
-## Attaching package: &#39;mosaic&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:Matrix&#39;:
-## 
-##     mean</code></pre>
-<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
-## 
-##     count, do, tally</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     binom.test, cor, cor.test, cov, fivenum, IQR, median,
-##     prop.test, quantile, sd, t.test, var</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     max, mean, min, prod, range, sample, sum</code></pre>
-<pre class="r"><code>library(tidyverse)</code></pre>
-<pre><code>## ── Attaching packages ─────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
-<pre><code>## ✔ tibble  1.4.2     ✔ purrr   0.2.4
-## ✔ tidyr   0.8.0     ✔ stringr 1.3.1
-## ✔ readr   1.1.1     ✔ forcats 0.3.0</code></pre>
-<pre><code>## ── Conflicts ────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
-## ✖ mosaic::count() masks dplyr::count()
-## ✖ purrr::cross()  masks mosaic::cross()
-## ✖ mosaic::do()    masks dplyr::do()
-## ✖ tidyr::expand() masks Matrix::expand()
-## ✖ dplyr::filter() masks stats::filter()
-## ✖ dplyr::lag()    masks stats::lag()
-## ✖ mosaic::tally() masks dplyr::tally()</code></pre>
+<pre class="r"><code>library(mosaic)
+library(tidyverse)</code></pre>
 <pre class="r"><code>pi = .8</code></pre>
 <p>First, we let R draw 10000 samples of size <span class="math inline">\(n=10\)</span> from the (<span class="math inline">\(H_0\)</span>) distribution where <span class="math inline">\(\pi = .8\)</span>:</p>
-<pre class="r"><code>h0_samples &lt;- do(10000) * rflip(n = 10, prob = .8)</code></pre>
+<pre class="r"><code>h0_samples &lt;- do(10000) * rflip(n = 10, prob = pi)</code></pre>
 <p>Plotting it gives us a “big picture” of typial and rare events:</p>
 <pre class="r"><code>gf_bar(~heads, data = h0_samples) +
   scale_x_continuous(breaks = 0:10)</code></pre>
 <p><img src="/post/2018-05-18-why-is-the-sample-mean-a-good-point-estimator-of-the-population-mean-a-simulation-and-some-thoughts_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
-<p>As can be seen, 8 (the sample value) is the most frequent value. In more elaborate terms, 8 is the most probable value if many samples of this size are drawn from the <span class="math inline">\(H_0\)</span> distribution. Divide all values by 10 (the sample size), and you will get mean values:</p>
+<p>As can be seen, 8 (the sample value) is the most frequent value. In more elaborate terms, 8 is the most probable value if many samples of this size are drawn from the <span class="math inline">\(H_0\)</span> distribution. We see that our most frequent sample value represents the parameter <span class="math inline">\(\pi\)</span> well.</p>
+<p>Divide all values by 10 (the sample size), and you will get mean values:</p>
 <pre class="r"><code>h0_samples %&gt;% 
   mutate(heads_avg = heads / 10) %&gt;% 
   summarise(heads_avg = mean(heads_avg),
             heads = mean(heads))</code></pre>
-<pre><code>##   heads_avg heads
-## 1    0.7991 7.991</code></pre>
+<pre><code>##   heads_avg  heads
+## 1   0.80078 8.0078</code></pre>
 <p>Similarly, say we draw many samples of <span class="math inline">\(n=30\)</span> from a normal distribution with <span class="math inline">\(\mu=0\)</span> and <span class="math inline">\(\sigma=1\)</span>, the most frequent mean will be (approximately) <span class="math inline">\(\mu\)</span>:</p>
 <pre class="r"><code>h0_samples_norm &lt;- 
   do(10000) * mean(rnorm(n = 30, mean = 0, sd = 1))</code></pre>
@@ -169,7 +120,7 @@
 <p>To make computation easier, we can take the logarithm of the likelihood function; taking the logarithm will not change the position of the maximum. But products will become sums by the log function, hence computation will become easier:</p>
 <p><span class="math inline">\(\ln p(k| \pi, n) = \ln \binom {n} {k} + k \ln \pi + (n-k) \ln (1-\pi)\)</span></p>
 <p>Now we take the first derivation with respect to <span class="math inline">\(\pi\)</span>, regarding the other variables as constants:</p>
-<p><span class="math inline">\(\frac{d \ln p(k| \pi, n)}{d\pi} = 0 + k \frac{1}{p} + (n-k) \frac {1}{1-\pi}(-1)\)</span></p>
+<p><span class="math inline">\(\frac{d \ln p(k| \pi, n)}{d\pi} = 0 + k \frac{1}{\pi} + (n-k) \frac {1}{1-\pi}(-1)\)</span></p>
 <p>Setting this term to zero:</p>
 <p><span class="math inline">\(\frac{k}{\pi} + (n-k)\frac{-1}{1-\pi}=0\)</span></p>
 <p>Moving the second term to the rhs:</p>
