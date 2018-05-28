@@ -77,7 +77,7 @@ wahlkreise_shp %>%
   geom_sf()
 ```
 
-<img src="figure/unnamed-chunk-4-1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" width="70%" style="display: block; margin: auto;" />
+<img src="https://data-se.netlify.com/images/2017-10-22/unnamed-chunk-4-1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" width="70%" style="display: block; margin: auto;" />
 
 That was easy, right? The `sf` package fits nicely with the tidyverse. Hence not much to learn in that regard. I am not saying that geo data is simple, quite the contrary. But luckily the R functions fit in a well known schema.
 
@@ -198,7 +198,7 @@ chloro_data %>%
 p1
 ```
 
-<img src="figure/unnamed-chunk-11-1.png" title="plot of chunk unnamed-chunk-11" alt="plot of chunk unnamed-chunk-11" width="70%" style="display: block; margin: auto;" />
+<img src="https://data-se.netlify.com/images/2017-10-22/unnamed-chunk-11-1.png" title="plot of chunk unnamed-chunk-11" alt="plot of chunk unnamed-chunk-11" width="70%" style="display: block; margin: auto;" />
 
 We might want to play with the fill color, or clean up the map (remove axis etc.)
 
@@ -210,7 +210,7 @@ p1 + scale_fill_distiller(palette = "Spectral") +
   theme_void()
 ```
 
-<img src="figure/unnamed-chunk-12-1.png" title="plot of chunk unnamed-chunk-12" alt="plot of chunk unnamed-chunk-12" width="70%" style="display: block; margin: auto;" />
+<img src="https://data-se.netlify.com/images/2017-10-22/unnamed-chunk-12-1.png" title="plot of chunk unnamed-chunk-12" alt="plot of chunk unnamed-chunk-12" width="70%" style="display: block; margin: auto;" />
 
 
 
@@ -226,7 +226,7 @@ chloro_data %>%
 p2
 ```
 
-<img src="figure/unnamed-chunk-13-1.png" title="plot of chunk unnamed-chunk-13" alt="plot of chunk unnamed-chunk-13" width="70%" style="display: block; margin: auto;" />
+<img src="https://data-se.netlify.com/images/2017-10-22/unnamed-chunk-13-1.png" title="plot of chunk unnamed-chunk-13" alt="plot of chunk unnamed-chunk-13" width="70%" style="display: block; margin: auto;" />
 
 As can be seen from the previous figure, foreign nationals are relatively rare in the East, but tend to concentrate on the big cities such as Munich, Frankfurt, and the Ruhr area.
 
@@ -248,7 +248,7 @@ chloro_data %>%
   scale_fill_viridis()
 ```
 
-<img src="figure/unnamed-chunk-14-1.png" title="plot of chunk unnamed-chunk-14" alt="plot of chunk unnamed-chunk-14" width="70%" style="display: block; margin: auto;" />
+<img src="https://data-se.netlify.com/images/2017-10-22/unnamed-chunk-14-1.png" title="plot of chunk unnamed-chunk-14" alt="plot of chunk unnamed-chunk-14" width="70%" style="display: block; margin: auto;" />
 
 Let's check that.
 
@@ -283,7 +283,7 @@ chloro_data %>%
   geom_smooth()
 ```
 
-<img src="figure/unnamed-chunk-16-1.png" title="plot of chunk unnamed-chunk-16" alt="plot of chunk unnamed-chunk-16" width="70%" style="display: block; margin: auto;" />
+<img src="https://data-se.netlify.com/images/2017-10-22/unnamed-chunk-16-1.png" title="plot of chunk unnamed-chunk-16" alt="plot of chunk unnamed-chunk-16" width="70%" style="display: block; margin: auto;" />
 
 
 The pattern exhibited is quite striking: What we see might easily fit an exponential distribution: When foreigner rate begins to augment, the AfD success *shrinks* strongly, but this trend comes to an end as soon as some "saturation" process starts, maybe around some 8% of foreign national quote. It would surely be simplistic to speak of a "healthy proportion of around 8% foreigners", to fence populism. However, the available data shows a quite obvious pattern.
@@ -381,7 +381,7 @@ chloro_data %>%
   geom_smooth(aes(color = east), method = "lm")
 ```
 
-<img src="figure/unnamed-chunk-20-1.png" title="plot of chunk unnamed-chunk-20" alt="plot of chunk unnamed-chunk-20" width="70%" style="display: block; margin: auto;" />
+<img src="https://data-se.netlify.com/images/2017-10-22/unnamed-chunk-20-1.png" title="plot of chunk unnamed-chunk-20" alt="plot of chunk unnamed-chunk-20" width="70%" style="display: block; margin: auto;" />
 
 Quite remarkably, we see that the association in the West is weak; 
 in the East it is (comparatively) strong. Many foreigners, fewer AfD votes. 
@@ -444,7 +444,7 @@ chloro_data %>%
   theme_void()
 ```
 
-<img src="figure/unnamed-chunk-23-1.png" title="plot of chunk unnamed-chunk-23" alt="plot of chunk unnamed-chunk-23" width="70%" style="display: block; margin: auto;" />
+<img src="https://data-se.netlify.com/images/2017-10-22/unnamed-chunk-23-1.png" title="plot of chunk unnamed-chunk-23" alt="plot of chunk unnamed-chunk-23" width="70%" style="display: block; margin: auto;" />
 
 
 Interesting! This model shows a clear-cut picture: The eastern part is too "afd-ic" for its foreigner ratio; the North-West is less afd-ic than what would be expected by the foreigner rate. The rest (middle and south) parts over-and-above show the AfD levels that would be expected by their foreigner rate.
