@@ -1,0 +1,177 @@
+---
+title: 'Playing around with geo mapping: combining demographic data with spatial data'
+author: Sebastian Sauer
+date: '2018-05-28'
+csl: "/Users/sebastiansauer/Documents/Literatur/ref_mgt/apa.csl"
+bibliography: "/Users/sebastiansauer/Documents/Literatur/ref_mgt/library.bib"
+lang: de-De
+slug: playing-around-with-geo-mapping-combining-demographic-data-with-spatial-data
+categories:
+  - rstats
+tags:
+  - rstats
+  - plotting
+  - visualization
+  - geo
+---
+
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(message = FALSE, fig.align = "center")
+```
+
+
+In this post, we will play around with some basic geo mapping. More preciseyl, we will explore some easy ways to plot a choropleth map.
+
+First, let's load some geo data [@Bundeswahlleiter:2017ab], and combine it with some socio demographic data from the same source [@Bundeswahlleiter:2017ab].
+
+## Preparation
+
+
+Let's load some packages:
+
+```{r}
+library(tidyverse)
+library(sf)
+library(viridis)
+suppressPackageStartupMessages(library(googleVis))
+```
+
+Geo data:
+```{r}
+my_path_wahlkreise <- "~/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp"
+file.exists(my_path_wahlkreise)
+```
+
+socio demographic data:
+
+```{r}
+unemp_file <- "~/Documents/datasets/Strukturdaten_De/btw17_Strukturdaten-utf8.csv"
+file.exists(unemp_file)
+unemp_de_raw <- read_delim(unemp_file,
+                           ";", escape_double = FALSE,
+                           locale = locale(decimal_mark = ",",
+                                           grouping_mark = "."),
+                           trim_ws = TRUE,
+                           skip = 8)
+```
+
+
+
+
+```{r}
+wahlkreise_shp <- st_read(my_path_wahlkreise)
+```
+
+
+
+Some data cleansing:
+
+```{r}
+unemp_names <- names(unemp_de_raw)
+unemp_names
+unemp_de <- unemp_de_raw
+names(unemp_de) <- paste0("V",1:ncol(unemp_de))
+
+unemp_de <- unemp_de %>%
+  rename(state = V1,
+         area_nr = V2,
+         area_name = V3,
+         for_prop = V8,
+         pop_move = V11,
+         pop_migr_background = V19,
+         income = V26,
+         unemp = V47)  # total, as to March 2017
+```
+
+
+Join the two data files:
+
+```{r}
+wahlkreise_shp %>%
+  left_join(unemp_de, by = c("WKR_NR" = "area_nr"))  -> choro_data
+```
+
+
+
+## Some choropleth maps
+
+Some choropleth maps, such as of
+
+... German income as per administrative area:
+
+```{r}
+choro_data %>%
+  ggplot +
+  geom_sf(aes(fill = income)) +
+  theme_void() +
+  scale_fill_viridis()
+  
+```
+
+
+
+... unemployment rate with legend suppressed:
+
+
+```{r}
+choro_data %>%
+  ggplot +
+  geom_sf(aes(fill = unemp)) +
+  theme_void() +
+  scale_fill_viridis()  +
+  theme(legend.position = "none")
+```
+
+
+... Proportion of foreigners with legend name set:
+
+```{r}
+choro_data %>%
+  ggplot +
+  geom_sf(aes(fill = for_prop)) +
+  theme_void() +
+  scale_fill_viridis() +
+  labs(fill = "Foreigners") +
+  theme(legend.direction = "horizontal",
+        legend.position = "bottom")
+```
+
+
+Let's get some statistics out of the data:
+
+
+```{r}
+choro_data %>% 
+  select(area_name, for_prop) %>% 
+  top_n(for_prop, n =3) %>% 
+  ggplot(aes(x = reorder(area_name, for_prop), y = for_prop, fill = for_prop)) +
+  geom_col() +
+ # scale_fill_viridis_c() +
+  coord_flip()
+  
+```
+
+
+
+
+```{r include = FALSE}
+choro_data %>% 
+  select(area_name, for_prop) %>% 
+  top_n(for_prop, n =3) %>% 
+  ggplot(aes(x = reorder(area_name, for_prop), y = for_prop)) +
+  geom_col() +
+ # scale_fill_viridis_c() +
+  coord_flip() +
+  labs(x = "Area",
+       y = "Opportunity Strength") +
+  scale_y_continuous(breaks = NULL) +
+  scale_x_discrete(breaks = NULL) +
+  geom_label(aes(x = area_name,
+                y = 1,
+                label = area_name),
+            hjust = 0,
+            size = 12)
+  
+```
+
