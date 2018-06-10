@@ -1,0 +1,198 @@
+---
+title: Visualizing mean values between two groups  - the tidyverse way
+author: Sebastian Sauer
+date: '2018-06-10'
+slug: visualizing-summary-statistics-the-tidyverse-way
+categories:
+  - rstats
+tags:
+  - rstats
+  - plotting
+  - visualization
+---
+
+```{r echo = FALSE}
+
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp =  0.4,  #0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+
+```
+
+
+
+A frequent job in data visualizing is to present summary statistics. In this post, I show one way to plot mean values between groups using the tidyverse approach in comparison to the mosaic way.
+
+```{r}
+library(tidyverse)
+data(mtcars)
+library(mosaic)
+library(knitr)
+library(sjmisc)
+library(sjPlot)
+
+```
+
+
+# Visualizing mean values between two groups
+
+First, let's compute the mean hp for automatic cars (`am == 0`) vs. manual cars (`am == 1`).
+```{r}
+mtcars %>% 
+  group_by(am) %>% 
+  summarise(hp_am = mean(hp)) -> hp_am
+```
+
+Now just hand over this data frame of summarized data to ggplot:
+
+```{r}
+hp_am %>% 
+  ggplot() +
+  aes(x = factor(am), y = hp_am) +
+  geom_point(aes(shape = factor(am)), size = 5, alpha = .7) +
+  geom_line(group = 1) -> p1
+p1
+```
+
+An alternative approach would be using the R package `mosaic`:
+
+```{r}
+favstats(hp ~ am, data = mtcars) %>% 
+  rownames_to_column() -> mtcars_favstats
+```
+
+
+Now hand over this data frame to `gf_XXX()` from `mosaic` (wrappers around `ggplot()`):
+
+```{r}
+gf_point(mean ~ rowname, data = mtcars_favstats, shape = ~rowname, size = 5, alpha = .7) %>% 
+  gf_line(mean ~ rowname, group = 1)
+```
+
+
+# Adding uncertainty measures
+
+If we are not primarily interested in sample description but population estimation we need to add uncertainty measures - such as the standard error (SE).
+
+One easy solution is to make use of the package `gplots`:
+
+```{r}
+library(gplots)
+plotmeans(hp ~ am, data = mtcars)
+```
+
+Note that the errors describe the 95% confidence interval of the respective mean.
+
+
+Using ggplot2, there are some helper functions from `hmisc` that will do to computation of the standard error for us. One way is to use the `stat_summary()` function:
+
+```{r}
+
+p1 + 
+  stat_summary(fun.data = "mean_cl_normal", geom = "errorbar", data = mtcars, aes(y = hp))
+
+```
+
+
+
+`stat_summary()` provides an alternative to `geom_XXX()` for building a plot. Here the focus lies on "which summary statistic do I want to compute?
+
+`mean_cl_normal` computes the *m*ean and the *c*onfidence *l*imits based on a t-distribution. As an alternative `mean_cl_boot` would produce a less assumption laden bootstrapped confidence interval.
+
+
+`geom_errorbar()` yields essentially the same result. Here, we also specify that we do not want the 2-SE-interval (95%) but the 1-SE-interval (via `fun.args`).
+
+```{r}
+p1 +
+  geom_errorbar(stat = "summary", fun.data = "mean_sdl", 
+                  fun.args = list(mult = 1),
+                  position =  position_dodge(width = 0.9),
+                data = mtcars,
+                aes(y = hp))
+```
+
+
+`stat = "summary"` computes a summary at each position of x. In this case, the summary function `mean_sdl` is called. `fun_data` returns three values: `y`, `ymin` and `ymax`.
+
+# Less intrusive bars
+
+I personally find the bars to intrusive; let's try to deemphasize their appearance.
+
+
+```{r}
+
+mtcars %>%
+  ggplot() +
+  aes(x = factor(am), y = hp) +
+  geom_pointrange(stat = "summary", fun.data = "mean_sdl", 
+                  fun.args = list(mult = 1),
+                  position =  position_dodge(width = 0.9),
+                size = 2,
+                aes(y = hp, shape = factor(am), color = factor(am))) +
+  geom_line(stat = "summary", fun.data = "mean_sdl",
+            group = 1)
+```
+
+
+# Plot table
+
+Sometimes, we do not (only) want a diagram but also the exact figures. How to get that? `kable()` provides a convenient way:
+
+```{r}
+hp_am %>% 
+  kable()
+```
+
+The package `sjmisc` provides a convenience function for summary statistics:
+
+```{r}
+mtcars %>%
+  group_by(am) %>% 
+  select(hp) %>% 
+  descr()
+```
+
+
+## Double grouping
+
+Let's try a double grouping and see where it takes us:
+
+```{r}
+mtcars %>% 
+  group_by(am, cyl) %>% 
+  summarise(hp_mean = mean(hp)) %>%  
+  ungroup() -> hp_am_cyl
+
+hp_am_cyl
+```
+
+Now let's add the mean per `am` group (the "overall" means):
+
+```{r}
+hp_am_cyl %>% 
+  group_by(am) %>% 
+  mutate(overall_mean = mean(hp_mean)) -> hp_am_cyl
+
+hp_am_cyl %>% kable()
+```
+
+
+This format is called the long format. We can shift it to the wide format:
+
+
+```{r}
+hp_am_cyl %>% 
+  spread(key = cyl, value = hp_mean) %>% 
+  kable()
+```
+
