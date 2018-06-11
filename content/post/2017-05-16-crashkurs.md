@@ -1,11 +1,12 @@
 ---
-author: Sebastian Sauer
+title: "Crashkurs Datenanalyse mit R"
+author: "Sebastian Sauer"
 date: '2017-05-16'
-title: Crashkurs Datenanalyse mit R
+output: pdf_document
 tags:
-  - rstats
-  - tutorial
-  - German
+- rstats
+- tutorial
+- German
 slug: crashkurs
 ---
 
