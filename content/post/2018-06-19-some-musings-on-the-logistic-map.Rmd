@@ -1,0 +1,315 @@
+---
+title: Some musings on the logistic map
+author: Sebastian Sauer
+date: '2018-06-19'
+slug: some-musings-on-the-logistic-map
+draft: no
+categories:
+  - rstats
+tags:
+  - rstats
+  - simulation
+---
+
+
+```{r setup, echo = FALSE}
+set.seed(1014)
+options(digits = 3)
+
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp =  0.4,  #0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+
+
+options(max.print = 20,
+        dplyr.print_max = 7,
+        dplyr.print_min = 3)
+
+```
+
+
+The logistic map is a well-known and simple growth model that is defined by the iterative equation
+
+$$x_{t+1} = 4rx_t(1-t_t)$$,
+
+where $r$ is a parameter that can be thought of as a fertility and *reproduction* rate of the population. The allowed values of $x$ range between 0 an 1 inclusively, where 0 means the population is extinct. The maximum of 1 can be interpreted as the ecological carrying capacity of the system. $r$ is also allowed to vary between 0 and 1.
+
+Let's choose a value for $r$ and see the development over time.
+
+If $r$ is not bigger than $1/4$ than the population is deemed to extinct, as all numbers in the formula are lower than 1 which reduces their product in the next iteration.
+
+Let's check that in R. I will use the [logistic map function](https://magesblog.com/post/2012-03-17-logistic-map-feigenbaum-diagram/) from [Markus Gesman's blog](https://magesblog.com/).`
+
+
+
+```{r}
+logistic_map <- function(r, x, N, M){
+  ## r: growth rate
+  ## x: initial value
+  ## N: number of iteration
+  ## M: number of iteration points to be returned
+  z <- 1:N
+  z[1] <- x
+  for(i in c(1:(N-1))){
+    z[i+1] <- 4 * r * z[i]  * (1 - z[i])
+  }
+  ## Return the last M iterations 
+  z[c((N-M):N)]
+}
+```
+
+
+Now apply this function with some start values:
+```{r}
+df <- data.frame(time = 1:100)
+df$x <- logistic_map(r = .20, 
+                     x = .5,
+                     N = 100,
+                     M = 100)
+```
+
+
+```{r}
+library(tidyverse)
+ggplot(df) +
+  aes(x = time,
+      y = x) +
+  geom_point() +
+  geom_line()
+```
+
+Runs depressingly to zero:
+
+```{r}
+tail(df$x)
+```
+
+
+
+
+Now let's try $r=.29$.
+
+```{r}
+df$x <- logistic_map(r = .29, 
+                     x = .5,
+                     N = 100,
+                     M = 100)
+```
+
+
+```{r}
+ggplot(df) +
+  aes(x = time,
+      y = x) +
+  geom_point() +
+  geom_line() +
+  coord_cartesian(ylim = c(0, .2))
+```
+
+Having crossed the border of $.25$, we see that the behavior changed: Now the attractor is above zero, but still constant (and boring).
+
+This behavior will continue until $.75$, let's check $.7$ for instance:
+
+```{r}
+df$x <- logistic_map(r = .7, 
+                     x = .5,
+                     N = 100,
+                     M = 100)
+```
+
+```{r}
+ggplot(df) +
+  aes(x = time,
+      y = x) +
+  geom_point() +
+  geom_line() 
+```
+
+
+Interestingly, some severe bouncing appeared but eventually, the curve flats out. Now let's increase $r$ to $.8$:
+
+
+```{r}
+df$x <- logistic_map(r = .8, 
+                     x = .5,
+                     N = 100,
+                     M = 100)
+
+ggplot(df) +
+  aes(x = time,
+      y = x) +
+  geom_point() +
+  geom_line() +
+  ylim(0,1)
+```
+
+Now the systems settles into a period-2 limit cycle oscillating between two values. A slight increase to $r=.88$ will again change the system behavior:
+
+
+
+```{r}
+df$x <- logistic_map(r = .88, 
+                     x = .5,
+                     N = 100,
+                     M = 100)
+
+ggplot(df) +
+  aes(x = time,
+      y = x) +
+  geom_point() +
+  geom_line() +
+  ylim(0,1) +
+  labs(title = "period-4 limit cycle")
+```
+
+
+Eventually, let's see what happens if we set $r=.999999$ (we can't set it to 1 because than the system will immediately settle to 0):
+
+```{r}
+df$x <- logistic_map(r = .999999, 
+                     x = .5,
+                     N = 100,
+                     M = 100)
+
+ggplot(df) +
+  aes(x = time,
+      y = x) +
+  geom_point() +
+  geom_line() +
+  ylim(0,1) +
+  labs(title = "chaos")
+```
+
+
+Now let's compare the dependence on start values for $r\approx 1$.
+
+
+```{r}
+start_values <- seq(from = 0, to = 1, by = .01)
+
+start_values %>% 
+  map_dfc(~logistic_map(r = .999999, x = ., N = 100, M = 100)) -> feigenbaum
+
+feigenbaum <- feigenbaum[-1]
+```
+
+What's the correlation between the start values?
+
+
+```{r}
+cor(feigenbaum$V2, feigenbaum$V3)
+cor(feigenbaum) -> cor_feigenbaum
+
+cor_feigenbaum_upper.tri <- cor_feigenbaum[upper.tri(cor_feigenbaum)]
+```
+
+
+```{r}
+library(corrplot)
+corrplot(cor_feigenbaum)
+```
+
+What we can see that there's basically not much correlation besides the main diagonal and, somewhat more interestingly, the "back main diagonal". So, for instance, V2 and V99 seems to be nearly identical:
+
+```{r}
+start_values
+start_values[c(2,99)]
+```
+
+Thus, there's a symmetry around $r=.5$. Let's leave that aside and only consider the values between $r=.01$ and $r=.49$.
+
+```{r}
+cor_feigenbaum2 <- cor_feigenbaum[1:49, 1:49]
+cor_feigenbaum_upper.tri2 <- cor_feigenbaum2[upper.tri(cor_feigenbaum2)]
+mean(cor_feigenbaum_upper.tri2)
+```
+
+
+```{r}
+ggplot(data.frame(cor_feigenbaum_upper.tri2)) +
+  geom_histogram(aes(x = cor_feigenbaum_upper.tri2))
+```
+
+So the correlation is essentially zero. Let's repeat that: there's no association between start values and the population development.
+
+
+For instance, let's take to neighboring start values and see what their population values are at $t_{100}$:
+
+```{r}
+feigenbaum %>% 
+  filter(row_number() == 100) %>% 
+  gather() %>% 
+  ggplot(aes(x = key, y = value)) +
+  geom_line(group = 1) +
+  geom_point()
+```
+
+
+Let's take two *very* close starting position ($.00001$), let the population run and see what happens:
+
+```{r}
+start_values_close <- seq(from = 0, by = .00001, length.out = 100)
+
+start_values %>% 
+  map_dfc(~logistic_map(r = .999999, x = ., N = 100, M = 100)) -> feigenbaum2
+
+feigenbaum2 <- feigenbaum2[-1]
+```
+
+```{r}
+feigenbaum2 %>% 
+  filter(row_number() == 100) %>% 
+  gather() %>% 
+  ggplot(aes(x = key, y = value)) +
+  geom_line(group = 1) +
+  geom_point()
+```
+
+Even with minimal differences, the system diverges dramatically.
+
+If so simply systems can behave so unpredictable, how can we we hope to predict human behavior?
+
+
+
+Finally, some fun plotting at the end. Let's plot the Feigenbaum map.
+
+
+```{r}
+r_values <- seq(from = .25, to = 1, by = .01)
+
+r_values %>% 
+  map_dfc(~logistic_map(r = ., x = .1, N = 1000, M = 100)) -> feigenbaum_r
+
+
+names(feigenbaum_r) <- paste0("r_", r_values)
+
+
+feigenbaum_r %>% 
+  gather()  %>% 
+  separate(key, into = c("r_const", "r_value"), sep = "_") -> feigenbaum_r_long
+
+feigenbaum_r_long %>% 
+  mutate(r_value_num = as.numeric(r_value)) %>% 
+  filter(between(r_value_num, 0.01, .999)) -> feigenbaum_r_long
+
+```
+
+
+```{r}
+feigenbaum_r_long %>% 
+  ggplot(aes(x = r_value_num, y = value)) +
+  geom_point(size = .1)
+```
+
+
+

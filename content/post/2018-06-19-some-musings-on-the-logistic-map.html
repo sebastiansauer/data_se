@@ -1,0 +1,192 @@
+---
+title: Some musings on the logistic map
+author: Sebastian Sauer
+date: '2018-06-19'
+slug: some-musings-on-the-logistic-map
+draft: no
+categories:
+  - rstats
+tags:
+  - rstats
+  - simulation
+---
+
+
+
+<p>The logistic map is a well-known and simple growth model that is defined by the iterative equation</p>
+<p><span class="math display">\[x_{t+1} = 4rx_t(1-t_t)\]</span>,</p>
+<p>where <span class="math inline">\(r\)</span> is a parameter that can be thought of as a fertility and <em>reproduction</em> rate of the population. The allowed values of <span class="math inline">\(x\)</span> range between 0 an 1 inclusively, where 0 means the population is extinct. The maximum of 1 can be interpreted as the ecological carrying capacity of the system. <span class="math inline">\(r\)</span> is also allowed to vary between 0 and 1.</p>
+<p>Let’s choose a value for <span class="math inline">\(r\)</span> and see the development over time.</p>
+<p>If <span class="math inline">\(r\)</span> is not bigger than <span class="math inline">\(1/4\)</span> than the population is deemed to extinct, as all numbers in the formula are lower than 1 which reduces their product in the next iteration.</p>
+<p>Let’s check that in R. I will use the <a href="https://magesblog.com/post/2012-03-17-logistic-map-feigenbaum-diagram/">logistic map function</a> from <a href="https://magesblog.com/">Markus Gesman’s blog</a>.`</p>
+<pre class="r"><code>logistic_map &lt;- function(r, x, N, M){
+  ## r: growth rate
+  ## x: initial value
+  ## N: number of iteration
+  ## M: number of iteration points to be returned
+  z &lt;- 1:N
+  z[1] &lt;- x
+  for(i in c(1:(N-1))){
+    z[i+1] &lt;- 4 * r * z[i]  * (1 - z[i])
+  }
+  ## Return the last M iterations 
+  z[c((N-M):N)]
+}</code></pre>
+<p>Now apply this function with some start values:</p>
+<pre class="r"><code>df &lt;- data.frame(time = 1:100)
+df$x &lt;- logistic_map(r = .20, 
+                     x = .5,
+                     N = 100,
+                     M = 100)</code></pre>
+<pre class="r"><code>library(tidyverse)
+ggplot(df) +
+  aes(x = time,
+      y = x) +
+  geom_point() +
+  geom_line()</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-3-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Runs depressingly to zero:</p>
+<pre class="r"><code>tail(df$x)
+#&gt; [1] 9.23e-11 7.39e-11 5.91e-11 4.73e-11 3.78e-11 3.03e-11</code></pre>
+<p>Now let’s try <span class="math inline">\(r=.29\)</span>.</p>
+<pre class="r"><code>df$x &lt;- logistic_map(r = .29, 
+                     x = .5,
+                     N = 100,
+                     M = 100)</code></pre>
+<pre class="r"><code>ggplot(df) +
+  aes(x = time,
+      y = x) +
+  geom_point() +
+  geom_line() +
+  coord_cartesian(ylim = c(0, .2))</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-6-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Having crossed the border of <span class="math inline">\(.25\)</span>, we see that the behavior changed: Now the attractor is above zero, but still constant (and boring).</p>
+<p>This behavior will continue until <span class="math inline">\(.75\)</span>, let’s check <span class="math inline">\(.7\)</span> for instance:</p>
+<pre class="r"><code>df$x &lt;- logistic_map(r = .7, 
+                     x = .5,
+                     N = 100,
+                     M = 100)</code></pre>
+<pre class="r"><code>ggplot(df) +
+  aes(x = time,
+      y = x) +
+  geom_point() +
+  geom_line() </code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-8-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Interestingly, some severe bouncing appeared but eventually, the curve flats out. Now let’s increase <span class="math inline">\(r\)</span> to <span class="math inline">\(.8\)</span>:</p>
+<pre class="r"><code>df$x &lt;- logistic_map(r = .8, 
+                     x = .5,
+                     N = 100,
+                     M = 100)
+
+ggplot(df) +
+  aes(x = time,
+      y = x) +
+  geom_point() +
+  geom_line() +
+  ylim(0,1)</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-9-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Now the systems settles into a period-2 limit cycle oscillating between two values. A slight increase to <span class="math inline">\(r=.88\)</span> will again change the system behavior:</p>
+<pre class="r"><code>df$x &lt;- logistic_map(r = .88, 
+                     x = .5,
+                     N = 100,
+                     M = 100)
+
+ggplot(df) +
+  aes(x = time,
+      y = x) +
+  geom_point() +
+  geom_line() +
+  ylim(0,1) +
+  labs(title = &quot;period-4 limit cycle&quot;)</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-10-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Eventually, let’s see what happens if we set <span class="math inline">\(r=.999999\)</span> (we can’t set it to 1 because than the system will immediately settle to 0):</p>
+<pre class="r"><code>df$x &lt;- logistic_map(r = .999999, 
+                     x = .5,
+                     N = 100,
+                     M = 100)
+
+ggplot(df) +
+  aes(x = time,
+      y = x) +
+  geom_point() +
+  geom_line() +
+  ylim(0,1) +
+  labs(title = &quot;chaos&quot;)</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-11-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Now let’s compare the dependence on start values for <span class="math inline">\(r\approx 1\)</span>.</p>
+<pre class="r"><code>start_values &lt;- seq(from = 0, to = 1, by = .01)
+
+start_values %&gt;% 
+  map_dfc(~logistic_map(r = .999999, x = ., N = 100, M = 100)) -&gt; feigenbaum
+
+feigenbaum &lt;- feigenbaum[-1]</code></pre>
+<p>What’s the correlation between the start values?</p>
+<pre class="r"><code>cor(feigenbaum$V2, feigenbaum$V3)
+#&gt; [1] -0.0915
+cor(feigenbaum) -&gt; cor_feigenbaum
+
+cor_feigenbaum_upper.tri &lt;- cor_feigenbaum[upper.tri(cor_feigenbaum)]</code></pre>
+<pre class="r"><code>library(corrplot)
+corrplot(cor_feigenbaum)</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-14-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>What we can see that there’s basically not much correlation besides the main diagonal and, somewhat more interestingly, the “back main diagonal”. So, for instance, V2 and V99 seems to be nearly identical:</p>
+<pre class="r"><code>start_values
+#&gt;  [1] 0.00 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10 0.11 0.12 0.13
+#&gt; [15] 0.14 0.15 0.16 0.17 0.18 0.19
+#&gt;  [ reached getOption(&quot;max.print&quot;) -- omitted 81 entries ]
+start_values[c(2,99)]
+#&gt; [1] 0.01 0.98</code></pre>
+<p>Thus, there’s a symmetry around <span class="math inline">\(r=.5\)</span>. Let’s leave that aside and only consider the values between <span class="math inline">\(r=.01\)</span> and <span class="math inline">\(r=.49\)</span>.</p>
+<pre class="r"><code>cor_feigenbaum2 &lt;- cor_feigenbaum[1:49, 1:49]
+cor_feigenbaum_upper.tri2 &lt;- cor_feigenbaum2[upper.tri(cor_feigenbaum2)]
+mean(cor_feigenbaum_upper.tri2)
+#&gt; [1] 0.00911</code></pre>
+<pre class="r"><code>ggplot(data.frame(cor_feigenbaum_upper.tri2)) +
+  geom_histogram(aes(x = cor_feigenbaum_upper.tri2))</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-17-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>So the correlation is essentially zero. Let’s repeat that: there’s no association between start values and the population development.</p>
+<p>For instance, let’s take to neighboring start values and see what their population values are at <span class="math inline">\(t_{100}\)</span>:</p>
+<pre class="r"><code>feigenbaum %&gt;% 
+  filter(row_number() == 100) %&gt;% 
+  gather() %&gt;% 
+  ggplot(aes(x = key, y = value)) +
+  geom_line(group = 1) +
+  geom_point()</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-18-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Let’s take two <em>very</em> close starting position (<span class="math inline">\(.00001\)</span>), let the population run and see what happens:</p>
+<pre class="r"><code>start_values_close &lt;- seq(from = 0, by = .00001, length.out = 100)
+
+start_values %&gt;% 
+  map_dfc(~logistic_map(r = .999999, x = ., N = 100, M = 100)) -&gt; feigenbaum2
+
+feigenbaum2 &lt;- feigenbaum2[-1]</code></pre>
+<pre class="r"><code>feigenbaum2 %&gt;% 
+  filter(row_number() == 100) %&gt;% 
+  gather() %&gt;% 
+  ggplot(aes(x = key, y = value)) +
+  geom_line(group = 1) +
+  geom_point()</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-20-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Even with minimal differences, the system diverges dramatically.</p>
+<p>If so simply systems can behave so unpredictable, how can we we hope to predict human behavior?</p>
+<p>Finally, some fun plotting at the end. Let’s plot the Feigenbaum map.</p>
+<pre class="r"><code>r_values &lt;- seq(from = .25, to = 1, by = .01)
+
+r_values %&gt;% 
+  map_dfc(~logistic_map(r = ., x = .1, N = 1000, M = 100)) -&gt; feigenbaum_r
+
+
+names(feigenbaum_r) &lt;- paste0(&quot;r_&quot;, r_values)
+
+
+feigenbaum_r %&gt;% 
+  gather()  %&gt;% 
+  separate(key, into = c(&quot;r_const&quot;, &quot;r_value&quot;), sep = &quot;_&quot;) -&gt; feigenbaum_r_long
+
+feigenbaum_r_long %&gt;% 
+  mutate(r_value_num = as.numeric(r_value)) %&gt;% 
+  filter(between(r_value_num, 0.01, .999)) -&gt; feigenbaum_r_long</code></pre>
+<pre class="r"><code>feigenbaum_r_long %&gt;% 
+  ggplot(aes(x = r_value_num, y = value)) +
+  geom_point(size = .1)</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-22-1.png" width="70%" style="display: block; margin: auto;" /></p>
