@@ -32,88 +32,174 @@ tags:
   ## Return the last M iterations 
   z[c((N-M):N)]
 }</code></pre>
+<p>A package for plotting, text processing (glue) and data handling:</p>
+<pre class="r"><code>library(tidyverse)
+library(glue)
+library(gridExtra)</code></pre>
+<p>Let’s define a work-horse function:</p>
+<pre class="r"><code>
+log_map_plot &lt;- function(data = df, y, r, x, time = &quot;time&quot;){
+
+  out_plot &lt;- ggplot(data) +
+    aes_string(x = time, y = y) +
+    geom_point(alpha = .5, size = .5) +
+    geom_line() +
+    coord_cartesian(ylim = c(0,1)) +
+    labs(title = paste0(&quot;r = &quot;,r,&quot;, x = &quot;,x))
+    
+  print(out_plot)
+  
+  return(out_plot)
+}</code></pre>
 <p>Now apply this function with some start values:</p>
 <pre class="r"><code>df &lt;- data.frame(time = 1:100)
-df$x &lt;- logistic_map(r = .20, 
-                     x = .5,
-                     N = 100,
-                     M = 100)</code></pre>
-<pre class="r"><code>library(tidyverse)
-ggplot(df) +
-  aes(x = time,
-      y = x) +
-  geom_point() +
-  geom_line()</code></pre>
-<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-3-1.png" width="70%" style="display: block; margin: auto;" /></p>
-<p>Runs depressingly to zero:</p>
-<pre class="r"><code>tail(df$x)
+
+r = .20
+x = .5
+
+df$log_map1 &lt;- logistic_map(r = r, 
+                            x = x,
+                            N = 100,
+                            M = 100)
+
+
+
+p1 &lt;- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = &quot;log_map1&quot;)
+p1</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-4-2.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Doomed to extinguish. Runs depressingly to zero:</p>
+<pre class="r"><code>tail(df$log_map1)
 #&gt; [1] 9.23e-11 7.39e-11 5.91e-11 4.73e-11 3.78e-11 3.03e-11</code></pre>
-<p>Now let’s try <span class="math inline">\(r=.29\)</span>.</p>
-<pre class="r"><code>df$x &lt;- logistic_map(r = .29, 
+<p>Now let’s try <span class="math inline">\(r=.33\)</span>.</p>
+<pre class="r"><code>r = .33
+
+df$log_map2 &lt;- logistic_map(r = r, 
                      x = .5,
                      N = 100,
-                     M = 100)</code></pre>
-<pre class="r"><code>ggplot(df) +
-  aes(x = time,
-      y = x) +
-  geom_point() +
-  geom_line() +
-  coord_cartesian(ylim = c(0, .2))</code></pre>
-<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-6-1.png" width="70%" style="display: block; margin: auto;" /></p>
+                     M = 100)
+
+p2 &lt;- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = &quot;log_map2&quot;)
+p2</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-6-1.png" width="70%" style="display: block; margin: auto;" /><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-6-2.png" width="70%" style="display: block; margin: auto;" /></p>
 <p>Having crossed the border of <span class="math inline">\(.25\)</span>, we see that the behavior changed: Now the attractor is above zero, but still constant (and boring).</p>
 <p>This behavior will continue until <span class="math inline">\(.75\)</span>, let’s check <span class="math inline">\(.7\)</span> for instance:</p>
-<pre class="r"><code>df$x &lt;- logistic_map(r = .7, 
+<pre class="r"><code>r = .7
+df$log_map3 &lt;- logistic_map(r = r, 
                      x = .5,
                      N = 100,
-                     M = 100)</code></pre>
-<pre class="r"><code>ggplot(df) +
-  aes(x = time,
-      y = x) +
-  geom_point() +
-  geom_line() </code></pre>
-<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-8-1.png" width="70%" style="display: block; margin: auto;" /></p>
+                     M = 100)
+
+p3 &lt;- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = &quot;log_map3&quot;)
+
+p3</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-7-1.png" width="70%" style="display: block; margin: auto;" /><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-7-2.png" width="70%" style="display: block; margin: auto;" /></p>
 <p>Interestingly, some severe bouncing appeared but eventually, the curve flats out. Now let’s increase <span class="math inline">\(r\)</span> to <span class="math inline">\(.8\)</span>:</p>
-<pre class="r"><code>df$x &lt;- logistic_map(r = .8, 
+<pre class="r"><code>r = .8
+df$log_map4 &lt;- logistic_map(r = r, 
                      x = .5,
                      N = 100,
                      M = 100)
 
-ggplot(df) +
-  aes(x = time,
-      y = x) +
-  geom_point() +
-  geom_line() +
-  ylim(0,1)</code></pre>
-<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-9-1.png" width="70%" style="display: block; margin: auto;" /></p>
+p4 &lt;- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = &quot;log_map4&quot;)
+p4</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-8-1.png" width="70%" style="display: block; margin: auto;" /><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-8-2.png" width="70%" style="display: block; margin: auto;" /></p>
 <p>Now the systems settles into a period-2 limit cycle oscillating between two values. A slight increase to <span class="math inline">\(r=.88\)</span> will again change the system behavior:</p>
-<pre class="r"><code>df$x &lt;- logistic_map(r = .88, 
+<pre class="r"><code>r = .88
+df$log_map5 &lt;- logistic_map(r = r, 
                      x = .5,
                      N = 100,
                      M = 100)
 
-ggplot(df) +
-  aes(x = time,
-      y = x) +
-  geom_point() +
-  geom_line() +
-  ylim(0,1) +
-  labs(title = &quot;period-4 limit cycle&quot;)</code></pre>
-<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-10-1.png" width="70%" style="display: block; margin: auto;" /></p>
-<p>Eventually, let’s see what happens if we set <span class="math inline">\(r=.999999\)</span> (we can’t set it to 1 because than the system will immediately settle to 0):</p>
-<pre class="r"><code>df$x &lt;- logistic_map(r = .999999, 
-                     x = .5,
+p5 &lt;- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = &quot;log_map5&quot;)
+p5</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-9-1.png" width="70%" style="display: block; margin: auto;" /><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-9-2.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Eventually, let’s see what happens if we set <span class="math inline">\(r=1\)</span>:</p>
+<pre class="r"><code>r = 1
+x = .49999999
+df$log_map6 &lt;- logistic_map(r = r, 
+                     x = x,
                      N = 100,
                      M = 100)
 
-ggplot(df) +
-  aes(x = time,
-      y = x) +
-  geom_point() +
-  geom_line() +
-  ylim(0,1) +
-  labs(title = &quot;chaos&quot;)</code></pre>
-<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-11-1.png" width="70%" style="display: block; margin: auto;" /></p>
-<p>Now let’s compare the dependence on start values for <span class="math inline">\(r\approx 1\)</span>.</p>
+p6 &lt;- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = &quot;log_map6&quot;)
+p6</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-10-1.png" width="70%" style="display: block; margin: auto;" /><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-10-2.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Now let’s compare the dependence on start values for <span class="math inline">\(r\approx 1\)</span>. Let’s choose a very similar start values, say <span class="math inline">\(x = .987654321\)</span>.</p>
+<pre class="r"><code>r = 1
+x = .987654321
+df$log_map7 &lt;- logistic_map(r = r, 
+                     x = x,
+                     N = 100,
+                     M = 100)
+
+p7 &lt;- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = &quot;log_map7&quot;)
+p7</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-11-1.png" width="70%" style="display: block; margin: auto;" /><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-11-2.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>The pattern over time is completely different! Let’s try another again slightly different start value, say <span class="math inline">\(x = .987654320\)</span>.</p>
+<pre class="r"><code>r = 1
+x = .987654320
+
+df$log_map8 &lt;- logistic_map(r = r, 
+                     x = x,
+                     N = 100,
+                     M = 100)
+
+p8 &lt;- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = &quot;log_map8&quot;)
+p8</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-12-1.png" width="70%" style="display: block; margin: auto;" /><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-12-2.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Let’s compute the difference between <code>log_map8</code> and <code>log_map7</code>.</p>
+<pre class="r"><code>df %&gt;% 
+  mutate(delta_map7_8 = abs(log_map8 - log_map7)) -&gt; df
+
+
+p9 &lt;- log_map_plot(data = df,
+             r = .999999, 
+             x = &quot;Delta&quot;,
+             y = &quot;delta_map7_8&quot;)
+p9</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-13-1.png" width="70%" style="display: block; margin: auto;" /><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-13-2.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Quite different.</p>
+<p>Let’s plot two trajectories in one plot to better compare them.</p>
+<pre class="r"><code>p10 &lt;- df %&gt;% 
+  select(time, log_map7, log_map8) %&gt;% 
+  gather(key = start_value, value = value, -time) %&gt;% 
+  ggplot() +
+  aes(x = time, y = value, color = start_value, shape = start_value) +
+  geom_point(alpha = .5, size = 1) +
+  geom_line()
+p10</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-14-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>At this point, let’s halt for a moment and put what we have done a little in context, or maybe just in one picture.</p>
+<pre class="r"><code>
+grid.arrange(p3, p4, p5, 
+             p6, p7, p8,
+             nrow = 2)</code></pre>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-15-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>As we see, slight differences in start values have dramatic effect on the development of the system behavior. Now, let’s analyse that a bit more systematically. Let’s compute the system development for a sequence of small differences for the start value (<span class="math inline">\(r\approx 1\)</span> in each case).</p>
 <pre class="r"><code>start_values &lt;- seq(from = 0, to = 1, by = .01)
 
 start_values %&gt;% 
@@ -128,7 +214,7 @@ cor(feigenbaum) -&gt; cor_feigenbaum
 cor_feigenbaum_upper.tri &lt;- cor_feigenbaum[upper.tri(cor_feigenbaum)]</code></pre>
 <pre class="r"><code>library(corrplot)
 corrplot(cor_feigenbaum)</code></pre>
-<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-14-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-18-1.png" width="70%" style="display: block; margin: auto;" /></p>
 <p>What we can see that there’s basically not much correlation besides the main diagonal and, somewhat more interestingly, the “back main diagonal”. So, for instance, V2 and V99 seems to be nearly identical:</p>
 <pre class="r"><code>start_values
 #&gt;  [1] 0.00 0.01 0.02 0.03 0.04 0.05 0.06 0.07 0.08 0.09 0.10 0.11 0.12 0.13
@@ -143,7 +229,7 @@ mean(cor_feigenbaum_upper.tri2)
 #&gt; [1] 0.00911</code></pre>
 <pre class="r"><code>ggplot(data.frame(cor_feigenbaum_upper.tri2)) +
   geom_histogram(aes(x = cor_feigenbaum_upper.tri2))</code></pre>
-<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-17-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-21-1.png" width="70%" style="display: block; margin: auto;" /></p>
 <p>So the correlation is essentially zero. Let’s repeat that: there’s no association between start values and the population development.</p>
 <p>For instance, let’s take to neighboring start values and see what their population values are at <span class="math inline">\(t_{100}\)</span>:</p>
 <pre class="r"><code>feigenbaum %&gt;% 
@@ -152,7 +238,7 @@ mean(cor_feigenbaum_upper.tri2)
   ggplot(aes(x = key, y = value)) +
   geom_line(group = 1) +
   geom_point()</code></pre>
-<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-18-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-22-1.png" width="70%" style="display: block; margin: auto;" /></p>
 <p>Let’s take two <em>very</em> close starting position (<span class="math inline">\(.00001\)</span>), let the population run and see what happens:</p>
 <pre class="r"><code>start_values_close &lt;- seq(from = 0, by = .00001, length.out = 100)
 
@@ -166,7 +252,7 @@ feigenbaum2 &lt;- feigenbaum2[-1]</code></pre>
   ggplot(aes(x = key, y = value)) +
   geom_line(group = 1) +
   geom_point()</code></pre>
-<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-20-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-24-1.png" width="70%" style="display: block; margin: auto;" /></p>
 <p>Even with minimal differences, the system diverges dramatically.</p>
 <p>If so simply systems can behave so unpredictable, how can we we hope to predict human behavior?</p>
 <p>Finally, some fun plotting at the end. Let’s plot the Feigenbaum map.</p>
@@ -189,4 +275,4 @@ feigenbaum_r_long %&gt;%
 <pre class="r"><code>feigenbaum_r_long %&gt;% 
   ggplot(aes(x = r_value_num, y = value)) +
   geom_point(size = .1)</code></pre>
-<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-22-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2018-06-19-some-musings-on-the-logistic-map_files/figure-html/unnamed-chunk-26-1.png" width="70%" style="display: block; margin: auto;" /></p>

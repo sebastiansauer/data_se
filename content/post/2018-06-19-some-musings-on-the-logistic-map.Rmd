@@ -69,51 +69,82 @@ logistic_map <- function(r, x, N, M){
 ```
 
 
-Now apply this function with some start values:
-```{r}
-df <- data.frame(time = 1:100)
-df$x <- logistic_map(r = .20, 
-                     x = .5,
-                     N = 100,
-                     M = 100)
-```
-
+A package for plotting, text processing (glue) and data handling:
 
 ```{r}
 library(tidyverse)
-ggplot(df) +
-  aes(x = time,
-      y = x) +
-  geom_point() +
-  geom_line()
-```
-
-Runs depressingly to zero:
-
-```{r}
-tail(df$x)
+library(glue)
+library(gridExtra)
 ```
 
 
-
-
-Now let's try $r=.29$.
+Let's define a work-horse function:
 
 ```{r}
-df$x <- logistic_map(r = .29, 
+
+log_map_plot <- function(data = df, y, r, x, time = "time"){
+
+  out_plot <- ggplot(data) +
+    aes_string(x = time, y = y) +
+    geom_point(alpha = .5, size = .5) +
+    geom_line() +
+    coord_cartesian(ylim = c(0,1)) +
+    labs(title = paste0("r = ",r,", x = ",x))
+    
+  print(out_plot)
+  
+  return(out_plot)
+}
+```
+
+
+Now apply this function with some start values:
+```{r}
+df <- data.frame(time = 1:100)
+
+r = .20
+x = .5
+
+df$log_map1 <- logistic_map(r = r, 
+                            x = x,
+                            N = 100,
+                            M = 100)
+
+
+
+p1 <- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = "log_map1")
+p1
+
+```
+
+
+Doomed to extinguish. Runs depressingly to zero:
+
+```{r}
+tail(df$log_map1)
+```
+
+
+
+
+Now let's try $r=.33$.
+
+```{r}
+r = .33
+
+df$log_map2 <- logistic_map(r = r, 
                      x = .5,
                      N = 100,
                      M = 100)
-```
 
-
-```{r}
-ggplot(df) +
-  aes(x = time,
-      y = x) +
-  geom_point() +
-  geom_line() +
-  coord_cartesian(ylim = c(0, .2))
+p2 <- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = "log_map2")
+p2
 ```
 
 Having crossed the border of $.25$, we see that the behavior changed: Now the attractor is above zero, but still constant (and boring).
@@ -121,18 +152,18 @@ Having crossed the border of $.25$, we see that the behavior changed: Now the at
 This behavior will continue until $.75$, let's check $.7$ for instance:
 
 ```{r}
-df$x <- logistic_map(r = .7, 
+r = .7
+df$log_map3 <- logistic_map(r = r, 
                      x = .5,
                      N = 100,
                      M = 100)
-```
 
-```{r}
-ggplot(df) +
-  aes(x = time,
-      y = x) +
-  geom_point() +
-  geom_line() 
+p3 <- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = "log_map3")
+
+p3
 ```
 
 
@@ -140,17 +171,17 @@ Interestingly, some severe bouncing appeared but eventually, the curve flats out
 
 
 ```{r}
-df$x <- logistic_map(r = .8, 
+r = .8
+df$log_map4 <- logistic_map(r = r, 
                      x = .5,
                      N = 100,
                      M = 100)
 
-ggplot(df) +
-  aes(x = time,
-      y = x) +
-  geom_point() +
-  geom_line() +
-  ylim(0,1)
+p4 <- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = "log_map4")
+p4
 ```
 
 Now the systems settles into a period-2 limit cycle oscillating between two values. A slight increase to $r=.88$ will again change the system behavior:
@@ -158,41 +189,121 @@ Now the systems settles into a period-2 limit cycle oscillating between two valu
 
 
 ```{r}
-df$x <- logistic_map(r = .88, 
+r = .88
+df$log_map5 <- logistic_map(r = r, 
                      x = .5,
                      N = 100,
                      M = 100)
 
-ggplot(df) +
-  aes(x = time,
-      y = x) +
-  geom_point() +
-  geom_line() +
-  ylim(0,1) +
-  labs(title = "period-4 limit cycle")
+p5 <- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = "log_map5")
+p5
 ```
 
 
-Eventually, let's see what happens if we set $r=.999999$ (we can't set it to 1 because than the system will immediately settle to 0):
+Eventually, let's see what happens if we set $r=1$:
 
 ```{r}
-df$x <- logistic_map(r = .999999, 
-                     x = .5,
+r = 1
+x = .49999999
+df$log_map6 <- logistic_map(r = r, 
+                     x = x,
                      N = 100,
                      M = 100)
 
-ggplot(df) +
-  aes(x = time,
-      y = x) +
-  geom_point() +
-  geom_line() +
-  ylim(0,1) +
-  labs(title = "chaos")
+p6 <- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = "log_map6")
+p6
 ```
 
 
-Now let's compare the dependence on start values for $r\approx 1$.
+Now let's compare the dependence on start values for $r\approx 1$. Let's choose a very similar start values, say $x = .987654321$.
 
+```{r}
+r = 1
+x = .987654321
+df$log_map7 <- logistic_map(r = r, 
+                     x = x,
+                     N = 100,
+                     M = 100)
+
+p7 <- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = "log_map7")
+p7
+```
+
+
+The pattern over time is completely different! Let's try another again slightly different start value, say $x = .987654320$.
+
+
+```{r}
+r = 1
+x = .987654320
+
+df$log_map8 <- logistic_map(r = r, 
+                     x = x,
+                     N = 100,
+                     M = 100)
+
+p8 <- log_map_plot(data = df,
+             r = r, 
+             x = x,
+             y = "log_map8")
+p8
+```
+
+
+Let's compute the difference between `log_map8` and `log_map7`.
+
+
+```{r}
+df %>% 
+  mutate(delta_map7_8 = abs(log_map8 - log_map7)) -> df
+
+
+p9 <- log_map_plot(data = df,
+             r = .999999, 
+             x = "Delta",
+             y = "delta_map7_8")
+p9
+```
+
+
+Quite different.
+
+Let's plot two trajectories in one plot to better compare them.
+
+```{r}
+p10 <- df %>% 
+  select(time, log_map7, log_map8) %>% 
+  gather(key = start_value, value = value, -time) %>% 
+  ggplot() +
+  aes(x = time, y = value, color = start_value, shape = start_value) +
+  geom_point(alpha = .5, size = 1) +
+  geom_line()
+p10
+```
+
+
+
+At this point, let's halt for a moment and put what we have done a little in context, or maybe just in one picture.
+
+
+```{r out.width="100%"}
+
+grid.arrange(p3, p4, p5, 
+             p6, p7, p8,
+             nrow = 2)
+```
+
+
+As we see, slight differences in start values have dramatic effect on the development of the system behavior. Now, let's analyse that a bit more systematically. Let's compute the system development for a sequence of small differences for the start value ($r\approx 1$ in each case).
 
 ```{r}
 start_values <- seq(from = 0, to = 1, by = .01)
