@@ -1,0 +1,63 @@
+---
+title: Easy way to convert factors zu numbers
+author: Sebastian Sauer
+date: '2018-06-22'
+slug: easy-way-to-convert-factors-zu-numbers
+categories:
+  - rsta
+tags:
+  - tutorial
+  - rstats
+---
+
+
+
+Converting factors to numbers in R can be frustrating. Consider the following sitation: We have some data, and try to convert a factor (`sex` in `tips`, see below) to a numeric variable:
+
+```{r}
+library(tidyverse)
+library(sjmisc)   # for recoding
+data(tips, package = "reshape2")
+glimpse(tips)
+```
+
+Ok, here we go. Say, we want `"Female" = 1` and `"Male" = 0`. 
+
+```{r}
+tips <- sjmisc::rec(tips, sex, rec = "Female = 1; Male = 0")
+glimpse(tips)
+```
+
+Seems to have worked so far. Wait, `sex_r` ist still a factor, not numeric. So convert it using `as.numeric`:
+
+```{r}
+tips$sex_num <- as.numeric(tips$sex_r)
+glimpse(tips)
+```
+
+Oh no! That's not what we wanted! R has messed the thing up (?). The reason is that R sees the first factor level internally as the number 1 . The second level as number two. What's the first factor level in our case? Let's see:
+
+```{r}
+factor(tips$sex)
+factor(tips$sex_r)
+```
+
+That's confusing: "0" is the first level of `sex_r` - internally for R represented by "1". The second level of `sex_r` is "1" - internally represented by "2". That's why we get these numbers:
+
+```{r}
+head(tips$sex_num)
+```
+
+
+## Solution
+
+One solution is to use `readr::parse_number()`:
+
+```{r}
+tips$sex_num <- parse_number(tips$sex_r)
+head(tips$sex_num)
+head(tips$sex_r)
+```
+
+
+Worked!

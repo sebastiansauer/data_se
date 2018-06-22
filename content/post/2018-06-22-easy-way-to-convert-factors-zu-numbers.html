@@ -1,0 +1,123 @@
+---
+title: Easy way to convert factors zu numbers
+author: Sebastian Sauer
+date: '2018-06-22'
+slug: easy-way-to-convert-factors-zu-numbers
+categories:
+  - rsta
+tags:
+  - tutorial
+  - rstats
+---
+
+
+
+<p>Converting factors to numbers in R can be frustrating. Consider the following sitation: We have some data, and try to convert a factor (<code>sex</code> in <code>tips</code>, see below) to a numeric variable:</p>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## ── Attaching packages ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ✔ ggplot2 2.2.1.9000     ✔ purrr   0.2.5     
+## ✔ tibble  1.4.2          ✔ dplyr   0.7.5     
+## ✔ tidyr   0.8.1          ✔ stringr 1.3.1     
+## ✔ readr   1.1.1          ✔ forcats 0.3.0</code></pre>
+<pre><code>## ── Conflicts ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>library(sjmisc)   # for recoding</code></pre>
+<pre><code>## Learn more about sjmisc with &#39;browseVignettes(&quot;sjmisc&quot;)&#39;.</code></pre>
+<pre><code>## 
+## Attaching package: &#39;sjmisc&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:purrr&#39;:
+## 
+##     is_empty</code></pre>
+<pre><code>## The following object is masked from &#39;package:tidyr&#39;:
+## 
+##     replace_na</code></pre>
+<pre class="r"><code>data(tips, package = &quot;reshape2&quot;)
+glimpse(tips)</code></pre>
+<pre><code>## Observations: 244
+## Variables: 7
+## $ total_bill &lt;dbl&gt; 16.99, 10.34, 21.01, 23.68, 24.59, 25.29, 8.77, 26....
+## $ tip        &lt;dbl&gt; 1.01, 1.66, 3.50, 3.31, 3.61, 4.71, 2.00, 3.12, 1.9...
+## $ sex        &lt;fct&gt; Female, Male, Male, Male, Female, Male, Male, Male,...
+## $ smoker     &lt;fct&gt; No, No, No, No, No, No, No, No, No, No, No, No, No,...
+## $ day        &lt;fct&gt; Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, S...
+## $ time       &lt;fct&gt; Dinner, Dinner, Dinner, Dinner, Dinner, Dinner, Din...
+## $ size       &lt;int&gt; 2, 3, 3, 2, 4, 4, 2, 4, 2, 2, 2, 4, 2, 4, 2, 2, 3, ...</code></pre>
+<p>Ok, here we go. Say, we want <code>&quot;Female&quot; = 1</code> and <code>&quot;Male&quot; = 0</code>.</p>
+<pre class="r"><code>tips &lt;- sjmisc::rec(tips, sex, rec = &quot;Female = 1; Male = 0&quot;)
+glimpse(tips)</code></pre>
+<pre><code>## Observations: 244
+## Variables: 8
+## $ total_bill &lt;dbl&gt; 16.99, 10.34, 21.01, 23.68, 24.59, 25.29, 8.77, 26....
+## $ tip        &lt;dbl&gt; 1.01, 1.66, 3.50, 3.31, 3.61, 4.71, 2.00, 3.12, 1.9...
+## $ sex        &lt;fct&gt; Female, Male, Male, Male, Female, Male, Male, Male,...
+## $ smoker     &lt;fct&gt; No, No, No, No, No, No, No, No, No, No, No, No, No,...
+## $ day        &lt;fct&gt; Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, S...
+## $ time       &lt;fct&gt; Dinner, Dinner, Dinner, Dinner, Dinner, Dinner, Din...
+## $ size       &lt;int&gt; 2, 3, 3, 2, 4, 4, 2, 4, 2, 2, 2, 4, 2, 4, 2, 2, 3, ...
+## $ sex_r      &lt;fct&gt; 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, ...</code></pre>
+<p>Seems to have worked so far. Wait, <code>sex_r</code> ist still a factor, not numeric. So convert it using <code>as.numeric</code>:</p>
+<pre class="r"><code>tips$sex_num &lt;- as.numeric(tips$sex_r)
+glimpse(tips)</code></pre>
+<pre><code>## Observations: 244
+## Variables: 9
+## $ total_bill &lt;dbl&gt; 16.99, 10.34, 21.01, 23.68, 24.59, 25.29, 8.77, 26....
+## $ tip        &lt;dbl&gt; 1.01, 1.66, 3.50, 3.31, 3.61, 4.71, 2.00, 3.12, 1.9...
+## $ sex        &lt;fct&gt; Female, Male, Male, Male, Female, Male, Male, Male,...
+## $ smoker     &lt;fct&gt; No, No, No, No, No, No, No, No, No, No, No, No, No,...
+## $ day        &lt;fct&gt; Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, S...
+## $ time       &lt;fct&gt; Dinner, Dinner, Dinner, Dinner, Dinner, Dinner, Din...
+## $ size       &lt;int&gt; 2, 3, 3, 2, 4, 4, 2, 4, 2, 2, 2, 4, 2, 4, 2, 2, 3, ...
+## $ sex_r      &lt;fct&gt; 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, ...
+## $ sex_num    &lt;dbl&gt; 2, 1, 1, 1, 2, 1, 1, 1, 1, 1, 1, 2, 1, 1, 2, 1, 2, ...</code></pre>
+<p>Oh no! That’s not what we wanted! R has messed the thing up (?). The reason is that R sees the first factor level internally as the number 1 . The second level as number two. What’s the first factor level in our case? Let’s see:</p>
+<pre class="r"><code>factor(tips$sex)</code></pre>
+<pre><code>##   [1] Female Male   Male   Male   Female Male   Male   Male   Male   Male  
+##  [11] Male   Female Male   Male   Female Male   Female Male   Female Male  
+##  [21] Male   Female Female Male   Male   Male   Male   Male   Male   Female
+##  [31] Male   Male   Female Female Male   Male   Male   Female Male   Male  
+##  [41] Male   Male   Male   Male   Male   Male   Male   Male   Male   Male  
+##  [51] Male   Female Female Male   Male   Male   Male   Female Male   Male  
+##  [61] Male   Male   Male   Male   Male   Male   Female Female Male   Male  
+##  [71] Male   Female Female Female Female Male   Male   Male   Male   Male  
+##  [81] Male   Male   Female Male   Male   Female Male   Male   Male   Male  
+##  [91] Male   Male   Female Female Female Male   Male   Male   Male   Male  
+## [101] Female Female Female Female Female Male   Male   Male   Male   Female
+## [111] Male   Female Male   Male   Female Female Male   Female Female Female
+## [121] Male   Female Male   Male   Female Female Male   Female Female Male  
+## [131] Male   Female Female Female Female Female Female Female Male   Female
+## [141] Female Male   Male   Female Female Female Female Female Male   Male  
+## [151] Male   Male   Male   Male   Male   Female Male   Female Female Male  
+## [161] Male   Male   Female Male   Female Male   Male   Male   Female Female
+## [171] Male   Male   Male   Male   Male   Male   Male   Male   Female Male  
+## [181] Male   Male   Male   Male   Male   Male   Female Male   Female Male  
+## [191] Male   Female Male   Male   Male   Male   Male   Female Female Male  
+## [201] Male   Female Female Female Male   Female Male   Male   Male   Female
+## [211] Male   Male   Male   Female Female Female Male   Male   Male   Female
+## [221] Male   Female Male   Female Male   Female Female Male   Male   Female
+## [231] Male   Male   Male   Male   Male   Male   Male   Male   Female Male  
+## [241] Female Male   Male   Female
+## Levels: Female Male</code></pre>
+<pre class="r"><code>factor(tips$sex_r)</code></pre>
+<pre><code>##   [1] 1 0 0 0 1 0 0 0 0 0 0 1 0 0 1 0 1 0 1 0 0 1 1 0 0 0 0 0 0 1 0 0 1 1 0
+##  [36] 0 0 1 0 0 0 0 0 0 0 0 0 0 0 0 0 1 1 0 0 0 0 1 0 0 0 0 0 0 0 0 1 1 0 0
+##  [71] 0 1 1 1 1 0 0 0 0 0 0 0 1 0 0 1 0 0 0 0 0 0 1 1 1 0 0 0 0 0 1 1 1 1 1
+## [106] 0 0 0 0 1 0 1 0 0 1 1 0 1 1 1 0 1 0 0 1 1 0 1 1 0 0 1 1 1 1 1 1 1 0 1
+## [141] 1 0 0 1 1 1 1 1 0 0 0 0 0 0 0 1 0 1 1 0 0 0 1 0 1 0 0 0 1 1 0 0 0 0 0
+## [176] 0 0 0 1 0 0 0 0 0 0 0 1 0 1 0 0 1 0 0 0 0 0 1 1 0 0 1 1 1 0 1 0 0 0 1
+## [211] 0 0 0 1 1 1 0 0 0 1 0 1 0 1 0 1 1 0 0 1 0 0 0 0 0 0 0 0 1 0 1 0 0 1
+## Levels: 0 1</code></pre>
+<p>That’s confusing: “0” is the first level of <code>sex_r</code> - internally for R represented by “1”. The second level of <code>sex_r</code> is “1” - internally represented by “2”. That’s why we get these numbers:</p>
+<pre class="r"><code>head(tips$sex_num)</code></pre>
+<pre><code>## [1] 2 1 1 1 2 1</code></pre>
+<div id="solution" class="section level2">
+<h2>Solution</h2>
+<p>One solution is to use <code>readr::parse_number()</code>:</p>
+<pre class="r"><code>tips$sex_num &lt;- parse_number(tips$sex_r)
+head(tips$sex_num)</code></pre>
+<pre><code>## [1] 1 0 0 0 1 0</code></pre>
+<pre class="r"><code>head(tips$sex_r)</code></pre>
+<pre><code>## [1] 1 0 0 0 1 0
+## Levels: 0 1</code></pre>
+<p>Worked!</p>
+</div>
