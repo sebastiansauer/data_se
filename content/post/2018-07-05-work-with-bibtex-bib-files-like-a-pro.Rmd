@@ -1,0 +1,131 @@
+---
+title: Work with bibtex bib files like a pro
+author: Sebastian Sauer
+date: '2018-07-05'
+slug: work-with-bibtex-bib-files-like-a-pro
+draft: no
+categories:
+  - rstats
+tags:
+  - LaTeX
+  - rstats
+---
+
+
+Recently, I had to curate a list of publications for our institution. Where's the point? One might ask. Let's leave aside that a number of colleagues do not use citation management software to work with their publications. They just hack the citation, if and when needed, in some word files. Done. Fair enough, unless someone tries to come up with a list of all the publication of that institution. In that case, the curator will need some structured data, otherwise he or she will end up copy-pasting the rest of the day.
+
+Things become worse if multiple lists such as "gimme the list of all journal articles of 2017" and "gimme the list of all bookchapters of 2018" are demanded. Such requests cannot easily be handled by standard click-and-run software packages such as Mendeley or even Bibdesk.
+
+So I thought it would be best to get the bibliographic data into R, use the R data wrangling magic to form the data in every possible way and to export the resulting bibliographies back to a citation manager program or just compile a RMarkdown file with all references cited.
+
+OK, let's try that now.
+
+There's a nice package called `RefManageR` that will do the trick for us.
+
+```{r message=FALSE}
+library(RefManageR)
+library(tidyverse)
+```
+
+
+Let's load some bibliographic information, eg., from truely yours. Download this data:
+
+```{r eval = FALSE}
+bib_data  <- "https://data-se.netlify.com/download/publications_sebastian_sauer.bib"
+download.file(url = bib_data,
+              destfile = "sauer.bib")
+```
+
+And then parse it:
+
+```{r}
+bib_path <- "/Users/sebastiansauer/Documents/Publikationen/blog_ses/data_se/sauer.bib"
+bib <- ReadBib(bib_path, check = TRUE)
+```
+
+Let's ignore the parsing errors for the moment, and focus on what we have achieved: A list of publications from a bib file is now available in R.
+
+
+Convert to a data frame in order to make use of the rich data frame wrangling resources of R:
+
+```{r}
+bib_df <- as.data.frame(bib)
+bib_df <- rownames_to_column(bib_df)
+glimpse(bib_df)
+```
+
+
+Now, honey time. Say we are interested only in articles from 2017. Let's extract that:
+
+```{r}
+bib_df %>% 
+  filter(bibtype == "Article" & year == "2017") -> Sauers_best 
+
+Sauers_best %>% select(title) 
+```
+
+Not that much published in 2017, Monsieur Sauer, but that's a different story.
+
+Before we can use this information, we have to revert it into a list that can in turn be exported to a bibtext file.
+
+```{r}
+bib_back <- as.BibEntry(Sauers_best)
+```
+
+
+To export the list as a bib file, use this function:
+
+```{r eval = FALSE}
+WriteBib(bib_back, file = "Sauers_best.bib")
+```
+
+If we read this file, we see
+
+```
+@Article{1,
+  rowname = {Ferreira2017},
+  author = {Yvonne Ferreira and Sandra Suelzenbrueck and Sebastian Sauer},
+  doi = {10.1007/s41449-017-0060-0},
+  journal = {Zeitschrift f{\"u}r Arbeitswissenschaft},
+  number = {3},
+  pages = {157--168},
+  title = {Zurich Model Revisited -- validation of the model of different forms of work satisfaction},
+  url = {https://doi.org/10.1007/s41449-017-0060-0},
+  volume = {71},
+  year = {2017},
+  month = {Oct},
+  day = {01},
+  abstract = {Job satisfaction is one of the most prominent working models of occupational and organizational psychology. So far, job satisfaction has been operationalized mainly as a one-dimensional model; this not only repeatedly led to mistakes but also to excessively positive judgements of the job satisfaction. The necessity to see the creation of job satisfaction as a much more complex process was taken into account by the Model of Different Forms of Work Satisfaction (Zurich Model) (Z{\"u}rcher Modell der Arbeitszufriedenheit) (Bruggemann 1974; Bruggemann 1976). The present article describes the empirical and theoretical evolution of this extensive model into the ``Zurich Model Revisited'' which offers the scientific basis for developing an innovative questionnaire (Ferreira, submitted 2017).},
+  issn = {2366-4681},
+}
+
+@Article{2,
+  rowname = {Sauer2017},
+  author = {Sebastian Sauer},
+  doi = {10.3758/s13428-017-0949-8},
+  journal = {Behavior Research Methods},
+  title = {Observation oriented modeling revised from a statistical point of view},
+  url = {https://doi.org/10.3758/s13428-017-0949-8},
+  year = {2017},
+  month = {Aug},
+  day = {25},
+  abstract = {Observation Oriented Modeling was proposed to overcome some of the problems in the application of statistical inference methods in the behavioral sciences. In this paper, we refine one part of this approach and show how it is connected to methods that are well known in statistical learning. Specifically, we argue that the Moore-Penrose pseudo inverse is superior to the initial solution from a statistical point of view. With this we also show that Observation Oriented Modeling can indeed be appropriate for some tasks in the analysis of observed data. To provide a practical example, we demonstrate the revised method by analyzing the effect of mindfulness training on attentional processes.},
+  issn = {1554-3528},
+}
+```
+
+So it seems that everything worked out nicely. 
+
+
+`RefmanageR` provides some basic functionality for printing a bibliogrphay:
+
+```{r}
+NoCite(bib_back)
+PrintBibliography(bib_back, .opts = list(style = "latex",
+bib.style = "authoryear"))
+```
+
+However, I think that ther are not many `bib.style`s available. For instance, there's no option for APA citation style (AFAIK).
+
+
+
