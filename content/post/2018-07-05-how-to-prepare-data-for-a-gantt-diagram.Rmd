@@ -19,6 +19,100 @@ The gant diagram itself is no big deal. Just some horizontal lines referring to 
 Say we start with a basic dataframe (from a CSV file) that contains the following columns:
 
 ```{r}
-gant_data_raw <- read.csv2("https://data-se.netlify.com/downloads/Arbeitspakete.csv")
+library(tidyverse)
+#gant_data_raw <- read_csv2("https://data-se.netlify.com/download/gantt.csv")
+gant_data_raw <- Arbeitspakete
 ```
 
+
+```{r}
+head(gant_data_raw)
+```
+
+
+Of importance are only *Task*, *Previous_Evnet* and *Duration*. In addition, we need an overall start date ("2019-03-01" in this case). Each subsequent task is assumed to follow neatly its predecessing event. 
+
+Our job is to compute the start date and end date of task given that we know the initial start date and the durations. As said, this procedure is based on the assumption that there is a frictionless and gapless sequence of tasks.
+
+
+Consider this function to populate the data:
+
+```{r}
+
+prepare_gant_data <- function(gantdf = gantdf){
+  
+  # Given one intial project start date and the tasks duratations,
+  # this function computes the start and end dates of each task
+  # input: raw data (csv)
+  # output: populated/prepared gantt data suitable for plotting
+
+  # add some more columns to the data frame
+  gantdf$End_Date <- parse_date("")
+  gantdf$ID <- 1:nrow(gantdf)
+  
+ 
+  # initialize the data population: Compute first end date
+  gantdf$End_Date[1] <- gantdf$Start_Date[1] + months(gantdf$Duration[1])
+  
+  # now start loop for each successive element
+  for (i in 2:(nrow(gantdf))) {
+    
+    # for each task, we need to find its start date
+    # the start date is the *end date* of the event defined as its "ancestor"
+    # in other words, the start date is the end date of the respective "previous_event"
+    previous_event <- gantdf$Previous_Event[i]
+    previous_event_pos_vec <- match(gantdf$Task, previous_event)
+    NonNAindex <- which(!is.na(previous_event_pos_vec))
+    previous_event_pos <- min(NonNAindex)
+    gantdf$Start_Date[i] <- gantdf$End_Date[previous_event_pos]
+    gantdf$End_Date[i] <- gantdf$Start_Date[i] + months(gantdf$Duration[i])
+  }
+  
+   return(gantdf)
+}
+
+```
+
+Run it:
+
+```{r}
+gantdf <- prepare_gant_data(gantdf = gantdf_raw)
+```
+
+
+That's the workhorse.
+
+Now let's plot. Before that, it comes handy to compute some comfort variables:
+
+```{r}
+project_start <- gantdf$Start_Date[1]
+project_end <- max(gantdf$End_Date)
+
+project_duration <- interval(project_start, project_end)
+project_duration_months <- project_duration %/% months(1)
+```
+
+
+Here's the actual plot:
+
+```{r}
+my_breaks = seq(as.Date(project_start), as.Date(project_start+years(3)), by="1 year")
+
+gantdf %>% 
+  #mutate(Task = factor(Task)) %>%
+  ggplot() +
+  aes(y = reorder(Task, -ID), yend = reorder(Task, -ID), 
+      x = Start_Date, xend = End_Date,
+      color = factor(Section)) +
+  geom_segment(size = 3) +
+  theme_bw() +
+  scale_x_date(date_labels = "%Y-%m", breaks = my_breaks, limits = c(project_start, project_start+years(3)) ) +
+  labs(caption = paste0("Dauer [Monate]: ", project_duration_months),
+       x = "Zeit",
+       y = "Arbeitspakete",
+       color = "") +
+  theme(legend.position = "bottom")
+```
+
+
+Note that the data population (prepare gantt data) funtion assumes that a previous task does happen earlier in time. That's because the data frame is populated row by row. We cannot access a later row because the start and end dates would still be empty.
