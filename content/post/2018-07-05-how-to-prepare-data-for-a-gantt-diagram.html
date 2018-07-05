@@ -3,6 +3,7 @@ title: How to prepare data for a gantt diagram
 author: Sebastian Sauer
 date: '2018-07-05'
 slug: how-to-prepare-data-for-a-gantt-diagram
+draft: no
 categories:
   - rstats
 tags:
@@ -12,4 +13,90 @@ tags:
 
 
 
+<p>There’s the new cool world of project management - agile, scrumbling, cool. There’s the old sluggish way of project management using stuff like <em>gantt</em> diagrams. Let’s stick to the old world and come up with a gantt diagram.</p>
+<p>The gant diagram itself is no big deal. Just some horizontal lines referring to dates. Somewhat more interesting is to populate a raw data frame in a way that allows for convenient plotting.</p>
+<p>Say we start with a basic dataframe (from a CSV file) that contains the following columns:</p>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## Warning: package &#39;dplyr&#39; was built under R version 3.5.1</code></pre>
+<pre class="r"><code>gant_data_raw &lt;- read_csv2(&quot;https://data-se.netlify.com/download/gantt.txt&quot;)</code></pre>
+<pre class="r"><code>head(gant_data_raw)</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##   Section Task              Previous_Event      Status Start_Date Duration
+##   &lt;chr&gt;   &lt;chr&gt;             &lt;chr&gt;               &lt;chr&gt;  &lt;date&gt;        &lt;int&gt;
+## 1 Inhalte Neue Inhalte ent… &lt;NA&gt;                open   2019-03-01        6
+## 2 Inhalte Inhalte weiteren… Neue Inhalte entwi… open   NA                6
+## 3 Inhalte Anpassungen       Inhalte weiterentw… open   NA                3
+## 4 Apps    Apps konzipieren  Anpassungen         open   NA                3
+## 5 Apps    Apps programmier… Apps konzipieren    open   NA                3
+## 6 Apps    Feedback-Tools k… Apps programmieren  open   NA                3</code></pre>
+<p>Of importance are only <em>Task</em>, <em>Previous_Evnet</em> and <em>Duration</em>. In addition, we need an overall start date (“2019-03-01” in this case). Each subsequent task is assumed to follow neatly its predecessing event.</p>
+<p>Our job is to compute the start date and end date of task given that we know the initial start date and the durations. As said, this procedure is based on the assumption that there is a frictionless and gapless sequence of tasks.</p>
+<p>Consider this function to populate the data:</p>
+<pre class="r"><code>library(lubridate)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;lubridate&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:base&#39;:
+## 
+##     date</code></pre>
+<pre class="r"><code>prepare_gant_data &lt;- function(gantdf = gantdf){
+  
+  # Given one intial project start date and the tasks duratations,
+  # this function computes the start and end dates of each task
+  # input: raw data (csv)
+  # output: populated/prepared gantt data suitable for plotting
 
+  # add some more columns to the data frame
+  gantdf$End_Date &lt;- parse_date(&quot;&quot;)
+  gantdf$ID &lt;- 1:nrow(gantdf)
+  
+ 
+  # initialize the data population: Compute first end date
+  gantdf$End_Date[1] &lt;- gantdf$Start_Date[1] + months(gantdf$Duration[1])
+  
+  # now start loop for each successive element
+  for (i in 2:(nrow(gantdf))) {
+    
+    # for each task, we need to find its start date
+    # the start date is the *end date* of the event defined as its &quot;ancestor&quot;
+    # in other words, the start date is the end date of the respective &quot;previous_event&quot;
+    previous_event &lt;- gantdf$Previous_Event[i]
+    previous_event_pos_vec &lt;- match(gantdf$Task, previous_event)
+    NonNAindex &lt;- which(!is.na(previous_event_pos_vec))
+    previous_event_pos &lt;- min(NonNAindex)
+    gantdf$Start_Date[i] &lt;- gantdf$End_Date[previous_event_pos]
+    gantdf$End_Date[i] &lt;- gantdf$Start_Date[i] + months(gantdf$Duration[i])
+  }
+  
+   return(gantdf)
+}</code></pre>
+<p>Run it:</p>
+<pre class="r"><code>gantdf &lt;- prepare_gant_data(gantdf = gant_data_raw)</code></pre>
+<p>That’s the workhorse.</p>
+<p>Now let’s plot. Before that, it comes handy to compute some comfort variables:</p>
+<pre class="r"><code>project_start &lt;- gantdf$Start_Date[1]
+project_end &lt;- max(gantdf$End_Date)
+
+project_duration &lt;- interval(project_start, project_end)
+project_duration_months &lt;- project_duration %/% months(1)</code></pre>
+<pre><code>## Note: method with signature &#39;Timespan#Timespan&#39; chosen for function &#39;%/%&#39;,
+##  target signature &#39;Interval#Period&#39;.
+##  &quot;Interval#ANY&quot;, &quot;ANY#Period&quot; would also be valid</code></pre>
+<p>Here’s the actual plot:</p>
+<pre class="r"><code>my_breaks = seq(as.Date(project_start), as.Date(project_start+years(3)), by=&quot;1 year&quot;)
+
+gantdf %&gt;% 
+  #mutate(Task = factor(Task)) %&gt;%
+  ggplot() +
+  aes(y = reorder(Task, -ID), yend = reorder(Task, -ID), 
+      x = Start_Date, xend = End_Date,
+      color = factor(Section)) +
+  geom_segment(size = 3) +
+  theme_bw() +
+  scale_x_date(date_labels = &quot;%Y-%m&quot;, breaks = my_breaks, limits = c(project_start, project_start+years(3)) ) +
+  labs(caption = paste0(&quot;Dauer [Monate]: &quot;, project_duration_months),
+       x = &quot;Zeit&quot;,
+       y = &quot;Arbeitspakete&quot;,
+       color = &quot;&quot;) +
+  theme(legend.position = &quot;bottom&quot;)</code></pre>
+<p><img src="/post/2018-07-05-how-to-prepare-data-for-a-gantt-diagram_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>Note that the data population (prepare gantt data) funtion assumes that a previous task does happen earlier in time. That’s because the data frame is populated row by row. We cannot access a later row because the start and end dates would still be empty.</p>
