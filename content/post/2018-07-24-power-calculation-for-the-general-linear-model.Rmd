@@ -1,0 +1,79 @@
+---
+title: Power calculation for the general linear model
+author: ''
+date: '2018-07-24'
+slug: power-calculation-for-the-general-linear-model
+categories:
+  - rstats
+tags:
+  - rstats
+---
+
+
+Before conducting an experiment, one should compute the power - or, preferably, estimate the precision of the expected results. There are numerous way to achieve this, here's one using the R package `pwr`.
+
+
+# Package pwr
+
+```{r}
+library(pwr)
+```
+
+
+The workhorse function here is `pwr.f2.test`. Note that `f2` refers to the effect size $f^2$ (see [here](https://en.wikipedia.org/wiki/Effect_size#Cohen's_%C6%922)), defined as:
+
+$$f^2 = \frac{R^2}{1-R^2}$$.
+
+
+See for details of the function its help page:
+```{r}
+help("pwr.f2.test")
+```
+
+
+```
+pwr.f2.test(u = NULL, v = NULL, f2 = NULL, sig.level = 0.05, power = NULL)
+```
+
+Note that `u` is the number of predictors ($k$) minus 1, that's the numerator degrees of freedom (df). The intercepts counts a predictor, too in this case!
+
+`v` is the denominator df, defined as $n-p$, where $n$ is the sample size (see [here](https://math.stackexchange.com/questions/617735/multiple-regression-degrees-of-freedom-f-test) for some details on df).
+
+By the way, if you wonder, what df actually are, read [this](https://www.quora.com/How-can-I-explain-degrees-of-freedom-simply-and-clearly) nice little explanation.
+
+Let's look at one example. In a power analysis before the experiment, one states the desired level of power, and the expected effect size, for example:
+
+```{r}
+# example: k=3 predictors, n=100 observations, R^2 = .1, sig.level = .05 (default)
+
+pwr.f2.test(u = 2,
+            v = 97,
+            f2 = .1/.9,
+            power = NULL)
+```
+
+Given this values, we will have a power of about 84% (if all assumptions are met).
+
+
+The other way round: How large should the sample be to get a power of .8, given $R^2=.^1$?
+
+```{r}
+# example: k=3 predictors, power = .8, R^2 = .1
+
+pwr.f2.test(u = 2,
+            f2 = .1/.9,
+            power = .8,
+            v = NULL)
+
+```
+
+`v = 87`, ie, $n=v+p=87+3=90$.
+
+
+
+
+```{r}
+lm1 <- glm(am ~ hp + mpg + vs, data = mtcars, family = "binomial")
+str(lm1)
+```
+
