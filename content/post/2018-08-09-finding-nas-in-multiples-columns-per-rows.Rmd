@@ -1,0 +1,113 @@
+---
+title: Finding NAs in multiples columns (per rows)
+author: ''
+date: '2018-08-09'
+slug: finding-nas-in-multiples-columns-per-rows
+categories:
+  - rstats
+tags:
+  - rstats
+---
+
+
+Assume you would like to check for missing data, but not for one column only but for several columns. 
+
+First, data and some packages:
+
+```{r}
+data(mtcars)
+library(tidyverse)
+```
+
+Then, let's introduce some missing data:
+
+```{r}
+mtcars[c(1,2), 1] <- NA
+mtcars[c(1, 3:4), 2] <- NA
+```
+
+
+# Don't check columns individually
+
+Of course, you do not want to repeat yourself, and check each column individually, like this:
+
+```{r}
+sum(is.na(mtcars[[1]]))
+sum(is.na(mtcars[, 1]))  # same
+```
+
+Neither one would like to check each row individually:
+
+```{r}
+sum(is.na(mtcars[1, ]))
+```
+
+
+# Apply a function to each column
+
+We need to `apply()` the function above to each column (or row). `map` works similar to `apply` but has some niceties included (`map` comes from R package `purrr`).
+
+
+```{r}
+mtcars %>% 
+  map(~sum(is.na(.)))
+```
+
+
+Note that `~` is shorthand for `function(x)`, but less verbose. `.` refers each element of `mtcars`, ie each column.
+
+
+# Count Nas per row
+
+Now assume you want to know the missing per case (ie row). One way is this:
+
+```{r}
+mtcars %>% 
+mutate(NA_count = rowSums(is.na(.))) %>% 
+  head()
+```
+
+Here, the dot `.` refers to the data frame as of the last pipe step. In this case, it's just the plain data frame `mtcars`.
+
+
+Note that `is.na()` expects a data.frame as input.
+
+```{r}
+is.na(mtcars) %>% 
+  head()
+```
+
+Note that `sum()` also accepts a data.frame as input:
+
+```{r}
+is.na(mtcars) %>% 
+  sum() 
+```
+
+
+# Some musings
+
+To inspect missing values (or cases with NAs), `filter()` may be a solution:
+
+
+```{r}
+mtcars %>% 
+  filter(is.na(mpg) |  is.na(cyl) | is.na(disp))
+```
+
+
+More conveniently using `complete.cases()`:
+
+
+```{r}
+complete.cases(mtcars)
+```
+
+And the complement:
+
+
+```{r}
+mtcars %>% 
+  filter(!complete.cases(mtcars))
+```
+
