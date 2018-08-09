@@ -1,0 +1,116 @@
+---
+title: Binning and recoding with R - some recommendations
+author: ''
+date: '2018-08-09'
+slug: binning-and-recoding-with-r-some-recommendations
+categories:
+  - rstats
+tags:
+  - rstats
+---
+
+
+*Recoding* means changing the levels of a variable, for instance changing "1" to "woman" and "2" to "man". *Binning* means aggregating several variable levels to one, for instance aggregating the values From "1.00 meter" to "1.60 meter" to "small_size".
+
+Both operations are frequently necessary in practical data analysis. In this post, we review some methods to accomplish these two tasks.
+
+
+Let's load some example data:
+
+```{r}
+data(tips, package = "reshape2")
+```
+
+
+Some packages:
+```{r}
+library(mosaic)
+```
+
+
+One nice way is using the function `case_when()` from the `tidyverse` community. Consider this example:
+
+```{r}
+tips$tip_gruppe <- case_when(
+  tips$tip < 2 ~ "scrooge",
+  tips$tip < 4 ~ "ok",
+  tips$tip < 8 ~ "generous",
+  TRUE ~ "in love"
+)
+
+```
+
+
+Wait, `case_when` is pipe-friendly, see:
+
+```{r}
+tips <- tips %>% 
+  mutate(tip_gruppe = case_when(
+    tip < 2 ~ "scrooge",
+    tip < 4 ~ "ok",
+    tip < 8 ~ "generous",
+    TRUE ~ "in love"
+  ))
+
+```
+
+
+One subsequent step could be to use the new variable in a $\chi^2 test:
+
+```{r}
+xchisq.test(tip_gruppe ~ sex, data = tips)
+```
+
+
+Similarly, use `case_when` for nominal variables:
+
+```{r}
+tips <- tips %>% 
+  mutate(weekend = case_when(
+    day == "Fri" ~ "weekend",
+    day == "Sat" ~ "weekend",
+    TRUE ~ "keep on working"
+  ))
+```
+
+Note that `TRUE` indicates "else do ...", in this case read "else 'weekend'  is 'keep on working'".
+
+
+Another convenient way is using `rec` from the r package `sjmisc`:
+
+```{r}
+library(sjmisc)
+```
+
+
+```{r}
+tips <- rec(tips, day,
+            rec = "Fri=Weekend; Sat=Weekend; else = keep_working")
+
+count(tips, day_r)
+```
+
+
+Note that a new, recoded variable is appended using the suffix `_r`. See:
+
+```{r}
+glimpse(tips)
+```
+
+
+Note that the pipe will work too:
+
+```{r}
+tips <- tips %>% 
+  rec(day,
+      rec = "Fri=Weekend; Sat=Weekend; else = keep_working")
+
+```
+
+`rec` is convenient as one does not need to use `mutate`. 
+
+Use `?rec` for more infos.
+
+
+The good thing on both ways (`case_when` and `rec`) is that both functions can be used both for recoding and some binning purposes.
+
