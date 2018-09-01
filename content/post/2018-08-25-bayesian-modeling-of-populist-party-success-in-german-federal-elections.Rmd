@@ -1,0 +1,2121 @@
+---
+title: Bayesian modeling of populist party success in German federal elections - A notebook from the lab
+author: ''
+date: '2018-08-25'
+draft: TRUE
+slug: bayesian-modeling-of-populist-party-success-in-german-federal-elections
+categories:
+  - rstats
+tags:
+  - Bayes
+  - rstats
+  - plotting
+  - dataviz
+  - geo
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  error = TRUE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp =  0.4,  #0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+
+```
+
+
+
+
+Following up on an [earlier post](https://data-se.netlify.com/2017/10/10/afd-map/), we will model the voting success of the (most prominent) populist party, AfD, in the recent federal elections. This time, Bayesian modeling techniques will be used, drawing on the [excellent textbook](https://xcelab.net/rm/statistical-rethinking/) my McElreath.
+
+Note that this post is rather a notebook of my thinking, doing, and erring. I've made no efforts to hide scaffolding. I think it will be confusing to the uniniate and the initiate as well ...
+
+
+---
+
+Note: Data is based on data published by the Bundeswahlleiter 2017, (c) Der Bundeswahlleiter, Wiesbaden 2017, https://www.bundeswahlleiter.de/info/impressum.html, Data is made available for unrestricted use provided the source is credited.
+
+---
+
+
+# Setup
+
+Some packages that will help us:
+
+```{r}
+library(tidyverse)
+library(rethinking)
+library(pradadata)
+library(sjmisc)
+library(viridis)
+```
+
+
+
+First, get the election data.They can be accessed from the [Bundeswahlleiter](https://www.bundeswahlleiter.de/dam/jcr/72f186bb-aa56-47d3-b24c-6a46f5de22d0/btw17_kerg.csv). More conveniently, I have put them in a R package (after some cleansing):
+
+```{r}
+data("elec_results")
+
+glimpse(elec_results)
+```
+
+
+In order to combine socioeconomic data with the election results, we can make use of data from the same source as above. Again accessible via the same R pacakge:
+
+```{r}
+data("socec")
+glimpse(socec)
+```
+
+Note that a code book is available for these data:
+
+```{r}
+data("socec_dict")
+glimpse(socec_dict)
+```
+
+
+
+These data will be used as predictors for modeling the election results.
+
+Third, we will make use of geo data in order to geoplot the modeling results. The Bundeswahlleiter provides such data (again via `pradadata`):
+
+```{r}
+data("wahlkreise_shp")
+glimpse(wahlkreise_shp)
+```
+
+
+
+# Data preparation
+
+
+Now let's merge the data frames. There will also be some janitor work such as renaming columns etc.
+
+
+First, change the names of the `socec` data to a common format:
+
+```{r}
+socec_renamed <- socec %>%
+  rename(state = V01,
+         area_nr = V02,
+         area_name = V03,
+         total_n = V06,
+         germans_n = V07,
+         for_prop = V08,
+         pop_move_prop = V11,
+         pop_migr_background_prop = V19,
+         income = V26,
+         unemp_prop = V47) 
+
+```
+
+
+Compute some more columns:
+
+```{r}
+socec2 <- socec_renamed %>% 
+   mutate(foreigner_n = total_n - germans_n,
+         pop_move_n = pop_move_prop * total_n,
+         unemp_n = unemp_prop * total_n / 100,
+         pop_migr_background_n = pop_migr_background_prop * total_n / 100) %>% 
+  drop_na()
+```
+
+
+
+Same thing with the election data, here we only need the criterion (AfD success) and the ID variables for merging:
+
+```{r}
+elec_results2 <- elec_results %>%
+  rename(afd_votes = AfD_3,
+         area_nr = district_nr,
+         area_name = district_name,
+         votes_total = votes_valid_3) %>% 
+   mutate(afd_prop = afd_votes/votes_total)    # valid votes only, and of the present Zweitstimme
+```
+
+Note that we are focusing on the Zweitstimme of the present election (hence the `3` in `votes_valid_3` and in `AfD_3`).
+
+# Merge
+
+
+```{r}
+socec2 %>%
+  left_join(elec_results2, by = "area_name") %>% 
+  left_join(wahlkreise_shp, by = c("area_name" = "WKR_NAME")) -> d_all_with_na
+```
+
+
+# After-merge preparations
+
+<!-- Now let's remove missings: -->
+
+<!-- ```{r drop-na} -->
+<!-- d_all <- drop_na(d_all_with_na) -->
+<!-- ``` -->
+
+Add variable for East (1) vs. West (0):
+
+
+```{r east-west-dummy}
+d_all_with_na <- d_all_with_na %>% 
+  mutate(east = case_when(
+    state %in% c("Mecklenburg-Vorpommern", "Brandenburg", "Berlin", "Sachsen-Anhalt", "Sachsen", "Thüringen") ~ "yes",
+    TRUE ~ "no"
+    ) 
+  )
+
+d_all_with_na$east_num <- ifelse(d_all_with_na$east == "yes", 1, 0)
+```
+
+
+
+# Main data frame: d_short and d_short_X
+
+We will also provide a version without the geo data, and in pure (old school) `data frame` form (ie., not as tibble)_
+
+```{r d-short}
+d_all_with_na %>%
+  rename(area_nr = area_nr.x) %>% 
+  select(state,
+         area_nr,
+         area_name,
+         total_n,
+         germans_n,
+         foreigner_n,
+         for_prop,
+         pop_move_n,
+         pop_migr_background_n,
+         income ,
+         unemp_n,
+         unemp_prop,
+         votes_total,
+         afd_votes,
+         afd_prop,
+         state,
+         east,
+         east_num) -> d_short_with_nas
+
+names(d_short_with_nas)
+```
+
+
+Remove NAs:
+
+```{r}
+d_short_with_nas %>% 
+  drop_na() -> d_short_nona
+```
+
+
+Add state id:
+
+```{r staste-id}
+d_short_nona$state_id <- coerce_index(d_short_nona$state)
+```
+
+
+
+
+
+Multiply by 1000 to get the real numbers so that a count model gets the "right" data
+
+```{r}
+d_short_nona %>%
+  mutate_at(vars(total_n, germans_n, foreigner_n, pop_move_n,
+                    pop_migr_background_n, unemp_n), funs(. * 1000)
+  ) -> d_short_nona_1000
+glimpse(d_short_nona_1000)
+
+```
+
+
+
+
+
+
+# Some checks
+
+
+Any centered/z-std variab
+
+
+I know that there are 299 districts in Germany, so let's check the row numbers
+
+```{r}
+nrow(d_short) == 299
+```
+
+
+By the way, the number 316 of the data frame `d_all_1000` is the sum of the districts plus the 16 federal states plus 1 for Germany itself.
+
+
+Let's do a similar check for the district names:
+
+```{r}
+identical(elec_results$district_name,socec$V03)
+```
+
+Does not match. Maybe the order is different?
+
+```{r}
+head(elec_results$district_name, 10)
+head(socec$V03, 10)
+```
+
+Looks reassuring.
+
+
+Let's check which one is present in one but not in the other data frame:
+
+```{r}
+elec_results2 %>% 
+  select(area_name, area_nr) %>% 
+  full_join(select(socec2, area_name, area_nr), by = "area_nr") -> merge_test
+```
+
+Low let's filter for missings, ie non-matches:
+
+```{r}
+merge_test %>% 
+  filter(is.na(area_name.x))
+```
+
+"Land insgesamt" indicats the grand total of the federal state. We don't need that data. Seems like all is fine.
+
+
+
+
+
+
+
+
+# Round values 
+
+Round values in order to work with counts:
+
+
+
+```{r round}
+d_short_not_rounded <- d_short_nona_1000  # backup
+```
+
+
+We need to convert the variables back to integer, bacause stan need integer for count models (makes sense):
+
+```{r as-integer}
+d_short_nona_1000 %>% 
+  mutate_at(vars(total_n:afd_votes), funs(as.integer)) -> d_short_as_int
+glimpse(d_short_as_int)
+
+```
+
+
+Main dataframe:
+
+
+```{r d-short-as-int}
+d_short <- d_short_as_int
+```
+
+
+Any NAs left:
+
+```{r}
+anyNA(d_short)
+```
+
+
+
+## z-transformation
+
+Transform to z-values:
+
+```{r d-short-z}
+d_short %>% 
+  sjmisc::std() %>%  
+  select(-c(state_z, area_nr_z, area_name_z, state_id_z, east_z, east_num_z)) -> d_short_z
+
+names(d_short_z)
+```
+
+
+## center
+
+```{r d_short-c}
+d_short_as_int %>% 
+  sjmisc::center() %>% 
+  select(-c(state_c, area_nr_c, area_name_c, state_id_c, east_c, east_num_c)) -> d_short_c
+
+names(d_short_c)
+```
+
+
+
+Coerce to normal data frame, no tibble
+
+
+```{r d-short-normal-df}
+d_short <- data.frame(d_short)
+d_short_z <- data.frame(d_short_z)
+d_short_c <- data.frame(d_short_c)
+```
+
+
+
+Similary, to get a larger data frame with all columns of `socec` and `elec_results` (for possiblly different analysis), one could use this code:
+
+```{r}
+socec2 %>% 
+  left_join(elec_results2, by = "area_nr") %>% 
+  left_join(wahlkreise_shp, by = c("area_nr" = "WKR_NR")) -> election_modeling_data
+```
+
+
+
+
+
+# Data export
+
+
+On a side note, this last data frame appears useful. I will upload it to a common repository, so that others can work with it.
+
+
+```{r eval = FALSE}
+election_modeling_data %>% 
+  write_rds("election_modeling_data.rds")
+
+d_short %>% 
+  write_csv("d_short.csv")
+
+d_short_c %>% 
+  write_csv("d_short_c.csv")
+
+d_short_z %>% 
+  write_csv("d_short_z.csv")
+
+```
+
+
+This dataset is now made available via [osf](https://osf.io/2yhr9/), DOI: 10.17605/OSF.IO/2YHR9. Similarly, our data frame `d` is available via the same plattform (note the file names of the CSV files).
+
+
+# model output list
+
+I use this list to store the model outputs.
+
+```{r}
+models_stan <- list()
+models_map <- list()
+```
+
+
+
+
+
+# Helper functions
+
+
+The traceplot function from `rethinking` appears to have a bug, or does not work as I expected. Here's a helper function:
+
+```{r}
+my_traceplot <- function(model) {
+  rstan::traceplot( model@stanfit, pars=names(model@start[[1]]))
+}
+```
+
+
+
+# Null model
+
+Now let's build a first model. Let's start with the null model, ie without predictors. This is the model specification:
+
+
+$n_{\text{AfD},i} \sim \text{Binomial}(n_i, p_i)$
+
+$\text{logit}(p_i) = \beta_0$
+
+$\beta_0 \sim \mathcal{N}(0,10)$
+
+Here, $n_{\text{AfD},i}$ refers to the number of AfD votes in district $i$. This variable is taken to be binomially distributed with the parameters $n_i$ (number of valid votes in district $i$) and $p_i$, the probability of voting for the AfD. The model only consists of an intercept $\alpha$, no predictors. The logit of the intercept is (very) mildly informative, conceptualized as a normal distribution with sigma of 10 (and mean zero).
+
+Now let's fit the model using a quadratic approximation by help of the `rethinking` package.
+
+
+Some options:
+```{r}
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+```
+
+
+
+
+```{r m0}
+
+d <- d_short[, c("afd_votes", "votes_total")]
+
+m0 <- rethinking::map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0,
+    beta0 ~ dnorm(0, 10)
+  ),
+  data = d
+)
+
+models_map <- c(models_stan, m0)
+```
+
+
+Let's also try a Poission model:
+
+```{r m0a}
+d <- d_short[, c("afd_votes", "votes_total")]
+
+m0a <- rethinking::map2stan(
+alist(
+    afd_votes ~ dpois(lambda),
+    logit(lambda) <- beta0,
+    beta0 ~ dnorm(0, 10)
+  ),
+  data = d
+)
+```
+
+
+Note that no NAs are allowed for `map`, and data must be given as a `data frame`, not as a `tibble`.
+
+
+Let's check this model:
+
+```{r error = TRUE}
+precis(m0)
+DIC(m0)
+#WAIC(m0)
+precis(m0a)
+DIC(m0a)
+```
+
+So the logit for AfD voting is approx. -2. What's that in probability?
+
+```{r}
+logistic(-2)
+```
+
+About 12%.
+
+
+Let's have look at the histogram of the parameter $\beta_0$:
+
+```{r}
+post <- extract.samples(m0)
+dens(post$beta0)
+```
+
+
+
+## m0stan
+
+Now let's fit the model using MCMC, for comparison purposes with more complicated models to be computed later on:
+
+```{r m0-stan}
+d <- d_short[, c("afd_votes")]
+
+
+m0_stan <- map2stan(
+  alist(
+        afd_votes ~ dbinom(votes_total, p),
+        logit(p) <- beta0,
+        beta0 ~ dnorm(0, 10)
+      ),
+      data = d,
+      WAIC = FALSE)
+
+
+precis(m0_stan)
+DIC(m0_stan)
+#WAIC(m0_stan)
+```
+
+
+```{r}
+my_traceplot(m0_stan)
+```
+
+looks ok.
+
+
+Now the Possion modeL.
+
+```{r m0a-stan}
+d <- d_short[, c("afd_votes", "votes_total"), drop = FALSE]
+
+
+m0a_stan <- map2stan(
+  alist(
+        afd_votes ~ dpois(lambda),
+        logit(lambda) <- beta0,
+        beta0 ~ dnorm(0, 10)
+      ),
+      data = d,
+      WAIC = FALSE)
+
+
+precis(m0a_stan)
+DIC(m0a_stan)
+#WAIC(m0_stan)
+```
+
+The number of effective samples is quite low.
+
+```{r}
+my_traceplot(m0a_stan)
+```
+
+Hm, not too bad.
+
+
+
+
+# Model m1: foreigner rate as predictor
+
+A not-so-deep-digging hypothesis would be that the more foreigners, the higher the AfD success. A rationale would be that given that "foreigners" were "bad", ie excerting a real, substanial negative impact on society eg by increased crime rates, than in those areas the AfD votes should rise. 
+
+Now we specify the following model:
+
+
+$n_{\text{AfD},i} \sim \text{Binomial}(n_i, p_i)$
+
+$\text{logit}(p_i) = \beta_0 + \beta_1\text{Foreigner}$
+
+$\beta_0 \sim \mathcal{N}(0,10)$
+
+$\beta_1 \sim \mathcal{N}(0, 10)$
+
+
+That means we have added a predictor, the foreigners count of the disctrict, to the equation. Now let's fit the model:
+
+
+
+
+```{r m1}
+d <- d_short[, c("afd_votes", "votes_total", "foreigner_n")]
+
+
+m1 <- rethinking::map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0 + beta1*foreigner_n,
+    beta0 ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10)
+  ),
+  data = d)
+)
+```
+
+Again, let's use MCMC:
+
+```{r m1-stan}
+
+d <- d_short[, c("afd_votes", "votes_total", "foreigner_n")]
+mean(d_short$afd_votes)
+
+m1_stan <- map2stan( 
+ alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0 + beta1*foreigner_n,
+    beta0 ~ dnorm(0, 1e5),
+    beta1 ~ dnorm(0, 10000)
+  ),
+  data = d, 
+  WAIC = FALSE,
+  iter = 4000,
+  control = list(max_treedepth = 25,
+                 adapt_delta = 0.99))
+
+
+
+precis(m1_stan)
+DIC(m1_stan)
+
+
+```
+
+Rhat indicates a catastrophe.
+
+
+```{r}
+my_traceplot(m1_stan)
+pairs(m1_stan)
+```
+
+
+
+
+
+Let's check the results:
+
+```{r}
+precis(m1, corr = TRUE)
+DIC(m1)
+```
+
+There appears to be a small (near to zero) effect of `foreigner_n`. What's the difference in model fit?
+
+```{r}
+comp_0_1 <- compare(m0, m1, n = 1e4, refresh = 1, func = DIC)
+```
+
+This computation was time costly, so we better safe the result in an object.
+
+So `m1` was better than `m0`. Great. Now what? Let's add some more predictors, predictors suggested by common news/media type explanation of populist party success. I'm not pretending to build on strong theories here. Also, I'm unsure if such theories exist (I doubt it).
+
+
+```{r m1a-stan}
+m1a_stan <- map2stan( 
+  alist(
+    afd_votes ~ dpois(lambda),
+    logit(lambda) <- beta0 + beta1*foreigner_n,
+    beta0 ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10)
+  ),
+  data = d, 
+  WAIC = FALSE,
+  iter = 1000)
+
+
+
+precis(m1a_stan)
+DIC(m1a_stan)
+```
+
+
+```{r}
+my_traceplot(m1a_stan)
+```
+
+
+
+
+
+
+# m2: Unemployment rate and foreigners
+
+The more unemployment, the more AfD votes? Let's see.
+
+
+The story is similar, here's the fitting code:
+
+
+
+```{r m2}
+m2 <- map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0 + beta1*foreigner_n + beta2*unemp_n,
+    beta0 ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10),
+    beta2 ~ dnorm(0, 10)
+  ),
+  data = d_short,
+  start = list(beta0 = 0,
+               beta1 = 0,
+               beta2 = 0)
+)
+```
+
+
+```{r}
+precis(m2)
+```
+
+
+Noteworthy, both predictors remain weak compared to the baseline coefficient (beta0). Which model of the three ranks best?
+
+
+```{r}
+comp_0_1_2 <- compare(m0, m1, m2, func = DIC)
+comp_0_1_2
+```
+
+
+Model `m2` gets all the weight. We are improving our models. This is not too say that we are improving *much*, but still, it looks like improvement.
+
+
+
+Again, let's use MCMC:
+
+```{r m2-stan}
+m2_stan <- map2stan(m2, WAIC = FALSE)
+precis(m2_stan)
+DIC(m2_stan)
+```
+
+
+```{r}
+my_traceplot(m2_stan)
+```
+
+```{r}
+pairs(m2_stan)
+```
+
+
+
+
+# m3: Unemployment rate and foreigners and migration
+
+The more migragation, the more populism (ie., more AfD votes)? Let's check this hypothesis by adding this predictor to our linear model.
+
+
+
+
+```{r m3}
+m3 <- map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0 + beta1*foreigner_n + beta2*unemp_n + beta3*pop_migr_background_n,
+    beta0 ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10),
+    beta2 ~ dnorm(0, 10),
+    beta3 ~ dnorm(0, 10)
+  ),
+  data = d_short,
+  start = list(beta0 = 0,
+               beta1 = 0,
+               beta2 = 0,
+               beta3 = 0)
+)
+```
+
+
+```{r}
+precis(m3)
+DIC(m3)
+```
+
+
+
+
+```{r comp-0-3}
+comp_0_1_2_3 <- compare(m0, m1, m2, m3, func = DIC)
+comp_0_1_2_3
+```
+
+
+Again better; beware: even if the reduction in likelihood seems "large", we are not entitled to verdict that `m3` is "much" better than `m2`.
+
+
+
+Again, let's use MCMC:
+
+```{r m3-stan}
+m3_stan <- map2stan(m3, WAIC = FALSE)
+precis(m3_stan)
+DIC(m3_stan)
+```
+
+
+Seems to be ok:
+
+```{r}
+my_traceplot(m3_stan)
+```
+
+
+
+# m4: Varying state intercept, no other predictors
+
+Does the federal state plays a role for predicting AfD success? Is one state more prone to uplift the populism than another? In all this modeling we should not lose sight that we are merely playing with correlational data. We are not entitled to draw strong conclusions, let alone causal ones. It would be premature to claim "State X is so populism which is the cause that populist parties flourish there". Of course, we cannot exlude such hypotheses either, we are quite uncertain. As a sidenote: Uncertainty should not stop one to take action, because not taking action may mean some action is taking anyhow.
+
+First, we build a model with only varyiing intercepts but no predictors to gauge the effect of this varying intercept.
+
+```{r m4}
+
+data <- d_short[c("afd_votes", "votes_total", "state_id")]
+
+m4 <- map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0[state_id],
+    beta0[state_id] ~ dnorm(0, 5)
+  ),
+  data = data,
+  start = list(beta0 = 0)
+)
+```
+
+
+```{r error = TRUE}
+DIC(m4)
+WAIC(m4)
+```
+
+
+Something appears to be wrong in the woodshed - DIC and WAIC do not give results.
+
+
+
+```{r}
+m4_precis <- precis(m4, depth = 2) 
+m4_precis@output %>%
+  rownames_to_column() %>% 
+  rename(state_coef = rowname) %>% 
+  mutate(state_id = 1:16) %>% 
+  mutate(p = logistic(Mean),
+         lower = logistic(`5.5%`),
+         upper = logistic(`94.5%`)) -> m4_coefs
+m4_coefs
+```
+
+Quite some range in the AfD logit values.
+
+
+
+Let's plot that.
+
+
+```{r}
+m4_coefs %>% 
+  ggplot(aes(x = reorder(state_id, p))) + 
+  geom_errorbar(aes(ymin = lower,
+                    ymax = upper)) +
+  coord_flip()
+```
+
+
+Wait, we need a legend for the state ids.
+
+```{r}
+d_short %>%
+  filter(!duplicated(state)) %>% 
+  select(state, state_id) -> state_id_dict
+
+state_id_dict
+```
+
+Now merge that to `m3.1_coefs`:
+
+```{r}
+m4_coefs %>% 
+  full_join(state_id_dict, by = "state_id") -> m4_coefs
+```
+
+
+
+Now again the plot:
+
+```{r}
+m4_coefs %>% 
+  ggplot(aes(x = reorder(state, p))) + 
+  geom_errorbar(aes(ymin = lower,
+                    ymax = upper)) +
+  coord_flip()
+```
+
+There appear to be two groups, the eastern states with high AfD rates and the western states with lower AfD rates.
+
+
+## m4_stan
+
+Let's try MCMC instead:
+
+
+```{r m4-stan}
+
+m4_stan <- map2stan(alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0[state_id],
+    beta0[state_id] ~ dnorm(0, 5)
+  ),
+  data = data,
+  chains = 4, iter = 2500, warmup = 500, 
+ WAIC = FALSE)
+```
+
+
+```{r}
+precis(m4_stan, depth = 2)
+my_traceplot(m4_stan)
+```
+
+
+Ok, that appears to have worked. Posterior distribution appears normally distributed:
+
+```{r eval = FALSE}
+pairs(m4_stan)
+```
+
+
+It makes no sense to compare the models this way:
+
+```{r comp-0-4}
+compare(m0, m1, m2, m3, m4_stan, func = DIC)
+```
+
+
+But this way should be ok:
+
+```{r comp-0-4-stan}
+compare(m0_stan, m1_stan, m2_stan, m3_stan, m4_stan, func = DIC)
+```
+
+
+
+# m5: foreigner, unemployment and state
+
+```{r m5}
+
+m5 <- map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- alpha + beta0[state_id] + beta1*foreigner_n + beta2*unemp_n,
+    alpha ~ dnorm(0, 10),
+    beta0[state_id] ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10),
+    beta2 ~ dnorm(0, 10)
+  ),
+  data = d_short,
+  start = list(alpha = 0,
+               beta1 = 0,
+               beta2 = 0)
+)
+```
+
+
+```{r error = TRUE}
+precis(m5, depth = 2, digits = 4)
+DIC(m5)
+#WAIC(m5)
+```
+
+Migration background seems to play no role once unemployment and foreigner counts are taken into account, and when the intercept is allowed to vary between states.
+
+
+Let's compare the models so far:
+
+```{r error = TRUE}
+comp_0_5 <- compare(m1, m2, m3, m5, func = DIC)
+comp_0_5
+```
+
+Again, no results indicating some fitting issues. Maybe better switching from MAP to MCMC?
+
+
+
+## m5_stan
+
+
+```{r m5-stan, cache = TRUE}
+d_short$afd_votes <- as.integer(d_short$afd_votes)
+
+m5_stan <- map2stan(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- alpha + beta0[state_id] + beta1*foreigner_n + beta2*unemp_n,
+    alpha ~ dnorm(0, 10),
+    beta0[state_id] ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10),
+    beta2 ~ dnorm(0, 10)
+  ), 
+  data = d_short,
+  chains = 1, iter = 1000, warmup = 500, 
+  cores = 1,
+  verbose = FALSE, 
+  WAIC = FALSE,
+  control = list(max_treedepth = 25,
+                 adapt_delta = 0.99))
+```
+
+
+```{r}
+precis(m5_stan, depth = 2)
+```
+
+This model did not work out. `n_eff` and `Rhat` indicate that the sampling effectively died.
+
+```{r m5-stan-plot, out.height = 14}
+my_traceplot(m5_stan)
+```
+
+
+```{r comp-0-5-stan}
+compare(m0_stan, m1_stan, m2_stan, m3_stan, m4_stan, m5_stan, func = DIC)
+```
+
+`m5` showed poor fit, comparatively. `m4` still the best.
+
+# m6: states as multilevel
+
+
+Districts are nested in the (16) states. Sounds like we should try a multilevel mode, like this:
+
+
+
+$\begin{aligned}
+n_{\text{AfD},i} &\sim \text{Binomial}(n_i, p_i)\\
+\text{logit}(p_i) &= \beta_{\text{State-id[j]}} \\
+\beta_0 &\sim \mathcal{N}(\alpha,\sigma)\\
+\alpha &\sim \mathcal{N}(0,1)\\
+\sigma &\sim \text{HalfCauchy}(0,1)\\
+\end{aligned}$
+
+
+
+
+```{r m6, eval = TRUE}
+
+m6_stan <- map2stan(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0[state_id],
+    beta0[state_id] ~ dnorm(a, sigma),
+    a ~ dnorm(0, 5),
+    sigma ~ dcauchy(0, 1)
+  ),
+  data = d_short,
+  iter = 4000,
+  chains = 1,
+  cores = 1,
+  WAIC = FALSE  # check this later
+)
+```
+
+
+```{r}
+precis(m6_stan, depth = 2)
+DIC(m6_stan)
+```
+
+Rhat and n_eff look ok.
+
+```{r}
+my_traceplot(m6_stan)
+```
+
+
+
+```{r comp-0-6-stan}
+compare(m0_stan, m1_stan, m2_stan, m3_stan, m4_stan, m5_stan, m6_stan, func = DIC)
+```
+
+
+`m4` and `m6` appear to show similar fit. That's interesting because `m6` has essentially no predictors, only the states intercept are allowed to vary. Maybe this can be interpreted that the predictors are not so important in comparison to the variation of the states.
+
+
+# m7: foreigner, unemployment and state as multilevel
+
+Here's the model specification:
+
+$\begin{aligned}
+n_{\text{AfD},i} &\sim \text{Binomial}(n_i, p_i)\\
+\text{logit}(p_i) &= \beta_{\text{State-id[j]}} + \beta1\text{Foreigner} + \beta_2\text{Unemployment} + \beta_3\text{Migration}\\
+\beta_0 &\sim \mathcal{N}(\alpha,\sigma)\\
+\alpha &\sim \mathcal{N}(0,1)\\
+\sigma &\sim \text{HalfCauchy}(0,1)\\
+\beta_1 &\sim \mathcal{N}(0, 10)\\
+\beta_2 &\sim \mathcal{N}(0, 10)\\
+\beta_3 &\sim \mathcal{N}(0, 10)\\
+\end{aligned}$
+
+
+
+```{r m7-stan}
+d_mod <- d_short[ ,c("state_id", "foreigner_n", "votes_total", "afd_votes", "unemp_n")]
+
+
+m7_stan <- rethinking::map2stan(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- alpha + beta0[state_id] + beta1*foreigner_n + beta2*unemp_n,
+    alpha ~ dnorm(-2, 5),
+    beta0[state_id] ~ dnorm(a, sigma),
+    a ~ dnorm(-2, 5),
+    sigma ~ dexp(2),
+    beta1 ~ dnorm(-2, 5),
+    beta2 ~ dnorm(-2, 5)
+  ),
+  data = d_mod,
+  iter = 1000,
+  chains = 1,
+  cores = 1,
+  WAIC = FALSE,
+  control = list(max_treedepth = 25,
+                 adapt_delta = 0.99),
+  debug = TRUE,
+  verbose = TRUE,
+  start = list(alpha = -2,
+               beta1 = 0,
+               beta2 = 0,
+               beta0 = rep(-2, 16))
+)
+```
+
+```{r}
+precis(m7_stan, depth = 2)
+DIC(m7_stan)
+```
+
+```{r}
+my_traceplot(m7_stan)
+```
+
+
+```{r}
+pairs(m7_stan)
+```
+
+
+```{r comp-0-7-stan}
+compare(m0_stan, m1_stan, m2_stan, m3_stan, m4_stan, 
+        m5_stan, m6_stan, m7_stan, func = DIC)
+```
+
+
+
+# m8: East/West, unemployment, foreigners
+
+
+Similar to `m5` but with fewer groups, not a multilevel but a varying intercepts model.
+
+
+
+
+
+
+```{r m8}
+m8 <- map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- alpha + beta0[east] + beta1*foreigner_n + beta2*unemp_n,
+    alpha ~ dnorm(0, 5),
+    beta0[east] ~ dnorm(0, 5),
+    beta1 ~ dnorm(0, 5),
+    beta2 ~ dnorm(0, 5)
+  ),
+  data = d_short_rounded,
+  start = list(alpha = 0,
+               beta1 = 0,
+               beta2 = 0)
+)
+```
+
+
+```{r}
+precis(m8, depth = 2)
+DIC(m8)
+```
+
+
+
+
+
+```{r m8-stan}
+m8_stan <- map2stan(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0[east] + beta1*foreigner_n + beta2*unemp_n,
+    beta0[east] ~ dnorm(0, 5),
+    beta1 ~ dnorm(0, 5),
+    beta2 ~ dnorm(0, 5)
+  ),
+  data = d_short,
+  iter = 2000,
+  chains = 2,
+  cores = 2,
+  WAIC = FALSE
+)
+```
+
+
+```{r}
+precis(m8_stan, depth = 2)
+```
+
+
+```{r}
+my_traceplot(m8_stan)
+```
+
+Again, converging problems.
+
+
+
+# m9: Falling back to a (metric) linear model with east/west, foreigner, unemp
+
+This one issues a warning
+
+```{r m9, error = TRUE}
+m9 <- map(
+  alist(
+    afd_votes_z ~ dnorm(mu, sigma),
+    mu <- alpha + beta0[east] +  beta1*foreigner_n_z + beta2*unemp_n_z,
+    beta0[east] ~ dnorm(0, 10),
+    alpha ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10),
+    beta2 ~ dnorm(0, 10),
+    sigma ~ dnorm(0, 10)
+  ),
+  data = d_short_z
+)
+```
+
+
+```{r error = TRUE}
+precis(m9)
+WAIC(m9)
+DIC(m9)
+```
+
+
+```{r m9-stan, error = TRUE}
+d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z", "east")]
+
+d$east_cat <- ifelse(d$east == 1, "yes", "no")
+d$east_id <- coerce_index(d$east)
+
+m9_stan <- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu <- alpha + beta0[east_id] +  beta1*for_prop_z + beta2*unemp_prop_z,
+    beta0[east_id] ~ dnorm(0, 1),
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2
+)
+```
+
+
+```{r}
+my_traceplot(m9_stan)
+precis(m9_stan, depth = 2)
+models_stan[["m9_stan"]] <- m9_stan
+WAIC(m9_stan)
+
+```
+
+
+
+DIC is not being produced, some issues exist.
+
+# m9a: metric model with no east/west
+
+This one does not compile:
+
+
+```{r m9a}
+
+d <- d_short_z[, c("afd_votes_z", "foreigner_n_z", "unemp_n_z")]
+
+m9a <- rethinking::map(
+  alist(
+    afd_votes_z ~ dnorm(mu, sigma),
+    mu <- alpha +  beta1*foreigner_n_z+ beta2*unemp_n_z
+  ),
+  data = d
+  )
+)
+```
+
+
+```{r error = TRUE}
+precis(m9a)
+```
+
+
+
+```{r m9a-stan}
+d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z")]
+
+m9a_stan <- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu <- alpha +  beta1*for_prop_z + beta2*unemp_prop_z,
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2)
+```
+
+Looks good:
+
+```{r m9a-traceplot}
+my_traceplot(m9a_stan)
+precis(m9a_stan)
+models_stan[["m9a_stan"]] <- m9a_stan
+```
+
+Here's the data in the S4 object for the MCMC chains: 
+```{r eval = FALSE}
+m7_stan@stanfit@sim$samples[[1]] %>% str()
+```
+
+
+```{r}
+precis(m9a_stan, depth = 2)
+WAIC(m9a_stan)
+DIC(m9a_stan)
+```
+
+
+# m10: East/West as numeric predictor, not as varying intercept
+
+
+
+```{r m10}
+m10 <- map(
+  alist(
+    afd_votes_z ~ dnorm(mu, sigma),
+    mu <- alpha +  beta1*foreigner_n_z + beta2*unemp_n_z + beta3*east,
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1),
+    beta3 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d_short_z
+)
+```
+
+```{r}
+precis(m10)
+```
+
+
+
+
+```{r m10-stan}
+
+d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z", "east_num")]
+
+m10_stan <- map2stan( 
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu <- beta1*for_prop_z + beta2*unemp_prop_z + beta3*east_num,
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1),
+    beta3 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2
+)
+```
+
+Model output:
+
+```{r}
+precis(m10_stan)
+my_traceplot(m10_stan)
+DIC(m10_stan)
+WAIC(m10_stan)
+models_stan[["m10_stan"]] <- m10_stan
+
+```
+
+Looks ok, but why are the coefficients so large? Strange.
+
+
+# Compare models
+
+
+```{r}
+compare(m0_stan, 
+        m1_stan, m2_stan, m3_stan, m4_stan, m5_stan,
+        m6_stan, m7_stan, m8_stan, m9_stan, m9a_stan, m10_stan,
+        func = DIC)
+```
+
+
+# Get best model
+
+```{r}
+model_comp <- compare(m0_stan, 
+                     m1_stan, m2_stan, m3_stan, m4_stan, m5_stan,
+                     m6_stan, m7_stan, m8_stan, m9_stan, m9a_stan, m10_stan,
+                     func = DIC)
+model_comp
+```
+
+
+```{r}
+model_comp@output %>% 
+  rownames_to_column() %>% 
+  arrange(DIC) %>% 
+  pull(rowname) %>% 
+  `[`(1) -> best_model_DIC
+```
+
+
+```{r}
+comp_error(m9_stan)
+```
+
+
+
+# Predictor importance
+
+
+Let's compare two models with only one predictor - either unemployment or migration or foreigners to see which model has a better entropy.
+
+
+## foreigner prop
+```{r m11a-stan}
+d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z", "east")]
+
+m11a_stan <- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu <- alpha +  beta1*for_prop_z,
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2)
+```
+
+Looks good:
+
+```{r m11a-traceplot}
+my_traceplot(m11a_stan)
+precis(m11a_stan)
+models_stan[["m11a_stan"]] <- m11a_stan
+
+```
+
+
+<!-- ## migration ratio -->
+
+<!-- ```{r m11b-stan} -->
+<!-- m11b_stan <- map2stan( -->
+<!--   alist( -->
+<!--     afd_votes ~ dnorm(mu, sigma), -->
+<!--     mu <- alpha +  beta1*pop_migr_background_n_z, -->
+<!--     alpha ~ dnorm(0, 1), -->
+<!--     beta1 ~ dnorm(0, 1), -->
+<!--     sigma ~ dnorm(0, 1) -->
+<!--   ), -->
+<!--   data = d_short_z, -->
+<!--    control = list(adapt_delta = 0.99), -->
+<!--   chains = 2) -->
+<!-- ``` -->
+
+
+<!-- ```{r m11b-traceplot} -->
+<!-- my_traceplot(m11b_stan) -->
+<!-- precis(m11b_stan) -->
+<!-- models_stan[["m11b_stan"]] <- m11b_stan -->
+
+<!-- ``` -->
+
+
+## unemployment
+
+```{r m11c-stan}
+
+d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z", "east")]
+
+m11c_stan <- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu <- alpha +  beta1*unemp_prop_z,
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2)
+```
+
+
+```{r m11c-traceplot}
+my_traceplot(m11c_stan)
+precis(m11c_stan)
+models_stan[["m11c_stan"]] <- m11c_stan
+```
+
+
+## east only
+
+
+
+```{r m11d-stan}
+d <- d_short_z[, c("afd_prop", "for_prop_z", "east")]
+
+d$east_num <- ifelse(d$east == "yes", 1, 0)
+
+m11d_stan <- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu <- beta1*east_num,
+    beta1 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+      ),
+  data = d,
+  chains = 2,
+  cores = 2)
+```
+
+Looks good:
+
+```{r m9a-traceplot}
+my_traceplot(m11d_stan)
+precis(m11d_stan)
+WAIC(m11d_stan)
+models_stan[["m11d_stan"]] <- m11d_stan
+```
+
+
+
+
+
+# Multilevel normal models
+
+
+
+## area as multilevel
+
+```{r m12-stan, eval = TRUE}
+d <- d_short_z[, c("afd_prop",  "area_nr")]
+
+m12_stan <- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu <- beta0[area_nr],
+    beta0[area_nr] ~ dnorm(a, sigma),
+    a ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1),
+    alpha ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2
+)
+```
+
+
+```{r}
+precis(m12_stan, depth = 2)
+coeftab(m12_stan)
+my_traceplot(m12_stan)
+models_stan[["m12_stan"]] <- m12_stan
+```
+
+Too many coefficients...
+
+
+
+
+
+## state as multilevel
+
+```{r m13-stan, eval = TRUE}
+
+d <- d_short_z[, c("afd_prop",  "state_id")]
+
+m13_stan <- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu <- beta0[state_id],
+    beta0[state_id] ~ dnorm(0, sigma2),
+    sigma ~ dnorm(0, 1),
+    sigma2 ~ dnorm(0, 1)
+  ),
+  data = d,
+  cores = 2,
+  chains = 2
+)
+
+
+```
+
+
+```{r}
+precis(m13_stan, depth = 2)
+coeftab(m13_stan)
+WAIC(m13_stan)
+my_traceplot(m13_stan)
+models_stan[["m13_stan"]] <- m13_stan
+```
+Rhat is ok. Traceplot indicates problems. neff indicates problems.
+
+
+
+
+
+
+## east + for_prop + unemp_prop
+
+```{r m14-stan, eval = TRUE}
+d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z", "east")]
+
+m14_stan <- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu <- beta0[east] +  beta1*for_prop_z + beta2*unemp_prop_z,
+    beta0[east] ~ dnorm(0, sigma),
+    sigma ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2
+)
+```
+
+
+
+```{r}
+precis(m14_stan, depth = 2)
+coeftab(m14_stan)
+my_traceplot(m14_stan)
+models_stan[["m14_stan"]] <- m14_stan
+
+```
+
+
+## state + for_prop + unemp_prop
+
+```{r m15-stan, eval = TRUE}
+d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z", "state_id")]
+
+m15_stan <- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu <- beta0[state_id] +  beta1*for_prop_z + beta2*unemp_prop_z,
+    beta0[state_id] ~ dnorm(0, sigma2),
+    sigma ~ dnorm(0, 1),
+    sigma2 ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores  = 2
+)
+```
+
+
+
+```{r}
+precis(m15_stan, depth = 2)
+coeftab(m15_stan)
+my_traceplot(m15_stan)
+models_stan[["m15_stan"]] <- m15_stan
+
+```
+
+
+# Normal null model
+
+
+```{r m16-stan, eval = TRUE}
+d <- d_short_z[, c("afd_prop"), drop = FALSE]
+
+m16_stan <- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu <- alpha,
+    alpha ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2
+)
+```
+
+
+
+```{r}
+precis(m16_stan, depth = 2)
+coeftab(m16_stan)
+my_traceplot(m16_stan)
+models_stan[["m16_stan"]] <- m16_stan
+
+```
+
+
+
+
+
+
+# Compare Normal models
+
+Now check which one has a lower DIC or WAIC:
+
+```{r}
+stan_normal_models <- list("m9_stan" = m9_stan, 
+                           "m9a_stan" = m9a_stan, 
+                           "m10_stan" = m10_stan,
+                           "m11a_stan" = m11a_stan, 
+                           "m11c_stan" = m11c_stan,
+                           "m11d_stan" = m11d_stan,
+                           "m12_stan" = m12_stan,
+                           "m13_stan" = m13_stan,
+                           "m14_stan" = m14_stan,
+                           "m15_stan" = m15_stan,
+                           "m16_stan" = m16_stan)
+
+stan_normal_models_vec <- c("m9_stan" = m9_stan, 
+                            "m9a_stan" = m9a_stan, 
+                            "m10_stan" = m10_stan,
+                            "m11a_stan" = m11a_stan, 
+                            "m11c_stan" = m11c_stan,
+                            "m11d_stan" = m11d_stan,
+                            "m12_stan" = m12_stan,
+                            "m13_stan" = m13_stan,
+                            "m14_stan" = m14_stan,
+                            "m15_stan" = m15_stan,
+                            "m16_stan" = m16_stan)
+
+
+stan_normal_models
+
+save(stan_normal_models, file = "stan_normal_models.Rda")
+stan_model_comparison <- compare(m9_stan, m9a_stan, 
+                                 m10_stan,
+                                 m11a_stan, m11c_stan, m11d_stan,
+                                 m12_stan, m13_stan, m14_stan, m15_stan,
+                                 m16_stan)
+stan_model_comparison 
+
+save(stan_model_comparison, file = "stan_model_comparison.Rda")
+```
+
+`m11b` is better than `m11a` - unemployment apears to be more important to predict AfD success compared to migration rate in the area.
+
+# Geo plotting
+
+
+AfD success in the election:
+
+
+```{r afd-geoplot}
+wahlkreise_shp %>% 
+  left_join(select(d_short, area_nr, afd_prop), by = c("WKR_NR" = "area_nr")) %>% 
+  ggplot() +
+  geom_sf(aes(fill = afd_prop)) + 
+  theme_void() +
+  scale_fill_viridis() +
+  labs(fill="Afd votes\n(Zweitstimme)",
+       caption = "Data provided by the Bundeswahlleiter 2017") -> p_afd
+p_afd
+```
+
+
+Unemployment rates in Germany per district:
+
+
+```{r unemp-geoplot}
+wahlkreise_shp %>% 
+  left_join(select(d_short, area_nr, unemp_n, total_n), by = c("WKR_NR" = "area_nr")) %>% 
+  mutate(unemp_prop = unemp_n / total_n) %>% 
+  ggplot() +
+  geom_sf(aes(fill = unemp_prop)) + 
+  theme_void() +
+  scale_fill_viridis() +
+  labs(fill="unemployment rate",
+       caption = "Data provided by the Bundeswahlleiter 2017") -> p_unemp
+p_unemp
+
+```
+
+
+Foreigner rates:
+
+```{r for-geoplot}
+wahlkreise_shp %>% 
+  left_join(select(d_short, area_nr, for_prop, total_n), by = c("WKR_NR" = "area_nr")) %>% 
+  ggplot() +
+  geom_sf(aes(fill = for_prop)) + 
+  theme_void() +
+  scale_fill_viridis() +
+  labs(fill="Foreigner rate",
+       caption = "Data provided by the Bundeswahlleiter 2017") -> p_foreign
+
+p_foreign
+
+```
+
+
+Joint diagrams
+
+```{r}
+library(gridExtra)
+
+grid.arrange(p_unemp, p_afd, nrow = 1)
+grid.arrange(p_foreign, p_afd, nrow = 1)
+```
+
+
+
+
+
+# Computing prediction errors
+
+
+Here's a function to compute the modeling error, defined as the absolute difference of the estimated model value (of afd proportion) minus the observed value (of afd proportion).
+
+
+```{r}
+comp_error <- function(model, data = d_short_z, fun = mean) {
+  posterior_per_person <- link(model)
+  
+  
+  as_tibble(posterior_per_person) %>% 
+    summarise_all(fun) %>% 
+    gather() %>% 
+    rename(estimate = value) %>% 
+    mutate(afd_prop = data$afd_votes / data$votes_total,
+           error = abs(estimate - afd_prop)) %>% 
+    pull(error) -> error_vec
+  
+  return(error_vec)
+}
+
+```
+
+
+Apply the function on all models:
+
+```{r comp-all-model-errors}
+model_error <- lapply(stan_normal_models_vec, comp_error)
+model_error
+```
+
+
+Compute the median absolute error:
+
+
+```{r}
+md_abs_error_all_models <- sapply(model_error, median) %>% unlist()
+md_abs_error_all_models
+
+best_model_name <- md_abs_error_all_models[which.min(md_abs_error_all_models$value), "model"] %>% simplify()
+
+```
+
+
+
+Also, compute the IQR of the errors:
+
+```{r}
+modell_error_IQR <- lapply(stan_normal_models_vec, comp_error, fun = IQR)
+```
+
+
+
+# Visualizing prediction error
+
+Some preparation:
+
+```{r prepare-error-data}
+model_error %>% 
+    as.data.frame() -> model_error_df
+
+glimpse(model_error_df)
+
+model_names_binom <- list("m0_stan", "m1_stan", "m2_stan", "m3_stan",
+               "m4_stan", "m5_stan", "m6_stan", "m7_stan") 
+
+model_names <- c("m9_stan",
+                 "m9a_stan",
+                 "m10_stan" ,
+                 "m11a_stan",
+                 "m11c_stan",
+                 "m11d_stan",
+                 "m12_stan",
+                 "m13_stan",
+                 "m14_stan",
+                 "m15_stan" ,
+                 "m16_stan")
+
+
+names(model_error_df) <- model_names
+
+model_error_df %>% 
+  mutate(afd_prop = d_short$afd_prop,
+         id = 1:nrow(model_error_df)) -> model_error_df
+
+
+modell_error_IQR %>% 
+  as.data.frame() -> model_error_IQR_df
+
+
+names(model_error_IQR_df) <- model_names
+
+model_error_IQR_df %>% 
+  mutate(id = 1:nrow(model_error_IQR_df)) -> model_error_IQR_df
+
+```
+
+
+Convert to long version for plotting:
+
+```{r convert-error-data}
+model_error_IQR_df %>% 
+  gather(key = model, value = iqr, -c(id)) %>% 
+  mutate(stat = "IQR") -> model_error_IQR_df_long
+
+
+model_error_df %>% 
+  gather(key = model, value = error, -c(afd_prop, id)) %>% 
+  mutate(stat = "median") -> model_error_df_long
+
+model_error_df_long %>% 
+  bind_rows(model_error_IQR_df_long) -> model_error_long
+
+
+model_error_df_long %>% 
+  left_join(model_error_IQR_df_long, by = c("id", "model")) %>% 
+  select(-c(stat.x, stat.y)) -> model_error_md_iqr
+```
+
+
+Now plot:
+
+```{r plot-model-error, out.width = "100%"}
+
+as_tibble(md_abs_error_all_models) %>% 
+  mutate(model = unlist(model_names),
+         best_model = ifelse(model_names == best_model_name, TRUE, FALSE)) -> md_abs_error_all_models
+
+glimpse(md_abs_error_all_models)
+
+model_error_md_iqr %>% 
+  arrange(-error) %>% 
+  ggplot(aes(x = id)) +
+  facet_wrap(~model) +
+  geom_hline(aes(yintercept = value), data = md_abs_error_all_models) +
+    geom_errorbar(aes(ymin = error - (iqr/2),
+                    ymax = error + (iqr/2)),
+                alpha = .8,
+                color = "gray40") +
+  geom_point(aes(y = error)) +
+  geom_label(aes(label = round(value, 3),
+                 color = best_model), x = 1, y = .2, 
+            data = md_abs_error_all_models, 
+            hjust = 0) +
+  guides(color=FALSE) +
+  scale_color_manual(values = c("red", "darkgreen"))
+```
+
+
+# Plotting prediction error against observed values
+
+
+```{r}
+posterior_per_person_best_model <- link(m15_stan)
+  
+posterior_per_person_best_model %>%  
+  as_tibble() %>% 
+    summarise_all(median) %>% 
+    gather() %>% 
+    rename(estimate = value) %>% 
+  add_column(area_nr = 1:nrow(.)) %>% 
+  full_join(d_short) %>%
+  mutate(error = abs(estimate - afd_prop),
+         top05 = percent_rank(error) >= .95) -> d_short_w_pred_err 
+
+
+polygon_pos <- data.frame(
+  x = c(0, 0.4, 0.4,    0, 0.4, 0, 0 ),
+  y = c(0, 0, 0.4,      0, 0.4, 0.4, 0),
+  value = c("underestimates", "underestimates", "underestimates", "overestimates", "overestimates", "overestimates", "overestimates")
+)
+ 
+d_short_w_pred_err %>%  
+  ggplot() +
+  aes(x = afd_prop, y = estimate) +
+  geom_abline(slope = 1, intercept = 0, color = "grey60") +
+  geom_polygon(data = polygon_pos, aes(x = x, y = y, fill = value), alpha = .1) +
+  geom_point(aes(color = error,
+                 shape = east),
+             alpha = .6,
+             size = 2) +
+  ggrepel::geom_label_repel(aes(label = area_name), data = filter(d_short_w_pred_err, top05 == TRUE)) +
+  annotate("text", x = 0.4, y = 0, label = "model understimates", hjust = 1, vjust = 0) +
+  annotate("text", x = 0, y = 0.4, label = "model overestimates", hjust = 0, vjust = 1) +
+  labs(x = "Observed AfD votes (proportion)",
+       y = "Estimated AfD votes (proportion)",
+       caption = "n=299 electoral districts; data provided by Bundeswahlleiter 2017") +
+  guides(fill = FALSE)
+
+
+
+```
+
+
+```{r}
+d_short_w_pred %>% 
+  ggplot() +
+  aes(x = afd_prop)
+```
+
+
+
+
+
+# Sensecheck
+
+I just wondered what the bivariate correlations of the predictors to `afd_vote` is`. Let's check that.
+
+
+
+```{r}
+library(GGally)
+
+ggpairs(d_short, columns = c("foreigner_n", "unemp_n", "afd_votes"))
+
+```
+
+
+There is a substantial *negatie* correlations with number of foreigners and a positive correlation with unemployment, but (nearly) no correlation with unemployment numbers.
+But our analysis above suggest that these associations are spurious once the state is controlled for. To make things easy, let's pick two states, say Sachsen und Bayern and check in each state the assoctions.
+
+
+```{r}
+d_short %>%
+  filter(state == "Bayern") %>% 
+  ggpairs( columns = c("foreigner_n", "unemp_n", "afd_votes"))
+```
+
+```{r}
+d_short %>%
+  filter(state == "Sachsen") %>% 
+  ggpairs( columns = c("foreigner_n", "unemp_n", "afd_votes"))
+```
+
+
+Interestingly, in Sachsen manifests a strong negative correlation between AfD and foreigner rates.
+
+
