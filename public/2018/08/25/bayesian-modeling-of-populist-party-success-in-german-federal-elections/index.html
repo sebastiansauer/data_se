@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.45.1" />
+
+
+<title>Bayesian modeling of populist party success in German federal elections - A notebook from the lab - Data Se</title>
+<meta property="og:title" content="Bayesian modeling of populist party success in German federal elections - A notebook from the lab - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">39 min read</span>
+    
+
+    <h1 class="article-title">Bayesian modeling of populist party success in German federal elections - A notebook from the lab</h1>
+
+    
+    <span class="article-date">2018/08/25</span>
+    
+
+    <div class="article-content">
+      <p>Following up on an <a href="https://data-se.netlify.com/2017/10/10/afd-map/">earlier post</a>, we will model the voting success of the (most prominent) populist party, AfD, in the recent federal elections. This time, Bayesian modeling techniques will be used, drawing on the <a href="https://xcelab.net/rm/statistical-rethinking/">excellent textbook</a> my McElreath.</p>
+<p>Note that this post is rather a notebook of my thinking, doing, and erring. I’ve made no efforts to hide scaffolding. I think it will be confusing to the uniniate and the initiate as well …</p>
+<hr />
+<p>Note: Data is based on data published by the Bundeswahlleiter 2017, (c) Der Bundeswahlleiter, Wiesbaden 2017, <a href="https://www.bundeswahlleiter.de/info/impressum.html" class="uri">https://www.bundeswahlleiter.de/info/impressum.html</a>, Data is made available for unrestricted use provided the source is credited.</p>
+<hr />
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<p>Some packages that will help us:</p>
+<pre class="r"><code>library(tidyverse)
+library(rethinking)
+library(pradadata)
+library(sjmisc)
+library(viridis)</code></pre>
+<p>First, get the election data.They can be accessed from the <a href="https://www.bundeswahlleiter.de/dam/jcr/72f186bb-aa56-47d3-b24c-6a46f5de22d0/btw17_kerg.csv">Bundeswahlleiter</a>. More conveniently, I have put them in a R package (after some cleansing):</p>
+<pre class="r"><code>data(&quot;elec_results&quot;)
+
+glimpse(elec_results)
+#&gt; Observations: 316
+#&gt; Variables: 191
+#&gt; $ district_nr         &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 1, 12, ...
+#&gt; $ district_name       &lt;chr&gt; &quot;Flensburg – Schleswig&quot;, &quot;Nordfriesland – ...
+#&gt; $ parent_district_nr  &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 99, 13, 1...
+#&gt; $ registered_voters_1 &lt;int&gt; 225659, 186384, 175950, 199632, 204650, 17...
+#&gt; $ registered_voters_2 &lt;int&gt; 226944, 186177, 176731, 198903, 205243, 17...
+#&gt; $ registered_voters_3 &lt;int&gt; 225659, 186384, 175950, 199632, 204650, 17...
+#&gt; $ registered_voters_4 &lt;int&gt; 226944, 186177, 176731, 198903, 205243, 17...
+#&gt; $ votes_1             &lt;dbl&gt; 171905, 139200, 132016, 157387, 151463, 13...
+#&gt; $ votes_2             &lt;int&gt; 162749, 131527, 126409, 149583, 146452, 12...
+#&gt; $ votes_3             &lt;dbl&gt; 171905, 139200, 132016, 157387, 151463, 13...
+#&gt; $ votes_4             &lt;int&gt; 162749, 131527, 126409, 149583, 146452, 12...
+#&gt; $ votes_unvalid_1     &lt;int&gt; 1647, 1299, 1133, 1285, 1657, 1221, 1616, ...
+#&gt; $ votes_unvalid_2     &lt;int&gt; 2223, 1648, 1523, 1743, 1674, 1681, 1703, ...
+#&gt; $ votes_unvalid_3     &lt;dbl&gt; 1509, 1125, 1141, 1119, 1290, 1196, 1339, ...
+#&gt; $ votes_unvalid_4     &lt;int&gt; 2113, 1483, 1451, 1616, 1483, 1520, 1682, ...
+#&gt; $ votes_valid_1       &lt;int&gt; 170258, 137901, 130883, 156102, 149806, 13...
+#&gt; $ votes_valid_2       &lt;int&gt; 160526, 129879, 124886, 147840, 144778, 12...
+#&gt; $ votes_valid_3       &lt;int&gt; 170396, 138075, 130875, 156268, 150173, 13...
+#&gt; $ votes_valid_4       &lt;int&gt; 160636, 130044, 124958, 147967, 144969, 12...
+#&gt; $ CDU_1               &lt;int&gt; 68102, 62260, 54812, 66625, 45691, 53109, ...
+#&gt; $ CDU_2               &lt;chr&gt; &quot;#&quot;, &quot;64678&quot;, &quot;56669&quot;, &quot;66775&quot;, &quot;47925&quot;, &quot;...
+#&gt; $ CDU_3               &lt;int&gt; 58307, 52933, 47367, 56584, 40011, 43778, ...
+#&gt; $ CDU_4               &lt;dbl&gt; 61347, 56383, 52408, 60349, 43893, 48683, ...
+#&gt; $ SPD_1               &lt;int&gt; 47697, 34685, 34221, 45070, 46517, 37728, ...
+#&gt; $ SPD_2               &lt;int&gt; 59718, 41714, 42476, 54397, 62271, 47085, ...
+#&gt; $ SPD_3               &lt;int&gt; 40376, 31120, 29757, 35767, 35836, 31013, ...
+#&gt; $ SPD_4               &lt;int&gt; 52396, 38590, 37502, 46658, 50262, 41094, ...
+#&gt; $ Linke_1             &lt;int&gt; 12138, 7102, 7175, 8074, 11050, 7009, 1127...
+#&gt; $ Linke_2             &lt;int&gt; 7436, 4653, 4909, 4902, 7622, 4708, 6985, ...
+#&gt; $ Linke_3             &lt;int&gt; 13995, 8589, 8732, 9962, 15466, 8503, 1311...
+#&gt; $ Linke_4             &lt;int&gt; 9084, 5733, 6286, 6447, 10023, 5987, 8910,...
+#&gt; $ Gruene_1            &lt;int&gt; 17899, 13036, 8791, 13978, 21577, 11736, 1...
+#&gt; $ Gruene_2            &lt;int&gt; 12491, 8465, 6386, 10306, 14435, 7979, 113...
+#&gt; $ Gruene_3            &lt;dbl&gt; 22290, 15154, 12960, 19337, 25904, 16350, ...
+#&gt; $ Gruene_4            &lt;dbl&gt; 15734, 10547, 9485, 13707, 20394, 11577, 1...
+#&gt; $ CSU_1               &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ CSU_2               &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ CSU_3               &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ CSU_4               &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ FDP_1               &lt;int&gt; 11143, 11103, 14441, 10077, 11179, 9379, 1...
+#&gt; $ FDP_2               &lt;int&gt; 3039, 3172, 6324, 2754, 3069, 2322, 3303, ...
+#&gt; $ FDP_3               &lt;int&gt; 18948, 18048, 17294, 19071, 17480, 16481, ...
+#&gt; $ FDP_4               &lt;int&gt; 8065, 8321, 7689, 8126, 7708, 6722, 9863, ...
+#&gt; $ AfD_1               &lt;int&gt; 10581, 8110, 10003, 10656, 9193, 10223, 14...
+#&gt; $ AfD_2               &lt;int&gt; 5234, 3973, 4468, 5084, 4040, 4837, 6766, ...
+#&gt; $ AfD_3               &lt;dbl&gt; 11647, 9023, 11176, 11578, 10390, 11161, 1...
+#&gt; $ AfD_4               &lt;dbl&gt; 6563, 4994, 5492, 6500, 5379, 5901, 8479, ...
+#&gt; $ Piraten_1           &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Piraten_2           &lt;int&gt; 3418, 2467, 2674, 2756, 3575, 2167, 3225, ...
+#&gt; $ Piraten_3           &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Piraten_4           &lt;dbl&gt; 3183, 2413, 2709, 2620, 3946, 2154, 3370, ...
+#&gt; $ NPD_1               &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ NPD_2               &lt;int&gt; 955, 757, 980, 866, 834, 1162, 1260, 1190,...
+#&gt; $ NPD_3               &lt;int&gt; 354, 311, 472, 308, 250, 476, 446, 463, 30...
+#&gt; $ NPD_4               &lt;int&gt; 929, 733, 1038, 854, 802, 1159, 1319, 1307...
+#&gt; $ FW_1                &lt;int&gt; 1943, 1605, 1277, 1622, NA, 1305, NA, 2370...
+#&gt; $ FW_2                &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, 1565, NA, NA, ...
+#&gt; $ FW_3                &lt;int&gt; 1189, 855, 1002, 1031, 537, 752, 954, 1531...
+#&gt; $ FW_4                &lt;int&gt; 1042, 755, 869, 716, 473, 711, 786, 1129, ...
+#&gt; $ Mensch_1            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Mensch_2            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Mensch_3            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Mensch_4            &lt;dbl&gt; 1459, 969, 930, 1290, 1201, 1004, 1271, 15...
+#&gt; $ ÖDP_1               &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ ÖDP_2               &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ ÖDP_3               &lt;int&gt; 297, 173, 192, 237, 341, 186, 428, 392, 17...
+#&gt; $ ÖDP_4               &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Arbeit_1            &lt;int&gt; NA, NA, NA, NA, 3995, NA, NA, NA, NA, NA, ...
+#&gt; $ Arbeit_2            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Arbeit_3            &lt;int&gt; 2091, 1376, 1446, 1754, 3186, 1342, 2200, ...
+#&gt; $ Arbeit_4            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Bayern_1            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Bayern_2            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Bayern_3            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Bayern_4            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Volk_1              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Volk_2              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Volk_3              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Volk_4              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Vernunft_1          &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Vernunft_2          &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Vernunft_3          &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Vernunft_4          &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ MLPD_1              &lt;int&gt; NA, NA, 163, NA, 265, NA, NA, NA, NA, NA, ...
+#&gt; $ MLPD_2              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ MLPD_3              &lt;int&gt; 59, 63, 62, 55, 147, 61, 52, 69, 42, 51, 1...
+#&gt; $ MLPD_4              &lt;int&gt; 44, 45, 34, 32, 71, 46, 42, 46, 25, 43, 93...
+#&gt; $ Soli_1              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Soli_2              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Soli_3              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Soli_4              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Sozialist_1         &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Sozialist_2         &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Sozialist_3         &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Sozialist_4         &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Rechte_1            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Rechte_2            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Rechte_3            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Rechte_4            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ ADD_1               &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ ADD_2               &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ ADD_3               &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ ADD_4               &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Alli_1              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Alli_2              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Alli_3              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Alli_4              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ berg_1              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ berg_2              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ berg_3              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ berg_4              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Grueink_1           &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Grueink_2           &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Grueink_3           &lt;int&gt; 843, 430, 415, 584, 625, 411, 541, 503, 31...
+#&gt; $ Grueink_4           &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Demo_1              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Demo_2              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Demo_3              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Demo_4              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ DKP_1               &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ DKP_2               &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ DKP_3               &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ DKP_4               &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Mitte_1             &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Mitte_2             &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Mitte_3             &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Mitte_4             &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Graue_1             &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Graue_2             &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Graue_3             &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Graue_4             &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Urbane_1            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Urbane_2            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Urbane_3            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Urbane_4            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Garten_1            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Garten_2            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Garten_3            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Garten_4            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Welt_1              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Welt_2              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Welt_3              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Welt_4              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Huma_1              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Huma_2              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Huma_3              &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Huma_4              &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Gesund_1            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Gesund_2            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Gesund_3            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Gesund_4            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ `V-Partei_1`        &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ `V-Partei_2`        &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ `V-Partei_3`        &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ `V-Partei_4`        &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Bund_C_1            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Bund_C_2            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Bund_C_3            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Bund_C_4            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Einheit_1           &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Einheit_2           &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Einheit_3           &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Einheit_4           &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Violetten_1         &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Violetten_2         &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Violetten_3         &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Violetten_4         &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Familien_1          &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, 505, NA, N...
+#&gt; $ Familien_2          &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Familien_3          &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Familien_4          &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Frauen_1            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Frauen_2            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Frauen_3            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Frauen_4            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Mieter_1            &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Mieter_2            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Mieter_3            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Mieter_4            &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Neue_Lib_1          &lt;int&gt; NA, NA, NA, NA, 339, NA, NA, NA, NA, NA, N...
+#&gt; $ Neue_Lib_2          &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Neue_Lib_3          &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Neue_Lib_4          &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Unabh_1             &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Unabh_2             &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Unabh_3             &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ Unabh_4             &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ sonstige_1          &lt;int&gt; 755, NA, NA, NA, NA, NA, NA, NA, NA, NA, N...
+#&gt; $ sonstige_2          &lt;int&gt; NA, NA, NA, NA, 1007, 319, NA, NA, NA, 447...
+#&gt; $ sonstige_3          &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA...
+#&gt; $ sonstige_4          &lt;int&gt; 790, 561, 516, 668, 817, 535, 665, 746, 48...</code></pre>
+<p>In order to combine socioeconomic data with the election results, we can make use of data from the same source as above. Again accessible via the same R pacakge:</p>
+<pre class="r"><code>data(&quot;socec&quot;)
+glimpse(socec)
+#&gt; Observations: 316
+#&gt; Variables: 51
+#&gt; $ V01 &lt;chr&gt; &quot;Schleswig-Holstein&quot;, &quot;Schleswig-Holstein&quot;, &quot;Schleswig-Hol...
+#&gt; $ V02 &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 901, 12, 13, 14, 15, 16...
+#&gt; $ V03 &lt;chr&gt; &quot;Flensburg – Schleswig&quot;, &quot;Nordfriesland – Dithmarschen Nor...
+#&gt; $ V04 &lt;int&gt; 130, 197, 178, 163, 3, 92, 49, 95, 49, 126, 28, 1110, 132,...
+#&gt; $ V05 &lt;dbl&gt; 2128.1, 2777.0, 2000.5, 2164.8, 143.0, 1302.0, 664.3, 1333...
+#&gt; $ V06 &lt;dbl&gt; 282.8, 232.3, 220.8, 248.7, 268.0, 219.8, 307.5, 313.2, 21...
+#&gt; $ V07 &lt;dbl&gt; 266.7, 219.7, 209.8, 239.4, 242.9, 206.8, 281.5, 294.9, 20...
+#&gt; $ V08 &lt;dbl&gt; 5.7, 5.4, 5.0, 3.7, 9.4, 5.9, 8.4, 5.8, 4.3, 6.6, 8.0, 6.3...
+#&gt; $ V09 &lt;dbl&gt; 132.9, 83.6, 110.4, 114.9, 1873.8, 168.8, 462.9, 234.9, 14...
+#&gt; $ V10 &lt;dbl&gt; -3.7, -5.0, -5.3, -3.4, -0.1, -4.9, -2.3, -1.6, -6.5, -3.7...
+#&gt; $ V11 &lt;dbl&gt; 12.3, 13.2, 11.9, 10.0, 11.9, 21.0, 13.1, 9.2, 13.2, 16.8,...
+#&gt; $ V12 &lt;dbl&gt; 16.5, 16.1, 16.7, 17.3, 14.6, 16.4, 16.8, 17.1, 15.0, 16.8...
+#&gt; $ V13 &lt;dbl&gt; 8.7, 8.0, 7.6, 7.2, 10.8, 7.3, 7.2, 6.9, 6.7, 6.6, 8.2, 7....
+#&gt; $ V14 &lt;dbl&gt; 11.3, 10.4, 9.9, 9.4, 17.4, 10.1, 10.7, 10.5, 9.1, 10.1, 1...
+#&gt; $ V15 &lt;dbl&gt; 35.0, 35.1, 37.0, 37.2, 32.8, 35.8, 37.4, 37.9, 36.1, 36.9...
+#&gt; $ V16 &lt;dbl&gt; 17.4, 18.5, 17.4, 17.9, 14.8, 18.3, 16.7, 17.0, 20.0, 17.3...
+#&gt; $ V17 &lt;dbl&gt; 11.2, 11.9, 11.4, 11.0, 9.6, 12.1, 11.2, 10.5, 13.1, 12.3,...
+#&gt; $ V18 &lt;dbl&gt; 90.0, 92.0, 90.8, 91.5, 82.0, 89.2, 85.0, 86.7, 91.6, 87.3...
+#&gt; $ V19 &lt;dbl&gt; 10.0, 8.0, 9.2, 8.5, 18.0, 10.8, 15.0, 13.3, 8.4, 12.7, 16...
+#&gt; $ V20 &lt;dbl&gt; 5.1, 5.2, 4.2, 4.9, 7.3, 5.6, 6.4, 5.8, 6.1, 6.8, 8.1, 6.0...
+#&gt; $ V21 &lt;dbl&gt; 59.5, 65.0, 59.9, 58.3, 41.8, 54.1, 40.9, 44.1, 57.6, 44.1...
+#&gt; $ V22 &lt;dbl&gt; 35.5, 29.8, 35.9, 36.8, 50.9, 40.3, 52.7, 50.1, 36.3, 49.0...
+#&gt; $ V23 &lt;dbl&gt; 49.4, 58.8, 59.4, 58.7, 29.5, 53.0, 52.8, 54.6, 55.9, 55.6...
+#&gt; $ V24 &lt;dbl&gt; 3.8, 6.0, 2.4, 5.5, 1.3, 2.4, 6.0, 3.1, 4.7, 2.8, 2.7, 3.7...
+#&gt; $ V25 &lt;dbl&gt; 514.6, 566.1, 493.0, 492.2, 539.3, 501.9, 484.6, 469.6, 55...
+#&gt; $ V26 &lt;int&gt; 20265, 22159, 20896, 22093, 18637, 20395, 23766, 22791, 21...
+#&gt; $ V27 &lt;int&gt; 28300, 30078, 29298, 26659, 42836, 25983, 26342, 29135, 23...
+#&gt; $ V28 &lt;dbl&gt; 696.9, 748.1, 724.5, 733.3, 518.2, 673.6, 651.9, 712.1, 71...
+#&gt; $ V29 &lt;chr&gt; &quot;4,4&quot;, &quot;4&quot;, &quot;2,7&quot;, &quot;2,4&quot;, &quot;4,8&quot;, &quot;4&quot;, &quot;2,1&quot;, &quot;2&quot;, &quot;3&quot;, &quot;2&quot;...
+#&gt; $ V30 &lt;dbl&gt; 11.9, 11.5, 11.7, 9.4, 8.7, 11.6, 11.0, 10.4, 10.0, 9.2, 9...
+#&gt; $ V31 &lt;dbl&gt; 8.2, 7.9, 7.8, 7.4, 6.6, 7.9, 6.0, 6.2, 9.8, 6.8, 9.5, 7.5...
+#&gt; $ V32 &lt;dbl&gt; 19.8, 19.9, 19.1, 18.2, 15.2, 18.5, 14.8, 16.7, 19.4, 16.3...
+#&gt; $ V33 &lt;dbl&gt; 41.6, 48.8, 44.1, 43.6, 34.5, 39.0, 40.1, 41.2, 41.3, 39.1...
+#&gt; $ V34 &lt;dbl&gt; 30.4, 23.4, 29.0, 30.9, 43.6, 34.6, 39.1, 35.9, 29.4, 37.9...
+#&gt; $ V35 &lt;dbl&gt; 41.1, 33.9, 35.0, 37.1, 42.1, 37.5, 40.2, 47.5, 33.4, 43.1...
+#&gt; $ V36 &lt;dbl&gt; 44.0, 60.9, 43.8, 41.6, 37.9, 41.6, 48.5, 48.3, 51.1, 45.9...
+#&gt; $ V37 &lt;dbl&gt; 7.3, 9.2, 7.1, 6.9, 4.2, 6.7, 7.2, 7.3, 7.3, 6.8, 5.5, 6.9...
+#&gt; $ V38 &lt;dbl&gt; 337.4, 337.6, 290.2, 276.1, 473.7, 312.4, 290.2, 333.4, 30...
+#&gt; $ V39 &lt;chr&gt; &quot;1,6&quot;, &quot;2,6&quot;, &quot;2,7&quot;, &quot;2,4&quot;, &quot;0,2&quot;, &quot;1,7&quot;, &quot;2,3&quot;, &quot;1,1&quot;, &quot;1...
+#&gt; $ V40 &lt;chr&gt; &quot;18,7&quot;, &quot;19,9&quot;, &quot;28,3&quot;, &quot;24,4&quot;, &quot;16&quot;, &quot;22,5&quot;, &quot;29,5&quot;, &quot;27,...
+#&gt; $ V41 &lt;chr&gt; &quot;28,1&quot;, &quot;33,4&quot;, &quot;22,9&quot;, &quot;23&quot;, &quot;20,1&quot;, &quot;29,1&quot;, &quot;29&quot;, &quot;29,3&quot;...
+#&gt; $ V42 &lt;chr&gt; &quot;16,4&quot;, &quot;12,4&quot;, &quot;15,9&quot;, &quot;15,5&quot;, &quot;25,2&quot;, &quot;17,6&quot;, &quot;17,2&quot;, &quot;1...
+#&gt; $ V43 &lt;dbl&gt; 35.2, 31.7, 30.3, 34.7, 38.6, 29.1, 22.0, 24.3, 33.4, 26.5...
+#&gt; $ V44 &lt;dbl&gt; 88.5, 70.9, 80.1, 59.4, 138.7, 86.8, 67.7, 54.5, 62.6, 59....
+#&gt; $ V45 &lt;dbl&gt; 26.3, 26.2, 26.0, 28.1, 26.4, 26.2, 28.8, 28.5, 24.9, 27.8...
+#&gt; $ V46 &lt;dbl&gt; 18.8, 16.7, 21.1, 23.8, 28.3, 22.1, 34.6, 28.3, 20.2, 28.7...
+#&gt; $ V47 &lt;dbl&gt; 7.2, 7.2, 6.6, 5.1, 8.8, 6.9, 5.2, 4.6, 6.2, 4.8, 8.7, 6.4...
+#&gt; $ V48 &lt;dbl&gt; 8.2, 7.7, 7.2, 5.5, 10.0, 7.5, 5.6, 4.9, 6.6, 5.1, 9.4, 6....
+#&gt; $ V49 &lt;dbl&gt; 6.2, 6.6, 6.0, 4.7, 7.6, 6.4, 4.8, 4.2, 5.7, 4.5, 8.0, 5.8...
+#&gt; $ V50 &lt;dbl&gt; 4.2, 3.6, 5.2, 3.2, 6.1, 4.4, 3.3, 2.7, 3.7, 3.2, 5.7, 4.0...
+#&gt; $ V51 &lt;dbl&gt; 7.3, 8.4, 6.6, 5.6, 8.7, 7.7, 6.4, 5.1, 7.4, 5.5, 9.0, 6.9...</code></pre>
+<p>Note that a code book is available for these data:</p>
+<pre class="r"><code>data(&quot;socec_dict&quot;)
+glimpse(socec_dict)
+#&gt; Observations: 52
+#&gt; Variables: 2
+#&gt; $ ID              &lt;chr&gt; &quot;V1&quot;, &quot;V2&quot;, &quot;V3&quot;, &quot;V4&quot;, &quot;V5&quot;, &quot;V6&quot;, &quot;V7&quot;, &quot;V8&quot;...
+#&gt; $ socec_indicator &lt;chr&gt; &quot;Land&quot;, &quot;Wahlkreis-Nr.&quot;, &quot;Wahlkreis-Name&quot;, &quot;Ge...</code></pre>
+<p>These data will be used as predictors for modeling the election results.</p>
+<p>Third, we will make use of geo data in order to geoplot the modeling results. The Bundeswahlleiter provides such data (again via <code>pradadata</code>):</p>
+<pre class="r"><code>data(&quot;wahlkreise_shp&quot;)
+glimpse(wahlkreise_shp)
+#&gt; Observations: 299
+#&gt; Variables: 5
+#&gt; $ WKR_NR    &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1...
+#&gt; $ LAND_NR   &lt;fct&gt; 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 13, 13, ...
+#&gt; $ LAND_NAME &lt;fct&gt; Schleswig-Holstein, Schleswig-Holstein, Schleswig-Ho...
+#&gt; $ WKR_NAME  &lt;fct&gt; Flensburg – Schleswig, Nordfriesland – Dithmarschen ...
+#&gt; $ geometry  &lt;list&gt; [543474.9, 547528.6, 547598.2, 547971.0, 550844.8, ...</code></pre>
+</div>
+<div id="data-preparation" class="section level1">
+<h1>Data preparation</h1>
+<p>Now let’s merge the data frames. There will also be some janitor work such as renaming columns etc.</p>
+<p>First, change the names of the <code>socec</code> data to a common format:</p>
+<pre class="r"><code>socec_renamed &lt;- socec %&gt;%
+  rename(state = V01,
+         area_nr = V02,
+         area_name = V03,
+         total_n = V06,
+         germans_n = V07,
+         for_prop = V08,
+         pop_move_prop = V11,
+         pop_migr_background_prop = V19,
+         income = V26,
+         unemp_prop = V47) </code></pre>
+<p>Compute some more columns:</p>
+<pre class="r"><code>socec2 &lt;- socec_renamed %&gt;% 
+   mutate(foreigner_n = total_n - germans_n,
+         pop_move_n = pop_move_prop * total_n,
+         unemp_n = unemp_prop * total_n / 100,
+         pop_migr_background_n = pop_migr_background_prop * total_n / 100) %&gt;% 
+  drop_na()</code></pre>
+<p>Same thing with the election data, here we only need the criterion (AfD success) and the ID variables for merging:</p>
+<pre class="r"><code>elec_results2 &lt;- elec_results %&gt;%
+  rename(afd_votes = AfD_3,
+         area_nr = district_nr,
+         area_name = district_name,
+         votes_total = votes_valid_3) %&gt;% 
+   mutate(afd_prop = afd_votes/votes_total)    # valid votes only, and of the present Zweitstimme</code></pre>
+<p>Note that we are focusing on the Zweitstimme of the present election (hence the <code>3</code> in <code>votes_valid_3</code> and in <code>AfD_3</code>).</p>
+</div>
+<div id="merge" class="section level1">
+<h1>Merge</h1>
+<pre class="r"><code>socec2 %&gt;%
+  left_join(elec_results2, by = &quot;area_name&quot;) %&gt;% 
+  left_join(wahlkreise_shp, by = c(&quot;area_name&quot; = &quot;WKR_NAME&quot;)) -&gt; d_all_with_na</code></pre>
+</div>
+<div id="after-merge-preparations" class="section level1">
+<h1>After-merge preparations</h1>
+<!-- Now let's remove missings: -->
+<!-- ```{r drop-na} -->
+<!-- d_all <- drop_na(d_all_with_na) -->
+<!-- ``` -->
+<p>Add variable for East (1) vs. West (0):</p>
+<pre class="r"><code>d_all_with_na &lt;- d_all_with_na %&gt;% 
+  mutate(east = case_when(
+    state %in% c(&quot;Mecklenburg-Vorpommern&quot;, &quot;Brandenburg&quot;, &quot;Berlin&quot;, &quot;Sachsen-Anhalt&quot;, &quot;Sachsen&quot;, &quot;Thüringen&quot;) ~ &quot;yes&quot;,
+    TRUE ~ &quot;no&quot;
+    ) 
+  )
+
+d_all_with_na$east_num &lt;- ifelse(d_all_with_na$east == &quot;yes&quot;, 1, 0)</code></pre>
+</div>
+<div id="main-data-frame-d_short-and-d_short_x" class="section level1">
+<h1>Main data frame: d_short and d_short_X</h1>
+<p>We will also provide a version without the geo data, and in pure (old school) <code>data frame</code> form (ie., not as tibble)_</p>
+<pre class="r"><code>d_all_with_na %&gt;%
+  rename(area_nr = area_nr.x) %&gt;% 
+  select(state,
+         area_nr,
+         area_name,
+         total_n,
+         germans_n,
+         foreigner_n,
+         for_prop,
+         pop_move_n,
+         pop_migr_background_n,
+         income ,
+         unemp_n,
+         unemp_prop,
+         votes_total,
+         afd_votes,
+         afd_prop,
+         state,
+         east,
+         east_num) -&gt; d_short_with_nas
+
+names(d_short_with_nas)
+#&gt;  [1] &quot;state&quot;                 &quot;area_nr&quot;              
+#&gt;  [3] &quot;area_name&quot;             &quot;total_n&quot;              
+#&gt;  [5] &quot;germans_n&quot;             &quot;foreigner_n&quot;          
+#&gt;  [7] &quot;for_prop&quot;              &quot;pop_move_n&quot;           
+#&gt;  [9] &quot;pop_migr_background_n&quot; &quot;income&quot;               
+#&gt; [11] &quot;unemp_n&quot;               &quot;unemp_prop&quot;           
+#&gt; [13] &quot;votes_total&quot;           &quot;afd_votes&quot;            
+#&gt; [15] &quot;afd_prop&quot;              &quot;east&quot;                 
+#&gt; [17] &quot;east_num&quot;</code></pre>
+<p>Remove NAs:</p>
+<pre class="r"><code>d_short_with_nas %&gt;% 
+  drop_na() -&gt; d_short_nona</code></pre>
+<p>Add state id:</p>
+<pre class="r"><code>d_short_nona$state_id &lt;- coerce_index(d_short_nona$state)</code></pre>
+<p>Multiply by 1000 to get the real numbers so that a count model gets the “right” data</p>
+<pre class="r"><code>d_short_nona %&gt;%
+  mutate_at(vars(total_n, germans_n, foreigner_n, pop_move_n,
+                    pop_migr_background_n, unemp_n), funs(. * 1000)
+  ) -&gt; d_short_nona_1000
+glimpse(d_short_nona_1000)
+#&gt; Observations: 299
+#&gt; Variables: 17
+#&gt; $ state                 &lt;chr&gt; &quot;Schleswig-Holstein&quot;, &quot;Schleswig-Holstei...
+#&gt; $ area_nr               &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1...
+#&gt; $ area_name             &lt;chr&gt; &quot;Flensburg – Schleswig&quot;, &quot;Nordfriesland ...
+#&gt; $ total_n               &lt;dbl&gt; 282800, 232300, 220800, 248700, 268000, ...
+#&gt; $ germans_n             &lt;dbl&gt; 266700, 219700, 209800, 239400, 242900, ...
+#&gt; $ foreigner_n           &lt;dbl&gt; 16100, 12600, 11000, 9300, 25100, 13000,...
+#&gt; $ for_prop              &lt;dbl&gt; 5.7, 5.4, 5.0, 3.7, 9.4, 5.9, 8.4, 5.8, ...
+#&gt; $ pop_move_n            &lt;dbl&gt; 3478440, 3066360, 2627520, 2487000, 3189...
+#&gt; $ pop_migr_background_n &lt;dbl&gt; 28280.0, 18584.0, 20313.6, 21139.5, 4824...
+#&gt; $ income                &lt;int&gt; 20265, 22159, 20896, 22093, 18637, 20395...
+#&gt; $ unemp_n               &lt;dbl&gt; 20361.6, 16725.6, 14572.8, 12683.7, 2358...
+#&gt; $ unemp_prop            &lt;dbl&gt; 7.2, 7.2, 6.6, 5.1, 8.8, 6.9, 5.2, 4.6, ...
+#&gt; $ votes_total           &lt;int&gt; 170396, 138075, 130875, 156268, 150173, ...
+#&gt; $ afd_votes             &lt;dbl&gt; 11647, 9023, 11176, 11578, 10390, 11161,...
+#&gt; $ afd_prop              &lt;dbl&gt; 0.06835254, 0.06534854, 0.08539446, 0.07...
+#&gt; $ east                  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1...
+#&gt; $ state_id              &lt;int&gt; 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, ...</code></pre>
+</div>
+<div id="some-checks" class="section level1">
+<h1>Some checks</h1>
+<p>Any centered/z-std variab</p>
+<p>I know that there are 299 districts in Germany, so let’s check the row numbers</p>
+<pre class="r"><code>nrow(d_short) == 299
+#&gt; Error in nrow(d_short): object &#39;d_short&#39; not found</code></pre>
+<p>By the way, the number 316 of the data frame <code>d_all_1000</code> is the sum of the districts plus the 16 federal states plus 1 for Germany itself.</p>
+<p>Let’s do a similar check for the district names:</p>
+<pre class="r"><code>identical(elec_results$district_name,socec$V03)
+#&gt; [1] FALSE</code></pre>
+<p>Does not match. Maybe the order is different?</p>
+<pre class="r"><code>head(elec_results$district_name, 10)
+#&gt;  [1] &quot;Flensburg – Schleswig&quot;             
+#&gt;  [2] &quot;Nordfriesland – Dithmarschen Nord&quot; 
+#&gt;  [3] &quot;Steinburg – Dithmarschen Süd&quot;      
+#&gt;  [4] &quot;Rendsburg-Eckernförde&quot;             
+#&gt;  [5] &quot;Kiel&quot;                              
+#&gt;  [6] &quot;Plön – Neumünster&quot;                 
+#&gt;  [7] &quot;Pinneberg&quot;                         
+#&gt;  [8] &quot;Segeberg – Stormarn-Mitte&quot;         
+#&gt;  [9] &quot;Ostholstein – Stormarn-Nord&quot;       
+#&gt; [10] &quot;Herzogtum Lauenburg – Stormarn-Süd&quot;
+head(socec$V03, 10)
+#&gt;  [1] &quot;Flensburg – Schleswig&quot;             
+#&gt;  [2] &quot;Nordfriesland – Dithmarschen Nord&quot; 
+#&gt;  [3] &quot;Steinburg – Dithmarschen Süd&quot;      
+#&gt;  [4] &quot;Rendsburg-Eckernförde&quot;             
+#&gt;  [5] &quot;Kiel&quot;                              
+#&gt;  [6] &quot;Plön – Neumünster&quot;                 
+#&gt;  [7] &quot;Pinneberg&quot;                         
+#&gt;  [8] &quot;Segeberg – Stormarn-Mitte&quot;         
+#&gt;  [9] &quot;Ostholstein – Stormarn-Nord&quot;       
+#&gt; [10] &quot;Herzogtum Lauenburg – Stormarn-Süd&quot;</code></pre>
+<p>Looks reassuring.</p>
+<p>Let’s check which one is present in one but not in the other data frame:</p>
+<pre class="r"><code>elec_results2 %&gt;% 
+  select(area_name, area_nr) %&gt;% 
+  full_join(select(socec2, area_name, area_nr), by = &quot;area_nr&quot;) -&gt; merge_test</code></pre>
+<p>Low let’s filter for missings, ie non-matches:</p>
+<pre class="r"><code>merge_test %&gt;% 
+  filter(is.na(area_name.x))
+#&gt; # A tibble: 17 x 3
+#&gt;    area_name.x area_nr area_name.y   
+#&gt;    &lt;chr&gt;         &lt;int&gt; &lt;chr&gt;         
+#&gt;  1 &lt;NA&gt;            901 Land insgesamt
+#&gt;  2 &lt;NA&gt;            913 Land insgesamt
+#&gt;  3 &lt;NA&gt;            902 Land insgesamt
+#&gt;  4 &lt;NA&gt;            903 Land insgesamt
+#&gt;  5 &lt;NA&gt;            904 Land insgesamt
+#&gt;  6 &lt;NA&gt;            912 Land insgesamt
+#&gt;  7 &lt;NA&gt;            915 Land insgesamt
+#&gt;  8 &lt;NA&gt;            911 Land insgesamt
+#&gt;  9 &lt;NA&gt;            905 Land insgesamt
+#&gt; 10 &lt;NA&gt;            914 Land insgesamt
+#&gt; 11 &lt;NA&gt;            906 Land insgesamt
+#&gt; 12 &lt;NA&gt;            916 Land insgesamt
+#&gt; 13 &lt;NA&gt;            907 Land insgesamt
+#&gt; 14 &lt;NA&gt;            909 Land insgesamt
+#&gt; 15 &lt;NA&gt;            908 Land insgesamt
+#&gt; 16 &lt;NA&gt;            910 Land insgesamt
+#&gt; 17 &lt;NA&gt;            999 Insgesamt</code></pre>
+<p>“Land insgesamt” indicats the grand total of the federal state. We don’t need that data. Seems like all is fine.</p>
+</div>
+<div id="round-values" class="section level1">
+<h1>Round values</h1>
+<p>Round values in order to work with counts:</p>
+<pre class="r"><code>d_short_not_rounded &lt;- d_short_nona_1000  # backup</code></pre>
+<p>We need to convert the variables back to integer, bacause stan need integer for count models (makes sense):</p>
+<pre class="r"><code>d_short_nona_1000 %&gt;% 
+  mutate_at(vars(total_n:afd_votes), funs(as.integer)) -&gt; d_short_as_int
+glimpse(d_short_as_int)
+#&gt; Observations: 299
+#&gt; Variables: 17
+#&gt; $ state                 &lt;chr&gt; &quot;Schleswig-Holstein&quot;, &quot;Schleswig-Holstei...
+#&gt; $ area_nr               &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1...
+#&gt; $ area_name             &lt;chr&gt; &quot;Flensburg – Schleswig&quot;, &quot;Nordfriesland ...
+#&gt; $ total_n               &lt;int&gt; 282800, 232300, 220800, 248700, 268000, ...
+#&gt; $ germans_n             &lt;int&gt; 266700, 219700, 209800, 239400, 242900, ...
+#&gt; $ foreigner_n           &lt;int&gt; 16100, 12600, 11000, 9299, 25099, 13000,...
+#&gt; $ for_prop              &lt;int&gt; 5, 5, 5, 3, 9, 5, 8, 5, 4, 6, 8, 6, 3, 3...
+#&gt; $ pop_move_n            &lt;int&gt; 3478440, 3066360, 2627520, 2487000, 3189...
+#&gt; $ pop_migr_background_n &lt;int&gt; 28280, 18584, 20313, 21139, 48240, 23738...
+#&gt; $ income                &lt;int&gt; 20265, 22159, 20896, 22093, 18637, 20395...
+#&gt; $ unemp_n               &lt;int&gt; 20361, 16725, 14572, 12683, 23584, 15166...
+#&gt; $ unemp_prop            &lt;int&gt; 7, 7, 6, 5, 8, 6, 5, 4, 6, 4, 8, 7, 7, 8...
+#&gt; $ votes_total           &lt;int&gt; 170396, 138075, 130875, 156268, 150173, ...
+#&gt; $ afd_votes             &lt;int&gt; 11647, 9023, 11176, 11578, 10390, 11161,...
+#&gt; $ afd_prop              &lt;dbl&gt; 0.06835254, 0.06534854, 0.08539446, 0.07...
+#&gt; $ east                  &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1...
+#&gt; $ state_id              &lt;int&gt; 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, ...</code></pre>
+<p>Main dataframe:</p>
+<pre class="r"><code>d_short &lt;- d_short_as_int</code></pre>
+<p>Any NAs left:</p>
+<pre class="r"><code>anyNA(d_short)
+#&gt; [1] FALSE</code></pre>
+<div id="z-transformation" class="section level2">
+<h2>z-transformation</h2>
+<p>Transform to z-values:</p>
+<pre class="r"><code>d_short %&gt;% 
+  sjmisc::std() %&gt;%  
+  select(-c(state_z, area_nr_z, area_name_z, state_id_z, east_z, east_num_z)) -&gt; d_short_z
+#&gt; Error in map_lgl(.x, .p, ...): object &#39;east_num_z&#39; not found
+
+names(d_short_z)
+#&gt; Error in eval(expr, envir, enclos): object &#39;d_short_z&#39; not found</code></pre>
+</div>
+<div id="center" class="section level2">
+<h2>center</h2>
+<pre class="r"><code>d_short_as_int %&gt;% 
+  sjmisc::center() %&gt;% 
+  select(-c(state_c, area_nr_c, area_name_c, state_id_c, east_c, east_num_c)) -&gt; d_short_c
+#&gt; Error in map_lgl(.x, .p, ...): object &#39;east_num_c&#39; not found
+
+names(d_short_c)
+#&gt; Error in eval(expr, envir, enclos): object &#39;d_short_c&#39; not found</code></pre>
+<p>Coerce to normal data frame, no tibble</p>
+<pre class="r"><code>d_short &lt;- data.frame(d_short)
+d_short_z &lt;- data.frame(d_short_z)
+d_short_c &lt;- data.frame(d_short_c)</code></pre>
+<p>Similary, to get a larger data frame with all columns of <code>socec</code> and <code>elec_results</code> (for possiblly different analysis), one could use this code:</p>
+<pre class="r"><code>socec2 %&gt;% 
+  left_join(elec_results2, by = &quot;area_nr&quot;) %&gt;% 
+  left_join(wahlkreise_shp, by = c(&quot;area_nr&quot; = &quot;WKR_NR&quot;)) -&gt; election_modeling_data</code></pre>
+</div>
+</div>
+<div id="data-export" class="section level1">
+<h1>Data export</h1>
+<p>On a side note, this last data frame appears useful. I will upload it to a common repository, so that others can work with it.</p>
+<pre class="r"><code>election_modeling_data %&gt;% 
+  write_rds(&quot;election_modeling_data.rds&quot;)
+
+d_short %&gt;% 
+  write_csv(&quot;d_short.csv&quot;)
+
+d_short_c %&gt;% 
+  write_csv(&quot;d_short_c.csv&quot;)
+
+d_short_z %&gt;% 
+  write_csv(&quot;d_short_z.csv&quot;)
+</code></pre>
+<p>This dataset is now made available via <a href="https://osf.io/2yhr9/">osf</a>, DOI: 10.17605/OSF.IO/2YHR9. Similarly, our data frame <code>d</code> is available via the same plattform (note the file names of the CSV files).</p>
+</div>
+<div id="model-output-list" class="section level1">
+<h1>model output list</h1>
+<p>I use this list to store the model outputs.</p>
+<pre class="r"><code>models_stan &lt;- list()
+models_map &lt;- list()</code></pre>
+</div>
+<div id="helper-functions" class="section level1">
+<h1>Helper functions</h1>
+<p>The traceplot function from <code>rethinking</code> appears to have a bug, or does not work as I expected. Here’s a helper function:</p>
+<pre class="r"><code>my_traceplot &lt;- function(model) {
+  rstan::traceplot( model@stanfit, pars=names(model@start[[1]]))
+}</code></pre>
+</div>
+<div id="m9-falling-back-to-a-metric-linear-model-with-eastwest-foreigner-unemp" class="section level1">
+<h1>m9: Falling back to a (metric) linear model with east/west, foreigner, unemp</h1>
+<p>This one issues a warning</p>
+<pre class="r"><code>m9 &lt;- map(
+  alist(
+    afd_votes_z ~ dnorm(mu, sigma),
+    mu &lt;- alpha + beta0[east] +  beta1*foreigner_n_z + beta2*unemp_n_z,
+    beta0[east] ~ dnorm(0, 10),
+    alpha ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10),
+    beta2 ~ dnorm(0, 10),
+    sigma ~ dnorm(0, 10)
+  ),
+  data = d_short_z
+)
+#&gt; Error in as_mapper(.f, ...): argument &quot;.f&quot; is missing, with no default</code></pre>
+<pre class="r"><code>precis(m9)
+#&gt; Error in precis(m9): could not find function &quot;precis&quot;
+WAIC(m9)
+#&gt; Error in WAIC(m9): could not find function &quot;WAIC&quot;
+DIC(m9)
+#&gt; Error in DIC(m9): could not find function &quot;DIC&quot;</code></pre>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;east&quot;)]
+
+d$east_cat &lt;- ifelse(d$east == 1, &quot;yes&quot;, &quot;no&quot;)
+d$east_id &lt;- coerce_index(d$east)
+#&gt; Error in coerce_index(d$east): could not find function &quot;coerce_index&quot;
+
+m9_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu &lt;- alpha + beta0[east_id] +  beta1*for_prop_z + beta2*unemp_prop_z,
+    beta0[east_id] ~ dnorm(0, 1),
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2
+)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha + beta0[east_id] + : could not find function &quot;map2stan&quot;</code></pre>
+<pre class="r"><code>my_traceplot(m9_stan)
+#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m9_stan&#39; not found
+precis(m9_stan, depth = 2)
+#&gt; Error in precis(m9_stan, depth = 2): could not find function &quot;precis&quot;
+models_stan[[&quot;m9_stan&quot;]] &lt;- m9_stan
+#&gt; Error in eval(expr, envir, enclos): object &#39;m9_stan&#39; not found
+WAIC(m9_stan)
+#&gt; Error in WAIC(m9_stan): could not find function &quot;WAIC&quot;</code></pre>
+<p>DIC is not being produced, some issues exist.</p>
+</div>
+<div id="m9a-metric-model-with-no-eastwest" class="section level1">
+<h1>m9a: metric model with no east/west</h1>
+<p>This one does not compile:</p>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_votes_z&quot;, &quot;foreigner_n_z&quot;, &quot;unemp_n_z&quot;)]
+
+m9a &lt;- rethinking::map(
+  alist(
+    afd_votes_z ~ dnorm(mu, sigma),
+    mu &lt;- alpha +  beta1*foreigner_n_z+ beta2*unemp_n_z
+  ),
+  data = d
+  )
+#&gt; Error in pars[[i]]: subscript out of bounds</code></pre>
+<pre class="r"><code>precis(m9a)
+#&gt; Error in precis(m9a): could not find function &quot;precis&quot;</code></pre>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;)]
+
+m9a_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu &lt;- alpha +  beta1*for_prop_z + beta2*unemp_prop_z,
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha + beta1 * : could not find function &quot;map2stan&quot;</code></pre>
+<p>Looks good:</p>
+<pre class="r"><code>my_traceplot(m9a_stan)
+#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m9a_stan&#39; not found
+precis(m9a_stan)
+#&gt; Error in precis(m9a_stan): could not find function &quot;precis&quot;
+models_stan[[&quot;m9a_stan&quot;]] &lt;- m9a_stan
+#&gt; Error in eval(expr, envir, enclos): object &#39;m9a_stan&#39; not found</code></pre>
+<p>Here’s the data in the S4 object for the MCMC chains:</p>
+<pre class="r"><code>m7_stan@stanfit@sim$samples[[1]] %&gt;% str()</code></pre>
+<pre class="r"><code>precis(m9a_stan, depth = 2)
+#&gt; Error in precis(m9a_stan, depth = 2): could not find function &quot;precis&quot;
+WAIC(m9a_stan)
+#&gt; Error in WAIC(m9a_stan): could not find function &quot;WAIC&quot;
+DIC(m9a_stan)
+#&gt; Error in DIC(m9a_stan): could not find function &quot;DIC&quot;</code></pre>
+</div>
+<div id="m10-eastwest-as-numeric-predictor-not-as-varying-intercept" class="section level1">
+<h1>m10: East/West as numeric predictor, not as varying intercept</h1>
+<pre class="r"><code>m10 &lt;- map(
+  alist(
+    afd_votes_z ~ dnorm(mu, sigma),
+    mu &lt;- alpha +  beta1*foreigner_n_z + beta2*unemp_n_z + beta3*east,
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1),
+    beta3 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d_short_z
+)
+#&gt; Error in as_mapper(.f, ...): argument &quot;.f&quot; is missing, with no default</code></pre>
+<pre class="r"><code>precis(m10)
+#&gt; Error in precis(m10): could not find function &quot;precis&quot;</code></pre>
+<pre class="r"><code>
+d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;east_num&quot;)]
+#&gt; Error in `[.data.frame`(d_short_z, , c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, : undefined columns selected
+
+m10_stan &lt;- map2stan( 
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu &lt;- beta1*for_prop_z + beta2*unemp_prop_z + beta3*east_num,
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1),
+    beta3 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2
+)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta1 * for_prop_z + : could not find function &quot;map2stan&quot;</code></pre>
+<p>Model output:</p>
+<pre class="r"><code>precis(m10_stan)
+#&gt; Error in precis(m10_stan): could not find function &quot;precis&quot;
+my_traceplot(m10_stan)
+#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m10_stan&#39; not found
+DIC(m10_stan)
+#&gt; Error in DIC(m10_stan): could not find function &quot;DIC&quot;
+WAIC(m10_stan)
+#&gt; Error in WAIC(m10_stan): could not find function &quot;WAIC&quot;
+models_stan[[&quot;m10_stan&quot;]] &lt;- m10_stan
+#&gt; Error in eval(expr, envir, enclos): object &#39;m10_stan&#39; not found</code></pre>
+<p>Looks ok, but why are the coefficients so large? Strange.</p>
+</div>
+<div id="compare-models" class="section level1">
+<h1>Compare models</h1>
+<pre class="r"><code>compare(m0_stan, 
+        m1_stan, m2_stan, m3_stan, m4_stan, m5_stan,
+        m6_stan, m7_stan, m8_stan, m9_stan, m9a_stan, m10_stan,
+        func = DIC)
+#&gt; Error in compare(m0_stan, m1_stan, m2_stan, m3_stan, m4_stan, m5_stan, : could not find function &quot;compare&quot;</code></pre>
+</div>
+<div id="get-best-model" class="section level1">
+<h1>Get best model</h1>
+<pre class="r"><code>model_comp &lt;- compare(m0_stan, 
+                     m1_stan, m2_stan, m3_stan, m4_stan, m5_stan,
+                     m6_stan, m7_stan, m8_stan, m9_stan, m9a_stan, m10_stan,
+                     func = DIC)
+#&gt; Error in compare(m0_stan, m1_stan, m2_stan, m3_stan, m4_stan, m5_stan, : could not find function &quot;compare&quot;
+model_comp
+#&gt; Error in eval(expr, envir, enclos): object &#39;model_comp&#39; not found</code></pre>
+<pre class="r"><code>model_comp@output %&gt;% 
+  rownames_to_column() %&gt;% 
+  arrange(DIC) %&gt;% 
+  pull(rowname) %&gt;% 
+  `[`(1) -&gt; best_model_DIC
+#&gt; Error in eval(lhs, parent, parent): object &#39;model_comp&#39; not found</code></pre>
+<pre class="r"><code>comp_error(m9_stan)
+#&gt; Error in comp_error(m9_stan): could not find function &quot;comp_error&quot;</code></pre>
+</div>
+<div id="predictor-importance" class="section level1">
+<h1>Predictor importance</h1>
+<p>Let’s compare two models with only one predictor - either unemployment or migration or foreigners to see which model has a better entropy.</p>
+<div id="foreigner-prop" class="section level2">
+<h2>foreigner prop</h2>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;east&quot;)]
+
+m11a_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu &lt;- alpha +  beta1*for_prop_z,
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha + beta1 * : could not find function &quot;map2stan&quot;</code></pre>
+<p>Looks good:</p>
+<pre class="r"><code>my_traceplot(m11a_stan)
+#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m11a_stan&#39; not found
+precis(m11a_stan)
+#&gt; Error in precis(m11a_stan): could not find function &quot;precis&quot;
+models_stan[[&quot;m11a_stan&quot;]] &lt;- m11a_stan
+#&gt; Error in eval(expr, envir, enclos): object &#39;m11a_stan&#39; not found</code></pre>
+<!-- ## migration ratio -->
+<!-- ```{r m11b-stan} -->
+<!-- m11b_stan <- map2stan( -->
+<!--   alist( -->
+<!--     afd_votes ~ dnorm(mu, sigma), -->
+<!--     mu <- alpha +  beta1*pop_migr_background_n_z, -->
+<!--     alpha ~ dnorm(0, 1), -->
+<!--     beta1 ~ dnorm(0, 1), -->
+<!--     sigma ~ dnorm(0, 1) -->
+<!--   ), -->
+<!--   data = d_short_z, -->
+<!--    control = list(adapt_delta = 0.99), -->
+<!--   chains = 2) -->
+<!-- ``` -->
+<!-- ```{r m11b-traceplot} -->
+<!-- my_traceplot(m11b_stan) -->
+<!-- precis(m11b_stan) -->
+<!-- models_stan[["m11b_stan"]] <- m11b_stan -->
+<!-- ``` -->
+</div>
+<div id="unemployment" class="section level2">
+<h2>unemployment</h2>
+<pre class="r"><code>
+d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;east&quot;)]
+
+m11c_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu &lt;- alpha +  beta1*unemp_prop_z,
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha + beta1 * : could not find function &quot;map2stan&quot;</code></pre>
+<pre class="r"><code>my_traceplot(m11c_stan)
+#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m11c_stan&#39; not found
+precis(m11c_stan)
+#&gt; Error in precis(m11c_stan): could not find function &quot;precis&quot;
+models_stan[[&quot;m11c_stan&quot;]] &lt;- m11c_stan
+#&gt; Error in eval(expr, envir, enclos): object &#39;m11c_stan&#39; not found</code></pre>
+</div>
+<div id="east-only" class="section level2">
+<h2>east only</h2>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;east&quot;)]
+
+d$east_num &lt;- ifelse(d$east == &quot;yes&quot;, 1, 0)
+
+m11d_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu &lt;- beta1*east_num,
+    beta1 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+      ),
+  data = d,
+  chains = 2,
+  cores = 2)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta1 * east_num, : could not find function &quot;map2stan&quot;</code></pre>
+<p>Looks good:</p>
+<pre class="r"><code>my_traceplot(m11d_stan)
+#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m11d_stan&#39; not found
+precis(m11d_stan)
+#&gt; Error in precis(m11d_stan): could not find function &quot;precis&quot;
+WAIC(m11d_stan)
+#&gt; Error in WAIC(m11d_stan): could not find function &quot;WAIC&quot;
+models_stan[[&quot;m11d_stan&quot;]] &lt;- m11d_stan
+#&gt; Error in eval(expr, envir, enclos): object &#39;m11d_stan&#39; not found</code></pre>
+</div>
+</div>
+<div id="multilevel-normal-models" class="section level1">
+<h1>Multilevel normal models</h1>
+<div id="area-as-multilevel" class="section level2">
+<h2>area as multilevel</h2>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;,  &quot;area_nr&quot;)]
+
+m12_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu &lt;- beta0[area_nr],
+    beta0[area_nr] ~ dnorm(a, sigma),
+    a ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1),
+    alpha ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2
+)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[area_nr], : could not find function &quot;map2stan&quot;</code></pre>
+<pre class="r"><code>precis(m12_stan, depth = 2)
+#&gt; Error in precis(m12_stan, depth = 2): could not find function &quot;precis&quot;
+coeftab(m12_stan)
+#&gt; Error in coeftab(m12_stan): could not find function &quot;coeftab&quot;
+my_traceplot(m12_stan)
+#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m12_stan&#39; not found
+models_stan[[&quot;m12_stan&quot;]] &lt;- m12_stan
+#&gt; Error in eval(expr, envir, enclos): object &#39;m12_stan&#39; not found</code></pre>
+<p>Too many coefficients…</p>
+</div>
+<div id="state-as-multilevel" class="section level2">
+<h2>state as multilevel</h2>
+<pre class="r"><code>
+d &lt;- d_short_z[, c(&quot;afd_prop&quot;,  &quot;state_id&quot;)]
+
+m13_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu &lt;- beta0[state_id],
+    beta0[state_id] ~ dnorm(0, sigma2),
+    sigma ~ dnorm(0, 1),
+    sigma2 ~ dnorm(0, 1)
+  ),
+  data = d,
+  cores = 2,
+  chains = 2
+)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[state_id], : could not find function &quot;map2stan&quot;</code></pre>
+<pre class="r"><code>precis(m13_stan, depth = 2)
+#&gt; Error in precis(m13_stan, depth = 2): could not find function &quot;precis&quot;
+coeftab(m13_stan)
+#&gt; Error in coeftab(m13_stan): could not find function &quot;coeftab&quot;
+WAIC(m13_stan)
+#&gt; Error in WAIC(m13_stan): could not find function &quot;WAIC&quot;
+my_traceplot(m13_stan)
+#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m13_stan&#39; not found
+models_stan[[&quot;m13_stan&quot;]] &lt;- m13_stan
+#&gt; Error in eval(expr, envir, enclos): object &#39;m13_stan&#39; not found</code></pre>
+<p>Rhat is ok. Traceplot indicates problems. neff indicates problems.</p>
+</div>
+<div id="east-for_prop-unemp_prop" class="section level2">
+<h2>east + for_prop + unemp_prop</h2>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;east&quot;)]
+
+m14_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu &lt;- beta0[east] +  beta1*for_prop_z + beta2*unemp_prop_z,
+    beta0[east] ~ dnorm(0, sigma),
+    sigma ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2
+)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[east] + : could not find function &quot;map2stan&quot;</code></pre>
+<pre class="r"><code>precis(m14_stan, depth = 2)
+#&gt; Error in precis(m14_stan, depth = 2): could not find function &quot;precis&quot;
+coeftab(m14_stan)
+#&gt; Error in coeftab(m14_stan): could not find function &quot;coeftab&quot;
+my_traceplot(m14_stan)
+#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m14_stan&#39; not found
+models_stan[[&quot;m14_stan&quot;]] &lt;- m14_stan
+#&gt; Error in eval(expr, envir, enclos): object &#39;m14_stan&#39; not found</code></pre>
+</div>
+<div id="state-for_prop-unemp_prop" class="section level2">
+<h2>state + for_prop + unemp_prop</h2>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;state_id&quot;)]
+
+m15_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu &lt;- beta0[state_id] +  beta1*for_prop_z + beta2*unemp_prop_z,
+    beta0[state_id] ~ dnorm(0, sigma2),
+    sigma ~ dnorm(0, 1),
+    sigma2 ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores  = 2
+)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[state_id] + : could not find function &quot;map2stan&quot;</code></pre>
+<pre class="r"><code>precis(m15_stan, depth = 2)
+#&gt; Error in precis(m15_stan, depth = 2): could not find function &quot;precis&quot;
+coeftab(m15_stan)
+#&gt; Error in coeftab(m15_stan): could not find function &quot;coeftab&quot;
+my_traceplot(m15_stan)
+#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m15_stan&#39; not found
+models_stan[[&quot;m15_stan&quot;]] &lt;- m15_stan
+#&gt; Error in eval(expr, envir, enclos): object &#39;m15_stan&#39; not found</code></pre>
+</div>
+</div>
+<div id="normal-null-model" class="section level1">
+<h1>Normal null model</h1>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;), drop = FALSE]
+
+m16_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu &lt;- alpha,
+    alpha ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2
+)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha, alpha ~ : could not find function &quot;map2stan&quot;</code></pre>
+<pre class="r"><code>precis(m16_stan, depth = 2)
+#&gt; Error in precis(m16_stan, depth = 2): could not find function &quot;precis&quot;
+coeftab(m16_stan)
+#&gt; Error in coeftab(m16_stan): could not find function &quot;coeftab&quot;
+my_traceplot(m16_stan)
+#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m16_stan&#39; not found
+models_stan[[&quot;m16_stan&quot;]] &lt;- m16_stan
+#&gt; Error in eval(expr, envir, enclos): object &#39;m16_stan&#39; not found</code></pre>
+</div>
+<div id="compare-normal-models" class="section level1">
+<h1>Compare Normal models</h1>
+<p>Now check which one has a lower DIC or WAIC:</p>
+<pre class="r"><code>stan_normal_models &lt;- list(&quot;m9_stan&quot; = m9_stan, 
+                           &quot;m9a_stan&quot; = m9a_stan, 
+                           &quot;m10_stan&quot; = m10_stan,
+                           &quot;m11a_stan&quot; = m11a_stan, 
+                           &quot;m11c_stan&quot; = m11c_stan,
+                           &quot;m11d_stan&quot; = m11d_stan,
+                           &quot;m12_stan&quot; = m12_stan,
+                           &quot;m13_stan&quot; = m13_stan,
+                           &quot;m14_stan&quot; = m14_stan,
+                           &quot;m15_stan&quot; = m15_stan,
+                           &quot;m16_stan&quot; = m16_stan)
+#&gt; Error in eval(expr, envir, enclos): object &#39;m9_stan&#39; not found
+
+stan_normal_models_vec &lt;- c(&quot;m9_stan&quot; = m9_stan, 
+                            &quot;m9a_stan&quot; = m9a_stan, 
+                            &quot;m10_stan&quot; = m10_stan,
+                            &quot;m11a_stan&quot; = m11a_stan, 
+                            &quot;m11c_stan&quot; = m11c_stan,
+                            &quot;m11d_stan&quot; = m11d_stan,
+                            &quot;m12_stan&quot; = m12_stan,
+                            &quot;m13_stan&quot; = m13_stan,
+                            &quot;m14_stan&quot; = m14_stan,
+                            &quot;m15_stan&quot; = m15_stan,
+                            &quot;m16_stan&quot; = m16_stan)
+#&gt; Error in eval(expr, envir, enclos): object &#39;m9_stan&#39; not found
+
+
+stan_normal_models
+#&gt; Error in eval(expr, envir, enclos): object &#39;stan_normal_models&#39; not found
+
+save(stan_normal_models, file = &quot;stan_normal_models.Rda&quot;)
+#&gt; Error in save(stan_normal_models, file = &quot;stan_normal_models.Rda&quot;): object &#39;stan_normal_models&#39; not found
+stan_model_comparison &lt;- compare(m9_stan, m9a_stan, 
+                                 m10_stan,
+                                 m11a_stan, m11c_stan, m11d_stan,
+                                 m12_stan, m13_stan, m14_stan, m15_stan,
+                                 m16_stan)
+#&gt; Error in compare(m9_stan, m9a_stan, m10_stan, m11a_stan, m11c_stan, m11d_stan, : could not find function &quot;compare&quot;
+stan_model_comparison 
+#&gt; Error in eval(expr, envir, enclos): object &#39;stan_model_comparison&#39; not found
+
+save(stan_model_comparison, file = &quot;stan_model_comparison.Rda&quot;)
+#&gt; Error in save(stan_model_comparison, file = &quot;stan_model_comparison.Rda&quot;): object &#39;stan_model_comparison&#39; not found</code></pre>
+<p><code>m11b</code> is better than <code>m11a</code> - unemployment apears to be more important to predict AfD success compared to migration rate in the area.</p>
+</div>
+<div id="geo-plotting" class="section level1">
+<h1>Geo plotting</h1>
+<p>AfD success in the election:</p>
+<pre class="r"><code>wahlkreise_shp %&gt;% 
+  left_join(select(d_short, area_nr, afd_prop), by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;% 
+  ggplot() +
+  geom_sf(aes(fill = afd_prop)) + 
+  theme_void() +
+  scale_fill_viridis() +
+  labs(fill=&quot;Afd votes\n(Zweitstimme)&quot;,
+       caption = &quot;Data provided by the Bundeswahlleiter 2017&quot;) -&gt; p_afd
+#&gt; Error in scale_fill_viridis(): could not find function &quot;scale_fill_viridis&quot;
+p_afd
+#&gt; Error in eval(expr, envir, enclos): object &#39;p_afd&#39; not found</code></pre>
+<p>Unemployment rates in Germany per district:</p>
+<pre class="r"><code>wahlkreise_shp %&gt;% 
+  left_join(select(d_short, area_nr, unemp_n, total_n), by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;% 
+  mutate(unemp_prop = unemp_n / total_n) %&gt;% 
+  ggplot() +
+  geom_sf(aes(fill = unemp_prop)) + 
+  theme_void() +
+  scale_fill_viridis() +
+  labs(fill=&quot;unemployment rate&quot;,
+       caption = &quot;Data provided by the Bundeswahlleiter 2017&quot;) -&gt; p_unemp
+#&gt; Error in scale_fill_viridis(): could not find function &quot;scale_fill_viridis&quot;
+p_unemp
+#&gt; Error in eval(expr, envir, enclos): object &#39;p_unemp&#39; not found</code></pre>
+<p>Foreigner rates:</p>
+<pre class="r"><code>wahlkreise_shp %&gt;% 
+  left_join(select(d_short, area_nr, for_prop, total_n), by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;% 
+  ggplot() +
+  geom_sf(aes(fill = for_prop)) + 
+  theme_void() +
+  scale_fill_viridis() +
+  labs(fill=&quot;Foreigner rate&quot;,
+       caption = &quot;Data provided by the Bundeswahlleiter 2017&quot;) -&gt; p_foreign
+#&gt; Error in scale_fill_viridis(): could not find function &quot;scale_fill_viridis&quot;
+
+p_foreign
+#&gt; Error in eval(expr, envir, enclos): object &#39;p_foreign&#39; not found</code></pre>
+<p>Joint diagrams</p>
+<pre class="r"><code>library(gridExtra)
+
+grid.arrange(p_unemp, p_afd, nrow = 1)
+#&gt; Error in arrangeGrob(...): object &#39;p_unemp&#39; not found
+grid.arrange(p_foreign, p_afd, nrow = 1)
+#&gt; Error in arrangeGrob(...): object &#39;p_foreign&#39; not found</code></pre>
+</div>
+<div id="computing-prediction-errors" class="section level1">
+<h1>Computing prediction errors</h1>
+<p>Here’s a function to compute the modeling error, defined as the absolute difference of the estimated model value (of afd proportion) minus the observed value (of afd proportion).</p>
+<pre class="r"><code>comp_error &lt;- function(model, data = d_short_z, fun = mean) {
+  posterior_per_person &lt;- link(model)
+  
+  
+  as_tibble(posterior_per_person) %&gt;% 
+    summarise_all(fun) %&gt;% 
+    gather() %&gt;% 
+    rename(estimate = value) %&gt;% 
+    mutate(afd_prop = data$afd_votes / data$votes_total,
+           error = abs(estimate - afd_prop)) %&gt;% 
+    pull(error) -&gt; error_vec
+  
+  return(error_vec)
+}</code></pre>
+<p>Apply the function on all models:</p>
+<pre class="r"><code>model_error &lt;- lapply(stan_normal_models_vec, comp_error)
+#&gt; Error in lapply(stan_normal_models_vec, comp_error): object &#39;stan_normal_models_vec&#39; not found
+model_error
+#&gt; Error in eval(expr, envir, enclos): object &#39;model_error&#39; not found</code></pre>
+<p>Compute the median absolute error:</p>
+<pre class="r"><code>md_abs_error_all_models &lt;- sapply(model_error, median) %&gt;% unlist()
+#&gt; Error in lapply(X = X, FUN = FUN, ...): object &#39;model_error&#39; not found
+md_abs_error_all_models
+#&gt; Error in eval(expr, envir, enclos): object &#39;md_abs_error_all_models&#39; not found
+
+best_model_name &lt;- md_abs_error_all_models[which.min(md_abs_error_all_models$value), &quot;model&quot;] %&gt;% simplify()
+#&gt; Error in eval(lhs, parent, parent): object &#39;md_abs_error_all_models&#39; not found</code></pre>
+<p>Also, compute the IQR of the errors:</p>
+<pre class="r"><code>modell_error_IQR &lt;- lapply(stan_normal_models_vec, comp_error, fun = IQR)
+#&gt; Error in lapply(stan_normal_models_vec, comp_error, fun = IQR): object &#39;stan_normal_models_vec&#39; not found</code></pre>
+</div>
+<div id="visualizing-prediction-error" class="section level1">
+<h1>Visualizing prediction error</h1>
+<p>Some preparation:</p>
+<pre class="r"><code>model_error %&gt;% 
+    as.data.frame() -&gt; model_error_df
+#&gt; Error in eval(lhs, parent, parent): object &#39;model_error&#39; not found
+
+glimpse(model_error_df)
+#&gt; Error in glimpse(model_error_df): object &#39;model_error_df&#39; not found
+
+model_names_binom &lt;- list(&quot;m0_stan&quot;, &quot;m1_stan&quot;, &quot;m2_stan&quot;, &quot;m3_stan&quot;,
+               &quot;m4_stan&quot;, &quot;m5_stan&quot;, &quot;m6_stan&quot;, &quot;m7_stan&quot;) 
+
+model_names &lt;- c(&quot;m9_stan&quot;,
+                 &quot;m9a_stan&quot;,
+                 &quot;m10_stan&quot; ,
+                 &quot;m11a_stan&quot;,
+                 &quot;m11c_stan&quot;,
+                 &quot;m11d_stan&quot;,
+                 &quot;m12_stan&quot;,
+                 &quot;m13_stan&quot;,
+                 &quot;m14_stan&quot;,
+                 &quot;m15_stan&quot; ,
+                 &quot;m16_stan&quot;)
+
+
+names(model_error_df) &lt;- model_names
+#&gt; Error in names(model_error_df) &lt;- model_names: object &#39;model_error_df&#39; not found
+
+model_error_df %&gt;% 
+  mutate(afd_prop = d_short$afd_prop,
+         id = 1:nrow(model_error_df)) -&gt; model_error_df
+#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_df&#39; not found
+
+
+modell_error_IQR %&gt;% 
+  as.data.frame() -&gt; model_error_IQR_df
+#&gt; Error in eval(lhs, parent, parent): object &#39;modell_error_IQR&#39; not found
+
+
+names(model_error_IQR_df) &lt;- model_names
+#&gt; Error in names(model_error_IQR_df) &lt;- model_names: object &#39;model_error_IQR_df&#39; not found
+
+model_error_IQR_df %&gt;% 
+  mutate(id = 1:nrow(model_error_IQR_df)) -&gt; model_error_IQR_df
+#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_IQR_df&#39; not found</code></pre>
+<p>Convert to long version for plotting:</p>
+<pre class="r"><code>model_error_IQR_df %&gt;% 
+  gather(key = model, value = iqr, -c(id)) %&gt;% 
+  mutate(stat = &quot;IQR&quot;) -&gt; model_error_IQR_df_long
+#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_IQR_df&#39; not found
+
+
+model_error_df %&gt;% 
+  gather(key = model, value = error, -c(afd_prop, id)) %&gt;% 
+  mutate(stat = &quot;median&quot;) -&gt; model_error_df_long
+#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_df&#39; not found
+
+model_error_df_long %&gt;% 
+  bind_rows(model_error_IQR_df_long) -&gt; model_error_long
+#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_df_long&#39; not found
+
+
+model_error_df_long %&gt;% 
+  left_join(model_error_IQR_df_long, by = c(&quot;id&quot;, &quot;model&quot;)) %&gt;% 
+  select(-c(stat.x, stat.y)) -&gt; model_error_md_iqr
+#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_df_long&#39; not found</code></pre>
+<p>Now plot:</p>
+<pre class="r"><code>
+as_tibble(md_abs_error_all_models) %&gt;% 
+  mutate(model = unlist(model_names),
+         best_model = ifelse(model_names == best_model_name, TRUE, FALSE)) -&gt; md_abs_error_all_models
+#&gt; Error in as_tibble(md_abs_error_all_models): object &#39;md_abs_error_all_models&#39; not found
+
+glimpse(md_abs_error_all_models)
+#&gt; Error in glimpse(md_abs_error_all_models): object &#39;md_abs_error_all_models&#39; not found
+
+model_error_md_iqr %&gt;% 
+  arrange(-error) %&gt;% 
+  ggplot(aes(x = id)) +
+  facet_wrap(~model) +
+  geom_hline(aes(yintercept = value), data = md_abs_error_all_models) +
+    geom_errorbar(aes(ymin = error - (iqr/2),
+                    ymax = error + (iqr/2)),
+                alpha = .8,
+                color = &quot;gray40&quot;) +
+  geom_point(aes(y = error)) +
+  geom_label(aes(label = round(value, 3),
+                 color = best_model), x = 1, y = .2, 
+            data = md_abs_error_all_models, 
+            hjust = 0) +
+  guides(color=FALSE) +
+  scale_color_manual(values = c(&quot;red&quot;, &quot;darkgreen&quot;))
+#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_md_iqr&#39; not found</code></pre>
+</div>
+<div id="plotting-prediction-error-against-observed-values" class="section level1">
+<h1>Plotting prediction error against observed values</h1>
+<pre class="r"><code>posterior_per_person_best_model &lt;- link(m15_stan)
+#&gt; Error in link(m15_stan): could not find function &quot;link&quot;
+  
+posterior_per_person_best_model %&gt;%  
+  as_tibble() %&gt;% 
+    summarise_all(median) %&gt;% 
+    gather() %&gt;% 
+    rename(estimate = value) %&gt;% 
+  add_column(area_nr = 1:nrow(.)) %&gt;% 
+  full_join(d_short) %&gt;%
+  mutate(error = abs(estimate - afd_prop),
+         top05 = percent_rank(error) &gt;= .95) -&gt; d_short_w_pred_err 
+#&gt; Error in eval(lhs, parent, parent): object &#39;posterior_per_person_best_model&#39; not found
+
+
+polygon_pos &lt;- data.frame(
+  x = c(0, 0.4, 0.4,    0, 0.4, 0, 0 ),
+  y = c(0, 0, 0.4,      0, 0.4, 0.4, 0),
+  value = c(&quot;underestimates&quot;, &quot;underestimates&quot;, &quot;underestimates&quot;, &quot;overestimates&quot;, &quot;overestimates&quot;, &quot;overestimates&quot;, &quot;overestimates&quot;)
+)
+ 
+d_short_w_pred_err %&gt;%  
+  ggplot() +
+  aes(x = afd_prop, y = estimate) +
+  geom_abline(slope = 1, intercept = 0, color = &quot;grey60&quot;) +
+  geom_polygon(data = polygon_pos, aes(x = x, y = y, fill = value), alpha = .1) +
+  geom_point(aes(color = error,
+                 shape = east),
+             alpha = .6,
+             size = 2) +
+  ggrepel::geom_label_repel(aes(label = area_name), data = filter(d_short_w_pred_err, top05 == TRUE)) +
+  annotate(&quot;text&quot;, x = 0.4, y = 0, label = &quot;model understimates&quot;, hjust = 1, vjust = 0) +
+  annotate(&quot;text&quot;, x = 0, y = 0.4, label = &quot;model overestimates&quot;, hjust = 0, vjust = 1) +
+  labs(x = &quot;Observed AfD votes (proportion)&quot;,
+       y = &quot;Estimated AfD votes (proportion)&quot;,
+       caption = &quot;n=299 electoral districts; data provided by Bundeswahlleiter 2017&quot;) +
+  guides(fill = FALSE)
+#&gt; Error in eval(lhs, parent, parent): object &#39;d_short_w_pred_err&#39; not found</code></pre>
+<pre class="r"><code>d_short_w_pred %&gt;% 
+  ggplot() +
+  aes(x = afd_prop)
+#&gt; Error in eval(lhs, parent, parent): object &#39;d_short_w_pred&#39; not found</code></pre>
+</div>
+<div id="sensecheck" class="section level1">
+<h1>Sensecheck</h1>
+<p>I just wondered what the bivariate correlations of the predictors to <code>afd_vote</code> is`. Let’s check that.</p>
+<pre class="r"><code>library(GGally)
+
+ggpairs(d_short, columns = c(&quot;foreigner_n&quot;, &quot;unemp_n&quot;, &quot;afd_votes&quot;))</code></pre>
+<p><img src="/post/2018-08-25-bayesian-modeling-of-populist-party-success-in-german-federal-elections_files/figure-html/unnamed-chunk-45-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>There is a substantial <em>negatie</em> correlations with number of foreigners and a positive correlation with unemployment, but (nearly) no correlation with unemployment numbers.
+But our analysis above suggest that these associations are spurious once the state is controlled for. To make things easy, let’s pick two states, say Sachsen und Bayern and check in each state the assoctions.</p>
+<pre class="r"><code>d_short %&gt;%
+  filter(state == &quot;Bayern&quot;) %&gt;% 
+  ggpairs( columns = c(&quot;foreigner_n&quot;, &quot;unemp_n&quot;, &quot;afd_votes&quot;))</code></pre>
+<p><img src="/post/2018-08-25-bayesian-modeling-of-populist-party-success-in-german-federal-elections_files/figure-html/unnamed-chunk-46-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>d_short %&gt;%
+  filter(state == &quot;Sachsen&quot;) %&gt;% 
+  ggpairs( columns = c(&quot;foreigner_n&quot;, &quot;unemp_n&quot;, &quot;afd_votes&quot;))</code></pre>
+<p><img src="/post/2018-08-25-bayesian-modeling-of-populist-party-success-in-german-federal-elections_files/figure-html/unnamed-chunk-47-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Interestingly, in Sachsen manifests a strong negative correlation between AfD and foreigner rates.</p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+
