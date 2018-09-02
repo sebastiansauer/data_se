@@ -25,7 +25,7 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   message = FALSE,
   warning = FALSE,
-  error = FALSE,
+  error = TRUE,
   cache = TRUE,
   out.width = "70%",
   fig.align = 'center',
@@ -70,7 +70,6 @@ First, get the election data.They can be accessed from the [Bundeswahlleiter](ht
 
 ```{r data-elec}
 data("elec_results")
-
 ```
 
 
@@ -432,7 +431,7 @@ my_traceplot <- function(model) {
 
 
 
-```{r m9-stan, error = TRUE}
+```{r m9-stan, error = TRUE, results = "hide"}
 d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z", "east")]
 
 m9_stan <- map2stan(
@@ -466,7 +465,7 @@ DIC is not being produced, some issues exist.
 
 
 
-```{r m9a-stan}
+```{r m9a-stan, results = "hide"}
 d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z")]
 
 m9a_stan <- map2stan(
@@ -508,7 +507,7 @@ DIC(m9a_stan)
 
 
 
-```{r m10-stan}
+```{r m10-stan, results = "hide"}
 
 d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z", "east_num")]
 
@@ -550,7 +549,7 @@ Let's compare two models with only one predictor - either unemployment or migrat
 
 
 ## foreigner prop
-```{r m11a-stan}
+```{r m11a-stan, results = "hide"}
 d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z", "east")]
 
 m11a_stan <- map2stan(
@@ -578,7 +577,7 @@ models_stan[["m11a_stan"]] <- m11a_stan
 
 ## unemployment
 
-```{r m11c-stan}
+```{r m11c-stan, results = "hide"}
 
 d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z", "east")]
 
@@ -607,7 +606,7 @@ models_stan[["m11c_stan"]] <- m11c_stan
 
 
 
-```{r m11d-stan}
+```{r m11d-stan, results = "hide"}
 d <- d_short_z[, c("afd_prop", "for_prop_z", "east")]
 
 d$east_num <- ifelse(d$east == "yes", 1, 0)
@@ -643,7 +642,7 @@ models_stan[["m11d_stan"]] <- m11d_stan
 
 ## area as multilevel
 
-```{r m12-stan, eval = TRUE}
+```{r m12-stan, eval = TRUE, results = "hide"}
 d <- d_short_z[, c("afd_prop",  "area_nr")]
 
 m12_stan <- map2stan(
@@ -677,7 +676,7 @@ Too many coefficients...
 
 ## state as multilevel
 
-```{r m13-stan, eval = TRUE}
+```{r m13-stan, eval = TRUE, results = "hide"}
 
 d <- d_short_z[, c("afd_prop",  "state_id")]
 
@@ -714,7 +713,7 @@ Rhat is ok. Traceplot indicates problems. neff indicates problems.
 
 ## east + for_prop + unemp_prop
 
-```{r m14-stan, eval = TRUE}
+```{r m14-stan, eval = TRUE, results = "hide"}
 d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z", "east")]
 
 m14_stan <- map2stan(
@@ -745,7 +744,7 @@ models_stan[["m14_stan"]] <- m14_stan
 
 ## state + for_prop + unemp_prop
 
-```{r m15-stan, eval = TRUE}
+```{r m15-stan, eval = TRUE, results = "hide"}
 d <- d_short_z[, c("afd_prop", "for_prop_z", "unemp_prop_z", "state_id")]
 
 m15_stan <- map2stan(
@@ -778,7 +777,7 @@ models_stan[["m15_stan"]] <- m15_stan
 # Normal null model
 
 
-```{r m16-stan, eval = TRUE}
+```{r m16-stan, eval = TRUE, results = "hide"}
 d <- d_short_z[, c("afd_prop"), drop = FALSE]
 
 m16_stan <- map2stan(
@@ -812,7 +811,7 @@ models_stan[["m16_stan"]] <- m16_stan
 
 Now check which one has a lower DIC or WAIC:
 
-```{r}
+```{r comp-norm-models}
 stan_normal_models <- list("m9_stan" = m9_stan, 
                            "m9a_stan" = m9a_stan, 
                            "m10_stan" = m10_stan,
@@ -838,9 +837,9 @@ stan_normal_models_vec <- c("m9_stan" = m9_stan,
                             "m16_stan" = m16_stan)
 
 
-stan_normal_models
+#stan_normal_models
 
-save(stan_normal_models, file = "stan_normal_models.Rda")
+#save(stan_normal_models, file = "stan_normal_models.Rda")
 stan_model_comparison <- compare(m9_stan, m9a_stan, 
                                  m10_stan,
                                  m11a_stan, m11c_stan, m11d_stan,
@@ -926,7 +925,7 @@ grid.arrange(p_foreign, p_afd, nrow = 1)
 Here's a function to compute the modeling error, defined as the absolute difference of the estimated model value (of afd proportion) minus the observed value (of afd proportion).
 
 
-```{r}
+```{r fun-comp-err}
 comp_error <- function(model, data = d_short_z, fun = mean) {
   posterior_per_person <- link(model)
   
@@ -947,16 +946,16 @@ comp_error <- function(model, data = d_short_z, fun = mean) {
 
 Apply the function on all models:
 
-```{r comp-all-model-errors}
+```{r comp-all-model-errors, results = "hide"}
 model_error <- lapply(stan_normal_models_vec, comp_error)
-model_error
+#model_error
 ```
 
 
 Compute the median absolute error:
 
 
-```{r}
+```{r md-abs-err, results = "hide"}
 md_abs_error_all_models <- sapply(model_error, median) %>% unlist()
 md_abs_error_all_models
 
@@ -968,7 +967,7 @@ best_model_name <- md_abs_error_all_models[which.min(md_abs_error_all_models$val
 
 Also, compute the IQR of the errors:
 
-```{r}
+```{r iqr-abs-err}
 modell_error_IQR <- lapply(stan_normal_models_vec, comp_error, fun = IQR)
 ```
 
@@ -1073,7 +1072,7 @@ model_error_md_iqr %>%
 # Plotting prediction error against observed values
 
 
-```{r}
+```{r p-obs-est-err-values, out.width="100%"}
 posterior_per_person_best_model <- link(m15_stan)
   
 posterior_per_person_best_model %>%  
@@ -1115,12 +1114,6 @@ d_short_w_pred_err %>%
 ```
 
 
-```{r}
-d_short_w_pred %>% 
-  ggplot() +
-  aes(x = afd_prop)
-```
-
 
 
 
@@ -1131,7 +1124,7 @@ I just wondered what the bivariate correlations of the predictors to `afd_vote` 
 
 
 
-```{r}
+```{r ggally}
 library(GGally)
 
 ggpairs(d_short, columns = c("foreigner_n", "unemp_n", "afd_votes"))
