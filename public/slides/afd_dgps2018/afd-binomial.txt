@@ -1,0 +1,817 @@
+
+
+# Null model
+
+Now let's build a first model. Let's start with the null model, ie without predictors. This is the model specification:
+
+
+$n_{\text{AfD},i} \sim \text{Binomial}(n_i, p_i)$
+
+$\text{logit}(p_i) = \beta_0$
+
+$\beta_0 \sim \mathcal{N}(0,10)$
+
+Here, $n_{\text{AfD},i}$ refers to the number of AfD votes in district $i$. This variable is taken to be binomially distributed with the parameters $n_i$ (number of valid votes in district $i$) and $p_i$, the probability of voting for the AfD. The model only consists of an intercept $\alpha$, no predictors. The logit of the intercept is (very) mildly informative, conceptualized as a normal distribution with sigma of 10 (and mean zero).
+
+Now let's fit the model using a quadratic approximation by help of the `rethinking` package.
+
+
+Some options:
+```{r}
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+```
+
+
+
+
+```{r m0}
+
+d <- d_short[, c("afd_votes", "votes_total")]
+
+m0 <- rethinking::map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0,
+    beta0 ~ dnorm(0, 10)
+  ),
+  data = d
+)
+
+models_map <- c(models_stan, m0)
+```
+
+
+Let's also try a Poission model:
+
+```{r m0a}
+d <- d_short[, c("afd_votes", "votes_total")]
+
+m0a <- rethinking::map2stan(
+alist(
+    afd_votes ~ dpois(lambda),
+    logit(lambda) <- beta0,
+    beta0 ~ dnorm(0, 10)
+  ),
+  data = d
+)
+```
+
+
+Note that no NAs are allowed for `map`, and data must be given as a `data frame`, not as a `tibble`.
+
+
+Let's check this model:
+
+```{r error = TRUE}
+precis(m0)
+DIC(m0)
+#WAIC(m0)
+precis(m0a)
+DIC(m0a)
+```
+
+So the logit for AfD voting is approx. -2. What's that in probability?
+
+```{r}
+logistic(-2)
+```
+
+About 12%.
+
+
+Let's have look at the histogram of the parameter $\beta_0$:
+
+```{r}
+post <- extract.samples(m0)
+dens(post$beta0)
+```
+
+
+
+## m0stan
+
+Now let's fit the model using MCMC, for comparison purposes with more complicated models to be computed later on:
+
+```{r m0-stan}
+d <- d_short[, c("afd_votes")]
+
+
+m0_stan <- map2stan(
+  alist(
+        afd_votes ~ dbinom(votes_total, p),
+        logit(p) <- beta0,
+        beta0 ~ dnorm(0, 10)
+      ),
+      data = d,
+      WAIC = FALSE)
+
+
+precis(m0_stan)
+DIC(m0_stan)
+#WAIC(m0_stan)
+```
+
+
+```{r}
+my_traceplot(m0_stan)
+```
+
+looks ok.
+
+
+Now the Possion modeL.
+
+```{r m0a-stan}
+d <- d_short[, c("afd_votes", "votes_total"), drop = FALSE]
+
+
+m0a_stan <- map2stan(
+  alist(
+        afd_votes ~ dpois(lambda),
+        logit(lambda) <- beta0,
+        beta0 ~ dnorm(0, 10)
+      ),
+      data = d,
+      WAIC = FALSE)
+
+
+precis(m0a_stan)
+DIC(m0a_stan)
+#WAIC(m0_stan)
+```
+
+The number of effective samples is quite low.
+
+```{r}
+my_traceplot(m0a_stan)
+```
+
+Hm, not too bad.
+
+
+
+
+# Model m1: foreigner rate as predictor
+
+A not-so-deep-digging hypothesis would be that the more foreigners, the higher the AfD success. A rationale would be that given that "foreigners" were "bad", ie excerting a real, substanial negative impact on society eg by increased crime rates, than in those areas the AfD votes should rise.
+
+Now we specify the following model:
+
+
+$n_{\text{AfD},i} \sim \text{Binomial}(n_i, p_i)$
+
+$\text{logit}(p_i) = \beta_0 + \beta_1\text{Foreigner}$
+
+$\beta_0 \sim \mathcal{N}(0,10)$
+
+$\beta_1 \sim \mathcal{N}(0, 10)$
+
+
+That means we have added a predictor, the foreigners count of the disctrict, to the equation. Now let's fit the model:
+
+
+
+
+```{r m1}
+d <- d_short[, c("afd_votes", "votes_total", "foreigner_n")]
+
+
+m1 <- rethinking::map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0 + beta1*foreigner_n,
+    beta0 ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10)
+  ),
+  data = d)
+)
+```
+
+Again, let's use MCMC:
+
+```{r m1-stan}
+
+d <- d_short[, c("afd_votes", "votes_total", "foreigner_n")]
+mean(d_short$afd_votes)
+
+m1_stan <- map2stan(
+ alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0 + beta1*foreigner_n,
+    beta0 ~ dnorm(0, 1e5),
+    beta1 ~ dnorm(0, 10000)
+  ),
+  data = d,
+  WAIC = FALSE,
+  iter = 4000,
+  control = list(max_treedepth = 25,
+                 adapt_delta = 0.99))
+
+
+
+precis(m1_stan)
+DIC(m1_stan)
+
+
+```
+
+Rhat indicates a catastrophe.
+
+
+```{r}
+my_traceplot(m1_stan)
+pairs(m1_stan)
+```
+
+
+
+
+
+Let's check the results:
+
+```{r}
+precis(m1, corr = TRUE)
+DIC(m1)
+```
+
+There appears to be a small (near to zero) effect of `foreigner_n`. What's the difference in model fit?
+
+```{r}
+comp_0_1 <- compare(m0, m1, n = 1e4, refresh = 1, func = DIC)
+```
+
+This computation was time costly, so we better safe the result in an object.
+
+So `m1` was better than `m0`. Great. Now what? Let's add some more predictors, predictors suggested by common news/media type explanation of populist party success. I'm not pretending to build on strong theories here. Also, I'm unsure if such theories exist (I doubt it).
+
+
+```{r m1a-stan}
+m1a_stan <- map2stan(
+  alist(
+    afd_votes ~ dpois(lambda),
+    logit(lambda) <- beta0 + beta1*foreigner_n,
+    beta0 ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10)
+  ),
+  data = d,
+  WAIC = FALSE,
+  iter = 1000)
+
+
+
+precis(m1a_stan)
+DIC(m1a_stan)
+```
+
+
+```{r}
+my_traceplot(m1a_stan)
+```
+
+
+
+
+
+
+# m2: Unemployment rate and foreigners
+
+The more unemployment, the more AfD votes? Let's see.
+
+
+The story is similar, here's the fitting code:
+
+
+
+```{r m2}
+m2 <- map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0 + beta1*foreigner_n + beta2*unemp_n,
+    beta0 ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10),
+    beta2 ~ dnorm(0, 10)
+  ),
+  data = d_short,
+  start = list(beta0 = 0,
+               beta1 = 0,
+               beta2 = 0)
+)
+```
+
+
+```{r}
+precis(m2)
+```
+
+
+Noteworthy, both predictors remain weak compared to the baseline coefficient (beta0). Which model of the three ranks best?
+
+
+```{r}
+comp_0_1_2 <- compare(m0, m1, m2, func = DIC)
+comp_0_1_2
+```
+
+
+Model `m2` gets all the weight. We are improving our models. This is not too say that we are improving *much*, but still, it looks like improvement.
+
+
+
+Again, let's use MCMC:
+
+```{r m2-stan}
+m2_stan <- map2stan(m2, WAIC = FALSE)
+precis(m2_stan)
+DIC(m2_stan)
+```
+
+
+```{r}
+my_traceplot(m2_stan)
+```
+
+```{r}
+pairs(m2_stan)
+```
+
+
+
+
+# m3: Unemployment rate and foreigners and migration
+
+The more migragation, the more populism (ie., more AfD votes)? Let's check this hypothesis by adding this predictor to our linear model.
+
+
+
+
+```{r m3}
+m3 <- map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0 + beta1*foreigner_n + beta2*unemp_n + beta3*pop_migr_background_n,
+    beta0 ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10),
+    beta2 ~ dnorm(0, 10),
+    beta3 ~ dnorm(0, 10)
+  ),
+  data = d_short,
+  start = list(beta0 = 0,
+               beta1 = 0,
+               beta2 = 0,
+               beta3 = 0)
+)
+```
+
+
+```{r}
+precis(m3)
+DIC(m3)
+```
+
+
+
+
+```{r comp-0-3}
+comp_0_1_2_3 <- compare(m0, m1, m2, m3, func = DIC)
+comp_0_1_2_3
+```
+
+
+Again better; beware: even if the reduction in likelihood seems "large", we are not entitled to verdict that `m3` is "much" better than `m2`.
+
+
+
+Again, let's use MCMC:
+
+```{r m3-stan}
+m3_stan <- map2stan(m3, WAIC = FALSE)
+precis(m3_stan)
+DIC(m3_stan)
+```
+
+
+Seems to be ok:
+
+```{r}
+my_traceplot(m3_stan)
+```
+
+
+
+# m4: Varying state intercept, no other predictors
+
+Does the federal state plays a role for predicting AfD success? Is one state more prone to uplift the populism than another? In all this modeling we should not lose sight that we are merely playing with correlational data. We are not entitled to draw strong conclusions, let alone causal ones. It would be premature to claim "State X is so populism which is the cause that populist parties flourish there". Of course, we cannot exlude such hypotheses either, we are quite uncertain. As a sidenote: Uncertainty should not stop one to take action, because not taking action may mean some action is taking anyhow.
+
+First, we build a model with only varyiing intercepts but no predictors to gauge the effect of this varying intercept.
+
+```{r m4}
+
+data <- d_short[c("afd_votes", "votes_total", "state_id")]
+
+m4 <- map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0[state_id],
+    beta0[state_id] ~ dnorm(0, 5)
+  ),
+  data = data,
+  start = list(beta0 = 0)
+)
+```
+
+
+```{r error = TRUE}
+DIC(m4)
+WAIC(m4)
+```
+
+
+Something appears to be wrong in the woodshed - DIC and WAIC do not give results.
+
+
+
+```{r}
+m4_precis <- precis(m4, depth = 2)
+m4_precis@output %>%
+  rownames_to_column() %>%
+  rename(state_coef = rowname) %>%
+  mutate(state_id = 1:16) %>%
+  mutate(p = logistic(Mean),
+         lower = logistic(`5.5%`),
+         upper = logistic(`94.5%`)) -> m4_coefs
+m4_coefs
+```
+
+Quite some range in the AfD logit values.
+
+
+
+Let's plot that.
+
+
+```{r}
+m4_coefs %>%
+  ggplot(aes(x = reorder(state_id, p))) +
+  geom_errorbar(aes(ymin = lower,
+                    ymax = upper)) +
+  coord_flip()
+```
+
+
+Wait, we need a legend for the state ids.
+
+```{r}
+d_short %>%
+  filter(!duplicated(state)) %>%
+  select(state, state_id) -> state_id_dict
+
+state_id_dict
+```
+
+Now merge that to `m3.1_coefs`:
+
+```{r}
+m4_coefs %>%
+  full_join(state_id_dict, by = "state_id") -> m4_coefs
+```
+
+
+
+Now again the plot:
+
+```{r}
+m4_coefs %>%
+  ggplot(aes(x = reorder(state, p))) +
+  geom_errorbar(aes(ymin = lower,
+                    ymax = upper)) +
+  coord_flip()
+```
+
+There appear to be two groups, the eastern states with high AfD rates and the western states with lower AfD rates.
+
+
+## m4_stan
+
+Let's try MCMC instead:
+
+
+```{r m4-stan}
+
+m4_stan <- map2stan(alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0[state_id],
+    beta0[state_id] ~ dnorm(0, 5)
+  ),
+  data = data,
+  chains = 4, iter = 2500, warmup = 500,
+ WAIC = FALSE)
+```
+
+
+```{r}
+precis(m4_stan, depth = 2)
+my_traceplot(m4_stan)
+```
+
+
+Ok, that appears to have worked. Posterior distribution appears normally distributed:
+
+```{r eval = FALSE}
+pairs(m4_stan)
+```
+
+
+It makes no sense to compare the models this way:
+
+```{r comp-0-4}
+compare(m0, m1, m2, m3, m4_stan, func = DIC)
+```
+
+
+But this way should be ok:
+
+```{r comp-0-4-stan}
+compare(m0_stan, m1_stan, m2_stan, m3_stan, m4_stan, func = DIC)
+```
+
+
+
+# m5: foreigner, unemployment and state
+
+```{r m5}
+
+m5 <- map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- alpha + beta0[state_id] + beta1*foreigner_n + beta2*unemp_n,
+    alpha ~ dnorm(0, 10),
+    beta0[state_id] ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10),
+    beta2 ~ dnorm(0, 10)
+  ),
+  data = d_short,
+  start = list(alpha = 0,
+               beta1 = 0,
+               beta2 = 0)
+)
+```
+
+
+```{r error = TRUE}
+precis(m5, depth = 2, digits = 4)
+DIC(m5)
+#WAIC(m5)
+```
+
+Migration background seems to play no role once unemployment and foreigner counts are taken into account, and when the intercept is allowed to vary between states.
+
+
+Let's compare the models so far:
+
+```{r error = TRUE}
+comp_0_5 <- compare(m1, m2, m3, m5, func = DIC)
+comp_0_5
+```
+
+Again, no results indicating some fitting issues. Maybe better switching from MAP to MCMC?
+
+
+
+## m5_stan
+
+
+```{r m5-stan, cache = TRUE}
+d_short$afd_votes <- as.integer(d_short$afd_votes)
+
+m5_stan <- map2stan(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- alpha + beta0[state_id] + beta1*foreigner_n + beta2*unemp_n,
+    alpha ~ dnorm(0, 10),
+    beta0[state_id] ~ dnorm(0, 10),
+    beta1 ~ dnorm(0, 10),
+    beta2 ~ dnorm(0, 10)
+  ),
+  data = d_short,
+  chains = 1, iter = 1000, warmup = 500,
+  cores = 1,
+  verbose = FALSE,
+  WAIC = FALSE,
+  control = list(max_treedepth = 25,
+                 adapt_delta = 0.99))
+```
+
+
+```{r}
+precis(m5_stan, depth = 2)
+```
+
+This model did not work out. `n_eff` and `Rhat` indicate that the sampling effectively died.
+
+```{r m5-stan-plot, out.height = 14}
+my_traceplot(m5_stan)
+```
+
+
+```{r comp-0-5-stan}
+compare(m0_stan, m1_stan, m2_stan, m3_stan, m4_stan, m5_stan, func = DIC)
+```
+
+`m5` showed poor fit, comparatively. `m4` still the best.
+
+# m6: states as multilevel
+
+
+Districts are nested in the (16) states. Sounds like we should try a multilevel mode, like this:
+
+
+
+$\begin{aligned}
+n_{\text{AfD},i} &\sim \text{Binomial}(n_i, p_i)\\
+\text{logit}(p_i) &= \beta_{\text{State-id[j]}} \\
+\beta_0 &\sim \mathcal{N}(\alpha,\sigma)\\
+\alpha &\sim \mathcal{N}(0,1)\\
+\sigma &\sim \text{HalfCauchy}(0,1)\\
+\end{aligned}$
+
+
+
+
+```{r m6, eval = TRUE}
+
+m6_stan <- map2stan(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0[state_id],
+    beta0[state_id] ~ dnorm(a, sigma),
+    a ~ dnorm(0, 5),
+    sigma ~ dcauchy(0, 1)
+  ),
+  data = d_short,
+  iter = 4000,
+  chains = 1,
+  cores = 1,
+  WAIC = FALSE  # check this later
+)
+```
+
+
+```{r}
+precis(m6_stan, depth = 2)
+DIC(m6_stan)
+```
+
+Rhat and n_eff look ok.
+
+```{r}
+my_traceplot(m6_stan)
+```
+
+
+
+```{r comp-0-6-stan}
+compare(m0_stan, m1_stan, m2_stan, m3_stan, m4_stan, m5_stan, m6_stan, func = DIC)
+```
+
+
+`m4` and `m6` appear to show similar fit. That's interesting because `m6` has essentially no predictors, only the states intercept are allowed to vary. Maybe this can be interpreted that the predictors are not so important in comparison to the variation of the states.
+
+
+# m7: foreigner, unemployment and state as multilevel
+
+Here's the model specification:
+
+$\begin{aligned}
+n_{\text{AfD},i} &\sim \text{Binomial}(n_i, p_i)\\
+\text{logit}(p_i) &= \beta_{\text{State-id[j]}} + \beta1\text{Foreigner} + \beta_2\text{Unemployment} + \beta_3\text{Migration}\\
+\beta_0 &\sim \mathcal{N}(\alpha,\sigma)\\
+\alpha &\sim \mathcal{N}(0,1)\\
+\sigma &\sim \text{HalfCauchy}(0,1)\\
+\beta_1 &\sim \mathcal{N}(0, 10)\\
+\beta_2 &\sim \mathcal{N}(0, 10)\\
+\beta_3 &\sim \mathcal{N}(0, 10)\\
+\end{aligned}$
+
+
+
+```{r m7-stan}
+d_mod <- d_short[ ,c("state_id", "foreigner_n", "votes_total", "afd_votes", "unemp_n")]
+
+
+m7_stan <- rethinking::map2stan(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- alpha + beta0[state_id] + beta1*foreigner_n + beta2*unemp_n,
+    alpha ~ dnorm(-2, 5),
+    beta0[state_id] ~ dnorm(a, sigma),
+    a ~ dnorm(-2, 5),
+    sigma ~ dexp(2),
+    beta1 ~ dnorm(-2, 5),
+    beta2 ~ dnorm(-2, 5)
+  ),
+  data = d_mod,
+  iter = 1000,
+  chains = 1,
+  cores = 1,
+  WAIC = FALSE,
+  control = list(max_treedepth = 25,
+                 adapt_delta = 0.99),
+  debug = TRUE,
+  verbose = TRUE,
+  start = list(alpha = -2,
+               beta1 = 0,
+               beta2 = 0,
+               beta0 = rep(-2, 16))
+)
+```
+
+```{r}
+precis(m7_stan, depth = 2)
+DIC(m7_stan)
+```
+
+```{r}
+my_traceplot(m7_stan)
+```
+
+
+```{r}
+pairs(m7_stan)
+```
+
+
+```{r comp-0-7-stan}
+compare(m0_stan, m1_stan, m2_stan, m3_stan, m4_stan,
+        m5_stan, m6_stan, m7_stan, func = DIC)
+```
+
+
+
+# m8: East/West, unemployment, foreigners
+
+
+Similar to `m5` but with fewer groups, not a multilevel but a varying intercepts model.
+
+
+
+
+
+
+```{r m8}
+m8 <- map(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- alpha + beta0[east] + beta1*foreigner_n + beta2*unemp_n,
+    alpha ~ dnorm(0, 5),
+    beta0[east] ~ dnorm(0, 5),
+    beta1 ~ dnorm(0, 5),
+    beta2 ~ dnorm(0, 5)
+  ),
+  data = d_short_rounded,
+  start = list(alpha = 0,
+               beta1 = 0,
+               beta2 = 0)
+)
+```
+
+
+```{r}
+precis(m8, depth = 2)
+DIC(m8)
+```
+
+
+
+
+
+```{r m8-stan}
+m8_stan <- map2stan(
+  alist(
+    afd_votes ~ dbinom(votes_total, p),
+    logit(p) <- beta0[east] + beta1*foreigner_n + beta2*unemp_n,
+    beta0[east] ~ dnorm(0, 5),
+    beta1 ~ dnorm(0, 5),
+    beta2 ~ dnorm(0, 5)
+  ),
+  data = d_short,
+  iter = 2000,
+  chains = 2,
+  cores = 2,
+  WAIC = FALSE
+)
+```
+
+
+```{r}
+precis(m8_stan, depth = 2)
+```
+
+
+```{r}
+my_traceplot(m8_stan)
+```
+
+Again, converging problems.
+
+
