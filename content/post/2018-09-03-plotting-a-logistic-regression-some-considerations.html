@@ -1,7 +1,7 @@
 ---
 title: Plotting a logistic regression - some considerations
 author: ''
-draft: TRUE
+draft: FALSE
 date: '2018-09-03'
 slug: plotting-a-logistic-regression-some-considerations
 categories:
@@ -9,8 +9,97 @@ categories:
 tags:
   - plotting
   - rstats
+editor_options: 
+  chunk_output_type: console
 ---
 
 
 
-
+<pre class="r"><code>library(mosaic)</code></pre>
+<pre><code>## Loading required package: dplyr</code></pre>
+<pre><code>## Warning: package &#39;dplyr&#39; was built under R version 3.5.1</code></pre>
+<pre><code>## 
+## Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
+<pre><code>## Loading required package: lattice</code></pre>
+<pre><code>## Loading required package: ggformula</code></pre>
+<pre><code>## Loading required package: ggplot2</code></pre>
+<pre><code>## 
+## New to ggformula?  Try the tutorials: 
+##  learnr::run_tutorial(&quot;introduction&quot;, package = &quot;ggformula&quot;)
+##  learnr::run_tutorial(&quot;refining&quot;, package = &quot;ggformula&quot;)</code></pre>
+<pre><code>## Loading required package: mosaicData</code></pre>
+<pre><code>## Loading required package: Matrix</code></pre>
+<pre><code>## 
+## The &#39;mosaic&#39; package masks several functions from core packages in order to add 
+## additional features.  The original behavior of these functions should not be affected by this.
+## 
+## Note: If you use the Matrix package, be sure to load it BEFORE loading mosaic.</code></pre>
+<pre><code>## 
+## Attaching package: &#39;mosaic&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:Matrix&#39;:
+## 
+##     mean</code></pre>
+<pre><code>## The following object is masked from &#39;package:ggplot2&#39;:
+## 
+##     stat</code></pre>
+<pre><code>## The following objects are masked from &#39;package:dplyr&#39;:
+## 
+##     count, do, tally</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     binom.test, cor, cor.test, cov, fivenum, IQR, median,
+##     prop.test, quantile, sd, t.test, var</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     max, mean, min, prod, range, sample, sum</code></pre>
+<pre class="r"><code>data(tips, package = &quot;reshape2&quot;)</code></pre>
+<p>Recode <code>sex</code>:</p>
+<pre class="r"><code>tips %&gt;% 
+  mutate(sex_n = case_when(
+    sex == &quot;Female&quot; ~ 0,
+    sex == &quot;Male&quot; ~ 1
+  )) -&gt; tips2</code></pre>
+<p>Fit model:</p>
+<pre class="r"><code>glm1 &lt;- glm(sex_n ~ total_bill, data = tips2,
+            family = &quot;binomial&quot;)</code></pre>
+<div id="way-1" class="section level1">
+<h1>Way 1</h1>
+<pre class="r"><code>plotModel(glm1)</code></pre>
+<p><img src="/post/2018-09-03-plotting-a-logistic-regression-some-considerations_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>
+<div id="way-2" class="section level1">
+<h1>Way 2</h1>
+<p>Add predictions to data frame:</p>
+<pre class="r"><code>tips2 %&gt;% 
+  mutate(pred = predict(glm1, newdata = tips, type = &quot;response&quot;)) %&gt;% 
+  mutate(predict_Male = pred &gt; .5) -&gt; tips3</code></pre>
+<p>Check values of predictions:</p>
+<pre class="r"><code>gf_histogram(~pred, data = tips3)</code></pre>
+<p><img src="/post/2018-09-03-plotting-a-logistic-regression-some-considerations_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>Plot jittered observed values (as points) plus prediction (as line):</p>
+<pre class="r"><code>gf_point(sex_n ~ total_bill, data = tips3,
+         shape = ~sex,
+         color = ~sex,
+         size = 3,
+         alpha = .5,
+         position = &quot;jitter&quot;) %&gt;% 
+  gf_line(pred ~ total_bill, color = &quot;grey40&quot;)</code></pre>
+<p><img src="/post/2018-09-03-plotting-a-logistic-regression-some-considerations_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+</div>
+<div id="way-3" class="section level1">
+<h1>Way 3</h1>
+<p>Plot predicted values as points</p>
+<pre class="r"><code>gf_point(pred ~ total_bill, data = tips3,
+         color = ~sex,
+         shape = ~sex,
+         size = 3,
+         alpha = .5) +
+  labs(y = &quot;Predicted probabality of being Male&quot;)</code></pre>
+<p><img src="/post/2018-09-03-plotting-a-logistic-regression-some-considerations_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+</div>
