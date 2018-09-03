@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.45.1" />
+
+
+<title>How to create columns in a dataframe in R - Data Se</title>
+<meta property="og:title" content="How to create columns in a dataframe in R - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">5 min read</span>
+    
+
+    <h1 class="article-title">How to create columns in a dataframe in R</h1>
+
+    
+    <span class="article-date">2018/03/07</span>
+    
+
+    <div class="article-content">
+      <p>Note that we will use this library for this post:</p>
+<pre class="r"><code>library(dplyr)</code></pre>
+<pre><code>## Warning: package &#39;dplyr&#39; was built under R version 3.5.1</code></pre>
+<pre><code>## 
+## Attaching package: &#39;dplyr&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:stats&#39;:
+## 
+##     filter, lag</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     intersect, setdiff, setequal, union</code></pre>
+<p>By the way, loading <code>mosaic</code>, will load <code>dplyr</code> too.</p>
+<p>One of the major data wrangling activities (in R and elsewhere) is to create a new column in a data frame. For example, assume you have some students who have completed some exercises. In each <em>row</em> of the dataframe - one student. In each column - one exercise (called item). The dataframe might then look like this:</p>
+<pre class="r"><code>df &lt;- data.frame(name = c(&quot;John&quot;, &quot;Joan&quot;, &quot;Jeanne&quot;),
+                 item1 = c(TRUE, TRUE, FALSE),
+                 item2 = c(TRUE, FALSE, TRUE))
+df</code></pre>
+<pre><code>##     name item1 item2
+## 1   John  TRUE  TRUE
+## 2   Joan  TRUE FALSE
+## 3 Jeanne FALSE  TRUE</code></pre>
+<p>Note that <code>TRUE</code> indicates that the exercise has been solved correctly, if otherwise, we note <code>FALSE</code>.</p>
+<p>Now assume you would like to sum up the number of correct items: How many items were solved by John, Joan, and Jeanne, respectively?</p>
+<p>R provides a number of ways to compute this.</p>
+<div id="sum-as-a-vector" class="section level1">
+<h1>Sum as a vector</h1>
+<pre class="r"><code>df$item1 + df$item2</code></pre>
+<pre><code>## [1] 2 1 1</code></pre>
+<p>So, John, solved 2 items, the other students 1 item. It comes handsome that R interpretes <code>TRUE</code> as 1 and <code>FALSE</code> as 0. As a consequence, we can add up logical variables with no hazzle.</p>
+<p>But we don’t want that as a freefloating column. That sum-column should be attached to our data frame. There should be a <code>items_sum</code> column in our dataframe.</p>
+</div>
+<div id="base-r-way-to-create-a-column" class="section level1">
+<h1>Base R way to create a column</h1>
+<p>The Base R way is this:</p>
+<pre class="r"><code>df$items_sum &lt;- df$item1 + df$item2</code></pre>
+<p>Let’s check the dataframe:</p>
+<pre class="r"><code>df</code></pre>
+<pre><code>##     name item1 item2 items_sum
+## 1   John  TRUE  TRUE         2
+## 2   Joan  TRUE FALSE         1
+## 3 Jeanne FALSE  TRUE         1</code></pre>
+<p>Worked. But there are other ways too.</p>
+</div>
+<div id="using-dplyr" class="section level1">
+<h1>Using <code>dplyr</code></h1>
+<pre class="r"><code>df &lt;- mutate(df, items_sum2 = item1 + item2)
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2
+## 1   John  TRUE  TRUE         2          2
+## 2   Joan  TRUE FALSE         1          1
+## 3 Jeanne FALSE  TRUE         1          1</code></pre>
+<p>Worked. Now let’s use the pipe.</p>
+</div>
+<div id="using-the-pipe" class="section level1">
+<h1>Using the pipe</h1>
+<pre class="r"><code>df &lt;- df %&gt;% 
+  mutate(items_sum3 = item1 + item2) 
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2 items_sum3
+## 1   John  TRUE  TRUE         2          2          2
+## 2   Joan  TRUE FALSE         1          1          1
+## 3 Jeanne FALSE  TRUE         1          1          1</code></pre>
+<p>Note that the assignment arrow operator can be headed to either direction, ie left or right:</p>
+<pre class="r"><code>df %&gt;% 
+  mutate(items_sum3 = item1 + item2) -&gt; df
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2 items_sum3
+## 1   John  TRUE  TRUE         2          2          2
+## 2   Joan  TRUE FALSE         1          1          1
+## 3 Jeanne FALSE  TRUE         1          1          1</code></pre>
+</div>
+<div id="recode-variable-with-carrecode" class="section level1">
+<h1>Recode variable with <code>car::Recode</code></h1>
+<p>In R parlance, recoding a variable is different from creating one. Again, different ways exist for recoding variable. Let’s assume that we would like to recode <code>TRUE</code> to 1 and <code>FALSE</code> to 0. But if we want to save the recoded variable as a new variable, then yes, we need to create a new variable with the same machinery as above. For that purpose, the package <code>car</code> comes handy:</p>
+<pre class="r"><code>library(car)</code></pre>
+<pre><code>## Loading required package: carData</code></pre>
+<pre><code>## 
+## Attaching package: &#39;car&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     recode</code></pre>
+<pre class="r"><code>df %&gt;% 
+  mutate(item1r = car::Recode(item1, 
+                              &quot;1 = TRUE; 0 = FALSE&quot;)) -&gt; df
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2 items_sum3 item1r
+## 1   John  TRUE  TRUE         2          2          2      1
+## 2   Joan  TRUE FALSE         1          1          1      1
+## 3 Jeanne FALSE  TRUE         1          1          1      0</code></pre>
+<p><code>car::recode</code> can be used for more complex recoding schemes, too:</p>
+<pre class="r"><code>df &lt;- df %&gt;% 
+  mutate(items_sum3 = car::recode(items_sum, 
+                                 &quot;lo:1 = &#39;failed&#39;;
+                                  2 = &#39;passed&#39;;
+                                  3:hi = &#39;cant believe&#39;&quot;)) 
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2 items_sum3 item1r
+## 1   John  TRUE  TRUE         2          2     passed      1
+## 2   Joan  TRUE FALSE         1          1     failed      1
+## 3 Jeanne FALSE  TRUE         1          1     failed      0</code></pre>
+<p>See <code>?Recode</code> for details of the syntax.</p>
+</div>
+<div id="recode-variable-with-ifelse" class="section level1">
+<h1>Recode variable with <code>ifelse</code></h1>
+<p>Another frequently used way is using <code>ifelse</code>:</p>
+<pre class="r"><code>df %&gt;% 
+  mutate(item2r = ifelse(item2 == TRUE, 1L, 0L)) -&gt; df
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2 items_sum3 item1r item2r
+## 1   John  TRUE  TRUE         2          2     passed      1      1
+## 2   Joan  TRUE FALSE         1          1     failed      1      0
+## 3 Jeanne FALSE  TRUE         1          1     failed      0      1</code></pre>
+<p>The general form of <code>ifelse</code> is <code>ifelse(condition, what_if_true, what_if_not)</code>.</p>
+<p>By the way, if we want to coerce a numeric variable to integer, we can call it <code>1L</code>, instead of <code>1</code>.</p>
+</div>
+<div id="recode-using-case_when" class="section level1">
+<h1>Recode using <code>case_when</code></h1>
+<p>The more general form of <code>ifelse</code> is <code>case_when</code>. If generalizes <code>ifelse</code> to more than 2 cases:</p>
+<pre class="r"><code>df %&gt;% 
+  mutate(items_sum4 = case_when(
+    items_sum &lt; 2 ~ &quot;failed&quot;,
+    items_sum == 2 ~ &quot;passed&quot;,
+    items_sum &gt; 2 ~ &quot;awesome&quot;)) -&gt; df
+df</code></pre>
+<pre><code>##     name item1 item2 items_sum items_sum2 items_sum3 item1r item2r
+## 1   John  TRUE  TRUE         2          2     passed      1      1
+## 2   Joan  TRUE FALSE         1          1     failed      1      0
+## 3 Jeanne FALSE  TRUE         1          1     failed      0      1
+##   items_sum4
+## 1     passed
+## 2     failed
+## 3     failed</code></pre>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

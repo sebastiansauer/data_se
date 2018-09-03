@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Some musings on the validation of Satow&#39;s Extraversion questionnaire - A Hugo website</title>
+<meta property="og:title" content="Some musings on the validation of Satow&#39;s Extraversion questionnaire - A Hugo website">
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/%3cnil%3e"
+         width=""
+         height=""
+         alt="">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/blog/">Blog</a></li>
+    
+    <li><a href="/categories/">Categories</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">18 min read</span>
+    
+
+    <h1 class="article-title">Some musings on the validation of Satow&#39;s Extraversion questionnaire</h1>
+
+    
+    <span class="article-date">2016/11/23</span>
+    
+
+    <div class="article-content">
+      
+
+<p>Measuring personality traits is one of (the?) bread-and-butter business of psychologists, at least for quantitatively oriented ones. Literally, thousand of psychometric questionnaires exits. Measures abound. Extroversion, part of the Big Five personality <del>theory</del> approach, is one of the most widely used, and extensively scrutinized questionnaire tapping into human personality.</p>
+
+<p>One rather new, but quite often used questionnaire, is <a href="https://www.zpid.de/pub/tests/PT_9006357_B5T_Forschungsbericht.pdf">Satow&rsquo;s (2012)</a> <strong>B5T</strong>. The reason for the popularity of this instrument is that it runs under a CC-licence - in contrast to the old ducks, which coute chere. The B5T has undergone some psychometric scrutiny, and a number of results support the notion that it is a valid instrument.</p>
+
+<p>Let&rsquo;s look here into some aspects of validity of the instrument. More bluntly: Does the B5t (here: only extraversion) really measures extraversion? My point is rather not a judgement on this particular instrument, but more which checks can guide us to answer this question.</p>
+
+<p>First, we do <em>not</em> know whether extraversion <em>per se</em> is of metric niveau; can the mind distinguish between infinitely many distinct yet equidistant steps on a imagined continuum? Surely this is a strong assumption. But let&rsquo;s put that aside for now (as nearly everybody does not only for a moment but forever).</p>
+
+<h1 id="external-validity-first">External validity first</h1>
+
+<p>A primary check should be the external validity of the scale. When I say external validity, I mean e.g., whether the instrument is correlated with some variable it <em>should</em> be correlated with according to the theory we hold. That is to say, if some &ldquo;obvious&rdquo; fact is not identified by a measurement device, we would and should be unwilling to accept whether it really measures what it ought measure.</p>
+
+<p>Note that <em>reliability</em> is not more than a premise or prerequisite for (external) validity. Thus, if we knew some measure is reliable (by standard procedures), we do not know whether it measures what it should measure. To the contrary, if there is some sound association with the  right external measure, we are more confident (though maybe not satisfied).</p>
+
+<h2 id="data-packages">Data &amp; packages</h2>
+
+<p>Let&rsquo;s have a look at our extraversion (<code>e</code>) data. Here we go:</p>
+
+<pre><code class="language-r">e &lt;- read.csv(&quot;https://osf.io/meyhp/?action=download&quot;)
+</code></pre>
+
+<p>The DOI of this data is 10.17605/OSF.IO/4KGZH</p>
+
+<p>We will need these packages:</p>
+
+<pre><code class="language-r">library(tidyverse)
+</code></pre>
+
+<pre><code>## Loading tidyverse: ggplot2
+## Loading tidyverse: tibble
+## Loading tidyverse: tidyr
+## Loading tidyverse: readr
+## Loading tidyverse: purrr
+## Loading tidyverse: dplyr
+</code></pre>
+
+<pre><code>## Conflicts with tidy packages ----------------------------------------------
+</code></pre>
+
+<pre><code>## filter(): dplyr, stats
+## lag():    dplyr, stats
+</code></pre>
+
+<pre><code class="language-r">library(htmlTable)
+library(corrr)
+library(psych)
+</code></pre>
+
+<pre><code>## 
+## Attaching package: 'psych'
+</code></pre>
+
+<pre><code>## The following objects are masked from 'package:ggplot2':
+## 
+##     %+%, alpha
+</code></pre>
+
+<pre><code class="language-r">library(plotluck)
+</code></pre>
+
+<p>Note that recoding has already taken place, and a mean value has been computed; see <a href="https://sebastiansauer.github.io/preparing_survey_data/">here</a> for details. The extraversion scale consists of 10 items, which 4 answer categories each. A codebook can be found here: <a href="https://osf.io/4kgzh/">https://osf.io/4kgzh/</a>.</p>
+
+<h2 id="plotting-means-and-frequencies">Plotting means and frequencies</h2>
+
+<p>Let&rsquo;s have a brief look at some stats as first step. Here are the histograms:</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(i01:i10) %&gt;% 
+  gather %&gt;% 
+  ggplot +
+  aes(x = value) +
+  geom_bar()+
+  facet_wrap(~key, ncol = 4)
+</code></pre>
+
+<pre><code>## Warning: Removed 24 rows containing non-finite values (stat_count).
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3" /></p>
+
+<p>Let&rsquo;s save this dataframe because we will use it frequently:</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(i01:i10) %&gt;% 
+  gather(key = item, value = value) -&gt; e2
+</code></pre>
+
+<p>And means and SD:</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(i01:i10) %&gt;% 
+  gather(key = item, value = value) %&gt;% 
+  group_by(item) %&gt;% 
+  summarise(item_mean = round(mean(value, na.rm = T), 2),
+            item_sd = round(sd(value, na.rm = T), 2)) -&gt; e_summaries
+
+htmlTable(e_summaries)
+</code></pre>
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey;'> </th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>item</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>item_mean</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>item_sd</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>1</td>
+<td style='text-align: center;'>i01</td>
+<td style='text-align: center;'>3.34</td>
+<td style='text-align: center;'>0.68</td>
+</tr>
+<tr>
+<td style='text-align: left;'>2</td>
+<td style='text-align: center;'>i02r</td>
+<td style='text-align: center;'>3.12</td>
+<td style='text-align: center;'>0.8</td>
+</tr>
+<tr>
+<td style='text-align: left;'>3</td>
+<td style='text-align: center;'>i03</td>
+<td style='text-align: center;'>1.91</td>
+<td style='text-align: center;'>0.92</td>
+</tr>
+<tr>
+<td style='text-align: left;'>4</td>
+<td style='text-align: center;'>i04</td>
+<td style='text-align: center;'>3.24</td>
+<td style='text-align: center;'>0.73</td>
+</tr>
+<tr>
+<td style='text-align: left;'>5</td>
+<td style='text-align: center;'>i05</td>
+<td style='text-align: center;'>3.05</td>
+<td style='text-align: center;'>0.77</td>
+</tr>
+<tr>
+<td style='text-align: left;'>6</td>
+<td style='text-align: center;'>i06r</td>
+<td style='text-align: center;'>2.94</td>
+<td style='text-align: center;'>0.77</td>
+</tr>
+<tr>
+<td style='text-align: left;'>7</td>
+<td style='text-align: center;'>i07</td>
+<td style='text-align: center;'>2.97</td>
+<td style='text-align: center;'>0.73</td>
+</tr>
+<tr>
+<td style='text-align: left;'>8</td>
+<td style='text-align: center;'>i08</td>
+<td style='text-align: center;'>2.93</td>
+<td style='text-align: center;'>0.86</td>
+</tr>
+<tr>
+<td style='text-align: left;'>9</td>
+<td style='text-align: center;'>i09</td>
+<td style='text-align: center;'>3.35</td>
+<td style='text-align: center;'>0.71</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>10</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>i10</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>2.24</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>0.9</td>
+</tr>
+</tbody>
+</table>
+
+<p>Maybe let&rsquo;s plot that.</p>
+
+<pre><code class="language-r">e_summaries %&gt;% 
+  mutate(mean = item_mean,
+         lower = mean - item_sd,
+         upper = mean + item_sd) %&gt;% 
+  select(-item_mean) -&gt; e_summaries
+
+
+e_summaries %&gt;% 
+  ggplot(aes(x = item, y = mean)) +
+  geom_errorbar(aes(ymin = lower,
+                    ymax = upper), 
+                color = &quot;grey40&quot;) +
+  geom_point(color = &quot;blue&quot;) +
+  labs(caption = &quot;Error bars denote SDs&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-6-1.png" alt="plot of chunk unnamed-chunk-6" /></p>
+
+<p>Note that <code>scale_y_continuous(limits = c(1,4))</code> will <em>not</em> work, because this method kicks out all values beyond those limits, which will screw up your error bars (I ran into that problem and it took me a while to see it).</p>
+
+<p>Hm, there appear to types of items, one with a rather large mean, and one with a small mean. The SD appears to bear roughly equal.</p>
+
+<p>Let&rsquo; sort the plot by the item means.</p>
+
+<pre><code class="language-r">e_summaries %&gt;% 
+  ggplot(aes(x = reorder(item, mean), y = mean)) +
+  geom_errorbar(aes(ymin = lower,
+                    ymax = upper), 
+                color = &quot;grey40&quot;) +
+  geom_point(color = &quot;blue&quot;) +
+  labs(caption = &quot;Error bars denote SDs&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7" /></p>
+
+<p>Maybe plot stacked bar plots.</p>
+
+<pre><code class="language-r">e2 %&gt;% 
+  na.omit %&gt;% 
+  count(item, value) %&gt;% 
+  ggplot +
+  aes(x = item, y = n, fill = value) +
+  geom_col() +
+  coord_flip() 
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8" /></p>
+
+<p>We see that at least the difficulty of the items ranged quite a bit. This last plot surely gives us the best impression on what&rsquo;s going on. Note that <em>real</em> values have been depicted, not functions of them such as mean or sd.</p>
+
+<p>For example, for nearly all items, mainly categories <code>3</code> and <code>4</code> were picked. So items were comparatively easy, which is not seldom. Maybe a finer grunalirity at the &ldquo;bottom&rdquo; would be of help to get more information.</p>
+
+<h2 id="correlation-of-means-score-with-external-criteria">Correlation of means score with external criteria</h2>
+
+<p>OK, the correlation of the mean score with some external criteria surely is <em>the</em> central (first) idea to see how well the scale may have measured what it should measure.</p>
+
+<p>We could assume that there is an association of extraversion and the number of Facebook friends.</p>
+
+<pre><code class="language-r">cor(x = e$extra_mean, y = e$n_facebook_friends, use = &quot;complete.obs&quot;) -&gt; cor_mean_FB
+cor_mean_FB
+</code></pre>
+
+<pre><code>## [1] 0.2558908
+</code></pre>
+
+<p>Hm, not really <em>that</em> much; however, in real life you have to be happy with non-perfect things&hellip;</p>
+
+<p>There are a number of similar behavioral indicators in the data set besides number of FB friends. Let&rsquo;s look at each in turn.</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_mean, time_conversation, n_party, n_hangover) %&gt;% 
+  correlate %&gt;% 
+  focus(extra_mean) %&gt;% 
+  mutate_if(is.numeric, funs(round), digits = 2) -&gt; corr_emean_criteria
+
+htmlTable(corr_emean_criteria)
+</code></pre>
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey;'> </th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>rowname</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>extra_mean</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>1</td>
+<td style='text-align: center;'>time_conversation</td>
+<td style='text-align: center;'>-0.11</td>
+</tr>
+<tr>
+<td style='text-align: left;'>2</td>
+<td style='text-align: center;'>n_party</td>
+<td style='text-align: center;'>0.25</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>3</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>n_hangover</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>0.11</td>
+</tr>
+</tbody>
+</table>
+
+<p>Basically not much, maybe <code>n_party</code> can be of interest.</p>
+
+<p>Let&rsquo;s plot a scatterplot.</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_mean, n_facebook_friends) %&gt;% 
+  qplot(x = extra_mean, y = n_facebook_friends, data = .) +
+  geom_smooth(method = &quot;lm&quot;, se = FALSE) +
+    geom_label(x = 4, y = 2500, label = paste(&quot;r = &quot;, round(cor_mean_FB, 2), sep = &quot;&quot;), hjust = 1)
+</code></pre>
+
+<pre><code>## Warning: Removed 90 rows containing non-finite values (stat_smooth).
+</code></pre>
+
+<pre><code>## Warning: Removed 90 rows containing missing values (geom_point).
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-11-1.png" alt="plot of chunk unnamed-chunk-11" /></p>
+
+<p>Let&rsquo;s skip the extreme high values of FB friends. The correlation appeared to got stronger:</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_mean, n_facebook_friends) %&gt;% 
+  filter(n_facebook_friends &lt; 1500) %&gt;% 
+  correlate %&gt;% 
+  focus(extra_mean) -&gt; cor_mean_FB_filtered
+cor_mean_FB_filtered
+</code></pre>
+
+<pre><code>## # A tibble: 1 × 2
+##              rowname extra_mean
+##                &lt;chr&gt;      &lt;dbl&gt;
+## 1 n_facebook_friends  0.2774732
+</code></pre>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_mean, n_facebook_friends) %&gt;% 
+  filter(n_facebook_friends &lt; 1500) %&gt;% 
+  qplot(x = extra_mean, y = n_facebook_friends, data = .) +
+  geom_smooth(method = &quot;lm&quot;, se = FALSE) +
+  geom_label(x = 4, y = 1000, label = round(cor_mean_FB_filtered$extra_mean[1], 2), hjust = 1)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-13-1.png" alt="plot of chunk unnamed-chunk-13" /></p>
+
+<p>And now a scatterplot of <code>extra_mean</code> and <code>n_party</code>.</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_mean, n_party) %&gt;% 
+  qplot(x = extra_mean, y = n_party, data = .) +
+  geom_smooth(method = &quot;lm&quot;, se = FALSE) +
+  geom_label(x = 4, y = 120, label = paste(&quot;r = &quot;, corr_emean_criteria$extra_mean[2], sep = &quot;&quot;), hjust = 1)
+</code></pre>
+
+<pre><code>## Warning: Removed 18 rows containing non-finite values (stat_smooth).
+</code></pre>
+
+<pre><code>## Warning: Removed 18 rows containing missing values (geom_point).
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-14-1.png" alt="plot of chunk unnamed-chunk-14" /></p>
+
+<h2 id="correlation-of-extra-description-with-external-criteria">Correlation of <code>extra_description</code> with external criteria</h2>
+
+<p>Conventional psychometric knowledge holds that a psychometric ought to consist of several items. However, some renegades argue that &ldquo;one-item wonder&rdquo; can do an equally good job of predicting some external criteria. That&rsquo;s no small claim, because if they do, there&rsquo;s little to argue in favor of the longer, and thought more sophisticated methods in psychometry.</p>
+
+<p>Of course, here we only play around a little, but let&rsquo;s see what will happen:</p>
+
+<ul>
+<li><code>extra_description</code>: One item self-description of extroversion</li>
+<li><code>extra_vignette</code>: One item vignette (self-description) of extraversion</li>
+</ul>
+
+<p>We start with <code>extra_description</code>:</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_description, time_conversation, n_party, n_hangover, n_facebook_friends, extra_mean) %&gt;% 
+  correlate %&gt;% 
+  focus(extra_description) %&gt;% 
+  ggplot(aes(x = rowname, extra_description)) +
+  geom_point() +
+  ggtitle(&quot;Correlation of extra_description with external criteria&quot;) +
+  ylab(&quot;correlation with extra_description&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-15-1.png" alt="plot of chunk unnamed-chunk-15" /></p>
+
+<p>Let&rsquo;s compare the correlation of <code>extr_description</code> with the external criteria to the correlation of <code>extra_mean</code> wit the external criteria.</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_description, time_conversation, n_party, n_hangover, n_facebook_friends) %&gt;% 
+  correlate %&gt;% 
+  focus(extra_description) %&gt;% 
+  mutate(predictor = &quot;extra_description&quot;) %&gt;% 
+  rename(correlation = extra_description) -&gt; corr_extra_description
+
+e %&gt;% 
+  select(extra_mean, time_conversation, n_party, n_hangover, n_facebook_friends) %&gt;% 
+  correlate %&gt;% 
+  focus(extra_mean) %&gt;% 
+  mutate(predictor = &quot;extra_mean&quot;) %&gt;% 
+  rename(correlation = extra_mean) -&gt; corr_extra_mean
+
+rbind(corr_extra_description, corr_extra_mean) -&gt; corr_compare
+
+corr_compare %&gt;% 
+  rename(criterion = rowname) -&gt; corr_compare
+</code></pre>
+
+<p>Now let&rsquo;s plot the difference in correlation strength for the two predictors of the external behavioral criteria.</p>
+
+<pre><code class="language-r">corr_compare %&gt;% 
+  ggplot +
+  aes(x = criterion, y = correlation, color = predictor, fill = predictor) +
+    geom_rect(ymin = -0.1, ymax = 0.1, xmin = -10, xmax = 10, fill = &quot;grey80&quot;, alpha = .2, color = NA) +
+  geom_point(aes(shape = predictor), size = 3) +
+  theme(legend.position = &quot;bottom&quot;) +
+  coord_flip() 
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-17-1.png" alt="plot of chunk unnamed-chunk-17" /></p>
+
+<p>Of interest, the correlation of number of Facebook friends is quite different for <code>extra_description</code> compared with the correlation of <code>extra_mean</code>. For the rest, the difference is not &ldquo;too&rdquo; strong.</p>
+
+<h2 id="assocation-of-extra-vignette-with-external-criteria">Assocation of <code>extra_vignette</code> with external criteria</h2>
+
+<p><code>extra_vignette</code> needs some upfront preparation:</p>
+
+<pre><code class="language-r">count(e, extra_vignette)
+</code></pre>
+
+<pre><code>## # A tibble: 4 × 2
+##          extra_vignette     n
+##                  &lt;fctr&gt; &lt;int&gt;
+## 1                         119
+## 2         keine Antwort    65
+## 3       passt insgesamt   238
+## 4 passt insgesamt nicht    79
+</code></pre>
+
+<pre><code class="language-r">recode(e$extra_vignette, &quot;keine Antwort&quot; = &quot;no_answer&quot;, &quot;passt insgesamt&quot; = &quot;fit&quot;, &quot;passt insgesamt nicht&quot; = &quot;no_fit&quot;, .default = NA_character_) -&gt; e$extra_vignette
+
+count(e, extra_vignette)
+</code></pre>
+
+<pre><code>## # A tibble: 4 × 2
+##   extra_vignette     n
+##           &lt;fctr&gt; &lt;int&gt;
+## 1      no_answer    65
+## 2            fit   238
+## 3         no_fit    79
+## 4             NA   119
+</code></pre>
+
+<p>Let&rsquo;s compute the mean value for each group of <code>extra_vignette</code>:</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_vignette, extra_description, time_conversation, n_party, n_hangover, n_facebook_friends, extra_mean) %&gt;% 
+  filter(extra_vignette %in% c(&quot;fit&quot;, &quot;no_fit&quot;)) %&gt;% 
+  group_by(extra_vignette) %&gt;% 
+  summarise_all(funs(mean), na.rm = TRUE) %&gt;% 
+  mutate_if(is.numeric, funs(round), digits = 1) -&gt; comp_extra_vignette
+
+
+comp_extra_vignette %&gt;% 
+  htmlTable
+</code></pre>
+
+<table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey;'> </th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>extra_vignette</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>extra_description</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>time_conversation</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>n_party</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>n_hangover</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>n_facebook_friends</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>extra_mean</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>1</td>
+<td style='text-align: center;'>fit</td>
+<td style='text-align: center;'>2.7</td>
+<td style='text-align: center;'>12.1</td>
+<td style='text-align: center;'>20.7</td>
+<td style='text-align: center;'>11.2</td>
+<td style='text-align: center;'>417</td>
+<td style='text-align: center;'>3</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>2</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>no_fit</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>4</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>23.7</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>13.5</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>6.7</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>274.7</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>2.6</td>
+</tr>
+</tbody>
+</table>
+
+<p>Let&rsquo;s plot that too.</p>
+
+<pre><code class="language-r">comp_extra_vignette %&gt;% 
+  gather(key = variable, value = value, -extra_vignette) %&gt;% 
+  ggplot +
+  aes(x = variable, y = value, color = extra_vignette, fill = extra_vignette) +
+  geom_point() +
+  scale_y_log10() +
+  coord_flip() +
+  labs(y = &quot;value [log10]&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-20-1.png" alt="plot of chunk unnamed-chunk-20" /></p>
+
+<p>We see that the <code>fit</code> dot is sometimes at a higher value (to the right) compared to the <code>no_fit</code> dot, which matches expectations. But this is, as can be seen, not always the case. Of interest, <code>extra_mean</code> shows small differences only.</p>
+
+<p>OK, but what&rsquo;s a <em>big</em> difference? Let&rsquo;s compute the CLES measure of effect size for each criterion (here column of the table above) with <code>extra_vignette</code> as grouping variable.</p>
+
+<p>First we prepare the data:</p>
+
+<pre><code class="language-r">library(compute.es)
+
+dplyr::count(e, extra_vignette)
+
+
+
+e %&gt;% 
+  select(time_conversation, n_party, n_hangover, n_facebook_friends, extra_mean, extra_description, extra_vignette) %&gt;% 
+  filter(extra_vignette %in% c(&quot;fit&quot;, &quot;no_fit&quot;)) %&gt;% 
+  na.omit() -&gt; e3
+
+e3 %&gt;% 
+  select(-extra_vignette) %&gt;% 
+  map(~t.test(. ~ e3$extra_vignette)) %&gt;% 
+  map(~compute.es::tes(.$statistic,
+                       n.1 = nrow(dplyr::filter(e, extra_vignette == &quot;fit&quot;)),
+                       n.2 = nrow(dplyr::filter(e, extra_vignette == &quot;no_fit&quot;)))) %&gt;% 
+  map(~do.call(rbind, .)) %&gt;% 
+  as.data.frame %&gt;% 
+  t %&gt;% 
+  data.frame %&gt;% 
+  rownames_to_column %&gt;% 
+  rename(outcomes = rowname) -&gt; 
+  extra_effsize
+</code></pre>
+
+<p>Then we plot &lsquo;em.</p>
+
+<pre><code class="language-r">extra_effsize %&gt;% 
+  dplyr::select(outcomes, cl.d) %&gt;% 
+  mutate(sign = ifelse(cl.d &gt; 50, &quot;+&quot;, &quot;-&quot;)) %&gt;% 
+  ggplot(aes(x = reorder(outcomes, cl.d), y = cl.d, color = sign)) + 
+  geom_hline(yintercept = 50, alpha = .4) +
+  geom_point(aes(shape = sign)) + 
+  coord_flip() +
+  ylab(&quot;effect size (Common Language Effect Size)&quot;) +
+  xlab(&quot;outcome variables&quot;) + 
+  labs(title = &quot;CLES plot for differences between groups of 'extra-vignette&quot;, 
+       caption = &quot;positive value are in favor of group 'fit'&quot;) -&gt; CLES_plot
+
+
+CLES_plot
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-22-1.png" alt="plot of chunk unnamed-chunk-22" /></p>
+
+<p>Pooh, quite some fuzz. See <a href="https://sebastiansauer.github.io/CLES-plot/">this post</a> for some explanation on what we have just done.</p>
+
+<p>Now, what do we see? <code>extra_description</code> went plain wrong; <code>extra_mean</code> captures some information. We should note that some overcertainty may creep in here (and elsewhere). Our estimates are based on sample, not population values. So it is doubtful whether we can infer that futures samples (all we are interested in) will behave as predicted (here).</p>
+
+<h1 id="reliability">Reliability</h1>
+
+<p>The only type of reliability we can compute is internal consistency, for we have no second measurement. It should be stressed that even if high reliability is given we do not know whether the measurement measured what we hope for. If reliability is <em>not</em> high, then we <em>do</em> know that our measurement failed. So reliability can be seen as necessary, but not sufficient, for gaining confidence in an instrument. That&rsquo;s why validity (often read as correlation) is more telling: If association is there, we probably know what we wanted to know. Our measurement device as expected.</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(i01:i10) %&gt;% 
+  psych::alpha()
+</code></pre>
+
+<pre><code>## 
+## Reliability analysis   
+## Call: psych::alpha(x = .)
+## 
+##   raw_alpha std.alpha G6(smc) average_r S/N   ase mean   sd
+##       0.78      0.79    0.81      0.28 3.9 0.015  2.9 0.46
+## 
+##  lower alpha upper     95% confidence boundaries
+## 0.75 0.78 0.81 
+## 
+##  Reliability if an item is dropped:
+##      raw_alpha std.alpha G6(smc) average_r S/N alpha se
+## i01       0.75      0.76    0.77      0.26 3.2    0.017
+## i02r      0.76      0.77    0.78      0.27 3.4    0.016
+## i03       0.81      0.81    0.82      0.33 4.4    0.013
+## i04       0.75      0.76    0.77      0.26 3.2    0.017
+## i05       0.75      0.76    0.77      0.26 3.2    0.017
+## i06r      0.76      0.77    0.78      0.27 3.4    0.016
+## i07       0.76      0.77    0.79      0.27 3.4    0.016
+## i08       0.76      0.78    0.79      0.28 3.5    0.016
+## i09       0.77      0.78    0.79      0.28 3.6    0.016
+## i10       0.78      0.79    0.80      0.30 3.8    0.015
+## 
+##  Item statistics 
+##        n raw.r std.r r.cor r.drop mean   sd
+## i01  499  0.69  0.71  0.68   0.60  3.3 0.68
+## i02r 498  0.63  0.63  0.59   0.50  3.1 0.80
+## i03  500  0.33  0.30  0.16   0.14  1.9 0.92
+## i04  498  0.68  0.69  0.67   0.57  3.2 0.73
+## i05  498  0.69  0.70  0.68   0.59  3.1 0.77
+## i06r 499  0.62  0.62  0.57   0.50  2.9 0.77
+## i07  498  0.62  0.62  0.57   0.50  3.0 0.73
+## i08  499  0.61  0.60  0.53   0.47  2.9 0.86
+## i09  499  0.55  0.57  0.49   0.43  3.4 0.71
+## i10  498  0.51  0.49  0.39   0.34  2.2 0.90
+## 
+## Non missing response frequency for each item
+##         1    2    3    4 miss
+## i01  0.01 0.08 0.46 0.45 0.00
+## i02r 0.04 0.16 0.45 0.35 0.01
+## i03  0.41 0.33 0.19 0.06 0.00
+## i04  0.01 0.16 0.43 0.41 0.01
+## i05  0.02 0.20 0.47 0.30 0.01
+## i06r 0.05 0.18 0.54 0.22 0.00
+## i07  0.02 0.21 0.54 0.23 0.01
+## i08  0.06 0.23 0.44 0.27 0.00
+## i09  0.01 0.10 0.41 0.47 0.00
+## i10  0.21 0.43 0.26 0.10 0.01
+</code></pre>
+
+<p>Internal consistency, as an intuition, can be understood as something like the mean item inter correlation (the numbers are different, but the idea is similar). Note that Alpha is also a function of the number of items (the higher the number of items, the larger Alpha will be, not a nice property). And, even if Alpha is high that is no sufficient evidence that the data is unidimensional.</p>
+
+<p>With the help of the <a href="https://cran.r-project.org/web/packages/psych/psych.pdf">manual</a> of <code>psych</code> let&rsquo;s dissect the output:</p>
+
+<ul>
+<li><code>raw_alpha</code>: That&rsquo;s the typical alpha you might expect (based on the covariances)</li>
+<li><code>average_r</code>: Mean inter-item correlation</li>
+<li><code>S/N</code>: signal-noise-ration (see manual for details)</li>
+<li>se: standard error (precision of estimation in Frequentist theory)</li>
+<li><code>rar.r</code>: &ldquo;The correlation of each item with the total score, not corrected for item overlap.&rdquo;</li>
+<li><code>std.r</code>: &ldquo;The correlation of each item with the total score (not corrected for item overlap) if the items were all standardized&rdquo;</li>
+<li><code>r.cor</code>: &ldquo;Item whole correlation corrected for item overlap and scale reliability&rdquo;</li>
+<li><code>r.drop</code>: &ldquo;Item whole correlation for this item against the scale without this item&rdquo;</li>
+</ul>
+
+<p><a href="https://rpubs.com/hauselin/reliabilityanalysis">Here&rsquo;s</a> some input on how to work with this function.</p>
+
+<p>In sum, we may conclude that the internal consistency is good; item <code>i03</code> appearing somewhat problematic as internal consistency would be <em>higher</em> without that guy.</p>
+
+<p>Remember that <code>i03</code> had the lowest mean? Fits together.</p>
+
+<h1 id="validity-next-step">Validity, next step</h1>
+
+<p>Let&rsquo;s go back to some &ldquo;validity&rdquo; concerns, as this step is more important than reliability.</p>
+
+<h2 id="single-item-external-validity">Single-item external validity</h2>
+
+<p>Let&rsquo;s compute the correlation of each item with a given external criterion. If the correlation of a single item is not worse than the total score, ~we~ the item score, that is the instrument is in trouble.</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(i01:i10, n_facebook_friends) %&gt;%
+  correlate %&gt;% 
+  focus(n_facebook_friends) %&gt;% 
+  mutate_if(is.numeric, round, digits = 2) %&gt;% 
+  rename(item = rowname, cor_with_n_FB_friends = n_facebook_friends) %&gt;% 
+  ggplot +
+  aes(x = reorder(item, cor_with_n_FB_friends), y = cor_with_n_FB_friends) +
+  geom_point() +
+  xlab(&quot;item&quot;) +
+  geom_hline(yintercept = cor_mean_FB, linetype = &quot;dashed&quot;) +
+  geom_label(x = 5, y = cor_mean_FB, label = &quot;correlation of mean score&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-24-1.png" alt="plot of chunk unnamed-chunk-24" /></p>
+
+<p>OK, the mean score is &ldquo;somewhat&rdquo; better than the most predictive item, <code>i07</code>, but really really not much.</p>
+
+<h2 id="dichotomization">Dichotomization</h2>
+
+<p>I know, some will say &ldquo;don&rsquo;t to that, my Goodness! Power!&rdquo;, yes that&rsquo;s true, but hey, let&rsquo;s loose some power! After all, we are being more conservative, in a way. What do we get for this price? A quite tangible explanation. More precisely, let&rsquo;s median split <code>extra_mean</code> and <code>n_facebook_friends</code>.</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_mean, n_facebook_friends) %&gt;% 
+  mutate(e_bin = ntile(extra_mean, 2),
+         n_fb_bin = ntile(n_facebook_friends, 2)) %&gt;% 
+  na.omit %&gt;% 
+  plotluck(e_bin ~ n_fb_bin)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-25-1.png" alt="plot of chunk unnamed-chunk-25" /></p>
+
+<p>Hm, at least <em>some</em> association seem to be present.</p>
+
+<h2 id="non-linear-association-of-extraversion-with-fb-friends">Non-linear association of extraversion with FB friends</h2>
+
+<p>We could apply different model, not only the linear model (ie., correlation) to discern possible patterns between the variables. This is an interesting field, but not my goal for today. Let&rsquo;s dive here some other day; some time ago we have used some &ldquo;machine learning&rdquo; methods for this purpose <a href="https://www.researchgate.net/publication/301228223_Mindful_Machine_Learning_Using_Machine_Learning_Algorithms_to_Predict_the_Practice_of_Mindfulness">in this paper</a>.</p>
+
+<h2 id="finer-categorial-analysis">Finer categorial analysis</h2>
+
+<p>The idea of the dichotomization can be put to level of finer granularity. Why 2 buckets (bins)? Why not some more? This would give us a more precise picture. Additionally, it may argued that no measurement device exist with infinite granularity &ndash; which is posited by continuous variables (see <a href="http://www.springer.com/de/book/9783319397559">Brigg&rsquo;s book</a> on that).</p>
+
+<p>Of course, many ways exist to bin a metric variable into some discrete buckets including Sturges&rsquo; rule, or Freedman&rsquo;s rule (see <a href="https://de.wikipedia.org/wiki/Histogramm">here</a> for some explanation). But let&rsquo;s go easy, and pick - arbitrarily - ten buckets for each variable of equal width (not of equal n).</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_mean, n_facebook_friends) %&gt;% 
+  na.omit %&gt;% 
+  mutate_all(cut_interval, n = 10) %&gt;% 
+  count(extra_mean, n_facebook_friends) %&gt;% 
+  ggplot(aes(x = extra_mean, y = n_facebook_friends, fill = n)) +
+  geom_bin2d()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-26-1.png" alt="plot of chunk unnamed-chunk-26" /></p>
+
+<p>One problem with this method here is that empty buckets are silently dropped which renders the procedure fruitless for our purpose.</p>
+
+<p>Let&rsquo;s try differently, and let&rsquo;s kick out extreme values.</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_mean, n_facebook_friends) %&gt;% 
+  na.omit %&gt;% 
+  filter(n_facebook_friends &lt; 1500) %&gt;% 
+  mutate_all(ntile, n = 10) %&gt;% 
+  count(extra_mean, n_facebook_friends) %&gt;% 
+  ggplot(aes(x = factor(extra_mean), y = factor(n_facebook_friends), fill = n)) +
+  geom_bin2d(aes(fill = n))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-27-1.png" alt="plot of chunk unnamed-chunk-27" /></p>
+
+<p>Ah, that&rsquo;s way better. Well, we do not see much, but the (absolute) numbers are not equal among the buckets.</p>
+
+<p>But even better would be if we could devise the probability of $$y_n$$ given $$x_n$$. More verbose, if the probability to have a <code>1</code> in X given Y is, say, <code>5</code> equals the probability $$p(X=2|Y=5)$$, then we will say that these two events are not related, or, more precisely, independent.</p>
+
+<p>Let&rsquo;s try it this way:</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_mean, n_facebook_friends) %&gt;% 
+  na.omit %&gt;% 
+  filter(n_facebook_friends &lt; 1500) %&gt;% 
+  mutate_all(ntile, n = 10) %&gt;% 
+  count(n_facebook_friends, extra_mean) %&gt;% 
+  group_by(n_facebook_friends) %&gt;% 
+  mutate(prop = n/sum(n)) %&gt;% 
+  ggplot(aes(x = factor(extra_mean), y = factor(n_facebook_friends), fill = prop)) +
+  geom_bin2d(aes(fill = prop))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-28-1.png" alt="plot of chunk unnamed-chunk-28" /></p>
+
+<p>Here we summed up rowwise. Let&rsquo;s compare to what happens if we sum up colwise.</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_mean, n_facebook_friends) %&gt;% 
+  na.omit %&gt;% 
+  filter(n_facebook_friends &lt; 1500) %&gt;% 
+  mutate_all(ntile, n = 10) %&gt;% 
+  count(extra_mean, n_facebook_friends) %&gt;% 
+  group_by(extra_mean) %&gt;% 
+  mutate(prop = n/sum(n)) %&gt;% 
+  ggplot(aes(x = factor(extra_mean), y = factor(n_facebook_friends), fill = prop)) +
+  geom_bin2d(aes(fill = prop))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-29-1.png" alt="plot of chunk unnamed-chunk-29" /></p>
+
+<p>Hm, maybe the association is too weak to see in that many buckets. Let&rsquo;s reduce the bucket number by factor 2 (5 buckets), and check the picture again.</p>
+
+<pre><code class="language-r">e %&gt;% 
+  select(extra_mean, n_facebook_friends) %&gt;% 
+  na.omit %&gt;% 
+  filter(n_facebook_friends &lt; 1500) %&gt;% 
+  mutate_all(ntile, n = 5) %&gt;% 
+  count(extra_mean, n_facebook_friends) %&gt;% 
+  group_by(extra_mean) %&gt;% 
+  mutate(prop = n/sum(n)) %&gt;% 
+  ggplot(aes(x = factor(extra_mean), y = factor(n_facebook_friends), fill = prop)) +
+  geom_bin2d(aes(fill = prop))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-23/unnamed-chunk-30-1.png" alt="plot of chunk unnamed-chunk-30" /></p>
+
+<p>This level of granularity seems more in place. Some association can be eyeballed. The conditional probabilities (p(Y=y|X=x)) are not equal, thus, we can say, some dependencies exist. Note that this analyses is in a way more concrete than the correlation. Why? For two reasons. First, we speak on real observations, not on abstract parameters such as $$r$$ (see James Grice&rsquo; idea on <a href="http://store.elsevier.com/Observation-Oriented-Modeling/James-Grice/isbn-9780123851949/">Observation Oriented Modeling</a>). Second, we do not shrunk down the information to one number only, but too much more (here 25=5x5), this amount of information can easily be recognized by the eye.</p>
+
+<p>There is a wealth on categorial data analysis tools available, notable <a href="http://eu.wiley.com/WileyCDA/WileyTitle/productCd-0470463635.html">Agresti&rsquo;s work</a>. Thus, much more could be said and done.</p>
+
+<h2 id="cles">CLES</h2>
+
+<p>The &ldquo;Common language effect size&rdquo; (<a href="http://core.ecu.edu/psyc/wuenschk/docs30/CL.pdf">CLES</a>) is an interesting approach to put effect sizes, such as $r$, to a more tangible language. Basically, CLES tells us, if we were to draw two observations, one of each of two group (here: high vs. low extraversion), what&rsquo;s the probability that the observation from the &ldquo;experimental&rdquo; group (or reference group, more generally) will show higher value in the outcome variable? Note that it is note the same as a Bayesian predictive distribution.</p>
+
+<p>An R function for that purpose exists, but see <a href="https://janhove.github.io/reporting/2016/11/16/common-language-effect-sizes">this great post</a> for more in depth info.</p>
+
+<h1 id="final-thoughts">Final thoughts</h1>
+
+<p>The central idea of this post was to see whether the mean score is more predictive to some criterion than single items. I argue that validity is more important than reliability, albeit reliability (Cronbach&rsquo;s Alpha) is typically reported in (applied) papers, but validity to a lesser degree.</p>
+
+<p>Second, we explored (a bit) the notion whether the association is better captured in several numbers, and not only in one, as is done by the correlation value. This idea is based on the definition of independence in probability theory.</p>
+
+<p>We did not dive here in factor analytic waters, nor did we discussed Item Response Theory, amongst other ideas left out. These ideas are worthwhile certainly, but beyond the primary aims of this post.</p>
+
+<h1 id="related-work">Related work</h1>
+
+<p>There&rsquo;s a lot on scale validation on the internet; see <a href="http://www.uwo.ca/fhs/tc/labs/09.ItemAnalysis.pdf">here</a> for an example. For skepticism on psychometric scale, and for advocates of single item scales, see <a href="http://onlinelibrary.wiley.com/doi/10.1348/096317902167658/full">here</a>, or <a href="http://psycnet.apa.org/journals/spq/30/2/212/">here</a>, and <a href="http://link.springer.com/article/10.1007/s11002-014-9325-y">here</a> for a broader discussion.</p>
+
+<h1 id="sessioninfo">SessionInfo</h1>
+
+<pre><code class="language-r">sessionInfo()
+</code></pre>
+
+<pre><code>## R version 3.3.2 (2016-10-31)
+## Platform: x86_64-apple-darwin13.4.0 (64-bit)
+## Running under: macOS Sierra 10.12.1
+## 
+## locale:
+## [1] en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8
+## 
+## attached base packages:
+## [1] stats     graphics  grDevices utils     datasets  methods   base     
+## 
+## other attached packages:
+##  [1] compute.es_0.2-4 plotluck_1.1.0   psych_1.6.9      corrr_0.2.1     
+##  [5] htmlTable_1.7    dplyr_0.5.0      purrr_0.2.2.9000 readr_1.0.0     
+##  [9] tidyr_0.6.0      tibble_1.2       ggplot2_2.2.0    tidyverse_1.0.0 
+## [13] knitr_1.15      
+## 
+## loaded via a namespace (and not attached):
+##  [1] Rcpp_0.12.7         magrittr_1.5        mnormt_1.5-5       
+##  [4] munsell_0.4.3       colorspace_1.3-0    R6_2.2.0           
+##  [7] highr_0.6           stringr_1.1.0       plyr_1.8.4         
+## [10] tools_3.3.2         parallel_3.3.2      grid_3.3.2         
+## [13] gtable_0.2.0        DBI_0.5-1           htmltools_0.3.5    
+## [16] yaml_2.1.14         lazyeval_0.2.0.9000 rprojroot_1.1      
+## [19] digest_0.6.10       assertthat_0.1      RColorBrewer_1.1-2 
+## [22] evaluate_0.10       rmarkdown_1.1.9016  labeling_0.3       
+## [25] stringi_1.1.2       scales_0.4.1        backports_1.0.4    
+## [28] foreign_0.8-67
+</code></pre>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js//highlight.min.js"></script>
+
+
+
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

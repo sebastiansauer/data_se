@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Different ways to count NAs over multiple columns - A Hugo website</title>
+<meta property="og:title" content="Different ways to count NAs over multiple columns - A Hugo website">
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/%3cnil%3e"
+         width=""
+         height=""
+         alt="">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/blog/">Blog</a></li>
+    
+    <li><a href="/categories/">Categories</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">4 min read</span>
+    
+
+    <h1 class="article-title">Different ways to count NAs over multiple columns</h1>
+
+    
+    <span class="article-date">2017/09/08</span>
+    
+
+    <div class="article-content">
+      
+
+<p>There are a number of ways in R to count NAs (missing values). A common use case is to count the NAs over multiple columns, ie., a whole dataframe. That&rsquo;s basically the question &ldquo;how many NAs are there in each column of my dataframe&rdquo;? This post demonstrates some ways to answer this question.</p>
+
+<h1 id="way-1-using-sapply">Way 1: using <code>sapply</code></h1>
+
+<p>A typical way (or classical way) in R to achieve some iteration is using <code>apply</code> and friends. <code>sapply</code> renders through a list and simplifies (hence the &ldquo;s&rdquo; in sapply) if possible.</p>
+
+<pre><code class="language-r">sapply(mtcars, function(x) sum(is.na(x)))
+#&gt;  mpg  cyl disp   hp drat   wt qsec   vs   am gear carb
+#&gt;    0    0    0    0    0    0    0    0    0    0    0
+</code></pre>
+
+<p>Pros: Straightforward. No dependencies on other packages. Tried and true.<br />
+Cons: Not typestable; not sure you will always get the same data type back from this function. You might be surprised and get something you did not expect. That&rsquo;s no problem in interactive use, but you&rsquo;d not want for programming.</p>
+
+<h1 id="way-2-using-purrr-map">Way 2: using <code>purrr::map</code></h1>
+
+<p><code>map</code> maps (applies) a function to each element of a vector/list. Here, the following code reads as &ldquo;Apply &lsquo;sum(is.na(.))&rsquo; on each column of mtcars&rdquo;. Mind the tilde <code>~</code> before <code>function. The dot</code>.` refers to the respective column.</p>
+
+<pre><code class="language-r">library(tidyverse)
+map(mtcars, ~sum(is.na(.)))
+#&gt; $mpg
+#&gt; [1] 0
+#&gt;
+#&gt; $cyl
+#&gt; [1] 0
+#&gt;
+#&gt; $disp
+#&gt; [1] 0
+#&gt;
+#&gt; $hp
+#&gt; [1] 0
+#&gt;
+#&gt; $drat
+#&gt; [1] 0
+#&gt;
+#&gt; $wt
+#&gt; [1] 0
+#&gt;
+#&gt; $qsec
+#&gt; [1] 0
+#&gt;
+#&gt; $vs
+#&gt; [1] 0
+#&gt;
+#&gt; $am
+#&gt; [1] 0
+#&gt;
+#&gt; $gear
+#&gt; [1] 0
+#&gt;
+#&gt; $carb
+#&gt; [1] 0
+</code></pre>
+
+<p>Pros: Modern, cool. Straightforward. Typestable. Complex function with lots of use cases.<br />
+Cons: Learning curve. Depends on package <code>tidyverse</code>.</p>
+
+<h1 id="way-3-using-dplyr">Way 3: using <code>dplyr</code></h1>
+
+<p>The following code can be translated as something like this:</p>
+
+<pre><code>1. Hey R, take mtcars -and then-    
+2. Select all columns (if I'm in a good mood tomorrow, I might select fewer) -and then-  
+3. Summarise all selected columns by using the function 'sum(is.na(.))'
+</code></pre>
+
+<p>The dot <code>.</code> refers to what was handed over by the pipe, ie., the output of the last step.</p>
+
+<pre><code class="language-r">mtcars %&gt;%
+  select(everything()) %&gt;%  # replace to your needs
+  summarise_all(funs(sum(is.na(.))))
+#&gt;   mpg cyl disp hp drat wt qsec vs am gear carb
+#&gt; 1   0   0    0  0    0  0    0  0  0    0    0
+</code></pre>
+
+<p>Pros: Straightforward. Quite simple (simple than <code>map</code> to me).<br />
+Cons: Depends on package <code>tidyverse</code>.</p>
+
+<h1 id="way-4-counting-nas-rowwise-using-apply">Way 4: Counting NAs rowwise using <code>apply</code></h1>
+
+<p>Sometimes it is useful to count the NAs rowwise (case by case). <code>apply</code> allows for applying a function to each <em>row</em>  of a dataframe (that the <code>MARGIN</code> parameter).</p>
+
+<pre><code class="language-r">apply(mtcars, MARGIN = 1, function(x) sum(is.na(x)))
+#&gt;           Mazda RX4       Mazda RX4 Wag          Datsun 710
+#&gt;                   0                   0                   0
+#&gt;      Hornet 4 Drive   Hornet Sportabout             Valiant
+#&gt;                   0                   0                   0
+#&gt;          Duster 360           Merc 240D            Merc 230
+#&gt;                   0                   0                   0
+#&gt;            Merc 280           Merc 280C          Merc 450SE
+#&gt;                   0                   0                   0
+#&gt;          Merc 450SL         Merc 450SLC  Cadillac Fleetwood
+#&gt;                   0                   0                   0
+#&gt; Lincoln Continental   Chrysler Imperial            Fiat 128
+#&gt;                   0                   0                   0
+#&gt;         Honda Civic      Toyota Corolla       Toyota Corona
+#&gt;                   0                   0                   0
+#&gt;    Dodge Challenger         AMC Javelin          Camaro Z28
+#&gt;                   0                   0                   0
+#&gt;    Pontiac Firebird           Fiat X1-9       Porsche 914-2
+#&gt;                   0                   0                   0
+#&gt;        Lotus Europa      Ford Pantera L        Ferrari Dino
+#&gt;                   0                   0                   0
+#&gt;       Maserati Bora          Volvo 142E
+#&gt;                   0                   0
+</code></pre>
+
+<p>Pros: Straightforward.<br />
+Cons: ?</p>
+
+<h1 id="way-5-counting-nas-rowwise-using-dplyr">Way 5: Counting NAs rowwise using <code>dplyr</code></h1>
+
+<pre><code class="language-r">mtcars %&gt;%
+  rowwise %&gt;%
+  summarise(NA_per_row = sum(is.na(.)))
+#&gt; # A tibble: 32 x 1
+#&gt;    NA_per_row
+#&gt;         &lt;int&gt;
+#&gt;  1          0
+#&gt;  2          0
+#&gt;  3          0
+#&gt;  4          0
+#&gt;  5          0
+#&gt;  6          0
+#&gt;  7          0
+#&gt;  8          0
+#&gt;  9          0
+#&gt; 10          0
+#&gt; # ... with 22 more rows
+</code></pre>
+
+<p>Pro: Fits into the pipe thinking.<br />
+Cons: Somewhat less common.</p>
+
+<h1 id="debrief">Debrief</h1>
+
+<p>Counting NAs over all columns of a dataframe is quite a common task. Like always (?) in R, there a multiple ways to achieve it. Some where shown here (more exist). Enjoy!</p>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js//highlight.min.js"></script>
+
+
+
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

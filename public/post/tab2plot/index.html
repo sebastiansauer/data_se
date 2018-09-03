@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Print csv-file tables as plots - A Hugo website</title>
+<meta property="og:title" content="Print csv-file tables as plots - A Hugo website">
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/%3cnil%3e"
+         width=""
+         height=""
+         alt="">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/blog/">Blog</a></li>
+    
+    <li><a href="/categories/">Categories</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">Print csv-file tables as plots</h1>
+
+    
+    <span class="article-date">2017/06/22</span>
+    
+
+    <div class="article-content">
+      
+
+<h1 id="tl-dr">tl;dr</h1>
+
+<p>Use this convenience function to print a dataframe as a png-plot: <code>tab2grob()</code>.</p>
+
+<p>Source the function here: <a href="https://sebastiansauer.github.io/Rcode/tab2grob.R">https://sebastiansauer.github.io/Rcode/tab2grob.R</a></p>
+
+<p>Easiest way in R:</p>
+
+<pre><code>source(&quot;https://sebastiansauer.github.io/Rcode/tab2grob.R&quot;)
+</code></pre>
+
+<h1 id="printing-csv-dataframes-as-ggplot-plots">Printing csv-dataframes as ggplot plots</h1>
+
+<p>Recently, I wanted to print dataframes not as normal tables, but as a png-plot. See:</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-06-22/Tabelle_Befehle_Datenjudo.png" alt="" /></p>
+
+<p>Why? Well, basically as a convenience function for colleagues who are not into using Markdown &amp; friends. As I am preparing some stats stuff (see my new open access course material <a href="https://sebastiansauer.github.io/Praxis_der_Datenanalyse/">here</a>) using RMarkdown, I wanted to prepare the materials ready for using in Powerpoint.</p>
+
+<p>I found out that tables are difficult to copy-paste into Powerpoint. That&rsquo;s why I thought it may help to print to tables as plots.</p>
+
+<p>So I came up with some function who does this job:</p>
+
+<ol>
+<li>Scan a folder for all csv files</li>
+<li>parse each csv and for each csv file</li>
+<li>print it as a plot</li>
+<li>save it as a png</li>
+</ol>
+
+<h1 id="rcode">Rcode</h1>
+
+<pre><code>tab2plot &lt;- function(path = &quot;&quot;) {
+
+  # Print csv-dataframes as plots using ggplot2 - for easier handling in Powerpoint &amp; friends
+  # Arguments
+  # path: are the csv-files in a subdirectory? Then specify here. Defaults to &quot;&quot; (working directory)
+  # Value:
+  # None. Saves each csv-file as png file of the table.
+
+  library(tidyverse)
+  library(stringr)
+  library(gridExtra)
+  library(grid)
+
+    df &lt;- data_frame(
+    file_name = list.files(path = path, pattern = &quot;\\w+.csv&quot;),
+    title = str_extract(file_name, pattern = &quot;\\w+&quot;)
+  )
+
+  tt &lt;- ttheme_default(core=list(fg_params=list(hjust=0, x=0.1)))
+
+
+  for (i in seq_along(df$file_name)) {
+    cat(paste0(df$file_name[i], &quot;\n&quot;))
+    csv_i &lt;- read.csv(paste0(path, df$file_name[i]))
+    #csv_i &lt;- read.csv(&quot;includes/Befehle_Cluster.csv&quot;)
+    csv_i %&gt;%
+      rownames_to_column %&gt;%
+      dplyr::select(-rowname) -&gt; csv_i
+    p &lt;- arrangeGrob(tableGrob(csv_i, theme = tt))
+    ggsave(file = paste0(&quot;images/Tabellen/&quot;,&quot;Tabelle_&quot;,df$title[i],&quot;.png&quot;),  p)
+  }
+
+}
+</code></pre>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js//highlight.min.js"></script>
+
+
+
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

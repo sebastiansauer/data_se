@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Intuition on correlation - A Hugo website</title>
+<meta property="og:title" content="Intuition on correlation - A Hugo website">
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/%3cnil%3e"
+         width=""
+         height=""
+         alt="">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/blog/">Blog</a></li>
+    
+    <li><a href="/categories/">Categories</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">4 min read</span>
+    
+
+    <h1 class="article-title">Intuition on correlation</h1>
+
+    
+    <span class="article-date">2016/07/25</span>
+    
+
+    <div class="article-content">
+      <p><em>reading time: 10 min.</em></p>
+
+<p>Pearson’s correlation (short: correlation) is one of statistics’ all time classics. With an age of about a century, it is some kind of grand dad of analytic tools – but an oldie who is still very busy!</p>
+
+<p>Formula, interpretation and application of correlation is well known.</p>
+
+<p>In some non-technical lay terms, correlation captures the (linear) degree of co-variation of two linear variables. For example: if tall people have large feet (and small people small feet), on average, we say that height and foot size are correlated.</p>
+
+<p>But what is maybe less well known is some intuitive understanding of correlation. That’s the plan of this post.</p>
+
+<p>Roughly, correlation can be seen as the average deviation rectangle:</p>
+
+<pre><code class="language-r">library(ggplot2)
+data(tips, package = &quot;reshape2&quot;)
+
+(ggplot(tips) + 
+ geom_hline(yintercept = mean(tips$tip), linetype = &quot;dashed&quot;) + 
+ geom_vline(xintercept = mean(tips$total_bill), linetype = &quot;dashed&quot;) +
+ annotate(&quot;rect&quot;,xmin = mean(tips$total_bill), ymin = mean(tips$tip),
+ xmax = tips$total_bill[24], ymax = tips$tip[24], alpha = .1,
+ color = &quot;red&quot;, fill = &quot;red&quot;) +
+ annotate(&quot;text&quot;, x = 30, y = 8, 
+ label = &quot;X[i] - bar(X)&quot;, parse = T, colour = &quot;Red&quot;) +
+ annotate(&quot;text&quot;, x = 42, y = 5.5, 
+ label = &quot;Y[i] - bar(Y)&quot;, parse = T, colour = &quot;Red&quot;) +
+ geom_point(aes(x = total_bill, y = tip)) +
+ geom_point(x = tips$total_bill[24], y = tips$tip[24], color = &quot;red&quot;, 
+ alpha = .1, size = 4) +
+ theme(axis.title=element_text(size=28),
+ plot.title = element_text(size = rel(4))))
+</code></pre>
+
+<p><img src="{{ site.url }}/images/corr1.png" alt="" /></p>
+
+<p>&ldquo;Deviation&rdquo; means here distance from the mean. For example, if my height is 1.95 meters, and the mean height is 1.80 meters my &ldquo;deviation&rdquo; or &ldquo;delta&rdquo; $$ \Delta X=X_i - \bar{X}$$  would be 0.15 meters.</p>
+
+<p>A bit more formally, this mean average deviation is $$\varnothing (\Delta X \cdot \Delta Y$$) , where $$\varnothing X$$ means &ldquo;mean of X&rdquo; or &ldquo;average X&rdquo;.</p>
+
+<p>This measure of &ldquo;joint deviation&rdquo; or let’s say coordinated deviation is called covariance as it measures the degree to which large deltas in X go together with large deltas in Y.</p>
+
+<p>Looking at a more official formula we find:</p>
+
+<p>$$Cov(X,Y) = \frac{1}{n} \sum{(X_i - \bar{X}) \cdot (Y_i - \bar{Y})} = \varnothing(\Delta X \Delta Y)$$.</p>
+
+<p>Now, let’s do the same calculation not with the normal, raw data (such as my height of 1.95 meters) but use z-standardized values instead.</p>
+
+<p>Computing the &ldquo;average deviation rectangle&rdquo; with z-values (instead of raw values) yields the correlation or Person’s correlation coefficient:</p>
+
+<p>$$Cor(X,Y) = \varnothing((z_{X<em>i} - z</em>{\bar{X}}) \cdot (z_{Y<em>i} - z</em>{\bar{Y}}))= \varnothing(z_{X<em>i} - 0) \cdot (z</em>{Y_i} - 0) = \varnothing(z_X z_Y)$$.</p>
+
+<p>In words, the correlation (Cor) of X and Y is the mean z deviation rectangle.</p>
+
+<p>Wait a minute! Does that mean that if correlation is zero, than the mean deviation rectangle equals zero? Yes, thats true! How can that be? Let’s visualize:</p>
+
+<pre><code class="language-r">library(TeachingDemos)
+library('MASS')
+</code></pre>
+
+<pre><code>## 
+## Attaching package: 'MASS'
+</code></pre>
+
+<pre><code>## The following object is masked from 'package:dplyr':
+## 
+##     select
+</code></pre>
+
+<pre><code class="language-r">samples = 200
+
+data_1 = mvrnorm(n=samples, mu=c(0, 0), Sigma=matrix(c(1, 0, 0, 1), nrow=2), empirical=TRUE)
+
+data_df_1 &lt;- data.frame(data_1)
+
+cor.rect.plot(y = data_df_1$X1, x = data_df_1$X2)
+</code></pre>
+
+<p><img src="{{ site.url }}/images/corr2.png" alt="" /></p>
+
+<p>We see that the average red rectangle appears roughly the average blue rectangle. Now, the red rectangle have a positive sign (+), whereas the blue ones have a negative sign.</p>
+
+<p>This is because in the upper right corner, both X and Y delta is positive (my height and my foot size is above average), yielding a positive product value (eg., +10 * +3 = +30). Similarly, in the lower left (red) corner, both deltas are negative (values below average), yielding a positive product (eg., -10 * -3 = -30).</p>
+
+<p>In the &ldquo;blue corners&rdquo; (upper left, lower right), one delta has a negative sign and one delta has a positive sign, yielding a negative sign for their product (e.g, -10 * + 3 = -30).</p>
+
+<p>Hence, some rectangles have a positive value, some a negative. In sum, the average rectangle is zero. Zero mean rectangle means zero correlation.</p>
+
+<p>To the contrary, in the following diagram we see that the average rectangle is positive and quite large (as their are only few blue ones):</p>
+
+<pre><code class="language-r">library(TeachingDemos)
+library('MASS')
+
+
+data_2 = mvrnorm(n=samples, mu=c(0, 0), Sigma=matrix(c(1, .9, .9, 1), nrow=2), empirical=TRUE)
+
+data_df_2 &lt;- data.frame(data_2)
+
+
+cor.rect.plot(y = data_df_2$X1, x = data_df_2$X2)
+</code></pre>
+
+<p><img src="{{ site.url }}/images/corr3.png" alt="" /></p>
+
+<p>The &ldquo;averaging rectangles process&rdquo; can be visualized like this:</p>
+
+<p><img src="{{ site.url }}/images/mean_rectangle.png" alt="" /></p>
+
+<p>Sum up the value (area) of the deviation rectangles. Then divide by the number of rectangles to get the average rectangle (or average value). This value is the covariance (if you started with raw values). Or the correlation, if you started with z-values.</p>
+
+<p>For more in depth voyage, have a look at the <a href="http://www.stat.berkeley.edu/~rabbee/correlation.pdf">paper where 13 ways to look at the correlation coefficient</a> are discussed.</p>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js//highlight.min.js"></script>
+
+
+
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.45.1" />
+
+
+<title>Playing around with dataviz: Comparing distributions between groups - Data Se</title>
+<meta property="og:title" content="Playing around with dataviz: Comparing distributions between groups - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">Playing around with dataviz: Comparing distributions between groups</h1>
+
+    
+    <span class="article-date">2018/05/18</span>
+    
+
+    <div class="article-content">
+      <p>What’ a nice way to display distributional differences between a (larger) number of groups? Boxplots is one way to go. In addition, the raw data may be shown as dots, but should be demphasized. Third, a trend or big picture comparing the groups will make sense in some cases.</p>
+<p>Ok, based on this reasoning, let’s do som visualizing. Let’s load some data (movies), and the usual culprits of packages.</p>
+<pre class="r"><code>library(tidyverse)  </code></pre>
+<pre><code>## Warning: package &#39;dplyr&#39; was built under R version 3.5.1</code></pre>
+<pre class="r"><code>library(mosaic)
+
+data(movies, package = &quot;ggplot2movies&quot;)</code></pre>
+<p>Now let’s add a variable for <code>decade</code> as <code>year</code> is too fine grained..</p>
+<pre class="r"><code>movies %&gt;%  
+  mutate(decade = year / 10) %&gt;%
+  mutate(decade = trunc(decade)) %&gt;%  # trunkieren, abrunden
+  mutate(decade = decade * 10) %&gt;%
+  mutate(decade = factor(decade)) -&gt; movies</code></pre>
+<p>Next, let’s build a variable <code>genre</code> that comprises the different genres such as Action or Drama. Let’s focus on these two for sake of simplicity.</p>
+<pre class="r"><code>movies %&gt;%
+  select(title, decade, budget, rating, Action:Short) %&gt;% 
+  gather(key = genre, value = is_true, -c(title, decade, budget, rating)) %&gt;%
+  filter(is_true == 1) %&gt;%
+  mutate(multiple_genre = duplicated(title)) %&gt;%
+  mutate(genre = ifelse(multiple_genre, &quot;multiple&quot;, genre)) -&gt; movies2</code></pre>
+<p>Now let’s plot:</p>
+<pre class="r"><code>movies2 %&gt;% 
+  filter(genre %in% c(&quot;Action&quot;, &quot;Drama&quot;)) %&gt;% 
+  ggplot(aes(x = decade, y = budget, color = genre, fill = genre)) +
+  facet_wrap(~genre, nrow = 2) +
+  geom_smooth(aes(group = 1), se = FALSE, color = &quot;blue&quot;) +
+  geom_jitter(alpha = .2, color = &quot;grey20&quot;) +
+  geom_boxplot()  +
+  coord_cartesian(ylim = c(0, 1e08)) +
+  scale_fill_viridis_d() +
+  scale_color_viridis_d() +
+    labs(title = &quot;Movies budgets have risen through the decades&quot;,
+       subtitle = &quot;This trend is stronger for Action movies than for Dramas&quot;,
+       color = &quot;&quot;,
+       fill = &quot;&quot;) +
+  guides(color = &quot;none&quot;, fill = &quot;none&quot;)</code></pre>
+<pre><code>## `geom_smooth()` using method = &#39;gam&#39; and formula &#39;y ~ s(x, bs = &quot;cs&quot;)&#39;</code></pre>
+<pre><code>## Warning: Removed 18343 rows containing non-finite values (stat_smooth).</code></pre>
+<pre><code>## Warning: Removed 18343 rows containing non-finite values (stat_boxplot).</code></pre>
+<pre><code>## Warning: Removed 18343 rows containing missing values (geom_point).</code></pre>
+<p><img src="/post/2018-05-18-playing-around-dataviz-comparing-distributions-between-groups_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p>Quite ok. The yellow color from Viridis is not doing the best job here. Note that we have zoomed in so that the movies with very high budgets are off-display (for the sake of better resolution of the majority of movies).</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+  </body>
+</html>
+

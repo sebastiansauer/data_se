@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.45.1" />
+
+
+<title>Deriving the logits for logistic regression - Data Se</title>
+<meta property="og:title" content="Deriving the logits for logistic regression - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">4 min read</span>
+    
+
+    <h1 class="article-title">Deriving the logits for logistic regression</h1>
+
+    
+    <span class="article-date">2017/05/06</span>
+    
+
+    <div class="article-content">
+      <p>The logistic regression is an incredible useful tool, partly because binary outcomes are so frequent in live (“she loves me - she doesn’t love me”). In parts because we can make use of well-known “normal” regression instruments.</p>
+<p>But the formula of logistic regression appears opaque to many (beginners or those with not so much math background).</p>
+<p>Let’s try to shed some light on the formula by discussing some accessible explanation on how to derive the formula.</p>
+<div id="plotting-the-logistics-curve" class="section level1">
+<h1>Plotting the logistics curve</h1>
+<p>Let’s have a look at the curve of the logistic regression.</p>
+<p>For example, let’s look at the question of whether having extramarital affairs is a function of marital satisfaction.</p>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## ── Attaching packages ────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ✔ ggplot2 3.0.0     ✔ purrr   0.2.5
+## ✔ tibble  1.4.2     ✔ dplyr   0.7.6
+## ✔ tidyr   0.8.1     ✔ stringr 1.3.1
+## ✔ readr   1.1.1     ✔ forcats 0.3.0</code></pre>
+<pre><code>## Warning: package &#39;dplyr&#39; was built under R version 3.5.1</code></pre>
+<pre><code>## ── Conflicts ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>data(Affairs, package = &quot;AER&quot;)</code></pre>
+<pre class="r"><code>Affairs$has_affairs &lt;- if_else(condition = Affairs$affairs &gt; 0, 1, 0)
+
+Affairs %&gt;% 
+  ggplot() +
+  aes(x = rating,y = has_affairs) +
+  geom_jitter() +
+  geom_smooth(aes(y = has_affairs), 
+              method = &quot;glm&quot;, method.args = 
+                list(family = &quot;binomial&quot;), 
+              se = FALSE)</code></pre>
+<p><img src="/post/2017-05-06-logistic-regr_files/figure-html/unnamed-chunk-2-1.png" width="50%" style="display: block; margin: auto;" /></p>
+<p>Hm, the curve does not pop out to vividly. Let’s have a look at some other data, why not the Titanic disaster data. Can the survival chance plausible put as a function of the cabin fare?</p>
+<pre class="r"><code>data(titanic_train, package = &quot;titanic&quot;)
+
+titanic_train %&gt;% 
+  ggplot() +
+  aes(x = Fare,y = Survived) +
+  geom_point() +
+  geom_smooth(aes(y = Survived), 
+              method = &quot;glm&quot;, 
+              method.args = list(family = &quot;binomial&quot;), 
+              se = FALSE)</code></pre>
+<p><img src="/post/2017-05-06-logistic-regr_files/figure-html/unnamed-chunk-3-1.png" width="50%" style="display: block; margin: auto;" /></p>
+<p>Hm, maybe better to look at the curve in general.</p>
+<pre class="r"><code>logist &lt;- function(x){
+  y = exp(x) / (1 + exp(x))
+}
+
+p1 &lt;- ggplot(data_frame())
+
+p1 + stat_function(aes(-5:5), fun = logist) + 
+  xlab(&quot;x&quot;)</code></pre>
+<p><img src="/post/2017-05-06-logistic-regr_files/figure-html/unnamed-chunk-4-1.png" width="50%" style="display: block; margin: auto;" /></p>
+<p>Ok, better.</p>
+</div>
+<div id="functional-form" class="section level1">
+<h1>Functional form</h1>
+<p>It is well-known that the fucntional form of the logictic regression curve is</p>
+<p><span class="math display">\[f(t) = p(Y=1) = \frac{e^t}{1+e^t}\]</span></p>
+<p>where <span class="math inline">\(e\)</span> is Euler’s number (2.718…) and <span class="math inline">\(t\)</span> can be any linear combination of predictors such as <span class="math inline">\(b0 + b1x\)</span>. <span class="math inline">\(Y=1\)</span> indicates that the event in question has occured (eg., “survived”, “has_affairs”).</p>
+<p>Assume that <span class="math inline">\(t\)</span> is <span class="math display">\[b0 + b1x\]</span> then</p>
+<p><span class="math display">\[f(t) = \frac{e^{b0+b1x}}{1+e^{b0+b1x}}\]</span></p>
+<p>Now what? Well, we would to end up with the “typical” formula of the logistic regression, something like:</p>
+<p><span class="math display">\[f(x)= L(b0+b1x+...)\]</span></p>
+<p>where <span class="math inline">\(L\)</span> is the <em>Logit</em>, i.e.,</p>
+<p><span class="math display">\[f(t) = ln \left( \frac{e^t}{1+e^t} \right)=b0+b1x\]</span></p>
+</div>
+<div id="deriving-the-formula" class="section level1">
+<h1>Deriving the formula</h1>
+<p>Ok, in a first step, let’s take our <span class="math display">\[p(Y=1) = f(t)\]</span> and divide by the probability of the complementary event. If the probability of event <span class="math display">\[A\]</span> is <span class="math display">\[p\]</span>, the the probability of <span class="math display">\[not-A\]</span> is <span class="math display">\[1-p\]</span>. Thus</p>
+<p><span class="math display">\[\frac{f(t)}{1-f(t)} = \frac{\frac{e^t}{1+e^t}}{1-\frac{e^t}{1+e^t}}\]</span></p>
+<p>So wat did we do? We have just replaced <span class="math display">\[f(t)\]</span> by <span class="math display">\[\frac{e^t}{1e^t}\]</span>, and have therey computed the <em>odds</em>.</p>
+<p>Next, we multiply the equation by <span class="math display">\[\frac{1+e^t}{1+e^t}\]</span> (which is the neutral element, 1), yielding.</p>
+<p><span class="math display">\[=\frac{e^t}{(e^t+1) \cdot \left(\frac{1+e^t}{1+e^t} - \frac{e^t}{e^t+1} \right)}\]</span></p>
+<p>In other words, the denominator of the numerator “wandered” down to the denominator.</p>
+<p>Now, we can simplify the denominator a bit:</p>
+<p><span class="math display">\[=\frac{e^t}{(e^t+1) \cdot \left( \frac{1+e^t - e^t}{e^t + 1} \right) }\]</span></p>
+<p>Simplifying the denominator further</p>
+<p><span class="math display">\[=\frac{e^t}{(e^t+1) \cdot \left( \frac{1}{e^t + 1} \right) }\]</span></p>
+<p>But the denominator simplifies to <span class="math inline">\(1\)</span>, as can be seen here</p>
+<p><span class="math display">\[=\frac{e^t}{\frac{e^t+1}{e^t + 1} }\]</span></p>
+<p>so the final solution is</p>
+<p><span class="math display">\[=e^t\]</span>.</p>
+<p>Ok, great, but what does this solution tells us? It tells us the that the <em>odds</em> simplify to <span class="math display">\[e^t\]</span>.</p>
+<p>Now, let’s take the (natural) <em>logarithm</em> of this expression.</p>
+<p><span class="math display">\[ln(e^t)=t\]</span></p>
+<p>by the rules of exponents algebra.</p>
+<p>But <span class="math display">\[t = b0 + b1x\]</span>.</p>
+<p>In sum</p>
+<p><span class="math display">\[ln\left( \frac{f(t)}{1-f(t)}\right) = b0 + b1x\]</span></p>
+<p>The left part of the previous equation is called the <em>logit</em> which is “odds plus logarithm” of <span class="math display">\[f(t)\]</span>, or rather, more precisely, the logarithm of the odss of <span class="math display">\[p/(1-p)\]</span>.</p>
+<p>Looking back, what have we gained? We now know that if we take the logit of any linear combination, we will get the logistic regression formula. In simple words: “Take the normal regression equation, apply the logit <span class="math display">\[L\]</span>, and you’ll get out the logistic regression” (provided the criterion is binary).</p>
+<p><span class="math display">\[L(t) = ln\left( \frac{f(t)}{1-f(t)}\right) = b0 + b1x\]</span>.</p>
+<blockquote>
+<p>The formula of the logistic regression is similar in the “normal” regression. The only difference is that the <em>logit function</em> has been applied to the “normal” regression formula.</p>
+</blockquote>
+<p>The linearity of the logit helps us to apply our standard regression vocabulary: “If X is increased by 1 unit, the <em>logit</em> of Y changes by b1”. Just insert “the logit”; the rest of the sentence is the normal regression parlance.</p>
+<p>Note that the slope of the curve is not linear, hence b1 is not equal for all values of X.</p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+
