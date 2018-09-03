@@ -326,22 +326,17 @@ class: middle, center, inverse
 # Model diagnosis and coefficients
 
 ```{r m9, echo = FALSE}
-
-root_dir <- "/Users/sebastiansaueruser/Documents/Publikationen/blog_ses/data_se"
-
-load(paste0(root_dir,"/static/slides/afd_dgps2018/objects/stan_normal_models.Rda"))
-
-m <- stan_normal_models[[1]]
-
-
-
-precis(m, depth = 2)@output %>% 
-  rownames_to_column() %>% 
-  rename(coefficient = rowname) %>% 
-  mutate_if(is.numeric, round, 2) -> precis_m
-  
+precis_m <- data.frame(stringsAsFactors=FALSE,
+                                   coefficient = c("beta0[1]", "beta0[2]", "alpha", "beta1", "beta2", "sigma"),
+                                          Mean = c(-0.45, 1.43, 0.07, -0.06, -0.21, 0.68),
+                                        StdDev = c(5.74, 5.75, 5.74, 0.04, 0.05, 0.03),
+                                    lower.0.89 = c(-9.26, -7.35, -9.54, -0.13, -0.28, 0.64),
+                                    upper.0.89 = c(9.16, 11.05, 8.84, 0.02, -0.13, 0.72),
+                                         n_eff = c(260.42, 259.13, 260.09, 520.19, 556.18, 623.57),
+                                          Rhat = c(1, 1, 1, 1, 1, 1)
+                                )
 precis_m %>% 
-kable() %>% 
+  kable() %>% 
   kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
@@ -351,20 +346,60 @@ kable() %>%
 
 
 ```{r all-models, echo = FALSE}
-
-getwd()
-#load(paste0(root_dir,"/static/slides/afd_dgps2018/objects/stan_model_comparison.Rda"))
-
-load("objects/stan_model_comparison.Rda")
-
-
-stan_model_comparison@output %>% 
-  rownames_to_column() %>% 
-  rename(model = rowname) %>% 
-  mutate_if(is.numeric, round, 2) -> stan_model_comparison_output
-
-
-
+stan_model_comparison_output <- data.frame(stringsAsFactors=FALSE,
+                                                model = c("m15_stan", "m13_stan", "m14_stan", "m12_stan", "m11c_stan",
+                                                            "m16_stan",
+                                                            "m10_stan", "m11d_stan",
+                                                            "m9_stan", "m9a_stan",
+                                                            "m11a_stan"),
+                                                   WAIC = c(-1356.31784205804, -1298.49820142589, -1136.44582206627,
+                                                            -951.153765538336,
+                                                            -894.092069124956,
+                                                            -885.56119550249,
+                                                            -533.009659073194,
+                                                            -509.224761429282,
+                                                            625.563835717694,
+                                                            808.284164686967,
+                                                            813.893513007571),
+                                                  pWAIC = c(21.7291386387061, 19.1741011984713, 6.52523148988784,
+                                                            111.740970608157,
+                                                            4.01588629691362,
+                                                            3.34802468275307,
+                                                            3.77060135704448,
+                                                            0.593896976384456,
+                                                            6.91816496103297,
+                                                            4.72385419686823, 4.14317339018546),
+                                                  dWAIC = c(0, 57.819640632151, 219.872019991768, 405.164076519703,
+                                                            462.225772933083,
+                                                            470.75664655555,
+                                                            823.308182984846,
+                                                            847.093080628757,
+                                                            1981.88167777573,
+                                                            2164.60200674501,
+                                                            2170.21135506561),
+                                                 weight = c(0.999999999999722, 2.78371368136707e-13, 1.8005181198249e-48,
+                                                            1.04649859844468e-88,
+                                                            4.25548153934816e-101,
+                                                            5.97713466792663e-103,
+                                                            1.66302819357717e-179,
+                                                            1.13782301017939e-184, 0, 0, 0),
+                                                     SE = c(34.9111213844142, 33.6278802775377, 30.2440918740764,
+                                                            31.2746237932091,
+                                                            37.0278863875357,
+                                                            38.1543580648671,
+                                                            16.015571120056,
+                                                            10.8826325637384,
+                                                            33.8682479354899, 34.0863132456256,
+                                                            35.2184774434458),
+                                                    dSE = c(NA, 15.0326492035245, 33.6368926133433, 37.1071256611068,
+                                                            39.8550714648999,
+                                                            40.5279274352836,
+                                                            37.6625031153049,
+                                                            36.3957930145737,
+                                                            38.8184798663128,
+                                                            39.3000040437219,
+                                                            39.8646455645665)
+                                           )
 
 
 tibble::tribble(
@@ -384,6 +419,7 @@ tibble::tribble(
 
 stan_model_comparison_output %>% 
   full_join(model_spec) %>% 
+  mutate_if(is.numeric, round, 2) %>% 
   select(model, predictors, everything()) -> stan_model_comparison_output2
 
 ```
@@ -391,8 +427,8 @@ stan_model_comparison_output %>%
 
 ```{r model-tabel, echo = FALSE}
 stan_model_comparison_output2 %>% 
-  kable() %>% 
-  kable_styling(bootstrap_options = c("striped", "hover")) %>% 
+  knitr::kable() %>% 
+  kableExtra:: kable_styling(bootstrap_options = c("striped", "hover")) %>% 
   row_spec(1, bold = T, color = "blue", background = "yellow")
 ```
 
@@ -401,16 +437,38 @@ stan_model_comparison_output2 %>%
 # Coefficients of the most favorable model
 
 ```{r fav-model, echo=FALSE}
-#stan_normal_models
-m_fav <- stan_normal_models[["m15_stan"]]
 
+precis_m_fav <- data.frame(stringsAsFactors=FALSE,
+                                       coefficient = c("beta0[1]", "beta0[2]", "beta0[3]", "beta0[4]", "beta0[5]",
+                                                       "beta0[6]", "beta0[7]",
+                                                       "beta0[8]", "beta0[9]",
+                                                       "beta0[10]", "beta0[11]",
+                                                       "beta0[12]", "beta0[13]",
+                                                       "beta0[14]", "beta0[15]",
+                                                       "beta0[16]", "sigma",
+                                                       "sigma2", "beta1", "beta2"),
+                                              Mean = c(0.15, 0.14, 0.11, 0.18, 0.09, 0.08, 0.14, 0.15, 0.09, 0.09,
+                                                       0.12, 0.09, 0.25, 0.16,
+                                                       0.07, 0.21, 0.02, 0.15,
+                                                       -0.01, 0.02),
+                                            StdDev = c(0.01, 0, 0.01, 0.01, 0.02, 0.01, 0.01, 0.01, 0, 0, 0.01,
+                                                       0.01, 0.01, 0.01, 0.01,
+                                                       0.01, 0, 0.03, 0, 0),
+                                        lower.0.89 = c(0.14, 0.14, 0.1, 0.16, 0.06, 0.06, 0.13, 0.13, 0.08, 0.08,
+                                                       0.11, 0.07, 0.24, 0.15,
+                                                       0.06, 0.19, 0.02, 0.11,
+                                                       -0.02, 0.01),
+                                        upper.0.89 = c(0.16, 0.15, 0.12, 0.19, 0.11, 0.09, 0.14, 0.16, 0.09, 0.09,
+                                                       0.13, 0.11, 0.26, 0.17,
+                                                       0.08, 0.22, 0.03, 0.2,
+                                                       -0.01, 0.02),
+                                             n_eff = c(2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000,
+                                                       2000, 2000, 2000, 2000,
+                                                       2000, 2000, 2000, 2000,
+                                                       1957.68, 1702.87),
+                                              Rhat = c(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)
+                                    )
 
-
-precis(m_fav, depth = 2)@output %>% 
-  rownames_to_column() %>% 
-  rename(coefficient = rowname) %>% 
-  mutate_if(is.numeric, round, 2) -> precis_m_fav
-  
 precis_m_fav %>% 
 DT::datatable(options = list(pageLength = 8))
 ```
