@@ -40,6 +40,7 @@ library(viridis)</code></pre>
 <p>These data will be used as predictors for modeling the election results.</p>
 <p>Third, we will make use of geo data in order to geoplot the modeling results. The Bundeswahlleiter provides such data (again via <code>pradadata</code>):</p>
 <pre class="r"><code>data(&quot;wahlkreise_shp&quot;)</code></pre>
+<p>Note: Data objects can also be downloaded <a href="https://osf.io/2yhr9/">from this source</a>.</p>
 </div>
 <div id="data-preparation" class="section level1">
 <h1>Data preparation</h1>
@@ -894,16 +895,16 @@ grid.arrange(p_foreign, p_afd, nrow = 1)</code></pre>
   return(error_vec)
 }</code></pre>
 <p>Apply the function on all models:</p>
-<pre class="r"><code>model_error &lt;- lapply(stan_normal_models_vec, comp_error)
+<pre class="r"><code>model_error &lt;- lapply(stan_normal_models, comp_error)
+
 #model_error</code></pre>
 <p>Compute the median absolute error:</p>
 <pre class="r"><code>md_abs_error_all_models &lt;- sapply(model_error, median) %&gt;% unlist()
 md_abs_error_all_models
 
-best_model_name &lt;- md_abs_error_all_models[which.min(md_abs_error_all_models$value), &quot;model&quot;] %&gt;% simplify()
-#&gt; Error in md_abs_error_all_models$value: $ operator is invalid for atomic vectors</code></pre>
+best_model_name &lt;- md_abs_error_all_models[which.min(md_abs_error_all_models)] %&gt;% names()</code></pre>
 <p>Also, compute the IQR of the errors:</p>
-<pre class="r"><code>modell_error_IQR &lt;- lapply(stan_normal_models_vec, comp_error, fun = IQR)</code></pre>
+<pre class="r"><code>modell_error_IQR &lt;- lapply(stan_normal_models, comp_error, fun = IQR)</code></pre>
 </div>
 <div id="visualizing-prediction-error" class="section level1">
 <h1>Visualizing prediction error</h1>
@@ -911,23 +912,10 @@ best_model_name &lt;- md_abs_error_all_models[which.min(md_abs_error_all_models$
 <pre class="r"><code>model_error %&gt;% 
     as.data.frame() -&gt; model_error_df
 
-glimpse(model_error_df)
-#&gt; Observations: 299
-#&gt; Variables: 11
-#&gt; $ m9_stan   &lt;dbl&gt; 0.044205198, 0.047209199, 0.029988503, 0.047737772, ...
-#&gt; $ m9a_stan  &lt;dbl&gt; 0.086638609, 0.089642610, 0.065287995, 0.081619476, ...
-#&gt; $ m10_stan  &lt;dbl&gt; 0.044288144, 0.047292145, 0.030026344, 0.047723598, ...
-#&gt; $ m11a_stan &lt;dbl&gt; 0.0807800531, 0.0837840541, 0.0637381362, 0.08427061...
-#&gt; $ m11c_stan &lt;dbl&gt; 0.06463213, 0.06763614, 0.04351253, 0.05073863, 0.06...
-#&gt; $ m11d_stan &lt;dbl&gt; 0.068352543, 0.065348542, 0.085394460, 0.074090665, ...
-#&gt; $ m12_stan  &lt;dbl&gt; 0.02933065, 0.03203125, 0.02102996, 0.02563166, 0.02...
-#&gt; $ m13_stan  &lt;dbl&gt; 0.0131304676, 0.0161344686, 0.0039114493, 0.00739234...
-#&gt; $ m14_stan  &lt;dbl&gt; 0.045076864, 0.048080865, 0.030525046, 0.048217998, ...
-#&gt; $ m15_stan  &lt;dbl&gt; 2.137192e-02, 2.437592e-02, 2.440739e-03, 7.159494e-...
-#&gt; $ m16_stan  &lt;dbl&gt; 0.05911707, 0.06212107, 0.04207515, 0.05337895, 0.05...
+#glimpse(model_error_df)
 
-model_names_binom &lt;- list(&quot;m0_stan&quot;, &quot;m1_stan&quot;, &quot;m2_stan&quot;, &quot;m3_stan&quot;,
-               &quot;m4_stan&quot;, &quot;m5_stan&quot;, &quot;m6_stan&quot;, &quot;m7_stan&quot;) 
+# model_names_binom &lt;- list(&quot;m0_stan&quot;, &quot;m1_stan&quot;, &quot;m2_stan&quot;, &quot;m3_stan&quot;,
+#                &quot;m4_stan&quot;, &quot;m5_stan&quot;, &quot;m6_stan&quot;, &quot;m7_stan&quot;) 
 
 model_names &lt;- c(&quot;m9_stan&quot;,
                  &quot;m9a_stan&quot;,
