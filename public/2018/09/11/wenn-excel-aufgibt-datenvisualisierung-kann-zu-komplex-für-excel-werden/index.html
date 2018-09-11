@@ -59,7 +59,7 @@
 
   <article class="article">
     
-    <span class="article-duration">2 min read</span>
+    <span class="article-duration">5 min read</span>
     
 
     <h1 class="article-title">Wenn Excel aufgibt: Datenvisualisierung kann zu komplex für Excel werden</h1>
@@ -77,24 +77,133 @@
 die bayesianische Modell anwendet, um den AfD-Wahlerfolg bei der Bundestagswahl zu analysieren.</p>
 <p>Dieses Bild soll reproduziert werden: <img src="http://data-se.netlify.com/slides/afd_dgps2018/img/model_pred.png" /></p>
 <p>Liebe Excel-Lovers! Ich glaube, dieses Bild ist schwierig mit Excel zu erstellen; mit R ist es zwar nicht trivial, aber vermutlich deutlich einfacher.</p>
-<p>Die Daten für dieses Bild kann man <a href="https://osf.io/2yhr9/">hier</a> herunterladen.</p>
 </div>
 <div id="setup" class="section level2">
 <h2>Setup</h2>
 <p>Laden wir einige hilfreiche R-Pakete:</p>
 <pre class="r"><code>library(tidyverse)</code></pre>
-<pre><code>## ── Attaching packages ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
-<pre><code>## ✔ ggplot2 3.0.0     ✔ purrr   0.2.5
-## ✔ tibble  1.4.2     ✔ dplyr   0.7.6
-## ✔ tidyr   0.8.1     ✔ stringr 1.3.1
-## ✔ readr   1.1.1     ✔ forcats 0.3.0</code></pre>
-<pre><code>## Warning: package &#39;dplyr&#39; was built under R version 3.5.1</code></pre>
-<pre><code>## ── Conflicts ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
-## ✖ dplyr::filter() masks stats::filter()
-## ✖ dplyr::lag()    masks stats::lag()</code></pre>
-<pre class="r"><code>library(prada)</code></pre>
-<p>Dann laden wir die Daten herunter; das kann man von Hand tun oder diese Funktion aus dem Paket <code>prada</code> (von <a href="https://github.com/sebastiansauer/prada">meinem Github-Account</a>).</p>
-<pre class="r"><code>#download_osf(&quot;2yhr9&quot;, &quot;stan_normal_models.Rda&quot;)</code></pre>
+<p>Dann laden wir die Daten herunter von <a href="https://osf.io/2yhr9/" class="uri">https://osf.io/2yhr9/</a>. Die Datei heißt <code>model_error_md_iqr.csv</code>.</p>
+<p>Hat man das getan, so kann man die Datein in R importieren. Der Pfad hängt dabei von Ihrem Download-Ordner ab, bzw. vom Ort, an dem Sie die Datei gespeichert haben:</p>
+<pre class="r"><code>model_error_md_iqr &lt;- read_csv(&quot;/Users/sebastiansaueruser/Documents/Publikationen/blog_ses/data_se/data/afd/model_error_md_iqr.csv&quot;)</code></pre>
+</div>
+<div id="erster-blick-in-die-daten" class="section level2">
+<h2>Erster Blick in die Daten</h2>
+<p>Die Datei ist eine Tabelle, sie stellt den Wahlerfolg der AfD (Anteil gültiger Zweitstimmen) bei der Bundestagswahl 2017 den Vorhersagen verschiedener statistischer Modelle gegenüber. Für jedes Modell (<code>model</code>) ist der Vorhersagefehler <code>error</code> und der IQR <code>iqr</code> für diesen Fehler angegeben. Diese Datei ist Ergebnis eines reht aufwändigen Prozesses, der in diesem <a href="https://data-se.netlify.com/2018/08/25/bayesian-modeling-of-populist-party-success-in-german-federal-elections/">Post</a> nachgelesen werden kann.</p>
+<pre class="r"><code>glimpse(model_error_md_iqr)
+#&gt; Observations: 3,289
+#&gt; Variables: 5
+#&gt; $ afd_prop &lt;dbl&gt; 0.06835254, 0.06534854, 0.08539446, 0.07409066, 0.069...
+#&gt; $ id       &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16...
+#&gt; $ model    &lt;chr&gt; &quot;m9_stan&quot;, &quot;m9_stan&quot;, &quot;m9_stan&quot;, &quot;m9_stan&quot;, &quot;m9_stan&quot;...
+#&gt; $ error    &lt;dbl&gt; 0.5176016, 0.3931657, 0.3428500, 0.2688421, 0.6453240...
+#&gt; $ iqr      &lt;dbl&gt; 0.033840350, 0.025914236, 0.001095887, 0.015214717, 0...</code></pre>
+</div>
+<div id="medianer-fehler-pro-modell" class="section level2">
+<h2>Medianer Fehler pro Modell</h2>
+<p>Berechnen wir den medianen Error pro Modell, um zu wissen, welches Modell summarisch am besten abschneidet in der Vorhersage:</p>
+<pre class="r"><code>model_error_md_iqr %&gt;% 
+  group_by(model) %&gt;%
+  summarise(error_md = median(error)) -&gt; model_error_md_summarized
+
+model_error_md_summarized
+#&gt; # A tibble: 11 x 2
+#&gt;    model     error_md
+#&gt;    &lt;chr&gt;        &lt;dbl&gt;
+#&gt;  1 m10_stan    0.0879
+#&gt;  2 m11a_stan   0.154 
+#&gt;  3 m11c_stan   0.0324
+#&gt;  4 m11d_stan   0.0984
+#&gt;  5 m12_stan    0.0158
+#&gt;  6 m13_stan    0.0152
+#&gt;  7 m14_stan    0.0218
+#&gt;  8 m15_stan    0.0150
+#&gt;  9 m16_stan    0.0312
+#&gt; 10 m9_stan     0.480 
+#&gt; 11 m9a_stan    0.189
+
+best_model_name &lt;- model_error_md_summarized[which.min(model_error_md_summarized$error_md), 1] %&gt;% simplify()
+best_model_name
+#&gt;      model 
+#&gt; &quot;m15_stan&quot;</code></pre>
+<p>Ok, das beste Modell heißt also m15_stan. Fügen wir zum Dataframe <code>model_error_md_summarized</code> eine Spalte mit dieser Information hinzu:</p>
+<pre class="r"><code>model_error_md_summarized %&gt;% 
+  mutate(best_model = ifelse(model == best_model_name, TRUE, FALSE)) -&gt; model_error_md_summarized
+
+model_error_md_summarized
+#&gt; # A tibble: 11 x 3
+#&gt;    model     error_md best_model
+#&gt;    &lt;chr&gt;        &lt;dbl&gt; &lt;lgl&gt;     
+#&gt;  1 m10_stan    0.0879 FALSE     
+#&gt;  2 m11a_stan   0.154  FALSE     
+#&gt;  3 m11c_stan   0.0324 FALSE     
+#&gt;  4 m11d_stan   0.0984 FALSE     
+#&gt;  5 m12_stan    0.0158 FALSE     
+#&gt;  6 m13_stan    0.0152 FALSE     
+#&gt;  7 m14_stan    0.0218 FALSE     
+#&gt;  8 m15_stan    0.0150 TRUE      
+#&gt;  9 m16_stan    0.0312 FALSE     
+#&gt; 10 m9_stan     0.480  FALSE     
+#&gt; 11 m9a_stan    0.189  FALSE</code></pre>
+</div>
+<div id="diagramm-zeichnen" class="section level2">
+<h2>Diagramm zeichnen</h2>
+<p>Damit haben wir die Datenvorbereitung abgeschlossen, plotten wir nun das Diagramm:</p>
+<pre class="r"><code>model_error_md_iqr %&gt;% 
+  # arrange(-error) %&gt;% 
+  ggplot(aes(x = id)) +
+  facet_wrap(~model)+
+  geom_hline(aes(yintercept = error_md), data = model_error_md_summarized) +
+  geom_errorbar(aes(ymin = error - (iqr/2),
+                    ymax = error + (iqr/2)),
+                alpha = .8,
+                color = &quot;gray40&quot;) +
+  geom_point(aes(y = error)) +
+  geom_label(aes(label = round(error_md, 3),
+                 color = best_model,
+                 y = error_md), x = 1,  
+            data = model_error_md_summarized, 
+            hjust = 0) +
+  guides(color=FALSE) +
+  scale_color_manual(values = c(&quot;red&quot;, &quot;darkgreen&quot;)) +
+  labs(
+    x = &quot;Wahlkreisnummer&quot;,
+    y = &quot;Vorhersagefehler&quot;,
+    title = &quot;Vergleich der Vorhersagefehler zum AfD-Wahlerrfolg verschiedener Modelle&quot;,
+    caption = &quot;Daten: Bundestagswahl 2017; bereitgestellt vom Bundeswahlleiter&quot;)</code></pre>
+<p><img src="/post/2018-09-11-wenn-excel-aufgibt-datenvisualisierung-kann-zu-komplex-f%C3%BCr-excel-werden_files/figure-html/plotit-1.png" width="150%" style="display: block; margin: auto;" /></p>
+<p>Ein paar Erklärungen:</p>
+<ul>
+<li>Wir haben mehrere Teildiagramme (“Facetten”) erzeugt mit <code>facet_wrap()</code> - für jedes der 11 Modelle eine Facette</li>
+<li>Dann haben wir eine horizontale Linie gezogen (<code>geom_hline()</code>), um den medianen Fehler des Modells anzuzeigen.</li>
+<li>Als nächstes haben wir für jeden Wahlkreis einen Fehlerbalken eingezeichnet (<code>geom_errorbar()</code>), um die Unsicherheit der Vorhersage darzustellen</li>
+<li>Dann wurde für jedes Modell und jeden Wahlkreis der Fehlerwert als Punkt gezeichnet</li>
+<li>Dann wurden noch Labels hinzugefügt, hier wurde der mediane Fehlerwert dazu gechrieben</li>
+<li>Legenden für die Farben wurden unterdrückt</li>
+<li>Und die Farben (grün, rot) händisch definiert.</li>
+</ul>
+</div>
+<div id="fazit" class="section level2">
+<h2>Fazit</h2>
+<p>Wie so oft liegt die Arbeitung in der Vorbereitung der Daten; dieser Schritt war aber nicht Gegenstand dieses Posts. Eine typische Vorbereitung ist die Umwandlung eines Dataframes von breit auf lang (s. Beispiel <a href="https://data-se.netlify.com/2016/07/04/gather-long-to-wide-format/">hier</a>).</p>
+<p>Man beachte, dass dieses Diagramm wenig “händische” Änderung beinhaltet. So wurde das beste Modell programmatisch ermitteln, es ist nicht “fest verdrahtet”. Würde sich in den Ursprungsdaten etwas ändern, hätte also ein anderes Modell einen geringeren Fehler, so würde sich das Diagramm entsprechend ändern. Das Diagramm ist also in diesem Sinne dynamisch.</p>
+<p>Es ist außerdem reproduzierbar, weil es nicht durch “Klicks” erzeugt wurde, sondern allein durch Syntax. Mit einem Copy-Paste kann man das Diagramm nachbauen, verbessern, überprüfen etc.</p>
+<p>Natürlich kann man an den optischen Details noch drehen. So könnte man den Hintergrund, die Farbwahl oder die Schriftgrößen ändern, um nur ein paar Beispiele zu nennen.</p>
+</div>
+<div id="mehr-davon---in-unseren-seminaren" class="section level2">
+<h2>Mehr davon?! - In unseren Seminaren</h2>
+<p>Sie möchten mehr über moderne Datenvisualisierung lernen?</p>
+<p>In unseren Seminaren lernen Sie <del>alles</del> einiges über professionelle Datenvisualisierung: <a href="https://www.data-divers.com/leistungen/seminare/seminaranmeldung/" class="uri">https://www.data-divers.com/leistungen/seminare/seminaranmeldung/</a></p>
+</div>
+<div id="buch-zur-modernen-datenanalyse-und-datenvisualisierung-mit-r" class="section level2">
+<h2>Buch zur modernen Datenanalyse (und Datenvisualisierung) mit R</h2>
+<p>[Dieses Buch] (<a href="https://www.springer.com/us/book/9783658215866" class="uri">https://www.springer.com/us/book/9783658215866</a>) erklärt ausführlich die Grundlagen der Datenvisualisierung mit R:</p>
+<p><img src="https://images.springer.com/sgw/books/medium/9783658215866.jpg" /></p>
+</div>
+<div id="liebe-excel-freunde" class="section level2">
+<h2>Liebe Excel-Freunde</h2>
+<p>Liebe Excel-Freunde, seid nicht traurig 😄. Excel ist für vieles gut - aber nicht für alles; genauso wenig wie R oder ein anderes Programm für alles gut ist.
+Anspruchsvollere Diagramme oder Analysen sind m.E. besser in Umgebungen mit Syntaxsprache (wie R) aufgehoben.</p>
+<p>Unahbängig davon bin ich offen für Anregungen aus der Excel-Community, wie man dieses Diagramm mit Excel baut.</p>
 </div>
 
     </div>
@@ -154,6 +263,9 @@ die bayesianische Modell anwendet, um den AfD-Wahlerfolg bei der Bundestagswahl 
 
 
     
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
 
     
   </body>

@@ -10,7 +10,32 @@ tags:
   - rstats
   - plotting
   - german
+editor_options: 
+  chunk_output_type: console
 ---
+
+
+
+```{r knitr-setup, echo = FALSE}
+
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  error = TRUE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp =  0.4,  #0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+
+```
+
+
 
 
 Ms Excel ist ein beliebtes Werkzeug der Datenanalyse, auch für Datenvisualisierung. Es gibt einige Beispiele, dass andere Werkzeuge, wie R, zu ansehnlicheren Diagrammen führen können, s. [diesen Post](https://data-se.netlify.com/2017/11/20/great-dataviz-examples-in-rstats/). In diesem Post geht es um eine verwandte Frage: Gibt es Diagramme, die nicht -- oder nur sehr aufwendig -- mit Excel zu erstellen sind?
@@ -29,25 +54,141 @@ Dieses Bild soll reproduziert werden: ![](http://data-se.netlify.com/slides/afd_
 Liebe Excel-Lovers! Ich glaube, dieses Bild ist schwierig mit Excel zu erstellen; mit R ist es zwar nicht trivial, aber vermutlich deutlich einfacher.
 
 
-Die Daten für dieses Bild kann man [hier](https://osf.io/2yhr9/) herunterladen.
-
-
 ## Setup
 
 Laden wir einige hilfreiche R-Pakete:
 
 ```{r}
 library(tidyverse)
-library(prada)
 ```
 
 
 
-Dann laden wir die Daten herunter; das kann man von Hand tun oder diese Funktion aus dem Paket `prada` (von [meinem Github-Account](https://github.com/sebastiansauer/prada)). 
+Dann laden wir die Daten herunter von <https://osf.io/2yhr9/>. Die Datei heißt `model_error_md_iqr.csv`.
 
-```{r eval = FALSE}
-#download_osf("2yhr9", "stan_normal_models.Rda")
+ Hat man das getan, so kann man die Datein in R importieren. Der Pfad hängt dabei von Ihrem Download-Ordner ab, bzw. vom Ort, an dem Sie die Datei gespeichert haben:
+
+
+```{r}
+model_error_md_iqr <- read_csv("/Users/sebastiansaueruser/Documents/Publikationen/blog_ses/data_se/data/afd/model_error_md_iqr.csv")
 ```
+
+
+## Erster Blick in die Daten
+
+
+Die Datei ist eine Tabelle, sie stellt den Wahlerfolg der AfD (Anteil gültiger Zweitstimmen) bei der Bundestagswahl 2017 den Vorhersagen verschiedener statistischer Modelle gegenüber. Für jedes Modell (`model`) ist der Vorhersagefehler `error` und der IQR `iqr` für diesen Fehler angegeben. Diese Datei ist Ergebnis eines reht aufwändigen Prozesses, der in diesem [Post](https://data-se.netlify.com/2018/08/25/bayesian-modeling-of-populist-party-success-in-german-federal-elections/) nachgelesen werden kann.
+
+```{r}
+glimpse(model_error_md_iqr)
+```
+
+
+
+## Medianer Fehler pro Modell
+Berechnen wir den medianen Error pro Modell, um zu wissen, welches Modell summarisch am besten abschneidet in der Vorhersage:
+
+```{r}
+model_error_md_iqr %>% 
+  group_by(model) %>%
+  summarise(error_md = median(error)) -> model_error_md_summarized
+
+model_error_md_summarized
+
+best_model_name <- model_error_md_summarized[which.min(model_error_md_summarized$error_md), 1] %>% simplify()
+best_model_name
+
+```
+
+
+Ok, das beste Modell heißt also `r best_model_name`. Fügen wir zum Dataframe `model_error_md_summarized` eine Spalte mit dieser Information hinzu:
+
+
+```{r}
+model_error_md_summarized %>% 
+  mutate(best_model = ifelse(model == best_model_name, TRUE, FALSE)) -> model_error_md_summarized
+
+model_error_md_summarized
+```
+
+
+## Diagramm zeichnen
+
+Damit haben wir die Datenvorbereitung abgeschlossen, plotten wir nun das Diagramm:
+
+```{r plotit, out.width="150%"}
+model_error_md_iqr %>% 
+  # arrange(-error) %>% 
+  ggplot(aes(x = id)) +
+  facet_wrap(~model)+
+  geom_hline(aes(yintercept = error_md), data = model_error_md_summarized) +
+  geom_errorbar(aes(ymin = error - (iqr/2),
+                    ymax = error + (iqr/2)),
+                alpha = .8,
+                color = "gray40") +
+  geom_point(aes(y = error)) +
+  geom_label(aes(label = round(error_md, 3),
+                 color = best_model,
+                 y = error_md), x = 1,  
+            data = model_error_md_summarized, 
+            hjust = 0) +
+  guides(color=FALSE) +
+  scale_color_manual(values = c("red", "darkgreen")) +
+  labs(
+    x = "Wahlkreisnummer",
+    y = "Vorhersagefehler",
+    title = "Vergleich der Vorhersagefehler zum AfD-Wahlerrfolg verschiedener Modelle",
+    caption = "Daten: Bundestagswahl 2017; bereitgestellt vom Bundeswahlleiter")
+```
+
+
+Ein paar Erklärungen:
+
+
+- Wir haben mehrere Teildiagramme ("Facetten") erzeugt mit `facet_wrap()` - für jedes der 11 Modelle eine Facette
+- Dann haben wir eine horizontale Linie gezogen (`geom_hline()`), um den medianen Fehler des Modells anzuzeigen.
+- Als nächstes haben wir für jeden Wahlkreis einen Fehlerbalken eingezeichnet (`geom_errorbar()`), um die Unsicherheit der Vorhersage darzustellen
+- Dann wurde für jedes Modell und jeden Wahlkreis der Fehlerwert als Punkt gezeichnet
+- Dann wurden noch Labels hinzugefügt, hier wurde der mediane Fehlerwert dazu gechrieben
+- Legenden für die Farben wurden unterdrückt
+- Und die Farben (grün, rot) händisch definiert.
+
+
+
+## Fazit
+
+Wie so oft liegt die Arbeitung in der Vorbereitung der Daten; dieser Schritt war aber nicht Gegenstand dieses Posts. Eine typische Vorbereitung ist die Umwandlung eines Dataframes von breit auf lang (s. Beispiel [hier](https://data-se.netlify.com/2016/07/04/gather-long-to-wide-format/)).
+
+
+Man beachte, dass dieses Diagramm wenig "händische" Änderung beinhaltet. So wurde das beste Modell programmatisch ermitteln, es ist nicht "fest verdrahtet". Würde sich in den Ursprungsdaten etwas ändern, hätte also ein anderes Modell einen geringeren Fehler, so würde sich das Diagramm entsprechend ändern. Das Diagramm ist also in diesem Sinne dynamisch.
+
+Es ist außerdem reproduzierbar, weil es nicht durch "Klicks" erzeugt wurde, sondern allein durch Syntax. Mit einem Copy-Paste kann man das Diagramm nachbauen, verbessern, überprüfen etc.
+
+Natürlich kann man an den optischen Details noch drehen. So könnte man den Hintergrund, die Farbwahl oder die Schriftgrößen ändern, um nur ein paar Beispiele zu nennen.
+
+
+## Mehr davon?! - In unseren Seminaren
+
+Sie möchten mehr über moderne Datenvisualisierung lernen?
+
+In unseren Seminaren lernen Sie ~~alles~~ einiges über professionelle Datenvisualisierung: <https://www.data-divers.com/leistungen/seminare/seminaranmeldung/>
+
+
+## Buch zur modernen Datenanalyse (und Datenvisualisierung) mit R
+
+[Dieses Buch] (https://www.springer.com/us/book/9783658215866) erklärt ausführlich die Grundlagen der Datenvisualisierung mit R:
+
+![](https://images.springer.com/sgw/books/medium/9783658215866.jpg)
+
+
+
+## Liebe Excel-Freunde
+
+
+Liebe Excel-Freunde, seid nicht traurig `r emo::ji("smile")`. Excel ist für vieles gut - aber nicht für alles; genauso wenig wie R oder ein anderes Programm für alles gut ist.
+Anspruchsvollere Diagramme oder Analysen sind m.E. besser in Umgebungen mit Syntaxsprache (wie R) aufgehoben.
+
+Unahbängig davon bin ich offen für Anregungen aus der Excel-Community, wie man dieses Diagramm mit Excel baut.
 
 
 
