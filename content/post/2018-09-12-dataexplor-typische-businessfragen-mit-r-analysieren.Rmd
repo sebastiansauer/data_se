@@ -1,7 +1,7 @@
 ---
 title: 'DataExploR: Typische Businessfragen mit R analysieren'
 author: ''
-draft: TRUE
+draft: FALSE
 date: '2018-09-12'
 slug: dataexplor-typische-businessfragen-mit-r-analysieren
 categories:
@@ -9,6 +9,8 @@ categories:
 tags:
   - rstats
   - german
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r knitr-setup, echo = FALSE}
@@ -29,4 +31,242 @@ knitr::opts_chunk$set(
 )
 
 ```
+
+
+In diesem Post untersuchen wir eine recht häufige Fragestellung im Bereich der Datenanalyse -- die Auswertung von Umfragedaten. Umfragen sind eine gängige Angelegenheit in vielen Organisationen: man möchte wissen, ob die Kunden zufrieden sind oder was die Mitarbeiter vom Management denken. Wir werden nicht alle Aspekte der Analyse betrachten -- da gibt es viel zu tun --, sondern ein paar zentrale Aspekte herausgreifen.
+
+
+Laden wir zuerst ein paar nützliche Pakete:
+
+```{r}
+library(tidyverse)
+library(likert)
+library(sjmisc)
+library(sjPlot)
+```
+
+
+Dann laden wir Umfragedaten:
+
+```{r}
+data(extra, package = "pradadata")
+```
+
+Das Paket `pradadata` muss vorab (einmalig) installiert werden (s. [Installationshinweise](https://github.com/sebastiansauer/pradadata)).
+
+
+Diese Daten untersuchen die Extraversion von Menschen (z.B. Mitarbeiter*innen); außerdem werden noch ein paar mit der Extraversion korrelierte Variablen erhoben (für unsere Zwecke im Detail nicht weiter von Belang).
+
+
+```{r}
+glimpse(extra)
+```
+
+
+Zuerst wählen wir nur die 10 Items der Umfrage heraus, das ist komfortabler als der Datensatz mit 34 Variablen:
+
+```{r}
+extra %>% 
+  select(i01:i10) -> extra_items
+```
+
+
+Der Operator `%>%` bedeutet so viel wie "und dann". Demnach liest sich die Syntax oben wie folgt:
+
+>    Nimm den Datensatz "extra" 
+>    UND DANN...
+>    wähle Spalten i01 bis i10
+>    speichere das Ergebnis als "extra_items"
+
+
+Werfen wir einen Blick hinein (engl. "to glimpse"):
+
+```{r}
+glimpse(extra_items)
+```
+
+
+# Visualisierung der Itemantworten
+
+Mit dem Paket `likert` kann man sich komfortabel ein schönes Diagramm zu den Itemverteilungen ausgeben lassen. Allerdings "verdaut" `likert` nur klassische Dataframes, keine neumodischen Tibbles. `extra_items` ist aber ein Tibble, d.h. hat die Klasse `tbl`:
+
+```{r}
+class(extra_items)
+```
+
+
+Wir wandeln daher in einen "normalen" Dataframe um:
+
+```{r}
+extra_items %>%
+  as.data.frame() -> extra_items
+
+class(extra_items)
+```
+
+Nun wandeln wir den Dataframe in ein Objekt vom Typ `likert` um, das resultierende Objekt kann dann einfach geplottet werden. Ach ja, `likert` möchte die Items gerne vom Typ `factor` haben, also wandeln wir alle Items noch um (mit `mutate_all()`), und zwar in den Typ `factor`:
+
+```{r out.width = "100%"}
+extra_items %>% 
+  mutate_all(factor) -> extra_items_f
+  
+extra_items_f %>% 
+  likert() %>% 
+  plot()
+```
+
+
+# Items umkodieren
+
+Häufig kommt es vor, dass ein Item umkodiert werden muss. Was heißt umkodieren und wozu braucht man es? Normalerweise sind Items "richtig herum" formuliert, etwa "Ich gehe gerne unter Leute" wäre ein Beispiel für ein Extraversionsitem. Es ist in Richtung Extraversion formuliert (oder, synonym, "kodiert"). Aber das Item "Ich bleibe am liebsten alleine zuhause" ist *nicht* Richtung Extraversion kodiert, sondern im Gegenteil in Richtung *Intro*version. Leute, die diesem Item zustimmen, sind also nicht hoch sondern gering extrovertiert. Das Item muss zuerst "umgedreht werden": Hat jemand die höchste Stufe (hier: 4) angekreuzt, so muss das auf die geringste Antwortstufe (hier: 1) umgedreht werden und so weiter.
+
+Das kann man wie folgt leisten; nehmen wir an, Item 01 müsse umkodiert werden:
+
+```{r}
+extra_items %>% 
+  rec(i01, rec = "1=4; 2=3; 3=2; 4=1")
+```
+
+Das umkodierte Item (ganz hinten als letzte Spalte im Datensatz) wird praktischerweise mit `_r` gekennzeichnet, so kann man einfach damit weiterarbeiten.
+
+Eine weitere häufig benötigte Art des Umkodierens ist, statt einer Antwortzahl wie 1 oder 2 etc. die Beschreibung dieser Antwort aufzuführen, z.B. "ich stimme dieser Aussage überhaupt nicht zu". Das geht z.B. so:
+
+```{r}
+extra_items_f %>% 
+  mutate_all(funs( case_when(
+             . == "1" ~ "stimme nicht zu",
+             . == "2" ~ "stimme eher nicht zu",
+             . == "3" ~ "stimme eher zu",
+             . == "4" ~ "stimme voll und ganz zu"))) -> extra_items_rec
+glimpse(extra_items_rec)
+```
+
+
+Betrachten wir diese Syntax genauer:
+
+- Mit `mutate_all` weisen wir an, dass alle Spalten verändert ("mutiert") werden sollen
+- Mit `case_when` definieren wir die Bedingungen für die Veränderung
+- Der Punkt `.` steht dabei als Platzhalter für jeweils eine Spalte, sozusagen die Spalte "i"
+
+ Man kann den `case_when` Befehl grob so ins Deutsche übersetzen:
+ 
+>    Wenn eine Zelle in der aktuellen Spalte den Wert "1" hat, dann soll das in "stimme überhaupt nicht zu" übersetzt werden. Für übrige Werte (2,3,4) gilt das Gleiche.
+
+
+
+# Zeilenmittelwerte berechnen
+
+Häufig möchte man Zeilenmittelwerte oder Zeilensummen berechnen. Das kann man so machen:
+
+```{r}
+extra_items %>%
+  row_means(i01:i10, n = 9) -> extra_items
+extra_items
+```
+
+
+Mit `n = 9` legen wir fest, dass mindestens 9 (von 10) Items von der Person beantwortet worden sollen, sonst wird ein fehlender Wert zurückgeliefert.
+
+
+# Mittelwerte pro Person nach Gruppen aufgeteilt
+
+Häufig ist man an summativen Statistiken pro Gruppe interessiert, etwa: Ist die Belegschaft in Abteilung A engagierter als in Abteilung B? Sind die Kunden mit Produkt X zufriedener als mit Produkt Y?
+
+Diese Frage kann man so beantworten: Zuerst fügen wir eine Gruppierungsvariable hinzu, hier Geschlecht (`sex`):
+
+```{r}
+extra_items %>% 
+  mutate(sex = extra$sex) -> extra_items
+```
+
+`mutate` definiert eine neue Spalte, in diesem Fall mit dem Inhalt der Spalte `sex` aus dem ursprünglichen Datensatz `extra´.
+
+Jetzt berechnen wir die mittlere Extraversion pro Gruppe:
+
+```{r}
+extra_items %>% 
+  row_means(i01:i10, n = 9) %>% 
+  group_by(sex) %>% 
+  summarise(group_mean = mean(rowmeans, na.rm = TRUE))
+```
+
+
+# Häufigkeitsauswertung
+
+Umfragedaten werden gerne nach Häufigkeiten ausgewertet, das kann so aussehen für das Item `i10`:
+
+
+```{r}
+extra_items %>% 
+  frq(i10)
+```
+
+
+`frq` steht dabei für "frequencies", also Häufigkeiten. Einfach, oder? 
+
+
+Vielleicht möchte man diese Häufigkeiten noch visualisiert haben, z.B. so:
+
+```{r}
+sjp.frq(extra_items$i10)
+```
+
+Oder in einer Variante:
+
+```{r}
+sjp.frq(extra_items$i10, type = "histogram",
+        show.mean = TRUE, normal.curve = TRUE)
+```
+
+
+Vielleicht auch als schön formatierte Kontingenztabelle - Item 10 in Zusammenhang mit dem Geschlecht:
+
+
+```{r}
+sjt.xtab(extra_items$i10, extra_items$sex)
+```
+
+
+
+# Mehr davon?! - In unseren Seminaren
+
+Sie möchten mehr über moderne Datenvisualisierung lernen?
+
+In unseren Seminaren lernen Sie ~~alles~~ einiges über professionelle Datenvisualisierung.
+
+**Nähere Informationen zum Seminar:** <https://www.data-divers.com/leistungen/seminare/seminar-dataviser/> 
+
+**Zur Annmeldung:** <https://www.data-divers.com/leistungen/seminare/seminaranmeldung/>
+
+
+
+Dozenten:
+
+
+Prof. Dr. Sebastian Sauer ([zur Homepage](https://www.data-divers.com/))
+
+```{r echo = FALSE, out.width="20%"}
+knitr::include_graphics("http://data-se.netlify.com/img/Sebastian_Sauer_hoch.jpg")
+```
+
+
+
+Prof. Dr. Felix Bauer ([zur Homepage](https://bauer-projektmanagement.de/))
+
+
+```{r echo = FALSE, out.width="20%"}
+knitr::include_graphics("http://data-se.netlify.com/img/Felix_Bauer.png")
+```
+
+
+
+# Buch zur modernen Datenanalyse (und Datenvisualisierung) mit R
+
+[Dieses Buch](https://www.springer.com/us/book/9783658215866) erklärt ausführlich die Grundlagen der Datenanalyse mit R:
+
+![](https://images.springer.com/sgw/books/medium/9783658215866.jpg)
+
+
+
+
 
