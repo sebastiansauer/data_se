@@ -1,0 +1,79 @@
+---
+title: 'Wenn Excel aussteigt: Datensatz umbauen zur Visualisierung'
+author: ''
+draft: TRUE
+date: '2018-09-11'
+slug: wenn-excel-aussteigt-datensatz-umbauen-zur-visualisierung
+categories:
+  - rstats
+tags:
+  - rstats
+  - plotting
+  - German
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r knitr-setup, echo = FALSE}
+
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  error = TRUE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp =   1 ,
+  fig.show = "hold",
+  size = "tiny"
+)
+
+```
+
+
+
+
+# Warum R? Ich liebe Excel! 
+
+
+Excel hat viele Vorteile; viele Menschen haben lange Jahre intensiv mit Excel gearbeitet und kennen sich sehr gut mit dieser Software aus. Warum sollte man mit einer neuen Software wie R arbeiten, wenn man Daten analysieren möchte?
+
+*Ein* Grund ist, dass manche Sachen mit R *leichter* sind als mit Excel. Zum Beispiel dieser Fall: Sie haben einen Datensatz, in dem Ihre Umsätze pro Quartal wiedergegeben sind. Dieser könnte so aussehen:
+
+
+```{r}
+d <- tibble::tribble(
+       ~Produkt, ~Q1, ~Q2, ~Q3, ~Q4,
+            "A",  1L,  5L, 10L,  2L,
+            "B",  2L,  6L,  1L,  2L,
+            "C",  3L,  7L, 10L,  2L
+       )
+
+DT::datatable(d)
+```
+
+Die Spalten `Q1`, `Q2` und so weiter stellen die Quartale des letzen Jahres dar. In jeder Zelle steht ein Umsatzwert. In jeder Zeile ein Produkt.
+
+
+
+
+Und Sie möchten dieses Diagramm erzeugen:
+
+
+```{r echo =FALSE}
+library(tidyverse)
+d %>% 
+  gather(key = Quartal, value = Umsatz, -Produkt) %>% 
+  ggplot(aes(x = Quartal, y = Umsatz)) +
+  geom_point(alpha = .7) +
+  geom_line(aes(group = Produkt,
+                color = Produkt))
+            
+```
+
+
+Ein Diagramm also, das auf der X-Achse `Quartal` zeigt und auf der Y-Achse den Umsatz.
