@@ -857,6 +857,26 @@ save(stan_model_comparison, file = "stan_model_comparison.Rda")
 
 `m11b` is better than `m11a` - unemployment apears to be more important to predict AfD success compared to migration rate in the area.
 
+
+# Get best (normal) model
+
+Which model ist best? Let's define the model with the lowest WAIC as best:
+
+```{r}
+stan_model_comparison@output %>% 
+  rownames_to_column(var = "model_name") %>%  
+  slice(which.min(WAIC)) -> best_model
+```
+
+And now extract the name of the best model:
+
+```{r}
+best_model_name <-
+  best_model %>%
+  pull(model_name)
+```
+
+
 # Geo plotting
 
 
@@ -955,6 +975,7 @@ Apply the function on all models:
 model_error <- lapply(stan_normal_models, comp_error)
 
 #model_error
+#save(model_error, file = "model_error.Rda")
 ```
 
 
@@ -1161,4 +1182,61 @@ d_short %>%
 
 Interestingly, in Sachsen manifests a strong negative correlation between AfD and foreigner rates.
 
+
+
+# Check some model assumptions
+
+
+
+Let's compute the predictions for each model:
+
+
+
+```{r fun-comp-err}
+
+model_predictions <- lapply(stan_normal_models, link)
+ 
+```
+
+
+Now plot the predictions against the error, as advised by Gelman and Hill.
+
+First, get predictions of the best moel:
+
+```{r}
+model_predictions[[best_model_name]] %>% 
+  as_tibble %>% 
+  summarise_all(mean) %>% 
+  gather() -> best_model_preds
+
+# save(best_model_preds, file = "best_model_preds.Rda")
+```
+
+Each observation is one *row*  in this data frame.
+
+Similarly, get errors of the best model:
+
+
+```{r}
+model_error[[best_model_name]] %>% 
+  as_tibble() %>%
+  rename(error = value) %>% 
+  mutate(pred = best_model_preds$value) -> best_model_pred_err
+  
+best_model_pred_err %>% 
+  ggplot() +
+  aes(x = pred, y = error) +
+  geom_hline(yintercept = quantile(best_model_pred_err$error, .5),
+             color = "grey60") +
+  geom_hline(yintercept = quantile(best_model_pred_err$error, .975),
+             color = "grey80", , linetype = "dashed") +
+  geom_hline(yintercept = quantile(best_model_pred_err$error, .025),
+             color = "grey80", , linetype = "dashed") +
+  geom_point() +
+  labs(title = best_model_name,
+       xlab = "Model predictions",
+       ylab = "Model error",
+       caption = "Note. Horizontal lines denote .025, .5, and .975 quantiles, respectively") 
+  
+```
 
