@@ -59,7 +59,7 @@
 
   <article class="article">
     
-    <span class="article-duration">4 min read</span>
+    <span class="article-duration">5 min read</span>
     
 
     <h1 class="article-title">Finding NAs in multiples columns (per row)</h1>
@@ -73,127 +73,173 @@
 <p>First, data and some packages:</p>
 <pre class="r"><code>data(mtcars)
 library(tidyverse)</code></pre>
-<pre><code>## ── Attaching packages ────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
-<pre><code>## ✔ ggplot2 3.0.0     ✔ purrr   0.2.5
-## ✔ tibble  1.4.2     ✔ dplyr   0.7.6
-## ✔ tidyr   0.8.1     ✔ stringr 1.3.1
-## ✔ readr   1.1.1     ✔ forcats 0.3.0</code></pre>
-<pre><code>## Warning: package &#39;dplyr&#39; was built under R version 3.5.1</code></pre>
-<pre><code>## ── Conflicts ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
-## ✖ dplyr::filter() masks stats::filter()
-## ✖ dplyr::lag()    masks stats::lag()</code></pre>
 <p>Then, let’s introduce some missing data:</p>
 <pre class="r"><code>mtcars[c(1,2), 1] &lt;- NA
 mtcars[c(1, 3:4), 2] &lt;- NA</code></pre>
 <div id="dont-check-columns-individually" class="section level1">
 <h1>Don’t check columns individually</h1>
 <p>Of course, you do not want to repeat yourself, and check each column individually, like this:</p>
-<pre class="r"><code>sum(is.na(mtcars[[1]]))</code></pre>
-<pre><code>## [1] 2</code></pre>
-<pre class="r"><code>sum(is.na(mtcars[, 1]))  # same</code></pre>
-<pre><code>## [1] 2</code></pre>
+<pre class="r"><code>sum(is.na(mtcars[[1]]))
+#&gt; [1] 2
+sum(is.na(mtcars[, 1]))  # same
+#&gt; [1] 2</code></pre>
 <p>Neither one would like to check each row individually:</p>
-<pre class="r"><code>sum(is.na(mtcars[1, ]))</code></pre>
-<pre><code>## [1] 2</code></pre>
+<pre class="r"><code>sum(is.na(mtcars[1, ]))
+#&gt; [1] 2</code></pre>
 </div>
 <div id="apply-a-function-to-each-column" class="section level1">
 <h1>Apply a function to each column</h1>
 <p>We need to <code>apply()</code> the function above to each column (or row). <code>map</code> works similar to <code>apply</code> but has some niceties included (<code>map</code> comes from R package <code>purrr</code>).</p>
 <pre class="r"><code>mtcars %&gt;% 
-  map(~sum(is.na(.)))</code></pre>
-<pre><code>## $mpg
-## [1] 2
-## 
-## $cyl
-## [1] 3
-## 
-## $disp
-## [1] 0
-## 
-## $hp
-## [1] 0
-## 
-## $drat
-## [1] 0
-## 
-## $wt
-## [1] 0
-## 
-## $qsec
-## [1] 0
-## 
-## $vs
-## [1] 0
-## 
-## $am
-## [1] 0
-## 
-## $gear
-## [1] 0
-## 
-## $carb
-## [1] 0</code></pre>
+  map(~sum(is.na(.)))
+#&gt; $mpg
+#&gt; [1] 2
+#&gt; 
+#&gt; $cyl
+#&gt; [1] 3
+#&gt; 
+#&gt; $disp
+#&gt; [1] 0
+#&gt; 
+#&gt; $hp
+#&gt; [1] 0
+#&gt; 
+#&gt; $drat
+#&gt; [1] 0
+#&gt; 
+#&gt; $wt
+#&gt; [1] 0
+#&gt; 
+#&gt; $qsec
+#&gt; [1] 0
+#&gt; 
+#&gt; $vs
+#&gt; [1] 0
+#&gt; 
+#&gt; $am
+#&gt; [1] 0
+#&gt; 
+#&gt; $gear
+#&gt; [1] 0
+#&gt; 
+#&gt; $carb
+#&gt; [1] 0</code></pre>
 <p>Note that <code>~</code> is shorthand for <code>function(x)</code>, but less verbose. <code>.</code> refers to each element of <code>mtcars</code>, ie each column.</p>
 </div>
 <div id="count-nas-per-row" class="section level1">
-<h1>Count Nas per row</h1>
+<h1>Count NAs per row</h1>
 <p>Now assume you want to know the missing per case (ie row). One way is this:</p>
 <pre class="r"><code>mtcars %&gt;% 
 mutate(NA_count = rowSums(is.na(.))) %&gt;% 
-  head()</code></pre>
-<pre><code>##    mpg cyl disp  hp drat    wt  qsec vs am gear carb NA_count
-## 1   NA  NA  160 110 3.90 2.620 16.46  0  1    4    4        2
-## 2   NA   6  160 110 3.90 2.875 17.02  0  1    4    4        1
-## 3 22.8  NA  108  93 3.85 2.320 18.61  1  1    4    1        1
-## 4 21.4  NA  258 110 3.08 3.215 19.44  1  0    3    1        1
-## 5 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2        0
-## 6 18.1   6  225 105 2.76 3.460 20.22  1  0    3    1        0</code></pre>
+  head()
+#&gt;    mpg cyl disp  hp drat    wt  qsec vs am gear carb NA_count
+#&gt; 1   NA  NA  160 110 3.90 2.620 16.46  0  1    4    4        2
+#&gt; 2   NA   6  160 110 3.90 2.875 17.02  0  1    4    4        1
+#&gt; 3 22.8  NA  108  93 3.85 2.320 18.61  1  1    4    1        1
+#&gt; 4 21.4  NA  258 110 3.08 3.215 19.44  1  0    3    1        1
+#&gt; 5 18.7   8  360 175 3.15 3.440 17.02  0  0    3    2        0
+#&gt; 6 18.1   6  225 105 2.76 3.460 20.22  1  0    3    1        0</code></pre>
 <p>Here, the dot <code>.</code> refers to the data frame as of the last pipe step. In this case, it’s just the plain data frame <code>mtcars</code>.</p>
+<p>Of course, the pipe is not needed:</p>
+<pre class="r"><code>rowSums(is.na(mtcars))
+#&gt;           Mazda RX4       Mazda RX4 Wag          Datsun 710 
+#&gt;                   2                   1                   1 
+#&gt;      Hornet 4 Drive   Hornet Sportabout             Valiant 
+#&gt;                   1                   0                   0 
+#&gt;          Duster 360           Merc 240D            Merc 230 
+#&gt;                   0                   0                   0 
+#&gt;            Merc 280           Merc 280C          Merc 450SE 
+#&gt;                   0                   0                   0 
+#&gt;          Merc 450SL         Merc 450SLC  Cadillac Fleetwood 
+#&gt;                   0                   0                   0 
+#&gt; Lincoln Continental   Chrysler Imperial            Fiat 128 
+#&gt;                   0                   0                   0 
+#&gt;         Honda Civic      Toyota Corolla       Toyota Corona 
+#&gt;                   0                   0                   0 
+#&gt;    Dodge Challenger         AMC Javelin          Camaro Z28 
+#&gt;                   0                   0                   0 
+#&gt;    Pontiac Firebird           Fiat X1-9       Porsche 914-2 
+#&gt;                   0                   0                   0 
+#&gt;        Lotus Europa      Ford Pantera L        Ferrari Dino 
+#&gt;                   0                   0                   0 
+#&gt;       Maserati Bora          Volvo 142E 
+#&gt;                   0                   0</code></pre>
+<p>A more classical R-way would consist of the following:</p>
+<ol style="list-style-type: decimal">
+<li>Apply a function over each row of dataframe</li>
+<li>This function would be <code>sum(is.na(x))</code> in this case, where <code>x</code> refers to each row</li>
+</ol>
+<pre class="r"><code>apply(mtcars,MARGIN = 1, FUN = function(x) sum(is.na(x)))
+#&gt;           Mazda RX4       Mazda RX4 Wag          Datsun 710 
+#&gt;                   2                   1                   1 
+#&gt;      Hornet 4 Drive   Hornet Sportabout             Valiant 
+#&gt;                   1                   0                   0 
+#&gt;          Duster 360           Merc 240D            Merc 230 
+#&gt;                   0                   0                   0 
+#&gt;            Merc 280           Merc 280C          Merc 450SE 
+#&gt;                   0                   0                   0 
+#&gt;          Merc 450SL         Merc 450SLC  Cadillac Fleetwood 
+#&gt;                   0                   0                   0 
+#&gt; Lincoln Continental   Chrysler Imperial            Fiat 128 
+#&gt;                   0                   0                   0 
+#&gt;         Honda Civic      Toyota Corolla       Toyota Corona 
+#&gt;                   0                   0                   0 
+#&gt;    Dodge Challenger         AMC Javelin          Camaro Z28 
+#&gt;                   0                   0                   0 
+#&gt;    Pontiac Firebird           Fiat X1-9       Porsche 914-2 
+#&gt;                   0                   0                   0 
+#&gt;        Lotus Europa      Ford Pantera L        Ferrari Dino 
+#&gt;                   0                   0                   0 
+#&gt;       Maserati Bora          Volvo 142E 
+#&gt;                   0                   0</code></pre>
+</div>
+<div id="count-nas-of-whole-dataframe" class="section level1">
+<h1>Count NAs of whole dataframe</h1>
 <p>Note that <code>is.na()</code> expects a data.frame as input.</p>
 <pre class="r"><code>is.na(mtcars) %&gt;% 
-  head()</code></pre>
-<pre><code>##                     mpg   cyl  disp    hp  drat    wt  qsec    vs    am
-## Mazda RX4          TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
-## Mazda RX4 Wag      TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
-## Datsun 710        FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
-## Hornet 4 Drive    FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
-## Hornet Sportabout FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
-## Valiant           FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
-##                    gear  carb
-## Mazda RX4         FALSE FALSE
-## Mazda RX4 Wag     FALSE FALSE
-## Datsun 710        FALSE FALSE
-## Hornet 4 Drive    FALSE FALSE
-## Hornet Sportabout FALSE FALSE
-## Valiant           FALSE FALSE</code></pre>
+  head()
+#&gt;                     mpg   cyl  disp    hp  drat    wt  qsec    vs    am
+#&gt; Mazda RX4          TRUE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+#&gt; Mazda RX4 Wag      TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+#&gt; Datsun 710        FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+#&gt; Hornet 4 Drive    FALSE  TRUE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+#&gt; Hornet Sportabout FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+#&gt; Valiant           FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE FALSE
+#&gt;                    gear  carb
+#&gt; Mazda RX4         FALSE FALSE
+#&gt; Mazda RX4 Wag     FALSE FALSE
+#&gt; Datsun 710        FALSE FALSE
+#&gt; Hornet 4 Drive    FALSE FALSE
+#&gt; Hornet Sportabout FALSE FALSE
+#&gt; Valiant           FALSE FALSE</code></pre>
 <p>Note that <code>sum()</code> also accepts a data.frame as input:</p>
 <pre class="r"><code>is.na(mtcars) %&gt;% 
-  sum() </code></pre>
-<pre><code>## [1] 5</code></pre>
+  sum() 
+#&gt; [1] 5</code></pre>
 </div>
 <div id="some-musings" class="section level1">
 <h1>Some musings</h1>
 <p>To inspect missing values (or cases with NAs), <code>filter()</code> may be a solution:</p>
 <pre class="r"><code>mtcars %&gt;% 
-  filter(is.na(mpg) |  is.na(cyl) | is.na(disp))</code></pre>
-<pre><code>##    mpg cyl disp  hp drat    wt  qsec vs am gear carb
-## 1   NA  NA  160 110 3.90 2.620 16.46  0  1    4    4
-## 2   NA   6  160 110 3.90 2.875 17.02  0  1    4    4
-## 3 22.8  NA  108  93 3.85 2.320 18.61  1  1    4    1
-## 4 21.4  NA  258 110 3.08 3.215 19.44  1  0    3    1</code></pre>
+  filter(is.na(mpg) |  is.na(cyl) | is.na(disp))
+#&gt;    mpg cyl disp  hp drat    wt  qsec vs am gear carb
+#&gt; 1   NA  NA  160 110 3.90 2.620 16.46  0  1    4    4
+#&gt; 2   NA   6  160 110 3.90 2.875 17.02  0  1    4    4
+#&gt; 3 22.8  NA  108  93 3.85 2.320 18.61  1  1    4    1
+#&gt; 4 21.4  NA  258 110 3.08 3.215 19.44  1  0    3    1</code></pre>
 <p>More conveniently using <code>complete.cases()</code>:</p>
-<pre class="r"><code>complete.cases(mtcars)</code></pre>
-<pre><code>##  [1] FALSE FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
-## [12]  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
-## [23]  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE</code></pre>
+<pre class="r"><code>complete.cases(mtcars)
+#&gt;  [1] FALSE FALSE FALSE FALSE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+#&gt; [12]  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE
+#&gt; [23]  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE  TRUE</code></pre>
 <p>And the complement:</p>
 <pre class="r"><code>mtcars %&gt;% 
-  filter(!complete.cases(mtcars))</code></pre>
-<pre><code>##    mpg cyl disp  hp drat    wt  qsec vs am gear carb
-## 1   NA  NA  160 110 3.90 2.620 16.46  0  1    4    4
-## 2   NA   6  160 110 3.90 2.875 17.02  0  1    4    4
-## 3 22.8  NA  108  93 3.85 2.320 18.61  1  1    4    1
-## 4 21.4  NA  258 110 3.08 3.215 19.44  1  0    3    1</code></pre>
+  filter(!complete.cases(mtcars))
+#&gt;    mpg cyl disp  hp drat    wt  qsec vs am gear carb
+#&gt; 1   NA  NA  160 110 3.90 2.620 16.46  0  1    4    4
+#&gt; 2   NA   6  160 110 3.90 2.875 17.02  0  1    4    4
+#&gt; 3 22.8  NA  108  93 3.85 2.320 18.61  1  1    4    1
+#&gt; 4 21.4  NA  258 110 3.08 3.215 19.44  1  0    3    1</code></pre>
 </div>
 
     </div>
