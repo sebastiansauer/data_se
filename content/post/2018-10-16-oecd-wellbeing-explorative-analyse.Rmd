@@ -1,0 +1,429 @@
+---
+title: OECD Wellbeing - Explorative Analyse
+author: ''
+date: '2018-10-16'
+slug: oecd-wellbeing-explorative-analyse
+categories:
+  - rstats
+tags:
+  - rstats
+  - german
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp =   1,
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+In diesem Post untersuchen wir einige Aspekte der explorativen Datenanalyse für den Datensatz `oecd wellbeing` aus dem Jahr 2016.
+
+
+# Benötigte Pakete
+
+Ein Standard-Paket zur grundlegenden Datenanalyse:
+
+```{r}
+library(mosaic)
+```
+
+
+
+# Datensatz laden
+
+Der Datensatz kann [hier](https://stats.oecd.org/Index.aspx?DataSetCode=RWB) bezogen werden.
+
+Doi: https://doi.org/10.1787/data-00707-en.
+
+
+Falls der Datensatz lokal (auf Ihrem Rechner) vorliegt, können Sie ihn in gewohnter Manier laden. Geben Sie dazu den Pfad zum Datensatz ein:
+
+
+
+```{r}
+oecd <- read.csv("/Users/sebastiansaueruser/Documents/Publikationen/blog_ses/sebastiansauer.github.io/data/oecd-wellbeing.csv")
+```
+
+
+Liegt die Datendatei im *gleichen Verzeichnis*  wie Ihre Rmd-Datei, dann brauchen Sie *nur* den Dateinamen, nicht den Pfad, anzugeben.
+
+
+
+# Erster Blick
+
+
+```{r}
+inspect(oecd)
+```
+
+
+Wie `inspect()` aufzeigt, liegen also einige qualitative (kategoriale) und einige quantitative (metrische) Variablen vor. Die qualitativen Variablen sind für eine direkte Analyse weniger interessant; vielmehr ist es interessant, die Statistiken auf die Gruppen der qualitativen Variablen aufzusplitten.
+
+Betrachten wir aber zu Beginn die metrischen Variablen einzeln (univariat).
+
+
+# Metrische Variablen einzeln (univariat)
+
+Die typischen Statistiken zu den metrischen Variablen liegen uns von `inspect()` bereits vor. Daher gehen wir weiter zur Visualisierung.
+
+
+```{r}
+histogram(~Life_satisfaction, data = oecd)
+```
+
+Eine ähnliche Aussage liefert das Dichte-Diagramm:
+
+
+```{r}
+densityplot(~Life_satisfaction, data = oecd)
+```
+
+Die *Dichte*  gibt an, welcher Anteil der Beobachtungen an der jeweiligen Stelle der X-Achse lägen, wenn man eine Einheit betrachtet (z.B. die Lebenszufriedenheit von 5-6).
+
+Möchte man anstelle von `density` gerne `counts` auf der Y-Achse haben im Histogramm, so ergänzt man folgendes Argument:
+
+
+```{r}
+histogram(~Life_satisfaction, data = oecd, type = "count")
+```
+
+### Vertiefung 
+
+Eine alternative Funktion, die "mehr kann" ist `gf_XXX()`, wobei `XXX` die Art des Diagramms meint, z.B. `histogram`:
+
+
+
+```{r}
+gf_histogram(~Life_satisfaction, data = oecd)
+```
+
+
+
+## Histogramm nach Gruppen
+
+Angenommen, man möchte Deutschland mit Frankfreich vergleichen im Hinblick auf die Lebenszufriedenheit:
+
+
+```{r}
+oecd %>% 
+  filter(Country == "Germany" | Country == "France") -> oecd_de_fr
+```
+
+
+Der vertikale Strich `|` bedeutet hier "oder".
+
+```{r}
+histogram(~Life_satisfaction | Country, data = oecd_de_fr)
+```
+
+
+### Vertiefung
+
+Auch mit `gf_XXX()` (besser bekannt als `ggformula`) (s. [hier](https://cran.r-project.org/web/packages/ggformula/vignettes/ggformula-blog.html) kann man auf diese Art gruppieren:
+
+
+```{r}
+gf_dhistogram(~Life_satisfaction | Country, data = oecd_de_fr)
+```
+
+`dhistogram` steht für *D*ichte-Histogramm.
+
+Einen Überblick über alle Diagrammtypen von `gfformula` findet sich [hier](https://www.rdocumentation.org/packages/ggformula/versions/0.9.0).
+
+
+Alternativ kann man es auch so schreiben:
+
+```{r}
+gf_dhistogram(~Life_satisfaction | Country, data = oecd_de_fr) %>% 
+  gf_facet_wrap(~ Country)
+
+```
+
+
+## Histogramm für alle Variablen
+
+Um einen Überblick über die Verteilungen zu bekommen, bietet es sich an, sich alle anzuschauen. Das ist natürlich mit etwas Monotonie verbunden (den gleichen Befehle mehrfach wiederholen).
+
+
+### Vertiefung
+
+Malen wir meinmal alle Histogramme auf einmal. Dazu brauchen wir ein weiteres Paket:
+
+```{r}
+library(tidyverse)
+```
+
+Als erstes erzeugen wir einen langen Dataframe (der nur aus metrischen Variablen besteht):
+
+```{r}
+oecd_de_fr %>% 
+  select_if(is.numeric) %>% 
+  gather() %>% 
+  head(20)
+```
+
+Man beachte, dass in `key` der Name der Variable steht und in `value` der zugehörige Wert.
+
+Dann plotten wir Histogramme, wobei wir nach den Ländern (`key`) gruppieren. Aber zuerst speichenr wir uns den "langen" Datensatz ab:
+
+```{r}
+oecd_de_fr %>% 
+  select_if(is.numeric) %>% 
+  gather() -> oecd_de_fr_long
+```
+
+Betrachten Sie diesen Daten einmal zur Übung.
+
+
+Dann plotten wir in gewohnter Manier:
+
+```{r}
+histogram(~ value | key, data = oecd_de_fr_long) 
+```
+
+
+
+
+
+# Forschungsfrage
+
+Hat Deutschland in Vergleich zu anderen Ländern eine hohe Lebenszufriedenheit?
+
+Die Frage ist noch recht unpräzise formuliert, aber dafür gibt sie Raum für eine Menge von Untersuchungsansätzen.
+
+
+# Datensatz filtern - nur Länder, keine Landesteile
+
+Der Datensatz verstößt gegen die Regel, dass in jeder Zeile eine Beobachtungseinheit steht. In einigen Zeilen stehen *Länder*, in den meisten anderen aber *Landesteile* (wie Bayern, Baden-Württemberg etc.). Filtern wir uns nur die Länder, und exklduieren die Landesteile:
+
+
+```{r}
+filter(oecd, region_type == "country_whole") -> oecd_short
+```
+
+Die Anzahl der Zeilen deses Datensatz `oecd_short` gibt uns Aufschluss über die Anzahl der untersuchten Länder.
+
+
+# Vergleich der Lebenszufriedenheit der Länder
+
+
+
+```{r}
+xyplot(Life_satisfaction ~ Country, data = oecd_short,
+       xlab = "Land", ylab = "Zufriedenheit")
+```
+
+Hm, sieht nicht übersichtlich aus. Besser wäre es, die Punkte absteigend zu sortieren.
+
+Betrachten wir dazu die Variable `country` näher: Es handelt sich um einen Faktor mit 35 Stufen, wie uns `str(oecd)` verrät:
+
+```{r}
+str(oecd)
+```
+
+Offensichtlich sind diese alphabetisch geordnet - nach dieser Ordnung richtet sich die Ordnung im Plot-Befehl (`xyplot`).
+
+## Vertiefung
+
+Ändern wir die Sortierung! Mit `reorder()` kann man die Sortierung ändern (re-ordnen, daher der Name):
+
+```{r}
+oecd_short %>% 
+  mutate(Country_sorted = reorder(Country, Life_satisfaction)) -> oecd_short
+```
+
+
+Ist das jetzt geordnet? `str()` verrät es uns:
+
+```{r}
+str(oecd_short)
+```
+
+Wie man sieht, ist `Country_sorted` jetzt anders sortiert. Betrachten wir das Ergebnis:
+
+```{r}
+xyplot(Life_satisfaction ~ Country_sorted, data = oecd_short,
+       xlab = "Land", ylab = "Zufriedenheit")
+```
+
+Schon besser. Man kann z.B. die Achsen nicht lesen `r emo::ji("sad")`.
+
+
+## Vertiefung
+
+Mit `gf_XXX()` lassen sich die Achsen (um 90°) drehen mit `+ coord_flip()`:
+
+```{r}
+gf_point(Life_satisfaction ~ Country_sorted, data = oecd_short) + coord_flip()
+```
+
+
+Schön `r emo::ji("smile")`.
+
+Man hätte das Sortieren und Achsen drehen auch in einem Haps machen können:
+
+
+```{r}
+gf_point(Life_satisfaction ~ reorder(Country, Life_satisfaction), 
+         data = oecd_short) + coord_flip()
+```
+
+
+Aber übersichtliches ist es, die Dinge nacheinander zu tun.
+
+
+## Vertiefung
+
+Schön wäre es noch, im Bild den Mittelwert o.Ä. zu sehen:
+
+```{r}
+gf_point(Life_satisfaction ~ reorder(Country, Life_satisfaction), 
+         data = oecd_short) %>% 
+  gf_hline(yintercept = 6.08, data = NA, color = "firebrick") + coord_flip()
+
+```
+
+
+## Boxplots anstelle von Histogrammen
+
+Möchte man mehrere Gruppen (z.B. Länder vergleichen, so bietet sich der Boxplot an - mehrere Histogramme nebeneinander lassen sich nur schwer optisch vergleichen.)
+
+
+```{r}
+bwplot(Life_satisfaction ~ Country, data = oecd)
+```
+
+
+Natürlich bietet es sich an, hier noch die Gruppen sortiert und die Achsen zu kippen.
+
+
+# Zusammenhang zweier metrischer Variablen
+
+Hängt die Lebenszufriedenheit mit `Civic_engagment` zusammen`?
+
+
+```{r}
+xyplot(Civic_engagement ~ Life_satisfaction, data = oecd_short)
+```
+
+Hm, es ist kein starker Trend zu erkennen.
+
+Was sagt die Korrelation dazu:
+
+```{r}
+cor(Civic_engagement ~ Life_satisfaction, data = oecd_short)
+```
+
+Immerhin, kein ganz unwesentlicher Wert.
+
+
+## Und so weiter
+
+Dieses Prinzip `xyplot(var1 ~ var, data = oecd_short)` könnte man jetzt weiterführen ad nauseam.
+
+
+## Vertiefung Pairs plot
+
+Eleganter geht es so. Dafür benötigen wir Extra-Pakete:
+
+```{r}
+library(sjPlot)
+```
+
+Dann erstellen wir einen Dataframe mit *nur*  metrischen Variablen:
+
+```{r}
+oecd_short %>% 
+  select(-Country, -Region, -region_type, -Code, -Country_sorted) -> oecd_short_numeric
+```
+
+Übrigens kann (und muss man oft) mehrere Werte mit dem Befehl `c()` zusammenfassen (c wie "combine"):
+
+```{r}
+oecd_short %>% 
+  select(-c(Country, Region, region_type, Code, Country_sorted)) -> oecd_short_numeric
+```
+
+
+
+```{r}
+sjp.corr(oecd_short_numeric)
+```
+
+
+Übrigens gibt selbiges Paket auch eine ganz schöne HTML-Tabelle mit den Korrelationskoeffizienten aus:
+
+```{r}
+sjt.corr(oecd_short_numeric)
+```
+
+
+## Vertiefung ggpairs
+
+
+```{r}
+library(GGally)
+```
+
+
+Das sieht auch ganz nett aus:
+
+```{r}
+ggpairs(oecd_short,
+        columns = c(5,6,7,15) )
+```
+
+# Deskriptive Statistiken nach Ländern
+ 
+ 
+## Lebenszufriedenheit
+
+Das ist relativ einfach:
+
+```{r}
+favstats(Life_satisfaction ~ Country, data = oecd_short) -> oecd_favstats
+oecd_favstats
+```
+
+Ach ja, sortieren ist noch sinnvoll:
+
+```{r}
+oecd_favstats %>% 
+  arrange(-mean) -> oecd_favstats
+
+oecd_favstats
+```
+
+
+
+Lädt man noch das Paket `knitr`, kann man sich eine schöne HTML- (oder Word-) Tabelle ausgeben lassen:
+
+```{r}
+library(knitr)
+```
+
+
+```{r}
+oecd_favstats %>% 
+  kable()
+```
+
+
+
+
+

@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.48" />
+
+
+<title>OECD Wellbeing - Explorative Analyse - Data Se</title>
+<meta property="og:title" content="OECD Wellbeing - Explorative Analyse - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">16 min read</span>
+    
+
+    <h1 class="article-title">OECD Wellbeing - Explorative Analyse</h1>
+
+    
+    <span class="article-date">2018/10/16</span>
+    
+
+    <div class="article-content">
+      <p>In diesem Post untersuchen wir einige Aspekte der explorativen Datenanalyse für den Datensatz <code>oecd wellbeing</code> aus dem Jahr 2016.</p>
+<div id="benotigte-pakete" class="section level1">
+<h1>Benötigte Pakete</h1>
+<p>Ein Standard-Paket zur grundlegenden Datenanalyse:</p>
+<pre class="r"><code>library(mosaic)</code></pre>
+</div>
+<div id="datensatz-laden" class="section level1">
+<h1>Datensatz laden</h1>
+<p>Der Datensatz kann <a href="https://stats.oecd.org/Index.aspx?DataSetCode=RWB">hier</a> bezogen werden.</p>
+<p>Doi: <a href="https://doi.org/10.1787/data-00707-en" class="uri">https://doi.org/10.1787/data-00707-en</a>.</p>
+<p>Falls der Datensatz lokal (auf Ihrem Rechner) vorliegt, können Sie ihn in gewohnter Manier laden. Geben Sie dazu den Pfad zum Datensatz ein:</p>
+<pre class="r"><code>oecd &lt;- read.csv(&quot;/Users/sebastiansaueruser/Documents/Publikationen/blog_ses/sebastiansauer.github.io/data/oecd-wellbeing.csv&quot;)</code></pre>
+<p>Liegt die Datendatei im <em>gleichen Verzeichnis</em> wie Ihre Rmd-Datei, dann brauchen Sie <em>nur</em> den Dateinamen, nicht den Pfad, anzugeben.</p>
+</div>
+<div id="erster-blick" class="section level1">
+<h1>Erster Blick</h1>
+<pre class="r"><code>inspect(oecd)
+#&gt; 
+#&gt; categorical variables:  
+#&gt;          name  class levels   n missing
+#&gt; 1     Country factor     35 429       0
+#&gt; 2      Region factor    427 429       0
+#&gt; 3 region_type factor      2 429       0
+#&gt; 4        Code factor    429 429       0
+#&gt;                                    distribution
+#&gt; 1 United States (12.1%), Mexico (7.7%) ...     
+#&gt; 2 Luxembourg (0.5%), Mexico (0.5%) ...         
+#&gt; 3 country_part (92.1%) ...                     
+#&gt; 4 AT11 (0.2%), AT12 (0.2%) ...                 
+#&gt; 
+#&gt; quantitative variables:  
+#&gt;                        name   class min    Q1 median  Q3 max     mean
+#&gt; 1                 Education numeric   0 5.525    7.9 9.0  10 6.811972
+#&gt; 2                      Jobs numeric   0 5.200    6.9 8.1  10 6.450350
+#&gt; 3                    Income numeric   0 2.000    4.1 5.4  10 4.106993
+#&gt; 4                    Safety numeric   0 5.700    8.3 9.5  10 7.049650
+#&gt; 5                    Health numeric   0 3.100    6.3 8.2  10 5.726340
+#&gt; 6               Environment numeric   0 3.200    5.5 7.5  10 5.400699
+#&gt; 7          Civic_engagement numeric   0 3.100    5.0 7.2  10 5.054312
+#&gt; 8  Accessiblity_to_services numeric   0 5.700    7.2 8.3  10 6.527040
+#&gt; 9                   Housing numeric   0 1.700    5.0 7.2  10 4.796721
+#&gt; 10                Community numeric   0 5.600    7.8 8.8  10 6.875765
+#&gt; 11        Life_satisfaction numeric   0 3.700    6.3 8.5  10 5.799765
+#&gt;          sd   n missing
+#&gt; 1  2.968513 426       3
+#&gt; 2  2.407170 429       0
+#&gt; 3  2.699757 429       0
+#&gt; 4  3.228861 429       0
+#&gt; 5  2.927557 429       0
+#&gt; 6  2.734365 429       0
+#&gt; 7  2.848784 429       0
+#&gt; 8  2.645392 429       0
+#&gt; 9  3.024460 427       2
+#&gt; 10 2.746413 425       4
+#&gt; 11 2.895454 425       4</code></pre>
+<p>Wie <code>inspect()</code> aufzeigt, liegen also einige qualitative (kategoriale) und einige quantitative (metrische) Variablen vor. Die qualitativen Variablen sind für eine direkte Analyse weniger interessant; vielmehr ist es interessant, die Statistiken auf die Gruppen der qualitativen Variablen aufzusplitten.</p>
+<p>Betrachten wir aber zu Beginn die metrischen Variablen einzeln (univariat).</p>
+</div>
+<div id="metrische-variablen-einzeln-univariat" class="section level1">
+<h1>Metrische Variablen einzeln (univariat)</h1>
+<p>Die typischen Statistiken zu den metrischen Variablen liegen uns von <code>inspect()</code> bereits vor. Daher gehen wir weiter zur Visualisierung.</p>
+<pre class="r"><code>histogram(~Life_satisfaction, data = oecd)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Eine ähnliche Aussage liefert das Dichte-Diagramm:</p>
+<pre class="r"><code>densityplot(~Life_satisfaction, data = oecd)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-6-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Die <em>Dichte</em> gibt an, welcher Anteil der Beobachtungen an der jeweiligen Stelle der X-Achse lägen, wenn man eine Einheit betrachtet (z.B. die Lebenszufriedenheit von 5-6).</p>
+<p>Möchte man anstelle von <code>density</code> gerne <code>counts</code> auf der Y-Achse haben im Histogramm, so ergänzt man folgendes Argument:</p>
+<pre class="r"><code>histogram(~Life_satisfaction, data = oecd, type = &quot;count&quot;)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-7-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<div id="vertiefung" class="section level3">
+<h3>Vertiefung</h3>
+<p>Eine alternative Funktion, die “mehr kann” ist <code>gf_XXX()</code>, wobei <code>XXX</code> die Art des Diagramms meint, z.B. <code>histogram</code>:</p>
+<pre class="r"><code>gf_histogram(~Life_satisfaction, data = oecd)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-8-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="histogramm-nach-gruppen" class="section level2">
+<h2>Histogramm nach Gruppen</h2>
+<p>Angenommen, man möchte Deutschland mit Frankfreich vergleichen im Hinblick auf die Lebenszufriedenheit:</p>
+<pre class="r"><code>oecd %&gt;% 
+  filter(Country == &quot;Germany&quot; | Country == &quot;France&quot;) -&gt; oecd_de_fr</code></pre>
+<p>Der vertikale Strich <code>|</code> bedeutet hier “oder”.</p>
+<pre class="r"><code>histogram(~Life_satisfaction | Country, data = oecd_de_fr)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-10-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<div id="vertiefung-1" class="section level3">
+<h3>Vertiefung</h3>
+<p>Auch mit <code>gf_XXX()</code> (besser bekannt als <code>ggformula</code>) (s. <a href="https://cran.r-project.org/web/packages/ggformula/vignettes/ggformula-blog.html">hier</a> kann man auf diese Art gruppieren:</p>
+<pre class="r"><code>gf_dhistogram(~Life_satisfaction | Country, data = oecd_de_fr)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-11-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><code>dhistogram</code> steht für <em>D</em>ichte-Histogramm.</p>
+<p>Einen Überblick über alle Diagrammtypen von <code>gfformula</code> findet sich <a href="https://www.rdocumentation.org/packages/ggformula/versions/0.9.0">hier</a>.</p>
+<p>Alternativ kann man es auch so schreiben:</p>
+<pre class="r"><code>gf_dhistogram(~Life_satisfaction | Country, data = oecd_de_fr) %&gt;% 
+  gf_facet_wrap(~ Country)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-12-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="histogramm-fur-alle-variablen" class="section level2">
+<h2>Histogramm für alle Variablen</h2>
+<p>Um einen Überblick über die Verteilungen zu bekommen, bietet es sich an, sich alle anzuschauen. Das ist natürlich mit etwas Monotonie verbunden (den gleichen Befehle mehrfach wiederholen).</p>
+<div id="vertiefung-2" class="section level3">
+<h3>Vertiefung</h3>
+<p>Malen wir meinmal alle Histogramme auf einmal. Dazu brauchen wir ein weiteres Paket:</p>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<p>Als erstes erzeugen wir einen langen Dataframe (der nur aus metrischen Variablen besteht):</p>
+<pre class="r"><code>oecd_de_fr %&gt;% 
+  select_if(is.numeric) %&gt;% 
+  gather() %&gt;% 
+  head(20)
+#&gt;          key value
+#&gt; 1  Education   7.8
+#&gt; 2  Education   7.0
+#&gt; 3  Education   6.6
+#&gt; 4  Education   7.4
+#&gt; 5  Education   7.3
+#&gt; 6  Education   7.7
+#&gt; 7  Education   7.8
+#&gt; 8  Education   7.9
+#&gt; 9  Education   8.0
+#&gt; 10 Education   8.2
+#&gt; 11 Education   7.8
+#&gt; 12 Education   8.3
+#&gt; 13 Education   8.8
+#&gt; 14 Education   8.1
+#&gt; 15 Education   8.4
+#&gt; 16 Education   8.7
+#&gt; 17 Education   8.0
+#&gt; 18 Education   8.3
+#&gt; 19 Education   7.9
+#&gt; 20 Education   7.5</code></pre>
+<p>Man beachte, dass in <code>key</code> der Name der Variable steht und in <code>value</code> der zugehörige Wert.</p>
+<p>Dann plotten wir Histogramme, wobei wir nach den Ländern (<code>key</code>) gruppieren. Aber zuerst speichenr wir uns den “langen” Datensatz ab:</p>
+<pre class="r"><code>oecd_de_fr %&gt;% 
+  select_if(is.numeric) %&gt;% 
+  gather() -&gt; oecd_de_fr_long</code></pre>
+<p>Betrachten Sie diesen Daten einmal zur Übung.</p>
+<p>Dann plotten wir in gewohnter Manier:</p>
+<pre class="r"><code>histogram(~ value | key, data = oecd_de_fr_long) </code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-16-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+</div>
+<div id="forschungsfrage" class="section level1">
+<h1>Forschungsfrage</h1>
+<p>Hat Deutschland in Vergleich zu anderen Ländern eine hohe Lebenszufriedenheit?</p>
+<p>Die Frage ist noch recht unpräzise formuliert, aber dafür gibt sie Raum für eine Menge von Untersuchungsansätzen.</p>
+</div>
+<div id="datensatz-filtern---nur-lander-keine-landesteile" class="section level1">
+<h1>Datensatz filtern - nur Länder, keine Landesteile</h1>
+<p>Der Datensatz verstößt gegen die Regel, dass in jeder Zeile eine Beobachtungseinheit steht. In einigen Zeilen stehen <em>Länder</em>, in den meisten anderen aber <em>Landesteile</em> (wie Bayern, Baden-Württemberg etc.). Filtern wir uns nur die Länder, und exklduieren die Landesteile:</p>
+<pre class="r"><code>filter(oecd, region_type == &quot;country_whole&quot;) -&gt; oecd_short</code></pre>
+<p>Die Anzahl der Zeilen deses Datensatz <code>oecd_short</code> gibt uns Aufschluss über die Anzahl der untersuchten Länder.</p>
+</div>
+<div id="vergleich-der-lebenszufriedenheit-der-lander" class="section level1">
+<h1>Vergleich der Lebenszufriedenheit der Länder</h1>
+<pre class="r"><code>xyplot(Life_satisfaction ~ Country, data = oecd_short,
+       xlab = &quot;Land&quot;, ylab = &quot;Zufriedenheit&quot;)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-18-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Hm, sieht nicht übersichtlich aus. Besser wäre es, die Punkte absteigend zu sortieren.</p>
+<p>Betrachten wir dazu die Variable <code>country</code> näher: Es handelt sich um einen Faktor mit 35 Stufen, wie uns <code>str(oecd)</code> verrät:</p>
+<pre class="r"><code>str(oecd)
+#&gt; &#39;data.frame&#39;:    429 obs. of  15 variables:
+#&gt;  $ Country                 : Factor w/ 35 levels &quot;Australia&quot;,&quot;Austria&quot;,..: 1 1 1 1 1 1 1 1 2 2 ...
+#&gt;  $ Region                  : Factor w/ 427 levels &quot;Abruzzo&quot;,&quot;Agder and Rogaland&quot;,..: 238 392 304 329 410 364 265 27 50 193 ...
+#&gt;  $ region_type             : Factor w/ 2 levels &quot;country_part&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...
+#&gt;  $ Code                    : Factor w/ 429 levels &quot;AT11&quot;,&quot;AT12&quot;,..: 10 11 12 13 14 15 16 17 1 2 ...
+#&gt;  $ Education               : num  8 8.1 7.8 7.3 7.6 6.5 8.1 9.5 8.8 8.5 ...
+#&gt;  $ Jobs                    : num  8.1 7.9 8.1 7.8 8.8 7.6 8.7 9.3 7.8 8.2 ...
+#&gt;  $ Income                  : num  6.8 5.9 6.3 6.1 7.9 5.4 8.2 10 5.7 5.9 ...
+#&gt;  $ Safety                  : num  8.8 9.5 9.5 9 8.6 8.8 0 10 9.7 9.8 ...
+#&gt;  $ Health                  : num  9 9.5 8.3 8.5 9.3 5.4 2.4 9.3 6.7 6.6 ...
+#&gt;  $ Environment             : num  9.8 8.6 9.9 9.4 9.6 10 9.2 9.1 3.5 2.6 ...
+#&gt;  $ Civic_engagement        : num  10 10 10 10 10 10 8.4 10 8.6 8.1 ...
+#&gt;  $ Accessiblity_to_services: num  7.2 7.5 7.7 7.2 7.8 6.8 7.8 8.7 8 7.4 ...
+#&gt;  $ Housing                 : num  7.2 7.8 8.3 8.3 8.9 8.3 5.6 8.3 6.1 5.6 ...
+#&gt;  $ Community               : num  8.9 9.3 8.6 8.6 8.5 8.6 10 9.8 8.3 7.8 ...
+#&gt;  $ Life_satisfaction       : num  7.8 8.5 8.1 8.5 7.8 9.6 7 9.6 7.8 8.1 ...</code></pre>
+<p>Offensichtlich sind diese alphabetisch geordnet - nach dieser Ordnung richtet sich die Ordnung im Plot-Befehl (<code>xyplot</code>).</p>
+<div id="vertiefung-3" class="section level2">
+<h2>Vertiefung</h2>
+<p>Ändern wir die Sortierung! Mit <code>reorder()</code> kann man die Sortierung ändern (re-ordnen, daher der Name):</p>
+<pre class="r"><code>oecd_short %&gt;% 
+  mutate(Country_sorted = reorder(Country, Life_satisfaction)) -&gt; oecd_short</code></pre>
+<p>Ist das jetzt geordnet? <code>str()</code> verrät es uns:</p>
+<pre class="r"><code>str(oecd_short)
+#&gt; &#39;data.frame&#39;:    34 obs. of  16 variables:
+#&gt;  $ Country                 : Factor w/ 35 levels &quot;Australia&quot;,&quot;Austria&quot;,..: 1 2 3 4 5 6 7 8 10 11 ...
+#&gt;  $ Region                  : Factor w/ 427 levels &quot;Abruzzo&quot;,&quot;Agder and Rogaland&quot;,..: 26 28 40 56 88 98 100 121 124 128 ...
+#&gt;  $ region_type             : Factor w/ 2 levels &quot;country_part&quot;,..: 2 2 2 2 2 2 2 2 2 2 ...
+#&gt;  $ Code                    : Factor w/ 429 levels &quot;AT11&quot;,&quot;AT12&quot;,..: 18 19 23 37 46 70 93 119 125 148 ...
+#&gt;  $ Education               : num  7.6 8.4 7.5 9.2 7.2 10 6.7 9.6 8.7 7.6 ...
+#&gt;  $ Jobs                    : num  7.9 7.7 5 6.6 6.2 7.3 7.9 6.6 6.4 5.2 ...
+#&gt;  $ Income                  : num  9.5 7.9 6.2 7.4 0.4 2.8 5.1 1 5.6 7 ...
+#&gt;  $ Safety                  : num  8.4 10 5.7 6.5 0.6 6.1 10 0 10 8.4 ...
+#&gt;  $ Health                  : num  9 7.2 6.6 8.5 4.2 2.7 5.8 2.1 7.3 9.3 ...
+#&gt;  $ Environment             : num  9.7 2.8 1.9 7.4 8.5 1.4 5.8 6.4 7.9 4.5 ...
+#&gt;  $ Civic_engagement        : num  10 6.2 9.7 4.7 0.1 2.6 8.9 3.7 4.8 7.5 ...
+#&gt;  $ Accessiblity_to_services: num  6.9 7.2 7.6 8.1 0 6.7 8.3 7.6 9 6.9 ...
+#&gt;  $ Housing                 : num  9.5 5.1 8.8 10 1.5 2.9 6.6 1.5 6.6 5.1 ...
+#&gt;  $ Community               : num  8.8 7.6 7.7 8.5 2.5 5.1 9.6 4.6 8.7 7.6 ...
+#&gt;  $ Life_satisfaction       : num  8.8 8.8 7.9 9.3 4.9 5.3 10 0.4 9.7 6.2 ...
+#&gt;  $ Country_sorted          : Factor w/ 35 levels &quot;Hungary&quot;,&quot;Portugal&quot;,..: 23 24 20 27 12 13 33 4 30 15 ...
+#&gt;   ..- attr(*, &quot;scores&quot;)= num [1:35(1d)] 8.8 8.8 7.9 9.3 4.9 5.3 10 0.4 NA 9.7 ...
+#&gt;   .. ..- attr(*, &quot;dimnames&quot;)=List of 1
+#&gt;   .. .. ..$ : chr  &quot;Australia&quot; &quot;Austria&quot; &quot;Belgium&quot; &quot;Canada&quot; ...</code></pre>
+<p>Wie man sieht, ist <code>Country_sorted</code> jetzt anders sortiert. Betrachten wir das Ergebnis:</p>
+<pre class="r"><code>xyplot(Life_satisfaction ~ Country_sorted, data = oecd_short,
+       xlab = &quot;Land&quot;, ylab = &quot;Zufriedenheit&quot;)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-22-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Schon besser. Man kann z.B. die Achsen nicht lesen 😭.</p>
+</div>
+<div id="vertiefung-4" class="section level2">
+<h2>Vertiefung</h2>
+<p>Mit <code>gf_XXX()</code> lassen sich die Achsen (um 90°) drehen mit <code>+ coord_flip()</code>:</p>
+<pre class="r"><code>gf_point(Life_satisfaction ~ Country_sorted, data = oecd_short) + coord_flip()</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-23-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Schön 😄.</p>
+<p>Man hätte das Sortieren und Achsen drehen auch in einem Haps machen können:</p>
+<pre class="r"><code>gf_point(Life_satisfaction ~ reorder(Country, Life_satisfaction), 
+         data = oecd_short) + coord_flip()</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-24-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Aber übersichtliches ist es, die Dinge nacheinander zu tun.</p>
+</div>
+<div id="vertiefung-5" class="section level2">
+<h2>Vertiefung</h2>
+<p>Schön wäre es noch, im Bild den Mittelwert o.Ä. zu sehen:</p>
+<pre class="r"><code>gf_point(Life_satisfaction ~ reorder(Country, Life_satisfaction), 
+         data = oecd_short) %&gt;% 
+  gf_hline(yintercept = 6.08, data = NA, color = &quot;firebrick&quot;) + coord_flip()</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-25-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="boxplots-anstelle-von-histogrammen" class="section level2">
+<h2>Boxplots anstelle von Histogrammen</h2>
+<p>Möchte man mehrere Gruppen (z.B. Länder vergleichen, so bietet sich der Boxplot an - mehrere Histogramme nebeneinander lassen sich nur schwer optisch vergleichen.)</p>
+<pre class="r"><code>bwplot(Life_satisfaction ~ Country, data = oecd)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-26-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Natürlich bietet es sich an, hier noch die Gruppen sortiert und die Achsen zu kippen.</p>
+</div>
+</div>
+<div id="zusammenhang-zweier-metrischer-variablen" class="section level1">
+<h1>Zusammenhang zweier metrischer Variablen</h1>
+<p>Hängt die Lebenszufriedenheit mit <code>Civic_engagment</code> zusammen`?</p>
+<pre class="r"><code>xyplot(Civic_engagement ~ Life_satisfaction, data = oecd_short)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-27-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Hm, es ist kein starker Trend zu erkennen.</p>
+<p>Was sagt die Korrelation dazu:</p>
+<pre class="r"><code>cor(Civic_engagement ~ Life_satisfaction, data = oecd_short)
+#&gt; [1] 0.4021292</code></pre>
+<p>Immerhin, kein ganz unwesentlicher Wert.</p>
+<div id="und-so-weiter" class="section level2">
+<h2>Und so weiter</h2>
+<p>Dieses Prinzip <code>xyplot(var1 ~ var, data = oecd_short)</code> könnte man jetzt weiterführen ad nauseam.</p>
+</div>
+<div id="vertiefung-pairs-plot" class="section level2">
+<h2>Vertiefung Pairs plot</h2>
+<p>Eleganter geht es so. Dafür benötigen wir Extra-Pakete:</p>
+<pre class="r"><code>library(sjPlot)</code></pre>
+<p>Dann erstellen wir einen Dataframe mit <em>nur</em> metrischen Variablen:</p>
+<pre class="r"><code>oecd_short %&gt;% 
+  select(-Country, -Region, -region_type, -Code, -Country_sorted) -&gt; oecd_short_numeric</code></pre>
+<p>Übrigens kann (und muss man oft) mehrere Werte mit dem Befehl <code>c()</code> zusammenfassen (c wie “combine”):</p>
+<pre class="r"><code>oecd_short %&gt;% 
+  select(-c(Country, Region, region_type, Code, Country_sorted)) -&gt; oecd_short_numeric</code></pre>
+<pre class="r"><code>sjp.corr(oecd_short_numeric)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-32-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Übrigens gibt selbiges Paket auch eine ganz schöne HTML-Tabelle mit den Korrelationskoeffizienten aus:</p>
+<pre class="r"><code>sjt.corr(oecd_short_numeric)</code></pre>
+<table style="border-collapse:collapse; border:none;">
+<tr>
+<th style="font-style:italic; font-weight:normal; border-top:double black; border-bottom:1px solid black; padding:0.2cm;">
+ 
+</th>
+<th style="font-style:italic; font-weight:normal; border-top:double black; border-bottom:1px solid black; padding:0.2cm;">
+Education
+</th>
+<th style="font-style:italic; font-weight:normal; border-top:double black; border-bottom:1px solid black; padding:0.2cm;">
+Jobs
+</th>
+<th style="font-style:italic; font-weight:normal; border-top:double black; border-bottom:1px solid black; padding:0.2cm;">
+Income
+</th>
+<th style="font-style:italic; font-weight:normal; border-top:double black; border-bottom:1px solid black; padding:0.2cm;">
+Safety
+</th>
+<th style="font-style:italic; font-weight:normal; border-top:double black; border-bottom:1px solid black; padding:0.2cm;">
+Health
+</th>
+<th style="font-style:italic; font-weight:normal; border-top:double black; border-bottom:1px solid black; padding:0.2cm;">
+Environment
+</th>
+<th style="font-style:italic; font-weight:normal; border-top:double black; border-bottom:1px solid black; padding:0.2cm;">
+Civic_engagement
+</th>
+<th style="font-style:italic; font-weight:normal; border-top:double black; border-bottom:1px solid black; padding:0.2cm;">
+Accessiblity_to_services
+</th>
+<th style="font-style:italic; font-weight:normal; border-top:double black; border-bottom:1px solid black; padding:0.2cm;">
+Housing
+</th>
+<th style="font-style:italic; font-weight:normal; border-top:double black; border-bottom:1px solid black; padding:0.2cm;">
+Community
+</th>
+<th style="font-style:italic; font-weight:normal; border-top:double black; border-bottom:1px solid black; padding:0.2cm;">
+Life_satisfaction
+</th>
+</tr>
+<tr>
+<td style="font-style:italic;">
+Education
+</td>
+<td style="padding:0.2cm; text-align:center;">
+ 
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.369<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.312<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.154<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.000<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+-0.131<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+-0.225<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.543<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.129<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.381<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.163<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+</tr>
+<tr>
+<td style="font-style:italic;">
+Jobs
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.369<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+ 
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.332<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.386<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.190<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.206<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.071<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.438<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.241<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.373<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.528<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+</tr>
+<tr>
+<td style="font-style:italic;">
+Income
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.312<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.332<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+ 
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.522<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.582<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.300<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.404<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.648<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.838<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.619<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.571<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+</tr>
+<tr>
+<td style="font-style:italic;">
+Safety
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.154<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.386<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.522<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+ 
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.542<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.082<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.282<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.624<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.403<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.618<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.432<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+</tr>
+<tr>
+<td style="font-style:italic;">
+Health
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.000<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.190<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.582<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.542<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+ 
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.233<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.350<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.443<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.601<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.371<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.470<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+</tr>
+<tr>
+<td style="font-style:italic;">
+Environment
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+-0.131<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.206<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.300<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.082<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.233<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+ 
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.207<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.077<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.496<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.449<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.400<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+</tr>
+<tr>
+<td style="font-style:italic;">
+Civic_engagement
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+-0.225<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.071<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.404<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.282<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.350<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.207<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+ 
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.326<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.388<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.150<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.402<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+</tr>
+<tr>
+<td style="font-style:italic;">
+Accessiblity_to_services
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.543<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.438<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.648<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.624<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.443<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.077<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.326<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+ 
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.502<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.609<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.430<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+</tr>
+<tr>
+<td style="font-style:italic;">
+Housing
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.129<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.241<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.838<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.403<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.601<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.496<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.388<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.502<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+ 
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.646<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.566<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+</tr>
+<tr>
+<td style="font-style:italic;">
+Community
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.381<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.373<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.619<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.618<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.371<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.449<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.150<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.609<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.646<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+ 
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.656<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+</tr>
+<tr>
+<td style="font-style:italic;">
+Life_satisfaction
+</td>
+<td style="padding:0.2cm; text-align:center; color:#999999;">
+0.163<span style="vertical-align:super;font-size:0.8em;"></span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.528<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.571<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.432<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.470<span style="vertical-align:super;font-size:0.8em;">**</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.400<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.402<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.430<span style="vertical-align:super;font-size:0.8em;">*</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.566<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+0.656<span style="vertical-align:super;font-size:0.8em;">***</span>
+</td>
+<td style="padding:0.2cm; text-align:center;">
+ 
+</td>
+</tr>
+<tr>
+<td colspan="12" style="border-bottom:double black; border-top:1px solid black; font-style:italic; font-size:0.9em; text-align:right;">
+Computed correlation used pearson-method with listwise-deletion.
+</td>
+</tr>
+</table>
+</div>
+<div id="vertiefung-ggpairs" class="section level2">
+<h2>Vertiefung ggpairs</h2>
+<pre class="r"><code>library(GGally)</code></pre>
+<p>Das sieht auch ganz nett aus:</p>
+<pre class="r"><code>ggpairs(oecd_short,
+        columns = c(5,6,7,15) )</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-35-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="deskriptive-statistiken-nach-landern" class="section level1">
+<h1>Deskriptive Statistiken nach Ländern</h1>
+<div id="lebenszufriedenheit" class="section level2">
+<h2>Lebenszufriedenheit</h2>
+<p>Das ist relativ einfach:</p>
+<pre class="r"><code>favstats(Life_satisfaction ~ Country, data = oecd_short) -&gt; oecd_favstats
+oecd_favstats
+#&gt;            Country  min   Q1 median   Q3  max mean sd n missing
+#&gt; 1        Australia  8.8  8.8    8.8  8.8  8.8  8.8 NA 1       0
+#&gt; 2          Austria  8.8  8.8    8.8  8.8  8.8  8.8 NA 1       0
+#&gt; 3          Belgium  7.9  7.9    7.9  7.9  7.9  7.9 NA 1       0
+#&gt; 4           Canada  9.3  9.3    9.3  9.3  9.3  9.3 NA 1       0
+#&gt; 5            Chile  4.9  4.9    4.9  4.9  4.9  4.9 NA 1       0
+#&gt; 6   Czech Republic  5.3  5.3    5.3  5.3  5.3  5.3 NA 1       0
+#&gt; 7          Denmark 10.0 10.0   10.0 10.0 10.0 10.0 NA 1       0
+#&gt; 8          Estonia  0.4  0.4    0.4  0.4  0.4  0.4 NA 1       0
+#&gt; 9      Estonia TL3   NA   NA     NA   NA   NA  NaN NA 0       0
+#&gt; 10         Finland  9.7  9.7    9.7  9.7  9.7  9.7 NA 1       0
+#&gt; 11          France  6.2  6.2    6.2  6.2  6.2  6.2 NA 1       0
+#&gt; 12         Germany  6.2  6.2    6.2  6.2  6.2  6.2 NA 1       0
+#&gt; 13          Greece  1.3  1.3    1.3  1.3  1.3  1.3 NA 1       0
+#&gt; 14         Hungary  0.0  0.0    0.0  0.0  0.0  0.0 NA 1       0
+#&gt; 15         Iceland  9.3  9.3    9.3  9.3  9.3  9.3 NA 1       0
+#&gt; 16         Ireland  7.9  7.9    7.9  7.9  7.9  7.9 NA 1       0
+#&gt; 17          Israel  8.8  8.8    8.8  8.8  8.8  8.8 NA 1       0
+#&gt; 18           Italy  4.4  4.4    4.4  4.4  4.4  4.4 NA 1       0
+#&gt; 19           Japan  3.5  3.5    3.5  3.5  3.5  3.5 NA 1       0
+#&gt; 20           Korea  2.6  2.6    2.6  2.6  2.6  2.6 NA 1       0
+#&gt; 21      Luxembourg  7.5  7.5    7.5  7.5  7.5  7.5 NA 1       0
+#&gt; 22          Mexico  7.5  7.5    7.5  7.5  7.5  7.5 NA 1       0
+#&gt; 23     Netherlands  9.7  9.7    9.7  9.7  9.7  9.7 NA 1       0
+#&gt; 24     New Zealand  8.8  8.8    8.8  8.8  8.8  8.8 NA 1       0
+#&gt; 25          Norway  9.7  9.7    9.7  9.7  9.7  9.7 NA 1       0
+#&gt; 26          Poland  2.2  2.2    2.2  2.2  2.2  2.2 NA 1       0
+#&gt; 27        Portugal  0.0  0.0    0.0  0.0  0.0  0.0 NA 1       0
+#&gt; 28 Slovak Republic  2.6  2.6    2.6  2.6  2.6  2.6 NA 1       0
+#&gt; 29        Slovenia  2.6  2.6    2.6  2.6  2.6  2.6 NA 1       0
+#&gt; 30           Spain  5.7  5.7    5.7  5.7  5.7  5.7 NA 1       0
+#&gt; 31          Sweden  9.3  9.3    9.3  9.3  9.3  9.3 NA 1       0
+#&gt; 32     Switzerland 10.0 10.0   10.0 10.0 10.0 10.0 NA 1       0
+#&gt; 33          Turkey  0.0  0.0    0.0  0.0  0.0  0.0 NA 1       0
+#&gt; 34  United Kingdom  7.1  7.1    7.1  7.1  7.1  7.1 NA 1       0
+#&gt; 35   United States  8.4  8.4    8.4  8.4  8.4  8.4 NA 1       0</code></pre>
+<p>Ach ja, sortieren ist noch sinnvoll:</p>
+<pre class="r"><code>oecd_favstats %&gt;% 
+  arrange(-mean) -&gt; oecd_favstats
+
+oecd_favstats
+#&gt;            Country  min   Q1 median   Q3  max mean sd n missing
+#&gt; 1          Denmark 10.0 10.0   10.0 10.0 10.0 10.0 NA 1       0
+#&gt; 2      Switzerland 10.0 10.0   10.0 10.0 10.0 10.0 NA 1       0
+#&gt; 3          Finland  9.7  9.7    9.7  9.7  9.7  9.7 NA 1       0
+#&gt; 4      Netherlands  9.7  9.7    9.7  9.7  9.7  9.7 NA 1       0
+#&gt; 5           Norway  9.7  9.7    9.7  9.7  9.7  9.7 NA 1       0
+#&gt; 6           Canada  9.3  9.3    9.3  9.3  9.3  9.3 NA 1       0
+#&gt; 7          Iceland  9.3  9.3    9.3  9.3  9.3  9.3 NA 1       0
+#&gt; 8           Sweden  9.3  9.3    9.3  9.3  9.3  9.3 NA 1       0
+#&gt; 9        Australia  8.8  8.8    8.8  8.8  8.8  8.8 NA 1       0
+#&gt; 10         Austria  8.8  8.8    8.8  8.8  8.8  8.8 NA 1       0
+#&gt; 11          Israel  8.8  8.8    8.8  8.8  8.8  8.8 NA 1       0
+#&gt; 12     New Zealand  8.8  8.8    8.8  8.8  8.8  8.8 NA 1       0
+#&gt; 13   United States  8.4  8.4    8.4  8.4  8.4  8.4 NA 1       0
+#&gt; 14         Belgium  7.9  7.9    7.9  7.9  7.9  7.9 NA 1       0
+#&gt; 15         Ireland  7.9  7.9    7.9  7.9  7.9  7.9 NA 1       0
+#&gt; 16      Luxembourg  7.5  7.5    7.5  7.5  7.5  7.5 NA 1       0
+#&gt; 17          Mexico  7.5  7.5    7.5  7.5  7.5  7.5 NA 1       0
+#&gt; 18  United Kingdom  7.1  7.1    7.1  7.1  7.1  7.1 NA 1       0
+#&gt; 19          France  6.2  6.2    6.2  6.2  6.2  6.2 NA 1       0
+#&gt; 20         Germany  6.2  6.2    6.2  6.2  6.2  6.2 NA 1       0
+#&gt; 21           Spain  5.7  5.7    5.7  5.7  5.7  5.7 NA 1       0
+#&gt; 22  Czech Republic  5.3  5.3    5.3  5.3  5.3  5.3 NA 1       0
+#&gt; 23           Chile  4.9  4.9    4.9  4.9  4.9  4.9 NA 1       0
+#&gt; 24           Italy  4.4  4.4    4.4  4.4  4.4  4.4 NA 1       0
+#&gt; 25           Japan  3.5  3.5    3.5  3.5  3.5  3.5 NA 1       0
+#&gt; 26           Korea  2.6  2.6    2.6  2.6  2.6  2.6 NA 1       0
+#&gt; 27 Slovak Republic  2.6  2.6    2.6  2.6  2.6  2.6 NA 1       0
+#&gt; 28        Slovenia  2.6  2.6    2.6  2.6  2.6  2.6 NA 1       0
+#&gt; 29          Poland  2.2  2.2    2.2  2.2  2.2  2.2 NA 1       0
+#&gt; 30          Greece  1.3  1.3    1.3  1.3  1.3  1.3 NA 1       0
+#&gt; 31         Estonia  0.4  0.4    0.4  0.4  0.4  0.4 NA 1       0
+#&gt; 32         Hungary  0.0  0.0    0.0  0.0  0.0  0.0 NA 1       0
+#&gt; 33        Portugal  0.0  0.0    0.0  0.0  0.0  0.0 NA 1       0
+#&gt; 34          Turkey  0.0  0.0    0.0  0.0  0.0  0.0 NA 1       0
+#&gt; 35     Estonia TL3   NA   NA     NA   NA   NA  NaN NA 0       0</code></pre>
+<p>Lädt man noch das Paket <code>knitr</code>, kann man sich eine schöne HTML- (oder Word-) Tabelle ausgeben lassen:</p>
+<pre class="r"><code>library(knitr)</code></pre>
+<pre class="r"><code>oecd_favstats %&gt;% 
+  kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Country</th>
+<th align="right">min</th>
+<th align="right">Q1</th>
+<th align="right">median</th>
+<th align="right">Q3</th>
+<th align="right">max</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">n</th>
+<th align="right">missing</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Denmark</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Switzerland</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+<td align="right">10.0</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Finland</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Netherlands</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Norway</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">9.7</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Canada</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Iceland</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Sweden</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">9.3</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Australia</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Austria</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Israel</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">New Zealand</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">8.8</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">United States</td>
+<td align="right">8.4</td>
+<td align="right">8.4</td>
+<td align="right">8.4</td>
+<td align="right">8.4</td>
+<td align="right">8.4</td>
+<td align="right">8.4</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Belgium</td>
+<td align="right">7.9</td>
+<td align="right">7.9</td>
+<td align="right">7.9</td>
+<td align="right">7.9</td>
+<td align="right">7.9</td>
+<td align="right">7.9</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Ireland</td>
+<td align="right">7.9</td>
+<td align="right">7.9</td>
+<td align="right">7.9</td>
+<td align="right">7.9</td>
+<td align="right">7.9</td>
+<td align="right">7.9</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Luxembourg</td>
+<td align="right">7.5</td>
+<td align="right">7.5</td>
+<td align="right">7.5</td>
+<td align="right">7.5</td>
+<td align="right">7.5</td>
+<td align="right">7.5</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Mexico</td>
+<td align="right">7.5</td>
+<td align="right">7.5</td>
+<td align="right">7.5</td>
+<td align="right">7.5</td>
+<td align="right">7.5</td>
+<td align="right">7.5</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">United Kingdom</td>
+<td align="right">7.1</td>
+<td align="right">7.1</td>
+<td align="right">7.1</td>
+<td align="right">7.1</td>
+<td align="right">7.1</td>
+<td align="right">7.1</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">France</td>
+<td align="right">6.2</td>
+<td align="right">6.2</td>
+<td align="right">6.2</td>
+<td align="right">6.2</td>
+<td align="right">6.2</td>
+<td align="right">6.2</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Germany</td>
+<td align="right">6.2</td>
+<td align="right">6.2</td>
+<td align="right">6.2</td>
+<td align="right">6.2</td>
+<td align="right">6.2</td>
+<td align="right">6.2</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Spain</td>
+<td align="right">5.7</td>
+<td align="right">5.7</td>
+<td align="right">5.7</td>
+<td align="right">5.7</td>
+<td align="right">5.7</td>
+<td align="right">5.7</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Czech Republic</td>
+<td align="right">5.3</td>
+<td align="right">5.3</td>
+<td align="right">5.3</td>
+<td align="right">5.3</td>
+<td align="right">5.3</td>
+<td align="right">5.3</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Chile</td>
+<td align="right">4.9</td>
+<td align="right">4.9</td>
+<td align="right">4.9</td>
+<td align="right">4.9</td>
+<td align="right">4.9</td>
+<td align="right">4.9</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Italy</td>
+<td align="right">4.4</td>
+<td align="right">4.4</td>
+<td align="right">4.4</td>
+<td align="right">4.4</td>
+<td align="right">4.4</td>
+<td align="right">4.4</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Japan</td>
+<td align="right">3.5</td>
+<td align="right">3.5</td>
+<td align="right">3.5</td>
+<td align="right">3.5</td>
+<td align="right">3.5</td>
+<td align="right">3.5</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Korea</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Slovak Republic</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Slovenia</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">2.6</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Poland</td>
+<td align="right">2.2</td>
+<td align="right">2.2</td>
+<td align="right">2.2</td>
+<td align="right">2.2</td>
+<td align="right">2.2</td>
+<td align="right">2.2</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Greece</td>
+<td align="right">1.3</td>
+<td align="right">1.3</td>
+<td align="right">1.3</td>
+<td align="right">1.3</td>
+<td align="right">1.3</td>
+<td align="right">1.3</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Estonia</td>
+<td align="right">0.4</td>
+<td align="right">0.4</td>
+<td align="right">0.4</td>
+<td align="right">0.4</td>
+<td align="right">0.4</td>
+<td align="right">0.4</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Hungary</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Portugal</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Turkey</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">0.0</td>
+<td align="right">NA</td>
+<td align="right">1</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Estonia TL3</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NaN</td>
+<td align="right">NA</td>
+<td align="right">0</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+
