@@ -40,7 +40,7 @@ In diesem Post untersuchen wir einige Aspekte der explorativen Datenanalyse für
 
 Ein Standard-Paket zur grundlegenden Datenanalyse:
 
-```{r}
+```{r libs}
 library(mosaic)
 ```
 
@@ -57,7 +57,7 @@ Falls der Datensatz lokal (auf Ihrem Rechner) vorliegt, können Sie ihn in gewoh
 
 
 
-```{r}
+```{r load-data}
 oecd <- read.csv("/Users/sebastiansaueruser/Documents/Publikationen/blog_ses/sebastiansauer.github.io/data/oecd-wellbeing.csv")
 ```
 
@@ -176,8 +176,12 @@ Als erstes erzeugen wir einen langen Dataframe (der nur aus metrischen Variablen
 oecd_de_fr %>% 
   select_if(is.numeric) %>% 
   gather() %>% 
-  head(20)
+  head(10)
 ```
+
+
+`head(10)` liefert die ersten 10 Zeilen des Dataframes zurück.
+
 
 Man beachte, dass in `key` der Name der Variable steht und in `value` der zugehörige Wert.
 
@@ -340,8 +344,32 @@ Schön wäre es noch, im Bild den Mittelwert o.Ä. zu sehen:
 gf_point(Life_satisfaction ~ reorder(Country, Life_satisfaction), 
          data = oecd_short) %>% 
   gf_hline(yintercept = 6.08, data = NA, color = "firebrick") + coord_flip()
+```
+
+Tja, die Wünsche hören nie auf... Wäre es nicht noch nett, wenn "Deutschland" hervorgehoben wäre, optisch, so dass es im Diagramm hervorsticht. Nehmen wir an, wir sind an diesem Land besonders interessiert.
+
+```{r}
+oecd_short <- 
+  oecd_short %>% 
+  mutate(is_Germany = Country == "Germany")
+```
+ 
+Damit haben wir eine Spalte erstellt, die angibt, ob ein Land Deutschland ist (`TRUE`) oder nicht (`FALSE`). Diese neue Variable nehmen wir her, um die Farbe, Größe und Form der Punkte zu bestimmen:
+ 
+```{r}
+oecd_short %>% 
+gf_point(Life_satisfaction ~ reorder(Country, Life_satisfaction), 
+         color = ~is_Germany,
+         shape = ~is_Germany,
+         size = ~ is_Germany) %>% 
+  gf_hline(yintercept = 6.08, data = NA, color = "grey60") %>% 
+  gf_vline(xintercept = 16, data = NA, color = "grey80") +
+  coord_flip()
 
 ```
+
+
+
 
 
 ## Boxplots anstelle von Histogrammen
@@ -359,7 +387,7 @@ Natürlich bietet es sich an, hier noch die Gruppen sortiert und die Achsen zu k
 
 # Zusammenhang zweier metrischer Variablen
 
-Hängt die Lebenszufriedenheit mit `Civic_engagment` zusammen`?
+Hängt die Lebenszufriedenheit mit `Civic_engagment` zusammen?
 
 
 ```{r}
@@ -404,6 +432,13 @@ oecd_short %>%
   select(-c(Country, Region, region_type, Code, Country_sorted)) -> oecd_short_numeric
 ```
 
+Oder man wählt gleich nur die numerischen Variablen aus:
+
+```{r}
+oecd_short %>% 
+  select_if(is.numeric) -> oecd_short_numeric
+```
+
 
 
 ```{r}
@@ -430,7 +465,7 @@ Das sieht auch ganz nett aus:
 
 ```{r}
 ggpairs(oecd_short,
-        columns = c(5,6,7,15) )
+        columns = c(5,6,7,15))
 ```
 
 
@@ -505,7 +540,8 @@ Ach ja, sortieren ist noch sinnvoll:
 oecd_favstats %>% 
   arrange(-mean) -> oecd_favstats
 
-oecd_favstats
+oecd_favstats %>% 
+  head(10)  # nur die ersten 10 Zeilen
 ```
 
 
