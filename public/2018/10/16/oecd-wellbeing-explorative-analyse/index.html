@@ -59,7 +59,7 @@
 
   <article class="article">
     
-    <span class="article-duration">16 min read</span>
+    <span class="article-duration">18 min read</span>
     
 
     <h1 class="article-title">OECD Wellbeing - Explorative Analyse</h1>
@@ -70,6 +70,7 @@
 
     <div class="article-content">
       <p>In diesem Post untersuchen wir einige Aspekte der explorativen Datenanalyse für den Datensatz <code>oecd wellbeing</code> aus dem Jahr 2016.</p>
+<p><em>Hinweis</em>: Als <em>Vertiefung</em> gekennzeichnete Abschnitt sind nicht prüfungsrelevant.</p>
 <div id="benotigte-pakete" class="section level1">
 <h1>Benötigte Pakete</h1>
 <p>Ein Standard-Paket zur grundlegenden Datenanalyse:</p>
@@ -247,6 +248,57 @@
 #&gt;  $ Community               : num  8.9 9.3 8.6 8.6 8.5 8.6 10 9.8 8.3 7.8 ...
 #&gt;  $ Life_satisfaction       : num  7.8 8.5 8.1 8.5 7.8 9.6 7 9.6 7.8 8.1 ...</code></pre>
 <p>Offensichtlich sind diese alphabetisch geordnet - nach dieser Ordnung richtet sich die Ordnung im Plot-Befehl (<code>xyplot</code>).</p>
+<div id="ranking-und-top-10-prozent-der-zufriedenheit" class="section level2">
+<h2>Ranking und Top-10-Prozent der Zufriedenheit</h2>
+<p>Schauen wir uns die “Happy-Top-10” an, die 10 Länder mit der höchsten Lebenszufriedenheit:</p>
+<pre class="r"><code>oecd_short %&gt;% 
+  arrange(-Life_satisfaction) %&gt;% 
+  select(Country, Life_satisfaction) %&gt;% 
+  head(10)
+#&gt;        Country Life_satisfaction
+#&gt; 1      Denmark              10.0
+#&gt; 2  Switzerland              10.0
+#&gt; 3      Finland               9.7
+#&gt; 4  Netherlands               9.7
+#&gt; 5       Norway               9.7
+#&gt; 6       Canada               9.3
+#&gt; 7      Iceland               9.3
+#&gt; 8       Sweden               9.3
+#&gt; 9    Australia               8.8
+#&gt; 10     Austria               8.8</code></pre>
+<p><code>head(10)</code> liefert die ersten 10 Zeilen zurück.</p>
+<p>Alternativ hätte man das auch so machen können:</p>
+<pre class="r"><code>oecd_short %&gt;%
+  select(Country, Life_satisfaction) %&gt;% 
+  top_n(10)
+#&gt;        Country Life_satisfaction
+#&gt; 1    Australia               8.8
+#&gt; 2      Austria               8.8
+#&gt; 3       Canada               9.3
+#&gt; 4      Denmark              10.0
+#&gt; 5      Finland               9.7
+#&gt; 6      Iceland               9.3
+#&gt; 7       Israel               8.8
+#&gt; 8  Netherlands               9.7
+#&gt; 9  New Zealand               8.8
+#&gt; 10      Norway               9.7
+#&gt; 11      Sweden               9.3
+#&gt; 12 Switzerland              10.0</code></pre>
+<p><code>top_n(10)</code> liefert die 10 höchsten Rangpläte zurück. Hier gab es doppelte Werte, daher, wurden mehr als 10 Werte zurückgeliefert.</p>
+<pre class="r"><code>quantile(~Life_satisfaction, data = oecd_short, probs = .90)
+#&gt; 90% 
+#&gt; 9.7</code></pre>
+<p>Ah, Länder mit einer Lebenszufriedenheit von mind. 9.7 gehören zu den oberen Top-10-Prozent. Filtern wir mal entsprechend:</p>
+<pre class="r"><code>oecd_short %&gt;% 
+  filter(Life_satisfaction &gt;= 9.7) %&gt;% 
+  select(Country, Life_satisfaction)
+#&gt;       Country Life_satisfaction
+#&gt; 1     Denmark              10.0
+#&gt; 2     Finland               9.7
+#&gt; 3 Netherlands               9.7
+#&gt; 4      Norway               9.7
+#&gt; 5 Switzerland              10.0</code></pre>
+</div>
 <div id="vertiefung-3" class="section level2">
 <h2>Vertiefung</h2>
 <p>Ändern wir die Sortierung! Mit <code>reorder()</code> kann man die Sortierung ändern (re-ordnen, daher der Name):</p>
@@ -277,19 +329,19 @@
 <p>Wie man sieht, ist <code>Country_sorted</code> jetzt anders sortiert. Betrachten wir das Ergebnis:</p>
 <pre class="r"><code>xyplot(Life_satisfaction ~ Country_sorted, data = oecd_short,
        xlab = &quot;Land&quot;, ylab = &quot;Zufriedenheit&quot;)</code></pre>
-<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-22-1.png" width="100%" style="display: block; margin: auto;" /></p>
-<p>Schon besser. Man kann z.B. die Achsen nicht lesen 😭.</p>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-26-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Schon besser. Man kann z.B. die Achsen nicht lesen 😿.</p>
 </div>
 <div id="vertiefung-4" class="section level2">
 <h2>Vertiefung</h2>
 <p>Mit <code>gf_XXX()</code> lassen sich die Achsen (um 90°) drehen mit <code>+ coord_flip()</code>:</p>
 <pre class="r"><code>gf_point(Life_satisfaction ~ Country_sorted, data = oecd_short) + coord_flip()</code></pre>
-<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-23-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-27-1.png" width="100%" style="display: block; margin: auto;" /></p>
 <p>Schön 😄.</p>
 <p>Man hätte das Sortieren und Achsen drehen auch in einem Haps machen können:</p>
 <pre class="r"><code>gf_point(Life_satisfaction ~ reorder(Country, Life_satisfaction), 
          data = oecd_short) + coord_flip()</code></pre>
-<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-24-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-28-1.png" width="100%" style="display: block; margin: auto;" /></p>
 <p>Aber übersichtliches ist es, die Dinge nacheinander zu tun.</p>
 </div>
 <div id="vertiefung-5" class="section level2">
@@ -298,13 +350,13 @@
 <pre class="r"><code>gf_point(Life_satisfaction ~ reorder(Country, Life_satisfaction), 
          data = oecd_short) %&gt;% 
   gf_hline(yintercept = 6.08, data = NA, color = &quot;firebrick&quot;) + coord_flip()</code></pre>
-<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-25-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-29-1.png" width="100%" style="display: block; margin: auto;" /></p>
 </div>
 <div id="boxplots-anstelle-von-histogrammen" class="section level2">
 <h2>Boxplots anstelle von Histogrammen</h2>
 <p>Möchte man mehrere Gruppen (z.B. Länder vergleichen, so bietet sich der Boxplot an - mehrere Histogramme nebeneinander lassen sich nur schwer optisch vergleichen.)</p>
 <pre class="r"><code>bwplot(Life_satisfaction ~ Country, data = oecd)</code></pre>
-<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-26-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-30-1.png" width="100%" style="display: block; margin: auto;" /></p>
 <p>Natürlich bietet es sich an, hier noch die Gruppen sortiert und die Achsen zu kippen.</p>
 </div>
 </div>
@@ -312,14 +364,14 @@
 <h1>Zusammenhang zweier metrischer Variablen</h1>
 <p>Hängt die Lebenszufriedenheit mit <code>Civic_engagment</code> zusammen`?</p>
 <pre class="r"><code>xyplot(Civic_engagement ~ Life_satisfaction, data = oecd_short)</code></pre>
-<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-27-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-31-1.png" width="100%" style="display: block; margin: auto;" /></p>
 <p>Hm, es ist kein starker Trend zu erkennen.</p>
 <p>Was sagt die Korrelation dazu:</p>
 <pre class="r"><code>cor(Civic_engagement ~ Life_satisfaction, data = oecd_short)
 #&gt; [1] 0.4021292</code></pre>
 <p>Immerhin, kein ganz unwesentlicher Wert.</p>
-<div id="und-so-weiter" class="section level2">
-<h2>Und so weiter</h2>
+<div id="und-so-weiter" class="section level3">
+<h3>Und so weiter</h3>
 <p>Dieses Prinzip <code>xyplot(var1 ~ var, data = oecd_short)</code> könnte man jetzt weiterführen ad nauseam.</p>
 </div>
 <div id="vertiefung-pairs-plot" class="section level2">
@@ -333,7 +385,7 @@
 <pre class="r"><code>oecd_short %&gt;% 
   select(-c(Country, Region, region_type, Code, Country_sorted)) -&gt; oecd_short_numeric</code></pre>
 <pre class="r"><code>sjp.corr(oecd_short_numeric)</code></pre>
-<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-32-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-36-1.png" width="100%" style="display: block; margin: auto;" /></p>
 <p>Übrigens gibt selbiges Paket auch eine ganz schöne HTML-Tabelle mit den Korrelationskoeffizienten aus:</p>
 <pre class="r"><code>sjt.corr(oecd_short_numeric)</code></pre>
 <table style="border-collapse:collapse; border:none;">
@@ -799,14 +851,48 @@ Computed correlation used pearson-method with listwise-deletion.
 </td>
 </tr>
 </table>
-</div>
-<div id="vertiefung-ggpairs" class="section level2">
-<h2>Vertiefung ggpairs</h2>
+<div id="vertiefung-ggpairs" class="section level3">
+<h3>Vertiefung ggpairs</h3>
 <pre class="r"><code>library(GGally)</code></pre>
 <p>Das sieht auch ganz nett aus:</p>
 <pre class="r"><code>ggpairs(oecd_short,
         columns = c(5,6,7,15) )</code></pre>
-<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-35-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-39-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="zusammenhang-zweier-variablen-unter-berucksichtigung-von-drittvariablen" class="section level2">
+<h2>Zusammenhang zweier Variablen unter Berücksichtigung von Drittvariablen</h2>
+<p>Oben haben wir gesehen, dass Lebenszufriedenheit und Civiv Engagement zusammenhängen.</p>
+<p>Aber vielleicht hängt dieser Zusammenhang wiederum von der finanziellen Absicherung ab? Nur wenn man materiell abgesichert ist, so könnte man argumentieren, wird bürgerliches Engagement (bzw. die Möglichkeit zu) eine Einflussgröße auf die Lebenszufriedenheit.</p>
+<p>Um diese Frage zu untersuchen, teilen wir <code>Income</code> in zwei Stufen, hoch und gering. Dann untersuchen wir jeweils den Zusammenhang von Lebenszufriedenheit und bürgerlichem Engagement.</p>
+<p>Achtung! Eine metrische Variablen in zwei Hälften zu spalten birgt einen hohen Informationsverlust. Da wir aber nur eine grobe Untersuchung vorhaben (und uns noch nicht fortgeschrittener Technik bedienen wollen), bleiben wir erstmal bei dieser sog. <em>Dichotomisierung</em>.</p>
+<p>Nehmen wir den Median des Einkommen als Teilungspunkt; man spricht von einem “Mediansplit”:</p>
+<pre class="r"><code>median(~Income, data = oecd_short)
+#&gt; [1] 5.15</code></pre>
+<p>Zuerst erstellen wir eine Variable <code>Income_high</code> mit den Stufen 0 (nein) und 1 (ja):</p>
+<pre class="r"><code>oecd_short &lt;- 
+  oecd_short %&gt;% 
+    mutate(Income_high = 
+           case_when( Income &gt;= 5.15 ~ 1,
+                      Income &lt; 5.15 ~ 0))</code></pre>
+<p>Jetzt plotten wir den Zusammenhang:</p>
+<pre class="r"><code>xyplot(Life_satisfaction ~ Civic_engagement | Income_high, data = oecd_short)</code></pre>
+<p><img src="/post/2018-10-16-oecd-wellbeing-explorative-analyse_files/figure-html/unnamed-chunk-42-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<div id="vertiefung-korrelation-pro-gruppe" class="section level3">
+<h3>Vertiefung: Korrelation pro Gruppe</h3>
+<p>Um die Korrelation pro Gruppe zu erhalten, könnten wir jeweils einen Dataframe pro Gruppe erzeugen (mit <code>filter()</code>) und dann jeweils die Korrelation von Zufriedenheit und Engagement berechnen.</p>
+<p>Eine andere, etwas elegantere Möglichkeit kann so aussehen:</p>
+<pre class="r"><code>oecd_short %&gt;%
+  group_by(Income_high) %&gt;% 
+  summarise(cor_zuf_eng = cor(Life_satisfaction ~ Civic_engagement))
+#&gt; # A tibble: 2 x 2
+#&gt;   Income_high cor_zuf_eng
+#&gt;         &lt;dbl&gt;       &lt;dbl&gt;
+#&gt; 1           0       0.367
+#&gt; 2           1       0.140</code></pre>
+<p>Interessanterweise ist die Korrelation durchaus verschieden in den beiden Gruppen.</p>
+<p>Natürlich sind die beiden Gruppen nur Stichproben - es stellt sich die Frage, ob die Unterschiede nur durch Zufälligkeiten des Stichprobenziehens entstanden sind oder auch in der Grundgesatmtheit der “reichen” und “armen” Ländern existieren? Dazu später mehr!</p>
+</div>
 </div>
 </div>
 <div id="deskriptive-statistiken-nach-landern" class="section level1">
