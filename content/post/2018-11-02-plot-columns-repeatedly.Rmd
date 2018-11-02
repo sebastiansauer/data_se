@@ -1,0 +1,81 @@
+---
+title: Plot columns repeatedly
+author: ''
+date: '2018-11-02'
+slug: plot-columns-repeatedly
+categories:
+  - rstats
+tags:
+  - plotting
+  - rstats
+editor_options: 
+  chunk_output_type: console
+---
+
+
+Suppose you have a large number of columns of a dataframe, and you want to plot each column -- say a histogram for each column.
+
+This post shows some ways of achieving this.
+
+Let's take the mtcars dataset as an example.
+
+```{r}
+data(mtcars)
+```
+
+
+We will use the tidyverse approach:
+
+```{r}
+library(tidyverse)
+```
+
+
+# Way 1
+
+
+```{r}
+mtcars %>% 
+  map2(., names(.), ~ {ggplot(data = data_frame(.x), aes(x = .x)) + 
+      geom_histogram() +
+      labs(x= .y)})
+```
+
+
+Some explanations:
+
+- First, we take the dataset `mtcars`.
+- Then, we map a function (ie., `ggplot()`) to each column of `mtcars`, but we also parse the names of `mtcars`.
+- `ggplot()` likes dataframes, but `map()` serves lists/vectors, so we have to enshrine each vector to a dataframe using `data_frame()`.
+- The data comes from the first list (`mtcars`), that's where `.x` comes from (or refers to).
+- The names come from the second lsit (`names(mtcars)`), that's where `.y` points to.
+
+
+# Way 2
+
+A maybe more simple is this:
+
+
+```{r}
+mtcars %>% 
+  gather(key = item, value = value) %>% 
+  ggplot() +
+  aes(x = value) +
+  geom_density() +
+  facet_wrap(~ item, ncol = 2, scales = "free")
+```
+
+
+
+# Test if column is normally distributed before doing anything else
+
+Suppose we want to check whether a column is nicely normally distributed before plotting. That's one way to checking that:
+
+
+```{r}
+mtcars %>% 
+  map(~ shapiro.test(.x)) %>% 
+  map("p.value") %>% 
+  keep(. > .05)
+```
+
