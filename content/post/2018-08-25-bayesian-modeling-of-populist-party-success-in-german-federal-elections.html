@@ -36,10 +36,12 @@ library(viridis)</code></pre>
 <p>In order to combine socioeconomic data with the election results, we can make use of data from the same source as above. Again accessible via the same R pacakge:</p>
 <pre class="r"><code>data(&quot;socec&quot;)</code></pre>
 <p>Note that a code book is available for these data:</p>
-<pre class="r"><code>data(&quot;socec_dict&quot;)</code></pre>
+<pre class="r"><code>data(&quot;socec_dict&quot;)
+</code></pre>
 <p>These data will be used as predictors for modeling the election results.</p>
 <p>Third, we will make use of geo data in order to geoplot the modeling results. The Bundeswahlleiter provides such data (again via <code>pradadata</code>):</p>
-<pre class="r"><code>data(&quot;wahlkreise_shp&quot;)</code></pre>
+<pre class="r"><code>data(&quot;wahlkreise_shp&quot;)
+</code></pre>
 <p>Note: Data objects can also be downloaded <a href="https://osf.io/2yhr9/">from this source</a>.</p>
 </div>
 <div id="data-preparation" class="section level1">
@@ -56,7 +58,8 @@ library(viridis)</code></pre>
          pop_move_prop = V11,
          pop_migr_background_prop = V19,
          income = V26,
-         unemp_prop = V47) </code></pre>
+         unemp_prop = V47) 
+</code></pre>
 <p>Compute some more columns:</p>
 <pre class="r"><code>socec2 &lt;- socec_renamed %&gt;% 
    mutate(foreigner_n = total_n - germans_n,
@@ -119,16 +122,7 @@ d_all_with_na$east_num &lt;- ifelse(d_all_with_na$east == &quot;yes&quot;, 1, 0)
          east,
          east_num) -&gt; d_short_with_nas
 
-names(d_short_with_nas)
-#&gt;  [1] &quot;state&quot;                 &quot;area_nr&quot;              
-#&gt;  [3] &quot;area_name&quot;             &quot;total_n&quot;              
-#&gt;  [5] &quot;germans_n&quot;             &quot;foreigner_n&quot;          
-#&gt;  [7] &quot;for_prop&quot;              &quot;pop_move_n&quot;           
-#&gt;  [9] &quot;pop_migr_background_n&quot; &quot;income&quot;               
-#&gt; [11] &quot;unemp_n&quot;               &quot;unemp_prop&quot;           
-#&gt; [13] &quot;votes_total&quot;           &quot;afd_votes&quot;            
-#&gt; [15] &quot;afd_prop&quot;              &quot;east&quot;                 
-#&gt; [17] &quot;east_num&quot;</code></pre>
+names(d_short_with_nas)</code></pre>
 <p>Remove NAs:</p>
 <pre class="r"><code>d_short_with_nas %&gt;% 
   drop_na() -&gt; d_short_nona</code></pre>
@@ -140,59 +134,18 @@ names(d_short_with_nas)
                     pop_migr_background_n, unemp_n), funs(. * 1000)
   ) -&gt; d_short_nona_1000
 glimpse(d_short_nona_1000)
-#&gt; Observations: 299
-#&gt; Variables: 18
-#&gt; $ state                 &lt;chr&gt; &quot;Schleswig-Holstein&quot;, &quot;Schleswig-Holstei...
-#&gt; $ area_nr               &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1...
-#&gt; $ area_name             &lt;chr&gt; &quot;Flensburg – Schleswig&quot;, &quot;Nordfriesland ...
-#&gt; $ total_n               &lt;dbl&gt; 282800, 232300, 220800, 248700, 268000, ...
-#&gt; $ germans_n             &lt;dbl&gt; 266700, 219700, 209800, 239400, 242900, ...
-#&gt; $ foreigner_n           &lt;dbl&gt; 16100, 12600, 11000, 9300, 25100, 13000,...
-#&gt; $ for_prop              &lt;dbl&gt; 5.7, 5.4, 5.0, 3.7, 9.4, 5.9, 8.4, 5.8, ...
-#&gt; $ pop_move_n            &lt;dbl&gt; 3478440, 3066360, 2627520, 2487000, 3189...
-#&gt; $ pop_migr_background_n &lt;dbl&gt; 28280.0, 18584.0, 20313.6, 21139.5, 4824...
-#&gt; $ income                &lt;int&gt; 20265, 22159, 20896, 22093, 18637, 20395...
-#&gt; $ unemp_n               &lt;dbl&gt; 20361.6, 16725.6, 14572.8, 12683.7, 2358...
-#&gt; $ unemp_prop            &lt;dbl&gt; 7.2, 7.2, 6.6, 5.1, 8.8, 6.9, 5.2, 4.6, ...
-#&gt; $ votes_total           &lt;int&gt; 170396, 138075, 130875, 156268, 150173, ...
-#&gt; $ afd_votes             &lt;dbl&gt; 11647, 9023, 11176, 11578, 10390, 11161,...
-#&gt; $ afd_prop              &lt;dbl&gt; 0.06835254, 0.06534854, 0.08539446, 0.07...
-#&gt; $ east                  &lt;chr&gt; &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;...
-#&gt; $ east_num              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1...
-#&gt; $ state_id              &lt;int&gt; 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, ...</code></pre>
+</code></pre>
 </div>
 <div id="some-checks" class="section level1">
 <h1>Some checks</h1>
 <p>I know that there are 299 districts in Germany, so let’s check the row numbers</p>
-<pre class="r"><code>nrow(d_short_nona_1000) == 299
-#&gt; [1] TRUE</code></pre>
+<pre class="r"><code>nrow(d_short_nona_1000) == 299</code></pre>
 <p>By the way, the number 316 of the data frame <code>d_all_1000</code> is the sum of the districts plus the 16 federal states plus 1 for Germany itself.</p>
 <p>Let’s do a similar check for the district names:</p>
-<pre class="r"><code>identical(elec_results$district_name,socec$V03)
-#&gt; [1] FALSE</code></pre>
+<pre class="r"><code>identical(elec_results$district_name,socec$V03)</code></pre>
 <p>Does not match. Maybe the order is different?</p>
 <pre class="r"><code>head(elec_results$district_name, 10)
-#&gt;  [1] &quot;Flensburg – Schleswig&quot;             
-#&gt;  [2] &quot;Nordfriesland – Dithmarschen Nord&quot; 
-#&gt;  [3] &quot;Steinburg – Dithmarschen Süd&quot;      
-#&gt;  [4] &quot;Rendsburg-Eckernförde&quot;             
-#&gt;  [5] &quot;Kiel&quot;                              
-#&gt;  [6] &quot;Plön – Neumünster&quot;                 
-#&gt;  [7] &quot;Pinneberg&quot;                         
-#&gt;  [8] &quot;Segeberg – Stormarn-Mitte&quot;         
-#&gt;  [9] &quot;Ostholstein – Stormarn-Nord&quot;       
-#&gt; [10] &quot;Herzogtum Lauenburg – Stormarn-Süd&quot;
-head(socec$V03, 10)
-#&gt;  [1] &quot;Flensburg – Schleswig&quot;             
-#&gt;  [2] &quot;Nordfriesland – Dithmarschen Nord&quot; 
-#&gt;  [3] &quot;Steinburg – Dithmarschen Süd&quot;      
-#&gt;  [4] &quot;Rendsburg-Eckernförde&quot;             
-#&gt;  [5] &quot;Kiel&quot;                              
-#&gt;  [6] &quot;Plön – Neumünster&quot;                 
-#&gt;  [7] &quot;Pinneberg&quot;                         
-#&gt;  [8] &quot;Segeberg – Stormarn-Mitte&quot;         
-#&gt;  [9] &quot;Ostholstein – Stormarn-Nord&quot;       
-#&gt; [10] &quot;Herzogtum Lauenburg – Stormarn-Süd&quot;</code></pre>
+head(socec$V03, 10)</code></pre>
 <p>Looks reassuring.</p>
 <p>Let’s check which one is present in one but not in the other data frame:</p>
 <pre class="r"><code>elec_results2 %&gt;% 
@@ -200,27 +153,7 @@ head(socec$V03, 10)
   full_join(select(socec2, area_name, area_nr), by = &quot;area_nr&quot;) -&gt; merge_test</code></pre>
 <p>Low let’s filter for missings, ie non-matches:</p>
 <pre class="r"><code>merge_test %&gt;% 
-  filter(is.na(area_name.x))
-#&gt; # A tibble: 17 x 3
-#&gt;    area_name.x area_nr area_name.y   
-#&gt;    &lt;chr&gt;         &lt;int&gt; &lt;chr&gt;         
-#&gt;  1 &lt;NA&gt;            901 Land insgesamt
-#&gt;  2 &lt;NA&gt;            913 Land insgesamt
-#&gt;  3 &lt;NA&gt;            902 Land insgesamt
-#&gt;  4 &lt;NA&gt;            903 Land insgesamt
-#&gt;  5 &lt;NA&gt;            904 Land insgesamt
-#&gt;  6 &lt;NA&gt;            912 Land insgesamt
-#&gt;  7 &lt;NA&gt;            915 Land insgesamt
-#&gt;  8 &lt;NA&gt;            911 Land insgesamt
-#&gt;  9 &lt;NA&gt;            905 Land insgesamt
-#&gt; 10 &lt;NA&gt;            914 Land insgesamt
-#&gt; 11 &lt;NA&gt;            906 Land insgesamt
-#&gt; 12 &lt;NA&gt;            916 Land insgesamt
-#&gt; 13 &lt;NA&gt;            907 Land insgesamt
-#&gt; 14 &lt;NA&gt;            909 Land insgesamt
-#&gt; 15 &lt;NA&gt;            908 Land insgesamt
-#&gt; 16 &lt;NA&gt;            910 Land insgesamt
-#&gt; 17 &lt;NA&gt;            999 Insgesamt</code></pre>
+  filter(is.na(area_name.x))</code></pre>
 <p>“Land insgesamt” indicats the grand total of the federal state. We don’t need that data. Seems like all is fine.</p>
 </div>
 <div id="round-values" class="section level1">
@@ -231,31 +164,11 @@ head(socec$V03, 10)
 <pre class="r"><code>d_short_nona_1000 %&gt;% 
   mutate_at(vars(total_n:afd_votes), funs(as.integer)) -&gt; d_short_as_int
 glimpse(d_short_as_int)
-#&gt; Observations: 299
-#&gt; Variables: 18
-#&gt; $ state                 &lt;chr&gt; &quot;Schleswig-Holstein&quot;, &quot;Schleswig-Holstei...
-#&gt; $ area_nr               &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 1...
-#&gt; $ area_name             &lt;chr&gt; &quot;Flensburg – Schleswig&quot;, &quot;Nordfriesland ...
-#&gt; $ total_n               &lt;int&gt; 282800, 232300, 220800, 248700, 268000, ...
-#&gt; $ germans_n             &lt;int&gt; 266700, 219700, 209800, 239400, 242900, ...
-#&gt; $ foreigner_n           &lt;int&gt; 16100, 12600, 11000, 9299, 25099, 13000,...
-#&gt; $ for_prop              &lt;int&gt; 5, 5, 5, 3, 9, 5, 8, 5, 4, 6, 8, 6, 3, 3...
-#&gt; $ pop_move_n            &lt;int&gt; 3478440, 3066360, 2627520, 2487000, 3189...
-#&gt; $ pop_migr_background_n &lt;int&gt; 28280, 18584, 20313, 21139, 48240, 23738...
-#&gt; $ income                &lt;int&gt; 20265, 22159, 20896, 22093, 18637, 20395...
-#&gt; $ unemp_n               &lt;int&gt; 20361, 16725, 14572, 12683, 23584, 15166...
-#&gt; $ unemp_prop            &lt;int&gt; 7, 7, 6, 5, 8, 6, 5, 4, 6, 4, 8, 7, 7, 8...
-#&gt; $ votes_total           &lt;int&gt; 170396, 138075, 130875, 156268, 150173, ...
-#&gt; $ afd_votes             &lt;int&gt; 11647, 9023, 11176, 11578, 10390, 11161,...
-#&gt; $ afd_prop              &lt;dbl&gt; 0.06835254, 0.06534854, 0.08539446, 0.07...
-#&gt; $ east                  &lt;chr&gt; &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;...
-#&gt; $ east_num              &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1...
-#&gt; $ state_id              &lt;int&gt; 15, 15, 15, 15, 15, 15, 15, 15, 15, 15, ...</code></pre>
+</code></pre>
 <p>Main dataframe:</p>
 <pre class="r"><code>d_short &lt;- d_short_as_int</code></pre>
 <p>Any NAs left:</p>
-<pre class="r"><code>anyNA(d_short)
-#&gt; [1] FALSE</code></pre>
+<pre class="r"><code>anyNA(d_short)</code></pre>
 <div id="z-transformation" class="section level2">
 <h2>z-transformation</h2>
 <p>Transform to z-values:</p>
@@ -263,22 +176,7 @@ glimpse(d_short_as_int)
   sjmisc::std() %&gt;%  
   select(-c(state_z, area_nr_z, area_name_z, state_id_z, east_z, east_num_z)) -&gt; d_short_z
 
-names(d_short_z)
-#&gt;  [1] &quot;state&quot;                   &quot;area_nr&quot;                
-#&gt;  [3] &quot;area_name&quot;               &quot;total_n&quot;                
-#&gt;  [5] &quot;germans_n&quot;               &quot;foreigner_n&quot;            
-#&gt;  [7] &quot;for_prop&quot;                &quot;pop_move_n&quot;             
-#&gt;  [9] &quot;pop_migr_background_n&quot;   &quot;income&quot;                 
-#&gt; [11] &quot;unemp_n&quot;                 &quot;unemp_prop&quot;             
-#&gt; [13] &quot;votes_total&quot;             &quot;afd_votes&quot;              
-#&gt; [15] &quot;afd_prop&quot;                &quot;east&quot;                   
-#&gt; [17] &quot;east_num&quot;                &quot;state_id&quot;               
-#&gt; [19] &quot;total_n_z&quot;               &quot;germans_n_z&quot;            
-#&gt; [21] &quot;foreigner_n_z&quot;           &quot;for_prop_z&quot;             
-#&gt; [23] &quot;pop_move_n_z&quot;            &quot;pop_migr_background_n_z&quot;
-#&gt; [25] &quot;income_z&quot;                &quot;unemp_n_z&quot;              
-#&gt; [27] &quot;unemp_prop_z&quot;            &quot;votes_total_z&quot;          
-#&gt; [29] &quot;afd_votes_z&quot;             &quot;afd_prop_z&quot;</code></pre>
+names(d_short_z)</code></pre>
 </div>
 <div id="center" class="section level2">
 <h2>center</h2>
@@ -286,22 +184,7 @@ names(d_short_z)
   sjmisc::center() %&gt;% 
   select(-c(state_c, area_nr_c, area_name_c, state_id_c, east_c, east_num_c)) -&gt; d_short_c
 
-names(d_short_c)
-#&gt;  [1] &quot;state&quot;                   &quot;area_nr&quot;                
-#&gt;  [3] &quot;area_name&quot;               &quot;total_n&quot;                
-#&gt;  [5] &quot;germans_n&quot;               &quot;foreigner_n&quot;            
-#&gt;  [7] &quot;for_prop&quot;                &quot;pop_move_n&quot;             
-#&gt;  [9] &quot;pop_migr_background_n&quot;   &quot;income&quot;                 
-#&gt; [11] &quot;unemp_n&quot;                 &quot;unemp_prop&quot;             
-#&gt; [13] &quot;votes_total&quot;             &quot;afd_votes&quot;              
-#&gt; [15] &quot;afd_prop&quot;                &quot;east&quot;                   
-#&gt; [17] &quot;east_num&quot;                &quot;state_id&quot;               
-#&gt; [19] &quot;total_n_c&quot;               &quot;germans_n_c&quot;            
-#&gt; [21] &quot;foreigner_n_c&quot;           &quot;for_prop_c&quot;             
-#&gt; [23] &quot;pop_move_n_c&quot;            &quot;pop_migr_background_n_c&quot;
-#&gt; [25] &quot;income_c&quot;                &quot;unemp_n_c&quot;              
-#&gt; [27] &quot;unemp_prop_c&quot;            &quot;votes_total_c&quot;          
-#&gt; [29] &quot;afd_votes_c&quot;             &quot;afd_prop_c&quot;</code></pre>
+names(d_short_c)</code></pre>
 <p>Coerce to normal data frame, no tibble</p>
 <pre class="r"><code>d_short &lt;- data.frame(d_short)
 d_short_z &lt;- data.frame(d_short_z)
@@ -353,17 +236,11 @@ m9_stan &lt;- map2stan(
   data = d,
   chains = 2,
   cores = 2
-)
-#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[east] + : Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.
-#&gt; argument is of length zero</code></pre>
+)</code></pre>
 <pre class="r"><code>my_traceplot(m9_stan)
-#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m9_stan&#39; not found
 precis(m9_stan, depth = 2)
-#&gt; Error in precis(m9_stan, depth = 2): object &#39;m9_stan&#39; not found
 models_stan[[&quot;m9_stan&quot;]] &lt;- m9_stan
-#&gt; Error in eval(expr, envir, enclos): object &#39;m9_stan&#39; not found
-WAIC(m9_stan)
-#&gt; Error in WAIC(m9_stan): object &#39;m9_stan&#39; not found</code></pre>
+WAIC(m9_stan)</code></pre>
 <p>DIC is not being produced, some issues exist.</p>
 </div>
 <div id="m9a-metric-model-with-no-eastwest" class="section level1">
@@ -381,24 +258,16 @@ m9a_stan &lt;- map2stan(
   ),
   data = d,
   chains = 2,
-  cores = 2)
-#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha + beta1 * : Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.
-#&gt; argument is of length zero</code></pre>
+  cores = 2)</code></pre>
 <p>Looks good:</p>
 <pre class="r"><code>my_traceplot(m9a_stan)
-#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m9a_stan&#39; not found
 precis(m9a_stan)
-#&gt; Error in precis(m9a_stan): object &#39;m9a_stan&#39; not found
-models_stan[[&quot;m9a_stan&quot;]] &lt;- m9a_stan
-#&gt; Error in eval(expr, envir, enclos): object &#39;m9a_stan&#39; not found</code></pre>
+models_stan[[&quot;m9a_stan&quot;]] &lt;- m9a_stan</code></pre>
 <p>Here’s the data in the S4 object for the MCMC chains:</p>
 <pre class="r"><code>m9_stan@stanfit@sim$samples[[1]] %&gt;% str()</code></pre>
 <pre class="r"><code>precis(m9a_stan, depth = 2)
-#&gt; Error in precis(m9a_stan, depth = 2): object &#39;m9a_stan&#39; not found
 WAIC(m9a_stan)
-#&gt; Error in WAIC(m9a_stan): object &#39;m9a_stan&#39; not found
-DIC(m9a_stan)
-#&gt; Error in DIC(m9a_stan): object &#39;m9a_stan&#39; not found</code></pre>
+DIC(m9a_stan)</code></pre>
 </div>
 <div id="m10-eastwest-as-numeric-predictor-not-as-varying-intercept" class="section level1">
 <h1>m10: East/West as numeric predictor, not as varying intercept</h1>
@@ -417,20 +286,14 @@ m10_stan &lt;- map2stan(
   ),
   data = d,
   chains = 2
-)
-#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha + beta1 * : Something went wrong, when calling Stan. Check any debug messages for clues, detective.
-#&gt; argument is of length zero</code></pre>
+)</code></pre>
 <p>Model output:</p>
 <pre class="r"><code>precis(m10_stan)
-#&gt; Error in precis(m10_stan): object &#39;m10_stan&#39; not found
 my_traceplot(m10_stan)
-#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m10_stan&#39; not found
 DIC(m10_stan)
-#&gt; Error in DIC(m10_stan): object &#39;m10_stan&#39; not found
 WAIC(m10_stan)
-#&gt; Error in WAIC(m10_stan): object &#39;m10_stan&#39; not found
 models_stan[[&quot;m10_stan&quot;]] &lt;- m10_stan
-#&gt; Error in eval(expr, envir, enclos): object &#39;m10_stan&#39; not found</code></pre>
+</code></pre>
 <p>Looks ok, but why are the coefficients so large? Strange.</p>
 </div>
 <div id="predictor-importance" class="section level1">
@@ -449,16 +312,12 @@ m11a_stan &lt;- map2stan(
     sigma ~ dnorm(0, 1)
   ),
   data = d,
-  chains = 2)
-#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha + beta1 * : Something went wrong, when calling Stan. Check any debug messages for clues, detective.
-#&gt; argument is of length zero</code></pre>
+  chains = 2)</code></pre>
 <p>Looks good:</p>
 <pre class="r"><code>my_traceplot(m11a_stan)
-#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m11a_stan&#39; not found
 precis(m11a_stan)
-#&gt; Error in precis(m11a_stan): object &#39;m11a_stan&#39; not found
 models_stan[[&quot;m11a_stan&quot;]] &lt;- m11a_stan
-#&gt; Error in eval(expr, envir, enclos): object &#39;m11a_stan&#39; not found</code></pre>
+</code></pre>
 </div>
 <div id="unemployment" class="section level2">
 <h2>unemployment</h2>
@@ -475,15 +334,10 @@ m11c_stan &lt;- map2stan(
   ),
   data = d,
   chains = 2,
-  cores = 2)
-#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha + beta1 * : Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.
-#&gt; argument is of length zero</code></pre>
+  cores = 2)</code></pre>
 <pre class="r"><code>my_traceplot(m11c_stan)
-#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m11c_stan&#39; not found
 precis(m11c_stan)
-#&gt; Error in precis(m11c_stan): object &#39;m11c_stan&#39; not found
-models_stan[[&quot;m11c_stan&quot;]] &lt;- m11c_stan
-#&gt; Error in eval(expr, envir, enclos): object &#39;m11c_stan&#39; not found</code></pre>
+models_stan[[&quot;m11c_stan&quot;]] &lt;- m11c_stan</code></pre>
 </div>
 <div id="east-only" class="section level2">
 <h2>east only</h2>
@@ -500,18 +354,12 @@ m11d_stan &lt;- map2stan(
       ),
   data = d,
   chains = 2,
-  cores = 2)
-#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta1 * east_num, : Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.
-#&gt; argument is of length zero</code></pre>
+  cores = 2)</code></pre>
 <p>Looks good:</p>
 <pre class="r"><code>my_traceplot(m11d_stan)
-#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m11d_stan&#39; not found
 precis(m11d_stan)
-#&gt; Error in precis(m11d_stan): object &#39;m11d_stan&#39; not found
 WAIC(m11d_stan)
-#&gt; Error in WAIC(m11d_stan): object &#39;m11d_stan&#39; not found
-models_stan[[&quot;m11d_stan&quot;]] &lt;- m11d_stan
-#&gt; Error in eval(expr, envir, enclos): object &#39;m11d_stan&#39; not found</code></pre>
+models_stan[[&quot;m11d_stan&quot;]] &lt;- m11d_stan</code></pre>
 </div>
 </div>
 <div id="multilevel-normal-models" class="section level1">
@@ -536,12 +384,9 @@ m12_stan &lt;- map2stan(
 #&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[area_nr], : Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.
 #&gt; argument is of length zero</code></pre>
 <pre class="r"><code>precis(m12_stan, depth = 2) %&gt;% head()
-#&gt; Error in precis(m12_stan, depth = 2): object &#39;m12_stan&#39; not found
 #coeftab(m12_stan)
 my_traceplot(m12_stan)
-#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m12_stan&#39; not found
-models_stan[[&quot;m12_stan&quot;]] &lt;- m12_stan
-#&gt; Error in eval(expr, envir, enclos): object &#39;m12_stan&#39; not found</code></pre>
+models_stan[[&quot;m12_stan&quot;]] &lt;- m12_stan</code></pre>
 <p>Too many coefficients…</p>
 </div>
 <div id="state-as-multilevel" class="section level2">
@@ -564,15 +409,10 @@ m13_stan &lt;- map2stan(
 #&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[state_id], : Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.
 #&gt; argument is of length zero</code></pre>
 <pre class="r"><code>precis(m13_stan, depth = 2)
-#&gt; Error in precis(m13_stan, depth = 2): object &#39;m13_stan&#39; not found
 coeftab(m13_stan)
-#&gt; Error in coeftab(m13_stan): object &#39;m13_stan&#39; not found
 WAIC(m13_stan)
-#&gt; Error in WAIC(m13_stan): object &#39;m13_stan&#39; not found
 my_traceplot(m13_stan)
-#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m13_stan&#39; not found
-models_stan[[&quot;m13_stan&quot;]] &lt;- m13_stan
-#&gt; Error in eval(expr, envir, enclos): object &#39;m13_stan&#39; not found</code></pre>
+models_stan[[&quot;m13_stan&quot;]] &lt;- m13_stan</code></pre>
 <p>Rhat is ok. Traceplot indicates problems. neff indicates problems.</p>
 </div>
 <div id="east-for_prop-unemp_prop" class="section level2">
@@ -596,13 +436,10 @@ m14_stan &lt;- map2stan(
 #&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[east] + : Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.
 #&gt; argument is of length zero</code></pre>
 <pre class="r"><code>precis(m14_stan, depth = 2)
-#&gt; Error in precis(m14_stan, depth = 2): object &#39;m14_stan&#39; not found
 coeftab(m14_stan)
-#&gt; Error in coeftab(m14_stan): object &#39;m14_stan&#39; not found
 my_traceplot(m14_stan)
-#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m14_stan&#39; not found
 models_stan[[&quot;m14_stan&quot;]] &lt;- m14_stan
-#&gt; Error in eval(expr, envir, enclos): object &#39;m14_stan&#39; not found</code></pre>
+</code></pre>
 </div>
 <div id="state-for_prop-unemp_prop" class="section level2">
 <h2>state + for_prop + unemp_prop</h2>
@@ -625,13 +462,10 @@ m15_stan &lt;- map2stan(
 #&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[state_id] + : Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.
 #&gt; argument is of length zero</code></pre>
 <pre class="r"><code>precis(m15_stan, depth = 2)
-#&gt; Error in precis(m15_stan, depth = 2): object &#39;m15_stan&#39; not found
 coeftab(m15_stan)
-#&gt; Error in coeftab(m15_stan): object &#39;m15_stan&#39; not found
 my_traceplot(m15_stan)
-#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m15_stan&#39; not found
 models_stan[[&quot;m15_stan&quot;]] &lt;- m15_stan
-#&gt; Error in eval(expr, envir, enclos): object &#39;m15_stan&#39; not found</code></pre>
+</code></pre>
 </div>
 </div>
 <div id="normal-null-model" class="section level1">
@@ -651,13 +485,10 @@ m16_stan &lt;- map2stan(
 #&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha, alpha ~ : Something went wrong, when calling Stan. Check any debug messages for clues, detective.
 #&gt; argument is of length zero</code></pre>
 <pre class="r"><code>precis(m16_stan, depth = 2)
-#&gt; Error in precis(m16_stan, depth = 2): object &#39;m16_stan&#39; not found
 coeftab(m16_stan)
-#&gt; Error in coeftab(m16_stan): object &#39;m16_stan&#39; not found
 my_traceplot(m16_stan)
-#&gt; Error in rstan::traceplot(model@stanfit, pars = names(model@start[[1]])): object &#39;m16_stan&#39; not found
 models_stan[[&quot;m16_stan&quot;]] &lt;- m16_stan
-#&gt; Error in eval(expr, envir, enclos): object &#39;m16_stan&#39; not found</code></pre>
+</code></pre>
 </div>
 <div id="compare-normal-models" class="section level1">
 <h1>Compare Normal models</h1>
@@ -673,7 +504,6 @@ models_stan[[&quot;m16_stan&quot;]] &lt;- m16_stan
                            &quot;m14_stan&quot; = m14_stan,
                            &quot;m15_stan&quot; = m15_stan,
                            &quot;m16_stan&quot; = m16_stan)
-#&gt; Error in eval(expr, envir, enclos): object &#39;m9_stan&#39; not found
 
 stan_normal_models_vec &lt;- c(&quot;m9_stan&quot; = m9_stan, 
                             &quot;m9a_stan&quot; = m9a_stan, 
@@ -686,7 +516,6 @@ stan_normal_models_vec &lt;- c(&quot;m9_stan&quot; = m9_stan,
                             &quot;m14_stan&quot; = m14_stan,
                             &quot;m15_stan&quot; = m15_stan,
                             &quot;m16_stan&quot; = m16_stan)
-#&gt; Error in eval(expr, envir, enclos): object &#39;m9_stan&#39; not found
 
 
 #stan_normal_models
@@ -697,12 +526,9 @@ stan_model_comparison &lt;- compare(m9_stan, m9a_stan,
                                  m11a_stan, m11c_stan, m11d_stan,
                                  m12_stan, m13_stan, m14_stan, m15_stan,
                                  m16_stan)
-#&gt; Error in compare(m9_stan, m9a_stan, m10_stan, m11a_stan, m11c_stan, m11d_stan, : object &#39;m9_stan&#39; not found
 stan_model_comparison 
-#&gt; Error in eval(expr, envir, enclos): object &#39;stan_model_comparison&#39; not found
 
-save(stan_model_comparison, file = &quot;stan_model_comparison.Rda&quot;)
-#&gt; Error in save(stan_model_comparison, file = &quot;stan_model_comparison.Rda&quot;): object &#39;stan_model_comparison&#39; not found</code></pre>
+save(stan_model_comparison, file = &quot;stan_model_comparison.Rda&quot;)</code></pre>
 <p><code>m11b</code> is better than <code>m11a</code> - unemployment apears to be more important to predict AfD success compared to migration rate in the area.</p>
 </div>
 <div id="get-best-normal-model" class="section level1">
@@ -710,13 +536,11 @@ save(stan_model_comparison, file = &quot;stan_model_comparison.Rda&quot;)
 <p>Which model ist best? Let’s define the model with the lowest WAIC as best:</p>
 <pre class="r"><code>stan_model_comparison@output %&gt;% 
   rownames_to_column(var = &quot;model_name&quot;) %&gt;%  
-  slice(which.min(WAIC)) -&gt; best_model
-#&gt; Error in eval(lhs, parent, parent): object &#39;stan_model_comparison&#39; not found</code></pre>
+  slice(which.min(WAIC)) -&gt; best_model</code></pre>
 <p>And now extract the name of the best model:</p>
 <pre class="r"><code>best_model_name &lt;-
   best_model %&gt;%
-  pull(model_name)
-#&gt; Error in eval(lhs, parent, parent): object &#39;best_model&#39; not found</code></pre>
+  pull(model_name)</code></pre>
 </div>
 <div id="geo-plotting" class="section level1">
 <h1>Geo plotting</h1>
@@ -729,9 +553,7 @@ save(stan_model_comparison, file = &quot;stan_model_comparison.Rda&quot;)
   scale_fill_viridis() +
   labs(fill=&quot;Afd votes\n(Zweitstimme)&quot;,
        caption = &quot;Data provided by the Bundeswahlleiter 2017&quot;) -&gt; p_afd
-#&gt; Error in loadNamespace(i, c(lib.loc, .libPaths()), versionCheck = vI[[i]]): there is no package called &#39;spData&#39;
-p_afd
-#&gt; Error in eval(expr, envir, enclos): object &#39;p_afd&#39; not found</code></pre>
+p_afd</code></pre>
 <p>Unemployment rates in Germany per district:</p>
 <pre class="r"><code>wahlkreise_shp %&gt;% 
   left_join(select(d_short, area_nr, unemp_n, total_n), by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;% 
@@ -742,9 +564,8 @@ p_afd
   scale_fill_viridis() +
   labs(fill=&quot;unemployment rate&quot;,
        caption = &quot;Data provided by the Bundeswahlleiter 2017&quot;) -&gt; p_unemp
-#&gt; Error in loadNamespace(i, c(lib.loc, .libPaths()), versionCheck = vI[[i]]): there is no package called &#39;spData&#39;
 p_unemp
-#&gt; Error in eval(expr, envir, enclos): object &#39;p_unemp&#39; not found</code></pre>
+</code></pre>
 <p>Foreigner rates:</p>
 <pre class="r"><code>wahlkreise_shp %&gt;% 
   left_join(select(d_short, area_nr, for_prop, total_n), by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;% 
@@ -754,17 +575,14 @@ p_unemp
   scale_fill_viridis() +
   labs(fill=&quot;Foreigner rate&quot;,
        caption = &quot;Data provided by the Bundeswahlleiter 2017&quot;) -&gt; p_foreign
-#&gt; Error in loadNamespace(i, c(lib.loc, .libPaths()), versionCheck = vI[[i]]): there is no package called &#39;spData&#39;
 
 p_foreign
-#&gt; Error in eval(expr, envir, enclos): object &#39;p_foreign&#39; not found</code></pre>
+</code></pre>
 <p>Joint diagrams</p>
 <pre class="r"><code>library(gridExtra)
 
 grid.arrange(p_unemp, p_afd, nrow = 1)
-#&gt; Error in arrangeGrob(...): object &#39;p_unemp&#39; not found
-grid.arrange(p_foreign, p_afd, nrow = 1)
-#&gt; Error in arrangeGrob(...): object &#39;p_foreign&#39; not found</code></pre>
+grid.arrange(p_foreign, p_afd, nrow = 1)</code></pre>
 </div>
 <div id="computing-prediction-errors" class="section level1">
 <h1>Computing prediction errors</h1>
@@ -782,31 +600,27 @@ grid.arrange(p_foreign, p_afd, nrow = 1)
     pull(error) -&gt; error_vec
   
   return(error_vec)
-}</code></pre>
+}
+</code></pre>
 <p>Apply the function on all models:</p>
 <pre class="r"><code>model_error &lt;- lapply(stan_normal_models, comp_error)
-#&gt; Error in lapply(stan_normal_models, comp_error): object &#39;stan_normal_models&#39; not found
 
 #model_error
 #save(model_error, file = &quot;model_error.Rda&quot;)</code></pre>
 <p>Compute the median absolute error:</p>
 <pre class="r"><code>md_abs_error_all_models &lt;- sapply(model_error, median) %&gt;% unlist()
-#&gt; Error in lapply(X = X, FUN = FUN, ...): object &#39;model_error&#39; not found
 md_abs_error_all_models
-#&gt; Error in eval(expr, envir, enclos): object &#39;md_abs_error_all_models&#39; not found
 
 best_model_name &lt;- md_abs_error_all_models[which.min(md_abs_error_all_models)] %&gt;% names()
-#&gt; Error in eval(lhs, parent, parent): object &#39;md_abs_error_all_models&#39; not found</code></pre>
+</code></pre>
 <p>Also, compute the IQR of the errors:</p>
-<pre class="r"><code>modell_error_IQR &lt;- lapply(stan_normal_models, comp_error, fun = IQR)
-#&gt; Error in lapply(stan_normal_models, comp_error, fun = IQR): object &#39;stan_normal_models&#39; not found</code></pre>
+<pre class="r"><code>modell_error_IQR &lt;- lapply(stan_normal_models, comp_error, fun = IQR)</code></pre>
 </div>
 <div id="visualizing-prediction-error" class="section level1">
 <h1>Visualizing prediction error</h1>
 <p>Some preparation:</p>
 <pre class="r"><code>model_error %&gt;% 
     as.data.frame() -&gt; model_error_df
-#&gt; Error in eval(lhs, parent, parent): object &#39;model_error&#39; not found
 
 #glimpse(model_error_df)
 
@@ -827,49 +641,40 @@ model_names &lt;- c(&quot;m9_stan&quot;,
 
 
 names(model_error_df) &lt;- model_names
-#&gt; Error in names(model_error_df) &lt;- model_names: object &#39;model_error_df&#39; not found
 
 model_error_df %&gt;% 
   mutate(afd_prop = d_short$afd_prop,
          id = 1:nrow(model_error_df)) -&gt; model_error_df
-#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_df&#39; not found
 
 
 modell_error_IQR %&gt;% 
   as.data.frame() -&gt; model_error_IQR_df
-#&gt; Error in eval(lhs, parent, parent): object &#39;modell_error_IQR&#39; not found
 
 
 names(model_error_IQR_df) &lt;- model_names
-#&gt; Error in names(model_error_IQR_df) &lt;- model_names: object &#39;model_error_IQR_df&#39; not found
 
 model_error_IQR_df %&gt;% 
   mutate(id = 1:nrow(model_error_IQR_df)) -&gt; model_error_IQR_df
-#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_IQR_df&#39; not found</code></pre>
+</code></pre>
 <p>Convert to long version for plotting:</p>
 <pre class="r"><code>model_error_IQR_df %&gt;% 
   gather(key = model, value = iqr, -c(id)) %&gt;% 
   mutate(stat = &quot;IQR&quot;) -&gt; model_error_IQR_df_long
-#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_IQR_df&#39; not found
 
 
 model_error_df %&gt;% 
   gather(key = model, value = error, -c(afd_prop, id)) %&gt;% 
   mutate(stat = &quot;median&quot;) -&gt; model_error_df_long
-#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_df&#39; not found
 
 model_error_df_long %&gt;% 
   bind_rows(model_error_IQR_df_long) -&gt; model_error_long
-#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_df_long&#39; not found
 
 
 model_error_df_long %&gt;% 
   left_join(model_error_IQR_df_long, by = c(&quot;id&quot;, &quot;model&quot;)) %&gt;% 
   select(-c(stat.x, stat.y)) -&gt; model_error_md_iqr
-#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_df_long&#39; not found
 
 glimpse(model_error_md_iqr)
-#&gt; Error in glimpse(model_error_md_iqr): object &#39;model_error_md_iqr&#39; not found
 
 #save(model_error_md_iqr, file = &quot;model_error_md_iqr.RDa&quot;)</code></pre>
 <p>Now plot:</p>
@@ -877,10 +682,8 @@ glimpse(model_error_md_iqr)
 as_tibble(md_abs_error_all_models) %&gt;% 
   mutate(model = unlist(model_names),
          best_model = ifelse(model_names == best_model_name, TRUE, FALSE)) -&gt; md_abs_error_all_models
-#&gt; Error in as_tibble(md_abs_error_all_models): object &#39;md_abs_error_all_models&#39; not found
 
 glimpse(md_abs_error_all_models)
-#&gt; Error in glimpse(md_abs_error_all_models): object &#39;md_abs_error_all_models&#39; not found
 
 model_error_md_iqr %&gt;% 
   arrange(-error) %&gt;% 
@@ -897,13 +700,11 @@ model_error_md_iqr %&gt;%
             data = md_abs_error_all_models, 
             hjust = 0) +
   guides(color=FALSE) +
-  scale_color_manual(values = c(&quot;red&quot;, &quot;darkgreen&quot;))
-#&gt; Error in eval(lhs, parent, parent): object &#39;model_error_md_iqr&#39; not found</code></pre>
+  scale_color_manual(values = c(&quot;red&quot;, &quot;darkgreen&quot;))</code></pre>
 </div>
 <div id="plotting-prediction-error-against-observed-values" class="section level1">
 <h1>Plotting prediction error against observed values</h1>
 <pre class="r"><code>posterior_per_person_best_model &lt;- link(m15_stan)
-#&gt; Error in link(m15_stan): object &#39;m15_stan&#39; not found
   
 posterior_per_person_best_model %&gt;%  
   as_tibble() %&gt;% 
@@ -914,7 +715,6 @@ posterior_per_person_best_model %&gt;%
   full_join(d_short) %&gt;%
   mutate(error = abs(estimate - afd_prop),
          top05 = percent_rank(error) &gt;= .95) -&gt; d_short_w_pred_err 
-#&gt; Error in eval(lhs, parent, parent): object &#39;posterior_per_person_best_model&#39; not found
 
 
 polygon_pos &lt;- data.frame(
@@ -939,25 +739,23 @@ d_short_w_pred_err %&gt;%
        y = &quot;Estimated AfD votes (proportion)&quot;,
        caption = &quot;n=299 electoral districts; data provided by Bundeswahlleiter 2017&quot;) +
   guides(fill = FALSE)
-#&gt; Error in eval(lhs, parent, parent): object &#39;d_short_w_pred_err&#39; not found</code></pre>
+</code></pre>
 </div>
 <div id="sensecheck" class="section level1">
 <h1>Sensecheck</h1>
 <p>I just wondered what the bivariate correlations of the predictors to <code>afd_vote</code> is`. Let’s check that.</p>
 <pre class="r"><code>library(GGally)
 
-ggpairs(d_short, columns = c(&quot;foreigner_n&quot;, &quot;unemp_n&quot;, &quot;afd_votes&quot;))</code></pre>
-<p><img src="/post/2018-08-25-bayesian-modeling-of-populist-party-success-in-german-federal-elections_files/figure-html/ggally-1.png" width="70%" style="display: block; margin: auto;" /></p>
+ggpairs(d_short, columns = c(&quot;foreigner_n&quot;, &quot;unemp_n&quot;, &quot;afd_votes&quot;))
+</code></pre>
 <p>There is a substantial <em>negatie</em> correlations with number of foreigners and a positive correlation with unemployment, but (nearly) no correlation with unemployment numbers.
 But our analysis above suggest that these associations are spurious once the state is controlled for. To make things easy, let’s pick two states, say Sachsen und Bayern and check in each state the assoctions.</p>
 <pre class="r"><code>d_short %&gt;%
   filter(state == &quot;Bayern&quot;) %&gt;% 
   ggpairs( columns = c(&quot;foreigner_n&quot;, &quot;unemp_n&quot;, &quot;afd_votes&quot;))</code></pre>
-<p><img src="/post/2018-08-25-bayesian-modeling-of-populist-party-success-in-german-federal-elections_files/figure-html/unnamed-chunk-19-1.png" width="70%" style="display: block; margin: auto;" /></p>
 <pre class="r"><code>d_short %&gt;%
   filter(state == &quot;Sachsen&quot;) %&gt;% 
   ggpairs( columns = c(&quot;foreigner_n&quot;, &quot;unemp_n&quot;, &quot;afd_votes&quot;))</code></pre>
-<p><img src="/post/2018-08-25-bayesian-modeling-of-populist-party-success-in-german-federal-elections_files/figure-html/unnamed-chunk-20-1.png" width="70%" style="display: block; margin: auto;" /></p>
 <p>Interestingly, in Sachsen manifests a strong negative correlation between AfD and foreigner rates.</p>
 </div>
 <div id="check-some-model-assumptions" class="section level1">
@@ -965,14 +763,13 @@ But our analysis above suggest that these associations are spurious once the sta
 <p>Let’s compute the predictions for each model:</p>
 <pre class="r"><code>
 model_predictions &lt;- lapply(stan_normal_models, link)
-#&gt; Error in lapply(stan_normal_models, link): object &#39;stan_normal_models&#39; not found</code></pre>
+ </code></pre>
 <p>Now plot the predictions against the error, as advised by Gelman and Hill.</p>
 <p>First, get predictions of the best moel:</p>
 <pre class="r"><code>model_predictions[[best_model_name]] %&gt;% 
   as_tibble %&gt;% 
   summarise_all(mean) %&gt;% 
   gather() -&gt; best_model_preds
-#&gt; Error in eval(lhs, parent, parent): object &#39;model_predictions&#39; not found
 
 # save(best_model_preds, file = &quot;best_model_preds.Rda&quot;)</code></pre>
 <p>Each observation is one <em>row</em> in this data frame.</p>
@@ -981,7 +778,6 @@ model_predictions &lt;- lapply(stan_normal_models, link)
   as_tibble() %&gt;%
   rename(error = value) %&gt;% 
   mutate(pred = best_model_preds$value) -&gt; best_model_pred_err
-#&gt; Error in eval(lhs, parent, parent): object &#39;model_error&#39; not found
   
 best_model_pred_err %&gt;% 
   ggplot() +
@@ -997,21 +793,19 @@ best_model_pred_err %&gt;%
        xlab = &quot;Model predictions&quot;,
        ylab = &quot;Model error&quot;,
        caption = &quot;Note. Horizontal lines denote .025, .5, and .975 quantiles, respectively&quot;) 
-#&gt; Error in eval(lhs, parent, parent): object &#39;best_model_pred_err&#39; not found</code></pre>
+  </code></pre>
 </div>
 <div id="check-posterior-distribution-of-predictors" class="section level1">
 <h1>Check posterior distribution of predictors</h1>
 <p>Let’s have a look at the posterior distribution of the <code>best_model</code>.</p>
-<pre class="r"><code>post_best_model &lt;- extract.samples(stan_normal_models[[best_model_name]])
-#&gt; Error in extract.samples(stan_normal_models[[best_model_name]]): object &#39;stan_normal_models&#39; not found</code></pre>
+<pre class="r"><code>post_best_model &lt;- extract.samples(stan_normal_models[[best_model_name]])</code></pre>
 <p>This object is a list. Let’s convert it to a data frame for easier plotting.</p>
 <pre class="r"><code>post_best_model_df &lt;- data_frame(
   sigma = post_best_model[[&quot;sigma&quot;]],
   sigma2 = post_best_model[[&quot;sigma2&quot;]],
   beta1 = post_best_model[[&quot;beta1&quot;]],
   beta2= post_best_model[[&quot;beta2&quot;]]
-)
-#&gt; Error in eval_tidy(xs[[i]], unique_output): object &#39;post_best_model&#39; not found</code></pre>
+)</code></pre>
 <p>And now we plot a number of histograms:</p>
 <pre class="r"><code>post_best_model_df %&gt;% 
   gather() %&gt;%  
@@ -1020,9 +814,7 @@ best_model_pred_err %&gt;%
   aes(x = value) +
   facet_wrap(~coef, scales = &quot;free&quot;) +
   geom_histogram() -&gt; p_post_best_model
-#&gt; Error in eval(lhs, parent, parent): object &#39;post_best_model_df&#39; not found
-p_post_best_model
-#&gt; Error in eval(expr, envir, enclos): object &#39;p_post_best_model&#39; not found</code></pre>
+p_post_best_model</code></pre>
 <p>Now compute summary statistics:</p>
 <pre class="r"><code>post_best_model_df %&gt;% 
   gather() %&gt;% 
@@ -1033,11 +825,9 @@ p_post_best_model
             q95 = quantile(value, .95),
             value = mean(value)
   )  -&gt; post_best_model_df_sum
-#&gt; Error in eval(lhs, parent, parent): object &#39;post_best_model_df&#39; not found
   #gather(key = my_quantile, value = value, -coef) -&gt; post_best_model_df_sum
 
-head(post_best_model_df_sum)
-#&gt; Error in head(post_best_model_df_sum): object &#39;post_best_model_df_sum&#39; not found</code></pre>
+head(post_best_model_df_sum)</code></pre>
 <p>Now plot both:</p>
 <pre class="r"><code>p_post_best_model +
   geom_rect(data = post_best_model_df_sum,
@@ -1051,6 +841,5 @@ head(post_best_model_df_sum)
         axis.ticks.y = element_blank()) +
   labs(title = best_model_name,
        y = &quot;&quot;,
-       caption = &quot;Note. Shaded areas demark 90% mass intervals&quot;)
-#&gt; Error in eval(expr, envir, enclos): object &#39;p_post_best_model&#39; not found</code></pre>
+       caption = &quot;Note. Shaded areas demark 90% mass intervals&quot;)</code></pre>
 </div>
