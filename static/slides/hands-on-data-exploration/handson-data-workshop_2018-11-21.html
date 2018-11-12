@@ -1,0 +1,1701 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title> Hands-on data exploration using R</title>
+    <meta charset="utf-8">
+    <meta name="author" content="Sebastian Sauer" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/default-fonts.css" rel="stylesheet" />
+    <link href="libs/remark-css/hygge.css" rel="stylesheet" />
+    <script src="libs/htmlwidgets/htmlwidgets.js"></script>
+    <script src="libs/jquery/jquery.min.js"></script>
+    <link href="libs/leaflet/leaflet.css" rel="stylesheet" />
+    <script src="libs/leaflet/leaflet.js"></script>
+    <link href="libs/leafletfix/leafletfix.css" rel="stylesheet" />
+    <script src="libs/Proj4Leaflet/proj4-compressed.js"></script>
+    <script src="libs/Proj4Leaflet/proj4leaflet.js"></script>
+    <link href="libs/rstudio_leaflet/rstudio_leaflet.css" rel="stylesheet" />
+    <script src="libs/leaflet-binding/leaflet.js"></script>
+    <script src="libs/leaflet-providers/leaflet-providers.js"></script>
+    <script src="libs/leaflet-providers-plugin/leaflet-providers-plugin.js"></script>
+    <link href="libs/font-awesome/css/fontawesome-all.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="ses-xa.css" type="text/css" />
+  </head>
+  <body>
+    <textarea id="source">
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class: inverse
+
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+
+.right[
+# Hands-on data exploration using R 
+
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+
+### Sebastian Sauer
+]
+
+
+
+&lt;img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0e/Hochschule_f%C3%BCr_Oekonomie_%26_Management_2012_logo.svg/768px-Hochschule_f%C3%BCr_Oekonomie_%26_Management_2012_logo.svg.png" width="20%" style="display: block; margin: auto auto auto 0;" /&gt;
+
+
+
+
+
+---
+
+
+
+
+
+
+class: inverse, center, middle
+
+# Setup
+
+---
+
+class: top, left
+
+## Overview
+
+
+
+.Large[
+.full-width[
+.content-box-blue[
+
+- Setup
+
+- Tidyverse 101
+
+- Data diagrams 101
+
+- Case study
+]
+]
+]
+
+
+
+---
+
+
+## whoami
+
+
+```r
+ system("whoami")
+```
+
+
+
+- R enthusiast
+
+- Data analyst/scientist
+
+- Professor at FOM Hochschule
+
+---
+
+## The lights are on
+
+
+<div id="htmlwidget-f5245f6ae626778e62a1" style="width:90%;height:432px;" class="leaflet html-widget"></div>
+<script type="application/json" data-for="htmlwidget-f5245f6ae626778e62a1">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"setView":[[50,12],4,[]],"calls":[{"method":"addProviderTiles","args":["NASAGIBS.ViirsEarthAtNight2012",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addMarkers","args":[[52.5,49.4],[13.4,11.1],null,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},["Sebastian","Datanatives"],null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[49.4,52.5],"lng":[11.1,13.4]}},"evals":[],"jsHooks":[]}</script>
+
+
+---
+
+## Upfront preparation
+
+
+### Please install the following software upfront:
+
+- [R](https://www.r-project.org/)
+- [RStudio Desktop](https://www.rstudio.com/products/rstudio/download/)
+
+Starting RStudio will start R automatically.
+
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+### Please also make sure:
+
+- Your OS is up to date
+- You have internet access during the course
+- You reach the next power socket (maybe better bring a power cable)
+
+
+---
+
+
+
+## You, after this workshop
+
+
+
+
+
+&lt;img src="img/kermit.gif" width="100%" style="display: block; margin: auto;" /&gt;
+
+
+
+
+Well, kinda off...
+
+---
+
+
+
+
+## Learning goals
+
+
+.large[
+.full-width[
+.content-box-blue[
+- Understanding basic tidyverse goals
+
+- Applying tidyverse tools
+
+- Visualizing data
+
+- Basic modeling
+]
+]
+]
+
+---
+
+
+
+## We'll use the following R packages
+
+
+
+
+```r
+pckgs &lt;- c("nycflights13", "mosaic", 
+           "broom", "corrr", "lubridate", "viridis", 
+           "GGally", "ggmap", "pacman", "sjmisc", 
+           "leaflet", "knitr",  "tidyverse")
+```
+
+
+
+
+
+
+#### Please install them prior to the workshop from within R:
+
+Install each missing package like this:
+
+
+```r
+install.packages("nycflights13")
+```
+
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+
+#### Load each package after each start of Rstudio:
+
+
+```r
+library(pacman)
+p_load(pckgs, character.only = TRUE)
+```
+
+---
+
+
+## Data we'll use: `mtcars`
+
+
+- `mtcars` is a toy dataset built into R (no need for installing).
+
+- Data come from 1974 motorsports magazine describing some automobiles.
+
+- Columns: e.g., horsepower, weight, fuel consumption
+
+### Load the dataset:
+
+
+```r
+data(mtcars)
+```
+
+
+Get help:
+
+
+```r
+?mtcars
+```
+
+
+
+---
+
+## Data we'll use: `flights`
+
+
+
+- `flights` is a dataset from R package `nycflights13` (package must be installed).
+
+- Data come from flights leaving the NYC airports in 2013.
+
+- Coumns: eg., delay, air time, carrier name
+
+### Load the dataset:
+
+
+
+```r
+data(flights, package = "nycflights13")
+```
+
+Get help:
+
+
+```r
+?flights
+```
+
+
+
+&lt;/br&gt;
+Load the data each time you open RStudio (during this workshop).
+
+
+---
+
+
+
+
+## RStudio running
+
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+&lt;img src="http://paulyeo21.github.io/cell_bio_gen_lab/images/331f4ea3.rstudio_pane.png" width="80%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+class: center, inverse, middle
+
+
+
+# The tidyverse
+
+---
+
+
+background-image: url("https://pbs.twimg.com/media/CvzEQcfWIAAIs-N.jpg")
+background-size: cover
+
+
+---
+
+## The data analysis (science) pipeline
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+&lt;img src="https://d33wubrfki0l68.cloudfront.net/86cc45e87bb755a3bcecce462a6524e68d13a466/90635/images/tidy1.png" width="100%" style="display: block; margin: auto;" /&gt;
+
+
+
+---
+
+
+## Get the power of the ~~uni~~ tidyverse
+
+&lt;img src="img/git-push-force.gif" width="70%" style="display: block; margin: auto;" /&gt;
+
+---
+
+
+## But I love the old way ...
+
+
+
+
+&lt;img src="img/kid-waves.gif" width="80%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+
+
+## Nice data
+
+
+&lt;img src="https://biostat2.uni.lu/lectures/img/02/data_rectangle.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+## Tidy data 
+
+
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+
+&lt;img src="https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/09_Praxisprobleme_der_Datenaufbereitung/06_tidy-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+
+
+
+[More Details](https://biostat2.uni.lu/lectures/lecture02_tidyverse.html#1)
+
+
+---
+
+## Dataset `mtcars`
+
+
+```r
+glimpse(mtcars)
+#&gt; Observations: 32
+#&gt; Variables: 11
+#&gt; $ mpg  &lt;dbl&gt; 21.0, 21.0, 22.8, 21.4, 18.7, 18.1, 14.3, 24.4, 22.8, 19....
+#&gt; $ cyl  &lt;dbl&gt; 6, 6, 4, 6, 8, 6, 8, 4, 4, 6, 6, 8, 8, 8, 8, 8, 8, 4, 4, ...
+#&gt; $ disp &lt;dbl&gt; 160.0, 160.0, 108.0, 258.0, 360.0, 225.0, 360.0, 146.7, 1...
+#&gt; $ hp   &lt;dbl&gt; 110, 110, 93, 110, 175, 105, 245, 62, 95, 123, 123, 180, ...
+#&gt; $ drat &lt;dbl&gt; 3.90, 3.90, 3.85, 3.08, 3.15, 2.76, 3.21, 3.69, 3.92, 3.9...
+#&gt; $ wt   &lt;dbl&gt; 2.620, 2.875, 2.320, 3.215, 3.440, 3.460, 3.570, 3.190, 3...
+#&gt; $ qsec &lt;dbl&gt; 16.46, 17.02, 18.61, 19.44, 17.02, 20.22, 15.84, 20.00, 2...
+#&gt; $ vs   &lt;dbl&gt; 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, ...
+#&gt; $ am   &lt;dbl&gt; 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, ...
+#&gt; $ gear &lt;dbl&gt; 4, 4, 4, 3, 3, 3, 3, 4, 4, 4, 4, 3, 3, 3, 3, 3, 3, 4, 4, ...
+#&gt; $ carb &lt;dbl&gt; 4, 4, 1, 1, 2, 1, 4, 2, 2, 4, 4, 3, 3, 3, 4, 4, 4, 1, 2, ...
+```
+
+
+
+---
+
+class: inverse, center, middle
+
+# Data wrangling
+
+
+---
+
+
+class: top, left
+
+## Two tidyverse principles
+
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+.pull-left[
+### Knock-down principle
+&lt;img src="https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/07_Datenjudo/02_Bausteine_dplyr_crop.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+]
+
+.pull-right[
+### Pipe princriple
+&lt;img src="https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/07_Datenjudo/11_800px-Pipa_savinelli.jpg" width="70%" style="display: block; margin: auto;" /&gt;
+
+]
+
+---
+
+
+background-image: url("https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/07_Datenjudo/02_Bausteine_dplyr_crop.png")
+background-size: contain
+
+
+---
+
+
+## Atoms of the knock-down principle
+
+
+.Large[
+- `filter()`
+
+- `select()`
+
+- `mutate()`
+
+- `group_by()`
+- ...
+]
+
+
+---
+
+
+
+## Filtering rows with `filter()`
+
+
+.pull-left[
+Extract rows that meet logical criteria.
+&lt;img src="img/filter.png" width="40%" style="display: block; margin: auto;" /&gt;
+]
+
+.pull-right[
+Filter table `mtcars` such that only rows remain where `cols` equal `6`
+
+
+```r
+filter(mtcars, cyl == 6)
+#&gt;    mpg cyl  disp  hp drat    wt  qsec vs am gear carb
+#&gt; 1 21.0   6 160.0 110 3.90 2.620 16.46  0  1    4    4
+#&gt; 2 21.0   6 160.0 110 3.90 2.875 17.02  0  1    4    4
+#&gt; 3 21.4   6 258.0 110 3.08 3.215 19.44  1  0    3    1
+#&gt; 4 18.1   6 225.0 105 2.76 3.460 20.22  1  0    3    1
+#&gt; 5 19.2   6 167.6 123 3.92 3.440 18.30  1  0    4    4
+#&gt; 6 17.8   6 167.6 123 3.92 3.440 18.90  1  0    4    4
+#&gt; 7 19.7   6 145.0 175 3.62 2.770 15.50  0  1    5    6
+```
+]
+
+
+
+---
+
+
+## `filter()` - exercises &lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt;
+
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Filter the automatic cars.
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Filter the automatic cars with more than 4 cylinders.
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Filter cars with  either low consumption or the the super. thirsty ones
+
+
+
+
+---
+
+## `filter()` - solutions to exercises
+
+
+
+```r
+data(mtcars)  # only if dataset is not yet loaded
+filter(mtcars, am == 1)
+filter(mtcars, cyl &gt; 4)
+filter(mtcars, mpg &gt; 30 | mpg &lt; 12)
+```
+
+---
+
+## Select columns with `select()`
+
+
+.pull-left[
+Extract columns by name.
+&lt;img src="img/select.png" width="40%" style="display: block; margin: auto;" /&gt;
+]
+
+.pull-right[
+Select the columns  `cyl` and `hp`. Discard the rest.
+
+
+```r
+select(mtcars, cyl, hp)
+```
+
+
+```
+#&gt;                   cyl  hp
+#&gt; Mazda RX4           6 110
+#&gt; Mazda RX4 Wag       6 110
+#&gt; Datsun 710          4  93
+#&gt; Hornet 4 Drive      6 110
+#&gt; Hornet Sportabout   8 175
+#&gt; Valiant             6 105
+```
+]
+
+
+---
+
+## `select()` - exercises 
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Select the first three columns.
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Select the first and third column.
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Select all columns containing the letter "c".
+---
+
+## `select()` - solutions to exercises 
+
+
+
+```r
+select(mtcars, 1:3)
+select(mtcars, 1, disp)
+select(mtcars, contains("c"))  # regex supported
+```
+
+
+
+---
+
+
+## Add or change a column with `mutate`
+
+
+.pull-left[
+Apply vectorized functions to columns to create new columns.
+
+&lt;img src="img/mutate.png" width="40%" style="display: block; margin: auto;" /&gt;
+]
+
+
+.pull-right[
+Define weight in kg for each car.
+
+```r
+mtcars &lt;- mutate(mtcars, 
+                 weight_kg = wt * 2)
+head(select(mtcars, wt, weight_kg))
+#&gt;      wt weight_kg
+#&gt; 1 2.620      5.24
+#&gt; 2 2.875      5.75
+#&gt; 3 2.320      4.64
+#&gt; 4 3.215      6.43
+#&gt; 5 3.440      6.88
+#&gt; 6 3.460      6.92
+```
+]
+
+---
+
+## `mutate()` - exercises
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Compute a variable for consumption (gallons per 100 miles).
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Compute two variables in one mutate-call.
+
+---
+
+## `mutate()` - solutions to exercises
+ 
+
+```r
+mtcars &lt;- mutate(mtcars, consumption = (1/mpg) * 100 * 3.8 / 1.6)
+mtcars &lt;- mutate(mtcars, 
+                 consumption_g_per_m = (1/mpg),
+                 consumption_l_per_100_k = consumption_g_per_m  * 3.8 / 1.6 * 100)
+```
+
+
+---
+
+
+## Summarise a column with `summarise()`
+
+
+.pull-left[
+Apply function to summarise column to single value.
+&lt;img src="img/summary.png" width="40%" style="display: block; margin: auto;" /&gt;
+]
+
+
+.pull-right[
+Summarise the `values` to their mean.
+
+```r
+summarise(mtcars, 
+          mean_hp = mean(hp))
+#&gt;    mean_hp
+#&gt; 1 146.6875
+```
+]
+
+
+
+---
+
+
+## `summarise()` -  exercises
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Compute the median of consumption.
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Compute multiple statistics at once.
+
+---
+
+
+## `summarise()` -  solution to exercises
+
+
+
+```r
+summarise(mtcars, median(consumption))
+summarise(mtcars, 
+          consumption_md = median(consumption),
+          consumption_avg = mean(consumption)
+          )
+
+```
+
+
+
+
+
+---
+
+## Group with `group_by()`
+
+
+.pull-left[
+Create "gruoped" copy of table. dplyr functions will manipulate each group separately and then combine the results.
+
+&lt;img src="img/group-by.png" width="40%" style="display: block; margin: auto;" /&gt;
+]
+
+
+
+.pull-right[
+Group cars by `am` (automatic vs. manual). Then summarise to mean in each group.
+
+
+```r
+mtcars_grouped &lt;- group_by(mtcars, am)
+summarise(mtcars_grouped, mean_hp = mean(hp))
+#&gt; # A tibble: 2 x 2
+#&gt;      am mean_hp
+#&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+#&gt; 1     0    160.
+#&gt; 2     1    127.
+```
+]
+
+---
+
+## `group_by()` - exercises
+  
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Compute the median consumption, grouped by cylinder.
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Compute the median consumption, grouped by cylinder and `am`.
+
+
+
+---
+
+
+## `group_by()` - exercises
+
+
+
+```
+#&gt; # A tibble: 3 x 2
+#&gt;     cyl mean_hp
+#&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+#&gt; 1     4    9.14
+#&gt; 2     6   12.1 
+#&gt; 3     8   16.2
+```
+
+
+---
+
+
+class: center, middle, inverse
+
+# Enter the pipe
+
+
+
+
+
+
+
+---
+
+
+background-image: url("https://www.rstudio.com/wp-content/uploads/2014/04/magrittr.png")
+background-size: cover
+
+
+
+---
+
+
+
+
+
+## Life without the pipe operator
+
+
+
+```r
+summarise(
+  raise_to_power(
+    compute_differences(data, mean), 
+    2
+  ),
+  mean
+)
+
+```
+
+
+---
+
+## Life with the pipe operator
+
+
+```r
+data %&gt;%
+  compute_differences(mean) %&gt;% 
+  raise_to_power(2) %&gt;% 
+  summarise(mean)
+  
+```
+
+
+---
+
+class: center, middle, inverse
+# Data diagrams
+
+---
+
+
+## Why we need diagrams
+
+
+&lt;img src="https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/11_Daten_visualisieren/02_anscombe-crop.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+---
+
+## Anatomy of a diagram
+
+
+&lt;img src="https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/11_Daten_visualisieren/anatomie_en.png" width="100%" style="display: block; margin: auto;" /&gt;
+
+---
+
+
+## First plot with `ggplot`
+
+
+```r
+mtcars %&gt;% 
+  ggplot() +  # initialize plot
+  aes(x = hp, y = mpg) +  # define axes etc.
+  geom_point() +  # graw points 
+  geom_smooth()  # draw smoothing line
+```
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-41-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+
+
+Notice the `+` in contrast to the pipe `%&gt;%`.
+
+
+---
+
+
+## Groups and colors
+
+
+
+```r
+mtcars %&gt;% 
+  ggplot() +
+  aes(x = hp, y = mpg, color = am) +
+  geom_point() +
+  geom_smooth() +
+  scale_color_viridis_c() +
+  theme_bw()
+```
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-42-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+## Diagrams - exercises
+
+
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 640 512"&gt;&lt;path d="M104 96H56c-13.3 0-24 10.7-24 24v104H8c-4.4 0-8 3.6-8 8v48c0 4.4 3.6 8 8 8h24v104c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V120c0-13.3-10.7-24-24-24zm528 128h-24V120c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v272c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h24c4.4 0 8-3.6 8-8v-48c0-4.4-3.6-8-8-8zM456 32h-48c-13.3 0-24 10.7-24 24v168H256V56c0-13.3-10.7-24-24-24h-48c-13.3 0-24 10.7-24 24v400c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V288h128v168c0 13.3 10.7 24 24 24h48c13.3 0 24-10.7 24-24V56c0-13.3-10.7-24-24-24z"/&gt;&lt;/svg&gt; Plot the mean and the median for each cylinder group (dataset `mtcars`).
+
+
+---
+
+
+## Diagrams - solutions to exercises
+
+
+
+```r
+mtcars_summarized %&gt;% 
+  ggplot() +
+  aes(x = cyl, y = mean_hp, color = factor(am), 
+      shape = factor(am)) +
+  geom_point(size = 5)
+```
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-43-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+class: inverse, center, middle
+
+# Case study Why are flights delayed?
+
+
+---
+
+## Know thy data
+
+Don't forget to load it from the package via:
+
+
+```r
+data(flights)
+```
+
+A look to the help page:
+
+
+```r
+?flights
+```
+
+---
+
+class: top, left
+
+## Glimpse data
+
+
+```r
+glimpse(flights)
+#&gt; Observations: 336,776
+#&gt; Variables: 19
+#&gt; $ year           &lt;int&gt; 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013,...
+#&gt; $ month          &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,...
+#&gt; $ day            &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,...
+#&gt; $ dep_time       &lt;int&gt; 517, 533, 542, 544, 554, 554, 555, 557, 557, 55...
+#&gt; $ sched_dep_time &lt;int&gt; 515, 529, 540, 545, 600, 558, 600, 600, 600, 60...
+#&gt; $ dep_delay      &lt;dbl&gt; 2, 4, 2, -1, -6, -4, -5, -3, -3, -2, -2, -2, -2...
+#&gt; $ arr_time       &lt;int&gt; 830, 850, 923, 1004, 812, 740, 913, 709, 838, 7...
+#&gt; $ sched_arr_time &lt;int&gt; 819, 830, 850, 1022, 837, 728, 854, 723, 846, 7...
+#&gt; $ arr_delay      &lt;dbl&gt; 11, 20, 33, -18, -25, 12, 19, -14, -8, 8, -2, -...
+#&gt; $ carrier        &lt;chr&gt; "UA", "UA", "AA", "B6", "DL", "UA", "B6", "EV",...
+#&gt; $ flight         &lt;int&gt; 1545, 1714, 1141, 725, 461, 1696, 507, 5708, 79...
+#&gt; $ tailnum        &lt;chr&gt; "N14228", "N24211", "N619AA", "N804JB", "N668DN...
+#&gt; $ origin         &lt;chr&gt; "EWR", "LGA", "JFK", "JFK", "LGA", "EWR", "EWR"...
+#&gt; $ dest           &lt;chr&gt; "IAH", "IAH", "MIA", "BQN", "ATL", "ORD", "FLL"...
+#&gt; $ air_time       &lt;dbl&gt; 227, 227, 160, 183, 116, 150, 158, 53, 140, 138...
+#&gt; $ distance       &lt;dbl&gt; 1400, 1416, 1089, 1576, 762, 719, 1065, 229, 94...
+#&gt; $ hour           &lt;dbl&gt; 5, 5, 5, 5, 6, 5, 6, 6, 6, 6, 6, 6, 6, 6, 6, 5,...
+#&gt; $ minute         &lt;dbl&gt; 15, 29, 40, 45, 0, 58, 0, 0, 0, 0, 0, 0, 0, 0, ...
+#&gt; $ time_hour      &lt;dttm&gt; 2013-01-01 05:00:00, 2013-01-01 05:00:00, 2013...
+```
+
+
+---
+
+## Data sanity - quantitative variables
+ 
+
+ 
+ 
+.small[ 
+
+```r
+flights %&gt;% descr()
+#&gt; 
+#&gt; ## Basic descriptive statistics
+#&gt; 
+#&gt;             var    type          label      n NA.prc    mean      sd   se
+#&gt;            year integer           year 336776   0.00 2013.00    0.00 0.00
+#&gt;           month integer          month 336776   0.00    6.55    3.41 0.01
+#&gt;    md trimmed           range  skew
+#&gt;  2013 2013.00   0 (2013-2013)   NaN
+#&gt;     7    6.56       11 (1-12) -0.01
+#&gt;  [ reached getOption("max.print") -- omitted 12 rows ]
+```
+]
+
+---
+
+
+## Data sanity - qualitative variables
+
+
+```r
+flights %&gt;%
+  select_if(is.character) %&gt;% 
+  inspect()
+#&gt; 
+#&gt; categorical variables:  
+#&gt;      name     class levels      n missing
+#&gt; 1 carrier character     16 336776       0
+#&gt; 2 tailnum character   4043 334264    2512
+#&gt; 3  origin character      3 336776       0
+#&gt; 4    dest character    105 336776       0
+#&gt;                                    distribution
+#&gt; 1 UA (17.4%), B6 (16.2%), EV (16.1%) ...       
+#&gt; 2 N725MQ (0.2%), N722MQ (0.2%) ...             
+#&gt; 3 EWR (35.9%), JFK (33%), LGA (31.1%)          
+#&gt; 4 ORD (5.1%), ATL (5.1%), LAX (4.8%) ...
+```
+
+
+
+---
+
+
+## Distribution -- quantitative variables
+
+
+```r
+flights %&gt;% 
+  ggplot(aes(x = dep_delay)) +
+  geom_histogram() +
+  scale_x_continuous(limits = c(-10, 60))
+```
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-50-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+
+
+
+## Descriptive statistics for delay
+
+
+```r
+flights %&gt;% 
+  drop_na() %&gt;% 
+  summarise(mean(dep_delay), median(dep_delay),
+            sd(dep_delay), iqr(dep_delay))
+#&gt; # A tibble: 1 x 4
+#&gt;   `mean(dep_delay)` `median(dep_delay)` `sd(dep_delay)` `iqr(dep_delay)`
+#&gt;               &lt;dbl&gt;               &lt;dbl&gt;           &lt;dbl&gt;            &lt;dbl&gt;
+#&gt; 1              12.6                  -2            40.1               16
+```
+
+---
+
+
+## Descriptive statistics by origin
+
+
+```r
+flights %&gt;% 
+  drop_na() %&gt;% 
+  group_by(origin) %&gt;% 
+  summarise(mean(dep_delay), median(dep_delay),
+            sd(dep_delay), iqr(dep_delay))
+#&gt; # A tibble: 3 x 5
+#&gt;   origin `mean(dep_delay… `median(dep_de… `sd(dep_delay)` `iqr(dep_delay)`
+#&gt;   &lt;chr&gt;             &lt;dbl&gt;           &lt;dbl&gt;           &lt;dbl&gt;            &lt;dbl&gt;
+#&gt; 1 EWR                15.0              -1            41.2               19
+#&gt; 2 JFK                12.0              -1            38.8               15
+#&gt; 3 LGA                10.3              -3            39.9               13
+```
+
+
+---
+
+class: center, middle, inverse
+
+# Start modeling
+
+
+---
+
+
+## Delay as a function of origin?
+
+
+&lt;br/&gt;
+&lt;br/&gt;
+&lt;br/&gt;
+
+```
+delay = f(origin)
+```
+
+More Rish:
+
+
+```
+dep_delay ~ origing
+```
+
+---
+
+## Linear models
+
+
+
+
+```r
+lm(dep_delay ~ origin, data = drop_na(flights)) %&gt;% tidy()
+#&gt; # A tibble: 3 x 5
+#&gt;   term        estimate std.error statistic   p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+#&gt; 1 (Intercept)    15.0      0.117     128.  0.       
+#&gt; 2 originJFK      -2.99     0.168     -17.7 2.65e- 70
+#&gt; 3 originLGA      -4.72     0.172     -27.5 3.33e-166
+```
+
+Some as above, stated differently.
+
+
+---
+
+
+## Does `distance` predicts `dep_delay`?
+
+
+
+
+```r
+flights %&gt;% 
+  ggplot(aes (x = distance, y = dep_delay)) +
+  geom_point(alpha = .1) +
+  geom_lm() +
+  coord_cartesian(ylim(-10, 60))
+```
+
+
+---
+
+##  Does `distance` predicts `dep_delay`?
+
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-55-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+## Alternative visualiziation
+
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-56-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+---
+
+## Correlation of distance and delay
+
+
+
+```r
+flights %&gt;% 
+  select(distance, dep_delay, origin) %&gt;%
+  group_by(origin) %&gt;% 
+  drop_na() %&gt;% 
+  summarise(cor_delay_dist = cor(dep_delay, distance))
+#&gt; # A tibble: 3 x 2
+#&gt;   origin cor_delay_dist
+#&gt;   &lt;chr&gt;           &lt;dbl&gt;
+#&gt; 1 EWR           -0.0361
+#&gt; 2 JFK           -0.0398
+#&gt; 3 LGA            0.0114
+```
+
+---
+
+## Delay as a function of distance
+
+
+
+```r
+lm(dep_delay ~ I(distance/1000) + origin, data = flights) %&gt;% 
+  tidy()
+#&gt; # A tibble: 4 x 5
+#&gt;   term             estimate std.error statistic   p.value
+#&gt;   &lt;chr&gt;               &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+#&gt; 1 (Intercept)         16.8     0.157      107.  0.       
+#&gt; 2 I(distance/1000)    -1.60    0.0988     -16.2 9.43e- 59
+#&gt; 3 originJFK           -2.66    0.170      -15.7 3.09e- 55
+#&gt; 4 originLGA           -5.21    0.174      -29.9 3.80e-196
+```
+
+
+---
+
+## Delay per month (code)
+
+
+
+
+
+
+```r
+flights %&gt;% 
+  group_by(origin, month, day) %&gt;% 
+  summarise(dep_delay_avg_day = mean(dep_delay, na.rm = TRUE)) %&gt;% 
+  ungroup %&gt;% 
+  mutate(dep_dt = make_date(2013, month, day)) %&gt;% 
+  ggplot(aes(x = dep_dt, y = dep_delay_avg_day, shape = origin, color = origin)) +
+  geom_point(alpha = .3) +
+  geom_smooth() +
+  scale_color_viridis_d()
+```
+
+---
+
+
+## Delay per month (output)
+
+
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-60-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+---
+
+## Delay per month - boxplot (code)
+
+
+```r
+flights %&gt;% 
+  ggplot(aes(x = month, y = dep_delay)) +
+  geom_boxplot(aes(group = month)) +
+  geom_smooth() +
+  coord_cartesian(ylim = c(-10, 60)) +
+  scale_x_continuous(breaks = 1:12)
+```
+
+
+---
+
+
+
+## Delay per month - boxplot (output)
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-62-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+## Is it the weekends? (code)
+
+
+```r
+flights &lt;- flights %&gt;%
+  mutate(dow = wday(time_hour))
+
+delay_dow &lt;- 
+  flights %&gt;% 
+  group_by(dow) %&gt;% 
+  drop_na() %&gt;% 
+  summarise(delay_m = mean(dep_delay),
+            delay_md = median(dep_delay),
+            q_05 = quantile(x = dep_delay, prob = .05),
+            q_95 = quantile(x = dep_delay, prob = .95))
+```
+
+---
+
+## Is it the weekends? (output)
+
+
+```r
+delay_dow
+#&gt; # A tibble: 7 x 5
+#&gt;     dow delay_m delay_md  q_05  q_95
+#&gt;   &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1   11.5        -2    -9    80
+#&gt; 2     2   14.7        -1    -9   101
+#&gt; 3     3   10.6        -2    -9    80
+#&gt; 4     4   11.6        -2    -9    84
+#&gt; 5     5   16.0        -1    -9   101
+#&gt; 6     6   14.7        -1    -8    94
+#&gt; 7     7    7.59       -2    -9    60
+```
+
+
+---
+
+## Diagram of day of week delays (code)
+
+
+```r
+flights %&gt;% 
+  ggplot(aes(x = dow)) +
+  geom_boxplot(aes(group = dow, y = dep_delay)) +
+  geom_point(data = delay_dow, aes(y = delay_m), color = "red", 
+             size = 5) + 
+  coord_cartesian(ylim = c(-10, 100)) +
+  scale_x_continuous(breaks = 1:7) +
+  geom_hline(yintercept = mean(flights$dep_delay, na.rm = TRUE), 
+             linetype = "dashed") +
+  geom_hline(yintercept = median(flights$dep_delay, na.rm = TRUE), 
+             linetype = "dashed") +
+  geom_errorbar(aes(ymin = q_05, ymax = q_95), data = delay_dow)
+```
+
+
+---
+
+
+
+## Diagram of day of week delays (output)
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-66-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+## Delay per time of the day (code)
+
+Let's check whether delays add up during the day, a popular opinion among travellers. 
+
+
+```r
+flights %&gt;% 
+  select(dep_delay, hour) %&gt;% 
+  ggplot(aes(x = hour, y = dep_delay)) +
+  geom_boxplot(aes(group = hour)) +
+  geom_smooth(method = "lm") +
+  coord_cartesian(ylim = c(-10, 60))  +
+  scale_x_continuous(breaks = 1:24)
+  
+```
+
+
+---
+
+
+
+## Delay per time of the day (output)
+
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-68-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+# Delay as function of month, hour, origin, and weekday
+
+
+```r
+lm_hour &lt;- lm(dep_delay ~ hour + month + origin + I(dow == 7), 
+              data = flights)
+
+rsquared(lm_hour)
+#&gt; [1] 0.04408207
+```
+
+
+---
+
+
+class: inverse, center, middle
+
+# Geoplotting
+
+
+---
+
+
+class: top, left
+
+## Join airport data
+
+
+
+```r
+data("airports")
+
+flights_airports &lt;-  # join destination long/lat
+  flights %&gt;% 
+  left_join(airports, by = c("dest" = "faa")) %&gt;%  
+  rename(long = lon)
+
+origin_latlong &lt;-
+  airports %&gt;% 
+  filter(faa %in% c("LGA", "JFK", "EWR")) %&gt;% 
+  rename(lat_origin = lat,
+         long_origin = lon)
+  
+flights_airports &lt;-  # join origin long/lat
+  flights_airports %&gt;%
+  left_join(origin_latlong, by = c("origin" = "faa"))
+```
+
+
+---
+
+## Dataframe for plotting (code)
+
+
+```r
+flights_airports_sum &lt;- flights_airports %&gt;% 
+  group_by(dest, origin) %&gt;% 
+  summarise(n = n(),
+            long = max(long),
+            lat = max(lat),
+            long_origin = max(long_origin),
+            lat_origin = max(lat_origin))
+```
+
+---
+
+## Dataframe for plotting (output)
+
+
+```r
+head(flights_airports_sum)
+#&gt; # A tibble: 6 x 7
+#&gt; # Groups:   dest [5]
+#&gt;   dest  origin     n   long   lat long_origin lat_origin
+#&gt;   &lt;chr&gt; &lt;chr&gt;  &lt;int&gt;  &lt;dbl&gt; &lt;dbl&gt;       &lt;dbl&gt;      &lt;dbl&gt;
+#&gt; 1 ABQ   JFK      254 -107.   35.0       -73.8       40.6
+#&gt; 2 ACK   JFK      265  -70.1  41.3       -73.8       40.6
+#&gt; 3 ALB   EWR      439  -73.8  42.7       -74.2       40.7
+#&gt; 4 ANC   EWR        8 -150.   61.2       -74.2       40.7
+#&gt; 5 ATL   EWR     5022  -84.4  33.6       -74.2       40.7
+#&gt; 6 ATL   JFK     1930  -84.4  33.6       -73.8       40.6
+```
+
+---
+
+
+## Geo plot flights (code)
+
+
+```r
+ggplot(data = map_data("usa")) +
+  aes(x = long, y = lat, group = group) +
+  geom_path(color = "grey40", size = .1) +
+  geom_point(data = flights_airports_sum, 
+             aes(size = n, color = n, group = NULL)) +
+  geom_segment(data = flights_airports_sum, 
+               aes(color = n, group = NULL,
+                   x = long_origin, y = lat_origin,
+                   xend = long, yend = lat)) +
+  geom_text(data = flights_airports_sum %&gt;% filter(n &gt; 6000), 
+            aes(x = long, y = lat, label = dest, group = NULL),
+            color = "grey40") +  
+  theme_map() +
+  xlim(-130, -70) + ylim(+20, +50) +
+  scale_color_viridis()
+```
+
+
+
+---
+
+## Geo plot flights (output)
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-74-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+
+class: center, inverse, middle
+
+
+# More advanced stuff
+
+---
+
+
+class: top, left
+
+
+
+## Map columns to function with `map()`
+
+
+
+```r
+data(mtcars)
+purrr::map(select(mtcars, 1:2), ~ {ggplot(mtcars, aes(x = .)) +
+    geom_histogram()})
+#&gt; $mpg
+#&gt; 
+#&gt; $cyl
+```
+
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-75-1.png" width="20%" style="display: block; margin: auto;" /&gt;&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-75-2.png" width="20%" style="display: block; margin: auto;" /&gt;
+
+---
+
+
+
+## Map TWO columns to function with `map2()`
+
+
+
+```r
+flights %&gt;% 
+  select_if(~!is.numeric(.)) %&gt;% 
+  map2(., names(.), ~ {ggplot(data = flights, aes(x = .x)) + geom_bar() + labs(x = .y, title = .y)})
+```
+
+
+---
+
+
+class: center, inverse, left
+
+# Resources
+
+
+
+---
+
+
+## Modern Dive
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+&lt;img src="https://moderndive.com/wide_format.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+
+
+[Modern Dive -- An Introduction to Statistical and Data Sciences via R
+Chester Ismay and Albert Y. Kim](https://moderndive.com/index.html)
+
+---
+
+
+## R for Data Science
+
+
+&lt;br/&gt;
+&lt;br/&gt;
+
+&lt;img src="https://covers.oreillystatic.com/images/0636920034407/lrg.jpg" width="30%" style="display: block; margin: auto;" /&gt;
+
+
+
+[R for Data Science](https://r4ds.had.co.nz/)
+
+
+---
+
+## Moderne Datenanalyse mit R
+
+
+&lt;img src="https://images.springer.com/sgw/books/medium/9783658215866.jpg" width="30%" style="display: block; margin: auto;" /&gt;
+
+
+[Moderne Datenanalyse mit R](https://www.springer.com/us/book/9783658215866)
+
+---
+
+
+## Cheatsheets
+
+
+
+
+
+&lt;img src="img/cheatsheet-dplyr.png" width="50%" style="display: block; margin: auto;" /&gt;
+
+
+https://www.rstudio.com/resources/cheatsheets/ 
+
+
+---
+
+
+
+## Disclaimer: There may be issues at times
+
+&lt;img src="img/overhead-bin.gif" width="70%" style="display: block; margin: auto;" /&gt;
+
+<i class="fab  fa-stack-overflow "></i> [StackOverflow](https://stackoverflow.com/) is your friend
+
+---
+
+
+
+class: center, inverse, middle
+
+
+class: center, inverse, middle
+
+
+# Wrap-up
+
+---
+
+## That was quick, but it was a start
+
+.center[
+![](img/get-into-the-car.gif)
+]
+
+
+---
+
+class: middle, center, inverse
+
+# Thank you
+
+&lt;br/&gt;
+&lt;br/&gt;
+Sebastian Sauer
+&lt;br/&gt;
+
+.left[
+<i class="fab  fa-github "></i> [sebastiansauer](https://github.com/sebastiansauer)
+
+<i class="fas  fa-link "></i> &lt;https://data-se.netlify.com/&gt;
+
+<i class="fas  fa-envelope "></i> ssauer@posteo.de
+
+<i class="fab  fa-linkedin-in "></i> [Sebastian Sauer](https://www.linkedin.com/in/dr-sebastian-sauer-4791762)
+
+<i class="fas  fa-file "></i> Get slides here: &lt;TODO: UPDATE LINK&gt;
+
+
+&lt;br/&gt;
+
+Licence: MIT
+]
+
+
+
+
+---
+
+## Credit to
+
+Built using R, RMarkdown, Xaringan. Thanks to the R community and the tidyverse developers.
+
+Thanks to [Yihui Xie](https://slides.yihui.name/2017-rmarkdown-UNL-Yihui-Xie.htm) and [Antoine Bichat](https://abichat.github.io/Slides/ScienceCommunicationSOTR/ScienceCommunicationSOTR.html), among others, for Xaringan inspiration.
+
+Thanks to R Hochschule for supporting me.
+
+Images:
+
+- [Data Transformation with dplyr Cheat Sheet, by RStudio](https://www.rstudio.com/resources/cheatsheets/)
+- [Modern Dive, Chester Ismay and Albert Y. Kim](https://moderndive.com/)
+
+
+
+---
+
+
+
+
+
+
+
+## SessionInfo
+
+
+```r
+R.Version()$version.string
+#&gt; [1] "R version 3.5.1 (2018-07-02)"
+search()
+#&gt;  [1] ".GlobalEnv"           "package:maps"         "package:bindrcpp"    
+#&gt;  [4] "package:forcats"      "package:stringr"      "package:purrr"       
+#&gt;  [7] "package:readr"        "package:tidyr"        "package:tibble"      
+#&gt; [10] "package:tidyverse"    "package:knitr"        "package:sjmisc"      
+#&gt; [13] "package:ggmap"        "package:GGally"       "package:viridis"     
+#&gt; [16] "package:viridisLite"  "package:lubridate"    "package:corrr"       
+#&gt; [19] "package:broom"        "package:mosaic"       "package:Matrix"      
+#&gt; [22] "package:mosaicData"   "package:ggformula"    "package:ggstance"    
+#&gt; [25] "package:ggplot2"      "package:lattice"      "package:dplyr"       
+#&gt; [28] "package:nycflights13" "package:pacman"       "package:leaflet"     
+#&gt;  [ reached getOption("max.print") -- omitted 8 entries ]
+```
+    </textarea>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script>var slideshow = remark.create({
+"highlightStyle": "github",
+"highlightLines": true,
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function() {
+  var d = document, s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})();</script>
+
+<script>
+(function() {
+  var i, text, code, codes = document.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+})();
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
