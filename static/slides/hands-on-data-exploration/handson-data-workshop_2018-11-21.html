@@ -60,7 +60,7 @@ class: inverse
 
 .right[
 .tiny[
-last update: 2018-11-12 
+last update: 2018-11-13 
 ]]
 
 
@@ -123,8 +123,8 @@ class: top, left
 ## The lights are on
 
 
-<div id="htmlwidget-f5245f6ae626778e62a1" style="width:90%;height:432px;" class="leaflet html-widget"></div>
-<script type="application/json" data-for="htmlwidget-f5245f6ae626778e62a1">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"setView":[[50,12],4,[]],"calls":[{"method":"addProviderTiles","args":["NASAGIBS.ViirsEarthAtNight2012",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addMarkers","args":[[52.5,49.4],[13.4,11.1],null,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},["Sebastian","Datanatives"],null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[49.4,52.5],"lng":[11.1,13.4]}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-84ac0766c25ad414ec5e" style="width:90%;height:1800px;" class="leaflet html-widget"></div>
+<script type="application/json" data-for="htmlwidget-84ac0766c25ad414ec5e">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"setView":[[50,12],4,[]],"calls":[{"method":"addProviderTiles","args":["NASAGIBS.ViirsEarthAtNight2012",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addMarkers","args":[[52.5,49.4],[13.4,11.1],null,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},["Sebastian","Datanatives"],null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[49.4,52.5],"lng":[11.1,13.4]}},"evals":[],"jsHooks":[]}</script>
 
 
 ---
@@ -425,9 +425,12 @@ class: top, left
 
 .pull-left[
 ### Knock-down principle
-&lt;img src="https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/07_Datenjudo/02_Bausteine_dplyr_crop.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/07_Datenjudo/knockdown.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 ]
+
+
+
 
 .pull-right[
 ### Pipe princriple
@@ -438,7 +441,7 @@ class: top, left
 ---
 
 
-background-image: url("https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/07_Datenjudo/02_Bausteine_dplyr_crop.png")
+background-image: url("https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/07_Datenjudo/knockdown.png")
 background-size: contain
 
 
@@ -666,11 +669,14 @@ summarise(mtcars,
 
 ```r
 summarise(mtcars, median(consumption))
+#&gt;   median(consumption)
+#&gt; 1            12.36979
 summarise(mtcars, 
           consumption_md = median(consumption),
           consumption_avg = mean(consumption)
           )
-
+#&gt;   consumption_md consumption_avg
+#&gt; 1       12.36979        12.87897
 ```
 
 
@@ -843,8 +849,8 @@ mtcars %&gt;%
   aes(x = hp, y = mpg, color = am) +
   geom_point() +
   geom_smooth() +
-  scale_color_viridis_c() +
-  theme_bw()
+  scale_color_viridis_c() + 
+  theme_bw() 
 ```
 
 &lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-42-1.png" width="70%" style="display: block; margin: auto;" /&gt;
@@ -1174,7 +1180,7 @@ lm(dep_delay ~ I(distance/1000) + origin, data = flights) %&gt;%
 
 
 ```r
-flights %&gt;% 
+p1 &lt;- flights %&gt;% 
   group_by(origin, month, day) %&gt;% 
   summarise(dep_delay_avg_day = mean(dep_delay, na.rm = TRUE)) %&gt;% 
   ungroup %&gt;% 
@@ -1183,6 +1189,7 @@ flights %&gt;%
   geom_point(alpha = .3) +
   geom_smooth() +
   scale_color_viridis_d()
+p1
 ```
 
 ---
@@ -1192,7 +1199,7 @@ flights %&gt;%
 
 
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-60-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-60-1.png" width="100%" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -1486,6 +1493,38 @@ flights %&gt;%
 ---
 
 
+## `ggplot` niceties: Themes
+
+
+```r
+library(hrbrthemes)
+
+p2 &lt;- p1 + theme_ipsum() + 
+  theme(legend.position = "bottom")
+p2
+```
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-77-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+---
+
+## ggplot niceties: Combining plots
+
+
+
+```r
+library(patchwork)
+
+p2 + p2
+```
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-78-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+
+---
+
+
+
 class: center, inverse, left
 
 # Resources
@@ -1644,17 +1683,20 @@ Images:
 R.Version()$version.string
 #&gt; [1] "R version 3.5.1 (2018-07-02)"
 search()
-#&gt;  [1] ".GlobalEnv"           "package:maps"         "package:bindrcpp"    
-#&gt;  [4] "package:forcats"      "package:stringr"      "package:purrr"       
-#&gt;  [7] "package:readr"        "package:tidyr"        "package:tibble"      
-#&gt; [10] "package:tidyverse"    "package:knitr"        "package:sjmisc"      
-#&gt; [13] "package:ggmap"        "package:GGally"       "package:viridis"     
-#&gt; [16] "package:viridisLite"  "package:lubridate"    "package:corrr"       
-#&gt; [19] "package:broom"        "package:mosaic"       "package:Matrix"      
-#&gt; [22] "package:mosaicData"   "package:ggformula"    "package:ggstance"    
-#&gt; [25] "package:ggplot2"      "package:lattice"      "package:dplyr"       
-#&gt; [28] "package:nycflights13" "package:pacman"       "package:leaflet"     
-#&gt;  [ reached getOption("max.print") -- omitted 8 entries ]
+#&gt;  [1] ".GlobalEnv"           "package:patchwork"    "package:hrbrthemes"  
+#&gt;  [4] "package:maps"         "package:bindrcpp"     "package:forcats"     
+#&gt;  [7] "package:stringr"      "package:purrr"        "package:readr"       
+#&gt; [10] "package:tidyr"        "package:tibble"       "package:tidyverse"   
+#&gt; [13] "package:knitr"        "package:sjmisc"       "package:ggmap"       
+#&gt; [16] "package:GGally"       "package:viridis"      "package:viridisLite" 
+#&gt; [19] "package:lubridate"    "package:corrr"        "package:broom"       
+#&gt; [22] "package:mosaic"       "package:Matrix"       "package:mosaicData"  
+#&gt; [25] "package:ggformula"    "package:ggstance"     "package:ggplot2"     
+#&gt; [28] "package:lattice"      "package:dplyr"        "package:nycflights13"
+#&gt; [31] "package:pacman"       "package:leaflet"      "package:stats"       
+#&gt; [34] "package:graphics"     "package:grDevices"    "package:utils"       
+#&gt; [37] "package:datasets"     "package:methods"      "Autoloads"           
+#&gt; [40] "package:base"
 ```
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>

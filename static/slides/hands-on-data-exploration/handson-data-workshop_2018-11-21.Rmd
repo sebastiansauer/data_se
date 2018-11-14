@@ -37,7 +37,8 @@ knitr::opts_chunk$set(
   fig.width = 6,
   fig.asp =  .618,
   fig.show = "hold",
-  size = "tiny"
+  size = "tiny",
+  dpi=300
 )
 
 
@@ -446,10 +447,15 @@ class: top, left
 .pull-left[
 ### Knock-down principle
 ```{r echo = FALSE}
-include_graphics(paste0(path_img, "07_Datenjudo/02_Bausteine_dplyr_crop.png"))
+img_file <- paste0(path_img, "07_Datenjudo/knockdown.png")
+#file.exists(img_file)
+include_graphics(img_file)
 ```
 
 ]
+
+
+
 
 .pull-right[
 ### Pipe princriple
@@ -462,7 +468,7 @@ include_graphics(paste0(path_img, "07_Datenjudo/11_800px-Pipa_savinelli.jpg"))
 ---
 
 
-background-image: url("https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/07_Datenjudo/02_Bausteine_dplyr_crop.png")
+background-image: url("https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/07_Datenjudo/knockdown.png")
 background-size: contain
 
 
@@ -619,7 +625,7 @@ head(select(mtcars, wt, weight_kg))
 
 ## `mutate()` - solutions to exercises
  
-```{r eval  = FALSE}
+```{r eval  = TRUE}
 mtcars <- mutate(mtcars, consumption = (1/mpg) * 100 * 3.8 / 1.6)
 mtcars <- mutate(mtcars, 
                  consumption_g_per_m = (1/mpg),
@@ -665,7 +671,7 @@ summarise(mtcars,
 ## `summarise()` -  solution to exercises
 
 
-```{r eval  = FALSE}
+```{r eval  = TRUE}
 summarise(mtcars, median(consumption))
 summarise(mtcars, 
           consumption_md = median(consumption),
@@ -834,14 +840,14 @@ Notice the `+` in contrast to the pipe `%>%`.
 ## Groups and colors
 
 
-```{r}
+```{r dpi=300}
 mtcars %>% 
   ggplot() +
   aes(x = hp, y = mpg, color = am) +
   geom_point() +
   geom_smooth() +
-  scale_color_viridis_c() +
-  theme_bw()
+  scale_color_viridis_c() + 
+  theme_bw() 
 ```
 
 
@@ -1104,7 +1110,7 @@ lm(dep_delay ~ I(distance/1000) + origin, data = flights) %>%
 
 
 ```{r eval = FALSE}
-flights %>% 
+p1 <- flights %>% 
   group_by(origin, month, day) %>% 
   summarise(dep_delay_avg_day = mean(dep_delay, na.rm = TRUE)) %>% 
   ungroup %>% 
@@ -1113,6 +1119,7 @@ flights %>%
   geom_point(alpha = .3) +
   geom_smooth() +
   scale_color_viridis_d()
+p1
 ```
 
 ---
@@ -1122,8 +1129,8 @@ flights %>%
 
 
 
-```{r echo = FALSE}
-flights %>% 
+```{r echo = FALSE, out.width= "100%"}
+p1 <- flights %>% 
   group_by(origin, month, day) %>% 
   summarise(dep_delay_avg_day = mean(dep_delay, na.rm = TRUE)) %>% 
   ungroup %>% 
@@ -1132,6 +1139,7 @@ flights %>%
   geom_point(alpha = .3) +
   geom_smooth() +
   scale_color_viridis_d()
+p1
 ```
 
 ---
@@ -1427,6 +1435,33 @@ flights %>%
 
 
 ---
+
+
+## `ggplot` niceties: Themes
+
+```{r}
+library(hrbrthemes)
+
+p2 <- p1 + theme_ipsum() + 
+  theme(legend.position = "bottom")
+p2
+
+```
+
+---
+
+## ggplot niceties: Combining plots
+
+
+```{r}
+library(patchwork)
+
+p2 + p2
+```
+
+
+---
+
 
 
 class: center, inverse, left
