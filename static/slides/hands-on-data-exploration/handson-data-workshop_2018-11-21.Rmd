@@ -229,10 +229,8 @@ Well, kinda off...
 
 
 ```{r}
-pckgs <- c("nycflights13", "mosaic", 
-           "broom", "corrr", "lubridate", "viridis", 
-           "GGally", "ggmap", "pacman", "sjmisc", 
-           "leaflet", "knitr",  "tidyverse")
+pckgs <- c("nycflights13", "mosaic",  "broom", "corrr", "lubridate", "viridis", 
+           "GGally", "ggmap", "pacman", "sjmisc", "leaflet", "knitr",  "tidyverse", "tidyimpute", "na.tools")
 
 ```
 
@@ -241,25 +239,27 @@ pckgs <- c("nycflights13", "mosaic",
 
 
 
-#### Please install them prior to the workshop from within R:
+#### Please install each missing package prior to the workshop from within R:
 
-Install each missing package like this:
 
 ```{r, eval = FALSE}
 install.packages("nycflights13")
 ```
 
 
-<br/>
-<br/>
+---
 
 
-#### Load each package after each start of Rstudio:
+## Load each package after each start of Rstudio
 
 ```{r}
 library(pacman)
 p_load(pckgs, character.only = TRUE)
 ```
+
+Use `search()` to see loaded packages and `installed.packages()` for installed pacakges. 
+
+Simpler: Check the "packages pane" in RStudio. 
 
 ---
 
@@ -811,7 +811,7 @@ knitr::include_graphics(paste0(path_img, "11_Daten_visualisieren/02_anscombe-cro
 ## Anatomy of a diagram
 
 
-```{r echo = FALSE, out.width = "50%"}
+```{r echo = FALSE, out.width = "60%"}
 #diagram_file <- "/Users/sebastiansaueruser/Documents/Publikationen/In_Arbeit/Statistik__21/images/visualisieren/anatomie_en.png"
 #file.exists(diagram_file)
 knitr::include_graphics(paste0(path_img, "11_Daten_visualisieren/anatomie_en.png"))
@@ -842,8 +842,7 @@ Notice the `+` in contrast to the pipe `%>%`.
 
 ```{r dpi=300}
 mtcars %>% 
-  ggplot() +
-  aes(x = hp, y = mpg, color = am) +
+  ggplot(aes(x = hp, y = mpg, color = am)) +
   geom_point() +
   geom_smooth() +
   scale_color_viridis_c() + 
@@ -941,7 +940,7 @@ flights %>%
 ---
 
 
-## Distribution -- quantitative variables
+## Distribution - quantitative variables
 
 ```{r}
 flights %>% 
@@ -950,11 +949,50 @@ flights %>%
   scale_x_continuous(limits = c(-10, 60))
 ```
 
+Note the long right tail ("anomaly")
 
 ---
 
 
+## Deal with missing data - omit
 
+```{r}
+flights_nona <- flights %>% 
+  drop_na()
+
+nrow(flights_nona) / nrow(flights)
+```
+
+
+---
+
+## Deal with missing data - replace by mean
+
+```{r}
+flights_nona2 <- flights %>% 
+  mutate(dep_delay = ifelse(is.na(dep_delay),
+                            mean(dep_delay, na.rm = TRUE), dep_delay))
+
+flights_nona2 %>% 
+  summarise(sum(is.na(dep_delay)))
+```
+
+
+---
+
+
+## Deal with missing data - tidy approach
+
+
+```{r results = "hide"}
+flights_nona3 <- flights %>% 
+  impute_all(na.mean)
+
+flights_nona3 %>% 
+  map(~sum(is.na(.)))
+```
+
+---
 
 
 ## Descriptive statistics for delay
@@ -1000,6 +1038,9 @@ class: center, middle, inverse
 ```
 delay = f(origin)
 ```
+
+<br/>
+<br/>
 
 More Rish:
 
@@ -1054,7 +1095,31 @@ flights %>%
 ---
 
 
-## Alternative visualiziation
+## Alternative visualization (binned data, code)
+
+
+```{r eval = FALSE}
+flights %>% 
+  mutate(distance_bins = case_when(
+    distance < 250 ~ 250,
+    distance < 500 ~ 500,
+    distance < 1000 ~ 1000,
+    distance < 2000 ~ 2000,
+    distance < 3000 ~ 3000,
+    TRUE ~ 5000 )) %>% 
+  ggplot(aes (y = dep_delay)) +
+  geom_boxplot(aes(x = distance_bins, 
+  group = distance_bins)) +
+  geom_smooth(aes(x = distance)) +
+  coord_cartesian(ylim = c(-10, 60)) 
+```
+
+Use `case_when()` for binning and recoding of data values.
+
+---
+
+
+## Alternative visualization (binned data)
 
 
 ```{r echo = FALSE}
@@ -1075,6 +1140,7 @@ flights %>%
 ```
 
 ---
+
 
 ## Correlation of distance and delay
 
@@ -1175,7 +1241,10 @@ flights %>%
 
 ```{r}
 flights <- flights %>%
-  mutate(dow = wday(time_hour))
+  mutate(dow = wday(time_hour),
+         weekend = case_when(
+           dow %in% c(6, 7) ~ TRUE,
+           TRUE ~ FALSE))
 
 delay_dow <- 
   flights %>% 
@@ -1192,7 +1261,7 @@ delay_dow <-
 ## Is it the weekends? (data processed)
 
 ```{r}
-delay_dow
+delay_dow %>% kable(format='html')
 ```
 
 
@@ -1203,7 +1272,7 @@ delay_dow
 ```{r eval = FALSE}
 flights %>% 
   ggplot(aes(x = dow)) +
-  geom_boxplot(aes(group = dow, y = dep_delay)) +
+  geom_boxplot(aes(group = dow, y = dep_delay, color = weekend)) +
   geom_point(data = delay_dow, aes(y = delay_m), color = "red", 
              size = 5) + 
   coord_cartesian(ylim = c(-10, 100)) +
@@ -1222,16 +1291,21 @@ flights %>%
 
 ## Is it the weekends? (output)
 
-```{r echo = FALSE}
+```{r echo = FALSE, fig.asp = .6}
 flights %>% 
   ggplot(aes(x = dow)) +
-  geom_boxplot(aes(group = dow, y = dep_delay)) +
-  geom_point(data = delay_dow, aes(y = delay_m), color = "red", size = 5) + 
+  geom_boxplot(aes(group = dow, y = dep_delay, color = weekend)) +
+  geom_point(data = delay_dow, aes(y = delay_m), color = "red", 
+             size = 5) + 
   coord_cartesian(ylim = c(-10, 100)) +
   scale_x_continuous(breaks = 1:7) +
-  geom_hline(yintercept = mean(flights$dep_delay, na.rm = TRUE), linetype = "dashed") +
-  geom_hline(yintercept = median(flights$dep_delay, na.rm = TRUE), linetype = "dashed") +
-  geom_errorbar(aes(ymin = q_05, ymax = q_95), data = delay_dow)
+  geom_hline(yintercept = mean(flights$dep_delay, na.rm = TRUE), 
+             linetype = "dashed") +
+  geom_hline(yintercept = median(flights$dep_delay, na.rm = TRUE), 
+             linetype = "dashed") +
+  geom_errorbar(aes(ymin = q_05, ymax = q_95), data = delay_dow) +
+  theme_ipsum_rc() +
+  scale_color_viridis_d()
 ```
 
 
@@ -1354,11 +1428,11 @@ ggplot(data = map_data("usa")) +
   aes(x = long, y = lat, group = group) +
   geom_path(color = "grey40", size = .1) +
   geom_point(data = flights_airports_sum, 
-             aes(size = n, color = n, group = NULL)) +
+             aes(size = n, color = n, group = NULL), alpha = .2) +
   geom_segment(data = flights_airports_sum, 
                aes(color = n, group = NULL,
                    x = long_origin, y = lat_origin,
-                   xend = long, yend = lat)) +
+                   xend = long, yend = lat), alpha = .5) +
   geom_text(data = flights_airports_sum %>% filter(n > 6000), 
             aes(x = long, y = lat, label = dest, group = NULL),
             color = "grey40") +  
@@ -1428,9 +1502,46 @@ purrr::map(select(mtcars, 1:2), ~ {ggplot(mtcars, aes(x = .)) +
 ```{r eval = FALSE}
 flights %>% 
   select_if(~!is.numeric(.)) %>% 
-  map2(., names(.), ~ {ggplot(data = flights, aes(x = .x)) + geom_bar() + labs(x = .y, title = .y)})
+  map2(., names(.), ~ 
+         {ggplot(data = flights, aes(x = .x)) + 
+             geom_bar() + labs(x = .y, title = .y)})
 ```
 
+<br/>
+
+
+```
+Take flights dataset  
+select all numeric cols  
+map ggplot call to each such that  
+a barplot is plotted where  
+the names of each barplot is an element from the vector of col names.  
+```
+
+
+---
+
+## Reshape (transform) dataframe
+
+<br/>
+
+
+```{r echo = FALSE}
+knitr::include_graphics(paste0(path_img, "09_Praxisprobleme_der_Datenaufbereitung/07_tidy-dataframes-crop.png"))
+```
+
+---
+
+## Transform dataframe for plotting
+
+```{r echo = FALSE, fig.asp = .8, out.width="60%"}
+mtcars %>% 
+  select_if(is.numeric) %>% 
+  gather(key = variable, value = value) %>% 
+  ggplot(aes(x = value)) +
+  geom_density() +
+  facet_wrap(~ variable, ncol = 3, scales = "free")
+```
 
 ---
 
@@ -1445,6 +1556,7 @@ p2
 
 ```
 
+May may need to install fonts upfront; see `?hrbrthemes`.
 ---
 
 ## ggplot niceties: Combining plots

@@ -122,8 +122,8 @@ class: top, left
 
 .center[
 
-<div id="htmlwidget-317652034ff1eebf6ea4" style="width:100%;height:450px;" class="leaflet html-widget"></div>
-<script type="application/json" data-for="htmlwidget-317652034ff1eebf6ea4">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"setView":[[50,12],5,[]],"calls":[{"method":"addProviderTiles","args":["NASAGIBS.ViirsEarthAtNight2012",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addMarkers","args":[[52.5,49.4],[13.4,11.1],null,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},["Sebastian","Datanatives"],null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[49.4,52.5],"lng":[11.1,13.4]}},"evals":[],"jsHooks":[]}</script>
+<div id="htmlwidget-cc9db8950ec5116e8fa4" style="width:100%;height:450px;" class="leaflet html-widget"></div>
+<script type="application/json" data-for="htmlwidget-cc9db8950ec5116e8fa4">{"x":{"options":{"crs":{"crsClass":"L.CRS.EPSG3857","code":null,"proj4def":null,"projectedBounds":null,"options":{}}},"setView":[[50,12],5,[]],"calls":[{"method":"addProviderTiles","args":["NASAGIBS.ViirsEarthAtNight2012",null,null,{"errorTileUrl":"","noWrap":false,"detectRetina":false}]},{"method":"addMarkers","args":[[52.5,49.4],[13.4,11.1],null,null,null,{"interactive":true,"draggable":false,"keyboard":true,"title":"","alt":"","zIndexOffset":0,"opacity":1,"riseOnHover":false,"riseOffset":250},["Sebastian","Datanatives"],null,null,null,null,{"interactive":false,"permanent":false,"direction":"auto","opacity":1,"offset":[0,0],"textsize":"10px","textOnly":false,"className":"","sticky":true},null]}],"limits":{"lat":[49.4,52.5],"lng":[11.1,13.4]}},"evals":[],"jsHooks":[]}</script>
 ]
 
 
@@ -199,10 +199,8 @@ Well, kinda off...
 
 
 ```r
-pckgs &lt;- c("nycflights13", "mosaic", 
-           "broom", "corrr", "lubridate", "viridis", 
-           "GGally", "ggmap", "pacman", "sjmisc", 
-           "leaflet", "knitr",  "tidyverse")
+pckgs &lt;- c("nycflights13", "mosaic",  "broom", "corrr", "lubridate", "viridis", 
+           "GGally", "ggmap", "pacman", "sjmisc", "leaflet", "knitr",  "tidyverse", "tidyimpute", "na.tools")
 ```
 
 
@@ -210,9 +208,8 @@ pckgs &lt;- c("nycflights13", "mosaic",
 
 
 
-#### Please install them prior to the workshop from within R:
+#### Please install each missing package prior to the workshop from within R:
 
-Install each missing package like this:
 
 
 ```r
@@ -220,17 +217,20 @@ install.packages("nycflights13")
 ```
 
 
-&lt;br/&gt;
-&lt;br/&gt;
+---
 
 
-#### Load each package after each start of Rstudio:
+## Load each package after each start of Rstudio
 
 
 ```r
 library(pacman)
 p_load(pckgs, character.only = TRUE)
 ```
+
+Use `search()` to see loaded packages and `installed.packages()` for installed pacakges. 
+
+Simpler: Check the "packages pane" in RStudio. 
 
 ---
 
@@ -812,7 +812,7 @@ class: center, middle, inverse
 ## Anatomy of a diagram
 
 
-&lt;img src="https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/11_Daten_visualisieren/anatomie_en.png" width="50%" style="display: block; margin: auto;" /&gt;
+&lt;img src="https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/11_Daten_visualisieren/anatomie_en.png" width="60%" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -843,8 +843,7 @@ Notice the `+` in contrast to the pipe `%&gt;%`.
 
 ```r
 mtcars %&gt;% 
-  ggplot() +
-  aes(x = hp, y = mpg, color = am) +
+  ggplot(aes(x = hp, y = mpg, color = am)) +
   geom_point() +
   geom_smooth() +
   scale_color_viridis_c() + 
@@ -1018,7 +1017,7 @@ flights %&gt;%
 ---
 
 
-## Distribution -- quantitative variables
+## Distribution - quantitative variables
 
 
 ```r
@@ -1030,11 +1029,58 @@ flights %&gt;%
 
 &lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-49-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
+Note the long right tail ("anomaly")
 
 ---
 
 
+## Deal with missing data - omit
 
+
+```r
+flights_nona &lt;- flights %&gt;% 
+  drop_na()
+
+nrow(flights_nona) / nrow(flights)
+#&gt; [1] 0.9719992
+```
+
+
+---
+
+## Deal with missing data - replace by mean
+
+
+```r
+flights_nona2 &lt;- flights %&gt;% 
+  mutate(dep_delay = ifelse(is.na(dep_delay),
+                            mean(dep_delay, na.rm = TRUE), dep_delay))
+
+flights_nona2 %&gt;% 
+  summarise(sum(is.na(dep_delay)))
+#&gt; # A tibble: 1 x 1
+#&gt;   `sum(is.na(dep_delay))`
+#&gt;                     &lt;int&gt;
+#&gt; 1                       0
+```
+
+
+---
+
+
+## Deal with missing data - tidy approach
+
+
+
+```r
+flights_nona3 &lt;- flights %&gt;% 
+  impute_all(na.mean)
+
+flights_nona3 %&gt;% 
+  map(~sum(is.na(.)))
+```
+
+---
 
 
 ## Descriptive statistics for delay
@@ -1093,6 +1139,9 @@ class: center, middle, inverse
 delay = f(origin)
 ```
 
+&lt;br/&gt;
+&lt;br/&gt;
+
 More Rish:
 
 
@@ -1142,18 +1191,44 @@ flights %&gt;%
 ##  Does `distance` predicts `dep_delay`?
 
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-54-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-57-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 
 ---
 
 
-## Alternative visualiziation
+## Alternative visualization (binned data, code)
 
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-55-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+```r
+flights %&gt;% 
+  mutate(distance_bins = case_when(
+    distance &lt; 250 ~ 250,
+    distance &lt; 500 ~ 500,
+    distance &lt; 1000 ~ 1000,
+    distance &lt; 2000 ~ 2000,
+    distance &lt; 3000 ~ 3000,
+    TRUE ~ 5000 )) %&gt;% 
+  ggplot(aes (y = dep_delay)) +
+  geom_boxplot(aes(x = distance_bins, 
+  group = distance_bins)) +
+  geom_smooth(aes(x = distance)) +
+  coord_cartesian(ylim = c(-10, 60)) 
+```
+
+Use `case_when()` for binning and recoding of data values.
 
 ---
+
+
+## Alternative visualization (binned data)
+
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-59-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+---
+
 
 ## Correlation of distance and delay
 
@@ -1221,7 +1296,7 @@ p1
 
 
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-59-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-63-1.png" width="100%" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -1244,7 +1319,7 @@ flights %&gt;%
 
 ## Delay per month - boxplot (output)
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-61-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-65-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -1254,7 +1329,10 @@ flights %&gt;%
 
 ```r
 flights &lt;- flights %&gt;%
-  mutate(dow = wday(time_hour))
+  mutate(dow = wday(time_hour),
+         weekend = case_when(
+           dow %in% c(6, 7) ~ TRUE,
+           TRUE ~ FALSE))
 
 delay_dow &lt;- 
   flights %&gt;% 
@@ -1272,18 +1350,71 @@ delay_dow &lt;-
 
 
 ```r
-delay_dow
-#&gt; # A tibble: 7 x 5
-#&gt;     dow delay_m delay_md  q_05  q_95
-#&gt;   &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
-#&gt; 1     1   11.5        -2    -9    80
-#&gt; 2     2   14.7        -1    -9   101
-#&gt; 3     3   10.6        -2    -9    80
-#&gt; 4     4   11.6        -2    -9    84
-#&gt; 5     5   16.0        -1    -9   101
-#&gt; 6     6   14.7        -1    -8    94
-#&gt; 7     7    7.59       -2    -9    60
+delay_dow %&gt;% kable(format='html')
 ```
+
+&lt;table&gt;
+ &lt;thead&gt;
+  &lt;tr&gt;
+   &lt;th style="text-align:right;"&gt; dow &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; delay_m &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; delay_md &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; q_05 &lt;/th&gt;
+   &lt;th style="text-align:right;"&gt; q_95 &lt;/th&gt;
+  &lt;/tr&gt;
+ &lt;/thead&gt;
+&lt;tbody&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 1 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 11.477476 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -2 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 80 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 2 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 14.718728 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -1 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 101 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 3 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 10.588355 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -2 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 80 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 4 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 11.643321 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -2 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 84 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 5 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 16.043451 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -1 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 101 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 6 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 14.653974 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -1 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -8 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 94 &lt;/td&gt;
+  &lt;/tr&gt;
+  &lt;tr&gt;
+   &lt;td style="text-align:right;"&gt; 7 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 7.594406 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -2 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; -9 &lt;/td&gt;
+   &lt;td style="text-align:right;"&gt; 60 &lt;/td&gt;
+  &lt;/tr&gt;
+&lt;/tbody&gt;
+&lt;/table&gt;
 
 
 ---
@@ -1294,7 +1425,7 @@ delay_dow
 ```r
 flights %&gt;% 
   ggplot(aes(x = dow)) +
-  geom_boxplot(aes(group = dow, y = dep_delay)) +
+  geom_boxplot(aes(group = dow, y = dep_delay, color = weekend)) +
   geom_point(data = delay_dow, aes(y = delay_m), color = "red", 
              size = 5) + 
   coord_cartesian(ylim = c(-10, 100)) +
@@ -1313,7 +1444,7 @@ flights %&gt;%
 
 ## Is it the weekends? (output)
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-65-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-69-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -1343,7 +1474,7 @@ flights %&gt;%
 ## Delay per time of the day (output)
 
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-67-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-71-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -1443,11 +1574,11 @@ ggplot(data = map_data("usa")) +
   aes(x = long, y = lat, group = group) +
   geom_path(color = "grey40", size = .1) +
   geom_point(data = flights_airports_sum, 
-             aes(size = n, color = n, group = NULL)) +
+             aes(size = n, color = n, group = NULL), alpha = .2) +
   geom_segment(data = flights_airports_sum, 
                aes(color = n, group = NULL,
                    x = long_origin, y = lat_origin,
-                   xend = long, yend = lat)) +
+                   xend = long, yend = lat), alpha = .5) +
   geom_text(data = flights_airports_sum %&gt;% filter(n &gt; 6000), 
             aes(x = long, y = lat, label = dest, group = NULL),
             color = "grey40") +  
@@ -1462,7 +1593,7 @@ ggplot(data = map_data("usa")) +
 
 ## Geo plot flights (output)
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-73-1.png" width="80%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-77-1.png" width="80%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -1495,7 +1626,7 @@ purrr::map(select(mtcars, 1:2), ~ {ggplot(mtcars, aes(x = .)) +
 ```
 
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-74-1.png" width="20%" style="display: block; margin: auto;" /&gt;&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-74-2.png" width="20%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-78-1.png" width="20%" style="display: block; margin: auto;" /&gt;&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-78-2.png" width="20%" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -1508,9 +1639,37 @@ purrr::map(select(mtcars, 1:2), ~ {ggplot(mtcars, aes(x = .)) +
 ```r
 flights %&gt;% 
   select_if(~!is.numeric(.)) %&gt;% 
-  map2(., names(.), ~ {ggplot(data = flights, aes(x = .x)) + geom_bar() + labs(x = .y, title = .y)})
+  map2(., names(.), ~ 
+         {ggplot(data = flights, aes(x = .x)) + 
+             geom_bar() + labs(x = .y, title = .y)})
 ```
 
+&lt;br/&gt;
+
+
+```
+Take flights dataset  
+select all numeric cols  
+map ggplot call to each such that  
+a barplot is plotted where  
+the names of each barplot is an element from the vector of col names.  
+```
+
+
+---
+
+## Reshape (transform) dataframe
+
+&lt;br/&gt;
+
+
+&lt;img src="https://raw.githubusercontent.com/sebastiansauer/modar/master/static/images/09_Praxisprobleme_der_Datenaufbereitung/07_tidy-dataframes-crop.png" width="70%" style="display: block; margin: auto;" /&gt;
+
+---
+
+## Transform dataframe for plotting
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-81-1.png" width="60%" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -1525,8 +1684,9 @@ p2 &lt;- p1 + theme_ipsum() + theme(legend.position = "bottom")
 p2
 ```
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-76-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-82-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
+May may need to install fonts upfront; see `?hrbrthemes`.
 ---
 
 ## ggplot niceties: Combining plots
@@ -1539,7 +1699,7 @@ library(patchwork)
 p2 + p2
 ```
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-77-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-83-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -1703,19 +1863,19 @@ Images:
 ```
 #&gt; [1] "R version 3.5.1 (2018-07-02)"
 #&gt;  [1] ".GlobalEnv"           "package:patchwork"    "package:hrbrthemes"  
-#&gt;  [4] "package:maps"         "package:bindrcpp"     "package:forcats"     
-#&gt;  [7] "package:stringr"      "package:purrr"        "package:readr"       
-#&gt; [10] "package:tidyr"        "package:tibble"       "package:tidyverse"   
-#&gt; [13] "package:knitr"        "package:sjmisc"       "package:ggmap"       
-#&gt; [16] "package:GGally"       "package:viridis"      "package:viridisLite" 
-#&gt; [19] "package:lubridate"    "package:corrr"        "package:broom"       
-#&gt; [22] "package:mosaic"       "package:Matrix"       "package:mosaicData"  
-#&gt; [25] "package:ggformula"    "package:ggstance"     "package:ggplot2"     
-#&gt; [28] "package:lattice"      "package:dplyr"        "package:nycflights13"
-#&gt; [31] "package:pacman"       "package:leaflet"      "package:stats"       
-#&gt; [34] "package:graphics"     "package:grDevices"    "package:utils"       
-#&gt; [37] "package:datasets"     "package:methods"      "Autoloads"           
-#&gt; [40] "package:base"
+#&gt;  [4] "package:maps"         "package:bindrcpp"     "package:na.tools"    
+#&gt;  [7] "package:tidyimpute"   "package:forcats"      "package:stringr"     
+#&gt; [10] "package:purrr"        "package:readr"        "package:tidyr"       
+#&gt; [13] "package:tibble"       "package:tidyverse"    "package:knitr"       
+#&gt; [16] "package:sjmisc"       "package:ggmap"        "package:GGally"      
+#&gt; [19] "package:viridis"      "package:viridisLite"  "package:lubridate"   
+#&gt; [22] "package:corrr"        "package:broom"        "package:mosaic"      
+#&gt; [25] "package:Matrix"       "package:mosaicData"   "package:ggformula"   
+#&gt; [28] "package:ggstance"     "package:ggplot2"      "package:lattice"     
+#&gt; [31] "package:dplyr"        "package:nycflights13" "package:pacman"      
+#&gt; [34] "package:leaflet"      "package:stats"        "package:graphics"    
+#&gt; [37] "package:grDevices"    "package:utils"        "package:datasets"    
+#&gt; [40] "package:methods"      "Autoloads"            "package:base"
 ```
     </textarea>
 <script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
