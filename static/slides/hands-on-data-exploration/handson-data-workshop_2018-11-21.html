@@ -755,13 +755,22 @@ summarise(mtcars_grouped, mean_hp = mean(hp))
 
 
 
-```
+
+
+```r
+mtcars_grouped &lt;- group_by(mtcars, cyl)
+summarise(mtcars_grouped, mean_hp = mean(consumption))
 #&gt; # A tibble: 3 x 2
 #&gt;     cyl mean_hp
 #&gt;   &lt;dbl&gt;   &lt;dbl&gt;
 #&gt; 1     4    9.14
 #&gt; 2     6   12.1 
 #&gt; 3     8   16.2
+
+mtcars_grouped &lt;- group_by(mtcars, cyl,am)
+mtcars_summarized &lt;- summarise(mtcars_grouped, 
+                               mean_hp = mean(consumption),
+                               sd_hp = sd(consumption))  
 ```
 
 
@@ -824,6 +833,31 @@ data %&gt;%
 
 ---
 
+
+## Life with the pipe operator II
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 384 512"&gt;&lt;path d="M272 428v28c0 10.449-6.68 19.334-16 22.629V488c0 13.255-10.745 24-24 24h-80c-13.255 0-24-10.745-24-24v-9.371c-9.32-3.295-16-12.18-16-22.629v-28c0-6.627 5.373-12 12-12h136c6.627 0 12 5.373 12 12zm-143.107-44c-9.907 0-18.826-6.078-22.376-15.327C67.697 267.541 16 277.731 16 176 16 78.803 94.805 0 192 0s176 78.803 176 176c0 101.731-51.697 91.541-90.516 192.673-3.55 9.249-12.47 15.327-22.376 15.327H128.893zM112 176c0-44.112 35.888-80 80-80 8.837 0 16-7.164 16-16s-7.163-16-16-16c-61.757 0-112 50.243-112 112 0 8.836 7.164 16 16 16s16-7.164 16-16z"/&gt;&lt;/svg&gt; Advanced.
+&lt;br/&gt;
+
+
+```r
+data &lt;- mtcars$hp
+
+data %&gt;% 
+  `-`(mean(data)) %&gt;% 
+  `^`(2) %&gt;% 
+  mean()
+#&gt; [1] 4553.965
+
+
+var(mtcars$hp)
+#&gt; [1] 4700.867
+```
+
+
+---
+
+
 class: center, middle, inverse
 # Data diagrams
 
@@ -856,7 +890,7 @@ mtcars %&gt;%
   geom_smooth()  # draw smoothing line
 ```
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-43-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-44-1.png" width="50%" style="display: block; margin: auto;" /&gt;
 
 
 Notice the `+` in contrast to the pipe `%&gt;%`.
@@ -878,7 +912,7 @@ mtcars %&gt;%
   theme_bw() 
 ```
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-44-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-45-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -909,7 +943,7 @@ mtcars_summarized %&gt;%
   geom_point(size = 5)
 ```
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-45-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-46-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -928,7 +962,7 @@ mtcars_summarized %&gt;%
   
 ```
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-46-1.png" width="50%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-47-1.png" width="50%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -1078,7 +1112,7 @@ flights %&gt;%
   scale_x_continuous(limits = c(-10, 60))
 ```
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-52-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-53-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 Note the long right tail ("anomaly")
 
@@ -1099,7 +1133,7 @@ nrow(flights_nona) / nrow(flights)
 
 ---
 
-## Deal with missing data - replace by mean
+## Deal with missing data - replace by VALUE
 
 
 ```r
@@ -1131,8 +1165,23 @@ flights_nona3 %&gt;%
   purrr::map(~sum(is.na(.)))
 ```
 
-Use `package::function()` to disambiguate.
+Hint: Use `package::function()` to disambiguate.
 
+
+---
+
+## Count missings per row
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 384 512"&gt;&lt;path d="M272 428v28c0 10.449-6.68 19.334-16 22.629V488c0 13.255-10.745 24-24 24h-80c-13.255 0-24-10.745-24-24v-9.371c-9.32-3.295-16-12.18-16-22.629v-28c0-6.627 5.373-12 12-12h136c6.627 0 12 5.373 12 12zm-143.107-44c-9.907 0-18.826-6.078-22.376-15.327C67.697 267.541 16 277.731 16 176 16 78.803 94.805 0 192 0s176 78.803 176 176c0 101.731-51.697 91.541-90.516 192.673-3.55 9.249-12.47 15.327-22.376 15.327H128.893zM112 176c0-44.112 35.888-80 80-80 8.837 0 16-7.164 16-16s-7.163-16-16-16c-61.757 0-112 50.243-112 112 0 8.836 7.164 16 16 16s16-7.164 16-16z"/&gt;&lt;/svg&gt; Advanced.
+&lt;br/&gt;
+
+```r
+flights %&gt;% 
+  mutate(NA_row = rowSums(is.na(.))) %&gt;% 
+  ggplot(aes(x = NA_row)) + geom_histogram()
+```
+
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-57-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -1245,7 +1294,7 @@ flights %&gt;%
 ##  Does `distance` predicts `dep_delay`?
 
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-60-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-62-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -1279,7 +1328,7 @@ Use `case_when()` for binning and recoding of data values.
 ## Alternative visualization (binned data)
 
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-62-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-64-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -1350,7 +1399,7 @@ p1
 
 
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-66-1.png" width="100%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-68-1.png" width="100%" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -1373,7 +1422,7 @@ flights %&gt;%
 
 ## Delay per month - boxplot (output)
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-68-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-70-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -1498,7 +1547,7 @@ flights %&gt;%
 
 ## Is it the weekends? (output)
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-72-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-74-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -1528,7 +1577,7 @@ flights %&gt;%
 ## Delay per time of the day (output)
 
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-74-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-76-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -1553,6 +1602,8 @@ class: inverse, center, middle
 
 # Geoplotting
 
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 384 512"&gt;&lt;path d="M272 428v28c0 10.449-6.68 19.334-16 22.629V488c0 13.255-10.745 24-24 24h-80c-13.255 0-24-10.745-24-24v-9.371c-9.32-3.295-16-12.18-16-22.629v-28c0-6.627 5.373-12 12-12h136c6.627 0 12 5.373 12 12zm-143.107-44c-9.907 0-18.826-6.078-22.376-15.327C67.697 267.541 16 277.731 16 176 16 78.803 94.805 0 192 0s176 78.803 176 176c0 101.731-51.697 91.541-90.516 192.673-3.55 9.249-12.47 15.327-22.376 15.327H128.893zM112 176c0-44.112 35.888-80 80-80 8.837 0 16-7.164 16-16s-7.163-16-16-16c-61.757 0-112 50.243-112 112 0 8.836 7.164 16 16 16s16-7.164 16-16z"/&gt;&lt;/svg&gt; Advanced.
+&lt;br/&gt;
 
 ---
 
@@ -1647,7 +1698,7 @@ ggplot(data = map_data("usa")) +
 
 ## Geo plot flights (output)
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-80-1.png" width="80%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-82-1.png" width="80%" style="display: block; margin: auto;" /&gt;
 
 
 ---
@@ -1657,7 +1708,10 @@ ggplot(data = map_data("usa")) +
 class: center, inverse, middle
 
 
-# More advanced stuff
+# Outlook
+
+&lt;svg style="height:0.8em;top:.04em;position:relative;fill:steelblue;" viewBox="0 0 384 512"&gt;&lt;path d="M272 428v28c0 10.449-6.68 19.334-16 22.629V488c0 13.255-10.745 24-24 24h-80c-13.255 0-24-10.745-24-24v-9.371c-9.32-3.295-16-12.18-16-22.629v-28c0-6.627 5.373-12 12-12h136c6.627 0 12 5.373 12 12zm-143.107-44c-9.907 0-18.826-6.078-22.376-15.327C67.697 267.541 16 277.731 16 176 16 78.803 94.805 0 192 0s176 78.803 176 176c0 101.731-51.697 91.541-90.516 192.673-3.55 9.249-12.47 15.327-22.376 15.327H128.893zM112 176c0-44.112 35.888-80 80-80 8.837 0 16-7.164 16-16s-7.163-16-16-16c-61.757 0-112 50.243-112 112 0 8.836 7.164 16 16 16s16-7.164 16-16z"/&gt;&lt;/svg&gt; Advanced.
+&lt;br/&gt;
 
 ---
 
@@ -1680,7 +1734,7 @@ purrr::map(select(mtcars, 1:2), ~ {ggplot(mtcars, aes(x = .)) +
 ```
 
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-81-1.png" width="20%" style="display: block; margin: auto;" /&gt;&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-81-2.png" width="20%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-83-1.png" width="20%" style="display: block; margin: auto;" /&gt;&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-83-2.png" width="20%" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -1723,7 +1777,7 @@ the names of each barplot is an element from the vector of col names.
 
 ## Transform dataframe for plotting
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-84-1.png" width="60%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-86-1.png" width="60%" style="display: block; margin: auto;" /&gt;
 
 ---
 
@@ -1738,7 +1792,7 @@ p2 &lt;- p1 + theme_ipsum() + theme(legend.position = "bottom")
 p2
 ```
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-85-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-87-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 May may need to install fonts upfront; see `?hrbrthemes`.
 ---
@@ -1753,7 +1807,7 @@ library(patchwork)
 p2 + p2
 ```
 
-&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-86-1.png" width="70%" style="display: block; margin: auto;" /&gt;
+&lt;img src="handson-data-workshop_2018-11-21_files/figure-html/unnamed-chunk-88-1.png" width="70%" style="display: block; margin: auto;" /&gt;
 
 
 ---
