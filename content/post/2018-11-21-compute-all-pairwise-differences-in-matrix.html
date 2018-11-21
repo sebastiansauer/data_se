@@ -1,0 +1,264 @@
+---
+title: Compute all pairwise differences in matrix
+author: ''
+date: '2018-11-21'
+categories:
+  - rstats
+tags:
+  - rstats
+slug: compute-all-pairwise-differences-in-matrix
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+<p>A quite frequent task in many fields of applied math is to compute pairwise differences of elements in a matrix. Actually, it need not be a difference; a product is frequent, too. In this post, we explore some (base) R ways to achieve this.</p>
+<pre class="r"><code>library(mosaic)
+library(gdata)
+library(tidyverse)</code></pre>
+<div id="using-outer" class="section level1">
+<h1>Using <code>outer()</code></h1>
+<p>An elegant approach, using base R, is applying <code>outer()</code>. That’s useful if one has two vectors, and wants to compute the outer product:</p>
+<pre class="r"><code>v1 &lt;- c(1:3)
+v2 &lt;- c(2:4)
+
+outer(v1, v2)</code></pre>
+<pre><code>##      [,1] [,2] [,3]
+## [1,]    2    3    4
+## [2,]    4    6    8
+## [3,]    6    9   12</code></pre>
+<p>As per default, <code>outer()</code> computes the product, because that’s the definition of the outer product in linear algebra.</p>
+<p>Notice that <code>v1</code> and <code>v2</code> are just simple numeric vectors (albeit named):</p>
+<pre class="r"><code>str(v1)</code></pre>
+<pre><code>##  int [1:3] 1 2 3</code></pre>
+<p>However, the function is quite flexible; we can give some other function as well, say, a pairwise difference:</p>
+<pre class="r"><code>o1 &lt;- outer(v1, v2, FUN = &quot;-&quot;)
+o1 </code></pre>
+<pre><code>##      [,1] [,2] [,3]
+## [1,]   -1   -2   -3
+## [2,]    0   -1   -2
+## [3,]    1    0   -1</code></pre>
+<p>What type of object is returned?</p>
+<pre class="r"><code>class(o1)</code></pre>
+<pre><code>## [1] &quot;matrix&quot;</code></pre>
+<pre class="r"><code>str(o1)</code></pre>
+<pre><code>##  int [1:3, 1:3] -1 0 1 -2 -1 0 -3 -2 -1</code></pre>
+<p>Add names to the margins (ie., to the vectors):</p>
+<pre class="r"><code>names(v1) &lt;- v1
+names(v2) &lt;- v2</code></pre>
+<pre class="r"><code>o1 &lt;- outer(v1, v2, FUN = &quot;-&quot;)
+o1</code></pre>
+<pre><code>##    2  3  4
+## 1 -1 -2 -3
+## 2  0 -1 -2
+## 3  1  0 -1</code></pre>
+<pre class="r"><code>str(o1)</code></pre>
+<pre><code>##  int [1:3, 1:3] -1 0 1 -2 -1 0 -3 -2 -1
+##  - attr(*, &quot;dimnames&quot;)=List of 2
+##   ..$ : chr [1:3] &quot;1&quot; &quot;2&quot; &quot;3&quot;
+##   ..$ : chr [1:3] &quot;2&quot; &quot;3&quot; &quot;4&quot;</code></pre>
+<pre class="r"><code>class(o1)</code></pre>
+<pre><code>## [1] &quot;matrix&quot;</code></pre>
+<p>At times, we are interested rather in:</p>
+<pre class="r"><code>vec &lt;- c(v1, v2)
+vec</code></pre>
+<pre><code>## 1 2 3 2 3 4 
+## 1 2 3 2 3 4</code></pre>
+<pre class="r"><code>str(vec)</code></pre>
+<pre><code>##  Named int [1:6] 1 2 3 2 3 4
+##  - attr(*, &quot;names&quot;)= chr [1:6] &quot;1&quot; &quot;2&quot; &quot;3&quot; &quot;2&quot; ...</code></pre>
+<pre class="r"><code>o2 &lt;- outer(vec, vec, FUN = &quot;-&quot;)
+str(o2)</code></pre>
+<pre><code>##  int [1:6, 1:6] 0 1 2 1 2 3 -1 0 1 0 ...
+##  - attr(*, &quot;dimnames&quot;)=List of 2
+##   ..$ : chr [1:6] &quot;1&quot; &quot;2&quot; &quot;3&quot; &quot;2&quot; ...
+##   ..$ : chr [1:6] &quot;1&quot; &quot;2&quot; &quot;3&quot; &quot;2&quot; ...</code></pre>
+<pre class="r"><code>o2</code></pre>
+<pre><code>##   1  2  3  2  3  4
+## 1 0 -1 -2 -1 -2 -3
+## 2 1  0 -1  0 -1 -2
+## 3 2  1  0  1  0 -1
+## 2 1  0 -1  0 -1 -2
+## 3 2  1  0  1  0 -1
+## 4 3  2  1  2  1  0</code></pre>
+<p>What we have just computed, is the difference between <em>all</em> pairs of elements, even between elements within the same vector. Previously, we have computed the difference between pairs of elements, where the first element is not part of the second vector (and v.v.).</p>
+<p>If the absolute differences are needed, apply the <code>abs()</code> function on the whole matrix:</p>
+<pre class="r"><code>o1_abs &lt;- abs(o1)
+o1_abs</code></pre>
+<pre><code>##   2 3 4
+## 1 1 2 3
+## 2 0 1 2
+## 3 1 0 1</code></pre>
+<pre class="r"><code>o2_abs &lt;- abs(o2)</code></pre>
+<p>If only the <em>different</em> combinations are needed (ie., without considering ordering), extract the upper triangle:</p>
+<pre class="r"><code>o1_different &lt;- upper.tri(o1) * o1_abs
+o1_different</code></pre>
+<pre><code>##   2 3 4
+## 1 0 2 3
+## 2 0 0 2
+## 3 0 0 0</code></pre>
+<pre class="r"><code>o2_different &lt;- upper.tri(o2) * o2_abs</code></pre>
+<p>Notice that we do not want to use regular matrix multiplication, but cellwise computation only. For matrix multiplication, use <code>%*%</code>.</p>
+<p>To get the <em>mean absolute pairwise difference</em>, take the mean of these values:</p>
+<pre class="r"><code>mean(o1_different)</code></pre>
+<pre><code>## [1] 0.7777778</code></pre>
+<p>Wait; that’s probably not what we expected. Let’s tell R only to consider the values of the upper triangle when computing the mean (or whatever function, for that purpose).</p>
+<pre class="r"><code>o1_diff_upptri &lt;- ifelse(o1_different == 0, NA, o1_different)
+o1_diff_upptri</code></pre>
+<pre><code>##    2  3  4
+## 1 NA  2  3
+## 2 NA NA  2
+## 3 NA NA NA</code></pre>
+<p>More elegant, or, well, more direct, and much faster (no for-loops under the hood):</p>
+<pre class="r"><code>o1_diff_upptri &lt;- o1_different
+o1_diff_upptri[o1_diff_upptri == 0] &lt;- NA
+o1_diff_upptri</code></pre>
+<pre><code>##    2  3  4
+## 1 NA  2  3
+## 2 NA NA  2
+## 3 NA NA NA</code></pre>
+<p>That’s a point where R shines: Not only vector arithmetic are applied automatically, also matrices can be digested.</p>
+<p>Hang on, this one is nice, too:</p>
+<pre class="r"><code>!o1_different</code></pre>
+<pre><code>##      2     3     4
+## 1 TRUE FALSE FALSE
+## 2 TRUE  TRUE FALSE
+## 3 TRUE  TRUE  TRUE</code></pre>
+<p>The <code>!</code> operator transform the matrix in a logical one (<code>0</code> = FALSE, else <code>TRUE</code>), and negates the values.</p>
+<p>Now:</p>
+<pre class="r"><code>o1_variant &lt;- o1_different
+is.na(o1_variant) &lt;- !o1_variant
+o1_variant</code></pre>
+<pre><code>##    2  3  4
+## 1 NA  2  3
+## 2 NA NA  2
+## 3 NA NA NA</code></pre>
+<p>However, those methods fail if there are zeros in the upper triangle:</p>
+<pre class="r"><code>o2_variant &lt;- o2_different
+is.na(o2_variant) &lt;- !o2_variant
+o2_variant</code></pre>
+<pre><code>##    1  2  3  2  3  4
+## 1 NA  1  2  1  2  3
+## 2 NA NA  1 NA  1  2
+## 3 NA NA NA  1 NA  1
+## 2 NA NA NA NA  1  2
+## 3 NA NA NA NA NA  1
+## 4 NA NA NA NA NA NA</code></pre>
+<p>We would <em>not</em> want the NAs in the upper triangle.</p>
+<p>That’s why this way comes handy:</p>
+<pre class="r"><code>o2_diff_upptri &lt;- o2_different
+gdata::lowerTriangle(o2_diff_upptri, diag = TRUE) &lt;- NA
+o2_diff_upptri</code></pre>
+<pre><code>##    1  2  3  2  3  4
+## 1 NA  1  2  1  2  3
+## 2 NA NA  1  0  1  2
+## 3 NA NA NA  1  0  1
+## 2 NA NA NA NA  1  2
+## 3 NA NA NA NA NA  1
+## 4 NA NA NA NA NA NA</code></pre>
+<p>Notice, however, that this function is not from base R.</p>
+<p>Now, again the mean:</p>
+<pre class="r"><code>mean(o1_diff_upptri, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 2.333333</code></pre>
+<pre class="r"><code>sum(o1_diff_upptri, na.rm = TRUE)</code></pre>
+<pre><code>## [1] 7</code></pre>
+<p>And for <code>o2</code>:</p>
+<pre class="r"><code>o2_mean &lt;- mean(o2_diff_upptri, na.rm = TRUE)
+o2_mean</code></pre>
+<pre><code>## [1] 1.266667</code></pre>
+<p>Let’s also compute the sum of the absolute differences:</p>
+<pre class="r"><code>o2_sum &lt;- sum(o2_diff_upptri, na.rm = TRUE)
+o2_sum</code></pre>
+<pre><code>## [1] 19</code></pre>
+<p>What’s the number of different elements?</p>
+<pre class="r"><code>o2_length &lt;- length(o2_diff_upptri[!is.na(o2_diff_upptri)])
+o2_length</code></pre>
+<pre><code>## [1] 15</code></pre>
+<p>Divide sum by n to get the mean:</p>
+<pre class="r"><code>o2_sum / o2_length</code></pre>
+<pre><code>## [1] 1.266667</code></pre>
+</div>
+<div id="using-mad" class="section level1">
+<h1>Using <code>MAD()</code></h1>
+<p>Incidentally, that’s similar to what the functions <code>SAD()</code> and <code>MAD()</code> from <code>mosaic</code> compute. That is, the sum (<code>SAD()</code>) is the same:</p>
+<pre class="r"><code>mosaic::SAD(v1, v2)</code></pre>
+<pre><code>## [1] 19</code></pre>
+<pre class="r"><code>mosaic::SAD(v1, v2) == o2_sum</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<p>But the mean is different:</p>
+<pre class="r"><code>mosaic::MAD(v1, v2)</code></pre>
+<pre><code>## [1] 4.75</code></pre>
+<pre class="r"><code>mosaic::MAD(v1, v2)  == o2_mean</code></pre>
+<pre><code>## [1] FALSE</code></pre>
+<p>Internally, <code>MAD</code> does the following:</p>
+<pre class="r"><code>x &lt;- c(v1, v2)
+x</code></pre>
+<pre><code>## 1 2 3 2 3 4 
+## 1 2 3 2 3 4</code></pre>
+<pre class="r"><code>M &lt;- outer(x, x, &quot;-&quot;)
+M</code></pre>
+<pre><code>##   1  2  3  2  3  4
+## 1 0 -1 -2 -1 -2 -3
+## 2 1  0 -1  0 -1 -2
+## 3 2  1  0  1  0 -1
+## 2 1  0 -1  0 -1 -2
+## 3 2  1  0  1  0 -1
+## 4 3  2  1  2  1  0</code></pre>
+<pre class="r"><code>M2 &lt;- upper.tri(M) * abs(M)
+M2</code></pre>
+<pre><code>##   1 2 3 2 3 4
+## 1 0 1 2 1 2 3
+## 2 0 0 1 0 1 2
+## 3 0 0 0 1 0 1
+## 2 0 0 0 0 1 2
+## 3 0 0 0 0 0 1
+## 4 0 0 0 0 0 0</code></pre>
+<pre class="r"><code>M3 &lt;- sum(M2)
+M3</code></pre>
+<pre><code>## [1] 19</code></pre>
+<pre class="r"><code>length_elements &lt;-  length(v1) + length(list(v2))
+length_elements</code></pre>
+<pre><code>## [1] 4</code></pre>
+<pre class="r"><code>M4 &lt;- M3 / (length_elements)
+M4</code></pre>
+<pre><code>## [1] 4.75</code></pre>
+<p>So, we divided by the number of the upper triangle elements. That is, by all pairwise comparisons. <code>MAD()</code> divides by the length of the first vector + 1. Not quite sure when we would want that. Presumably, these functions are not meant to be given two vectors, only one.</p>
+<p>However, if we only have one vector, <code>MAD()</code> makes sense:</p>
+<pre class="r"><code>MAD(vec)</code></pre>
+<pre><code>## [1] 3.166667</code></pre>
+<p>Here, first the sum of the differences is computed:</p>
+<pre class="r"><code>SAD(vec)</code></pre>
+<pre><code>## [1] 19</code></pre>
+<pre class="r"><code>SAD(vec) == o2_sum</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<p>Next, this sum is divided by the number of elements (of <code>vec</code>):</p>
+<pre class="r"><code>vec_length &lt;- length(vec)
+
+SAD(vec) / vec_length</code></pre>
+<pre><code>## [1] 3.166667</code></pre>
+<pre class="r"><code>SAD(vec) / vec_length == MAD(vec)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<p>A glimpse to the code of those two functions:</p>
+<pre class="r"><code>MAD_</code></pre>
+<pre><code>## function (x, ..., na.rm = getOption(&quot;na.omit&quot;, FALSE)) 
+## {
+##     SAD_(x, ..., na.rm = na.rm)/(length(x) + length(list(...)))
+## }
+## &lt;bytecode: 0x7fa6951cdcd8&gt;
+## &lt;environment: namespace:mosaic&gt;</code></pre>
+<pre class="r"><code>SAD_</code></pre>
+<pre><code>## function (x, ..., na.rm = getOption(&quot;na.omit&quot;, FALSE)) 
+## {
+##     x &lt;- c(x, unlist(list(...)))
+##     x &lt;- na.omit(x)
+##     M &lt;- outer(x, x, &quot;-&quot;)
+##     base::sum(upper.tri(M) * abs(M))
+## }
+## &lt;bytecode: 0x7fa694185380&gt;
+## &lt;environment: namespace:mosaic&gt;</code></pre>
+</div>
+<div id="debrief" class="section level1">
+<h1>Debrief</h1>
+<p>We have explored some ways to compute the pairwise differences of two vectors, with some thoughts walking astray. We have discussed two ways of computing the “mean” by dividing by the number of comparisons or by the number of elements.</p>
+</div>
