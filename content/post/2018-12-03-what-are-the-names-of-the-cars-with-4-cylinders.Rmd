@@ -1,0 +1,237 @@
+---
+title: What are the names of the cars with 4 cylinders?
+author: ''
+date: '2018-12-03'
+slug: what-are-the-names-of-the-cars-with-4-cylinders
+categories:
+  - rstats
+tags:
+  - rstats
+  - tidyverse
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r knitr-steup, echo = FALSE}
+
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp =   .618,
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+
+Recently, some one asked me in a workshop this question: "What are the names of the cars with 4 (6,8) cylinders?" (he referred to the `mtcars` data set). That was a workshop on the tidyverse, so the question is how to answer this question using tidyverse techniques.
+
+First, let's load the usual culprits.
+
+```{r}
+library(tidyverse)
+library(purrrlyr)
+library(knitr)
+library(stringr)
+```
+
+
+
+```{r}
+data(mtcars)
+
+d <- as_tibble(mtcars) %>% 
+  rownames_to_column(var = "car_names")
+
+d %>% 
+  head() %>% 
+  kable()
+```
+
+
+Let's explore several ways.
+
+# Way 1 - using `paste()` aund `pull()`
+
+First, it makes sense to group the data, as our question refers to the car names of each cylinder group. Next, we can summarize the data using `paste()` to collate the names into one string:
+
+```{r}
+d2 <- 
+  d %>% 
+  group_by(cyl) %>% 
+  summarise(car_names_coll = paste(car_names, collapse = " "),
+            hp_mean_per_cyl = mean(hp))
+
+d2
+
+d2 %>% 
+  pull(car_names_coll)
+```
+
+
+
+
+# Way 2 - using `nest()`
+
+Of interest, list columns provide a more data frame type answer. We "fold" or "nest" a vector, list, or data frame in one cell:
+
+```{r}
+d %>% 
+  group_by(cyl) %>% 
+  nest(car_names)
+```
+
+
+
+How to access it?
+
+```{r}
+d_nest <- d %>% 
+  group_by(cyl) %>% 
+  nest(car_names)
+
+
+d_nest$data[[1]]
+d_nest[[1, "data"]]
+```
+
+
+
+How to `unnest`?
+
+Simple:
+
+```{r}
+d_nest %>% 
+  unnest()
+```
+
+
+# Difference between `[` and `[[`
+
+
+By the way, that's the difference between `[` and `[[`? Or is there none?
+
+```{r}
+identical(d_nest$data[[1]] , d_nest$data[1])
+```
+
+
+There is. See the difference between the `class`es:
+
+
+```{r}
+d_nest$data[[1]] %>% class()
+d_nest$data[1] %>% class()
+
+```
+
+
+`[[` extracts the actual object, a data frame.
+
+`[` extracts a list (containing the actual object).
+
+
+# Processing list columns
+
+
+How to process list column data further?
+
+Say we would like to know if there ist least one Mercedes in each group:
+
+
+```{r}
+d_nest %>% 
+  mutate(mercs_lgl = str_detect(data, "Merc"))
+```
+
+We get a warning because `data` is not vector, but a data frame (with one column, ie., the car names).
+
+And how many Mercs are there in each group?
+
+
+To start, consider this way of counting instances of Mercs:
+
+```{r}
+str_detect(d_nest$data[[1]]$car_names, "Merc") %>% sum()
+```
+
+
+Next, we build that into our dplyr pipeline:
+
+
+```{r}
+d_nest %>% 
+  mutate(names_list = map(data, "car_names")) %>% 
+  mutate(mercs_n = map(names_list, ~{str_detect(., pattern = "Merc") %>% sum()})) %>% 
+  unnest(mercs_n)
+```
+
+
+Phish, that looks frightening. Let's go throught it:
+
+- First, we pull out the names of the cars, because `str_detect()` is not happy to work with a data frame as input. Now we have the column `names_list` which is of type character
+- Second, we map `str_detect` to each row of this new column `names_list`.  This fuctions looks for Merc instances. Wait, we want to sum up the Marc instances, that's way we also use `sum()`. The curly braces make sure that only the last evaluated expression is handed back.
+- Third, we have to unnest the `mercs_n` column, because it is still in nested format even it consists of one value only.
+
+
+
+
+
+
+# Way 3 - like using `nest` but without a special idiom
+
+Again, we fall back to the classical dplyr way of summarising data to a single (scalar) value:
+
+```{r}
+d3 <-
+  d %>% 
+  group_by(cyl) %>% 
+  summarise(names_per_cyl = list(car_names),
+            hp_mean_per_cyl = mean(hp))
+
+d3$names_per_cyl[[1]]
+```
+
+
+
+# Fold 'em all in a list data frame
+
+Let's take the nesting into list data frames to its extreme:
+
+
+```{r}
+d %>% 
+  group_by(cyl) %>% 
+  summarise_all("list")
+```
+
+
+
+
+# Way 4 - using `map()`:
+
+
+
+```{r}
+d %>% 
+  split(.$cyl) %>% 
+  map("car_names")
+```
+
+
+
+# Debrief
+
+
+`summarise()` in dplyr, summarizes a (column) vector to a scalar (single value). This is often handy, but sometimes limiting, as you are only allowed to apply functions that return a scalar. For more complex functions, such as `lm()` different approaches need be chosen. One way is to work with list columns as they provide a neat way to plug stuff into one cell of a data frame. More flexible approaches can be built upon the family of `apply` or `map()` and alike.
+
+

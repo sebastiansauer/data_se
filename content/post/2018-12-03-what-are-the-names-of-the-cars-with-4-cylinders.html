@@ -1,0 +1,318 @@
+---
+title: What are the names of the cars with 4 cylinders?
+author: ''
+date: '2018-12-03'
+slug: what-are-the-names-of-the-cars-with-4-cylinders
+categories:
+  - rstats
+tags:
+  - rstats
+  - tidyverse
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+<p>Recently, some one asked me in a workshop this question: “What are the names of the cars with 4 (6,8) cylinders?” (he referred to the <code>mtcars</code> data set). That was a workshop on the tidyverse, so the question is how to answer this question using tidyverse techniques.</p>
+<p>First, let’s load the usual culprits.</p>
+<pre class="r"><code>library(tidyverse)
+library(purrrlyr)
+library(knitr)
+library(stringr)</code></pre>
+<pre class="r"><code>data(mtcars)
+
+d &lt;- as_tibble(mtcars) %&gt;% 
+  rownames_to_column(var = &quot;car_names&quot;)
+
+d %&gt;% 
+  head() %&gt;% 
+  kable()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">car_names</th>
+<th align="right">mpg</th>
+<th align="right">cyl</th>
+<th align="right">disp</th>
+<th align="right">hp</th>
+<th align="right">drat</th>
+<th align="right">wt</th>
+<th align="right">qsec</th>
+<th align="right">vs</th>
+<th align="right">am</th>
+<th align="right">gear</th>
+<th align="right">carb</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Mazda RX4</td>
+<td align="right">21.0</td>
+<td align="right">6</td>
+<td align="right">160</td>
+<td align="right">110</td>
+<td align="right">3.90</td>
+<td align="right">2.620</td>
+<td align="right">16.46</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">4</td>
+</tr>
+<tr class="even">
+<td align="left">Mazda RX4 Wag</td>
+<td align="right">21.0</td>
+<td align="right">6</td>
+<td align="right">160</td>
+<td align="right">110</td>
+<td align="right">3.90</td>
+<td align="right">2.875</td>
+<td align="right">17.02</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">4</td>
+</tr>
+<tr class="odd">
+<td align="left">Datsun 710</td>
+<td align="right">22.8</td>
+<td align="right">4</td>
+<td align="right">108</td>
+<td align="right">93</td>
+<td align="right">3.85</td>
+<td align="right">2.320</td>
+<td align="right">18.61</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="left">Hornet 4 Drive</td>
+<td align="right">21.4</td>
+<td align="right">6</td>
+<td align="right">258</td>
+<td align="right">110</td>
+<td align="right">3.08</td>
+<td align="right">3.215</td>
+<td align="right">19.44</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">1</td>
+</tr>
+<tr class="odd">
+<td align="left">Hornet Sportabout</td>
+<td align="right">18.7</td>
+<td align="right">8</td>
+<td align="right">360</td>
+<td align="right">175</td>
+<td align="right">3.15</td>
+<td align="right">3.440</td>
+<td align="right">17.02</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">2</td>
+</tr>
+<tr class="even">
+<td align="left">Valiant</td>
+<td align="right">18.1</td>
+<td align="right">6</td>
+<td align="right">225</td>
+<td align="right">105</td>
+<td align="right">2.76</td>
+<td align="right">3.460</td>
+<td align="right">20.22</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">1</td>
+</tr>
+</tbody>
+</table>
+<p>Let’s explore several ways.</p>
+<div id="way-1---using-paste-aund-pull" class="section level1">
+<h1>Way 1 - using <code>paste()</code> aund <code>pull()</code></h1>
+<p>First, it makes sense to group the data, as our question refers to the car names of each cylinder group. Next, we can summarize the data using <code>paste()</code> to collate the names into one string:</p>
+<pre class="r"><code>d2 &lt;- 
+  d %&gt;% 
+  group_by(cyl) %&gt;% 
+  summarise(car_names_coll = paste(car_names, collapse = &quot; &quot;),
+            hp_mean_per_cyl = mean(hp))
+
+d2
+#&gt; # A tibble: 3 x 3
+#&gt;     cyl car_names_coll                                     hp_mean_per_cyl
+#&gt;   &lt;dbl&gt; &lt;chr&gt;                                                        &lt;dbl&gt;
+#&gt; 1     4 Datsun 710 Merc 240D Merc 230 Fiat 128 Honda Civi…            82.6
+#&gt; 2     6 Mazda RX4 Mazda RX4 Wag Hornet 4 Drive Valiant Me…           122. 
+#&gt; 3     8 Hornet Sportabout Duster 360 Merc 450SE Merc 450S…           209.
+
+d2 %&gt;% 
+  pull(car_names_coll)
+#&gt; [1] &quot;Datsun 710 Merc 240D Merc 230 Fiat 128 Honda Civic Toyota Corolla Toyota Corona Fiat X1-9 Porsche 914-2 Lotus Europa Volvo 142E&quot;                                                                              
+#&gt; [2] &quot;Mazda RX4 Mazda RX4 Wag Hornet 4 Drive Valiant Merc 280 Merc 280C Ferrari Dino&quot;                                                                                                                               
+#&gt; [3] &quot;Hornet Sportabout Duster 360 Merc 450SE Merc 450SL Merc 450SLC Cadillac Fleetwood Lincoln Continental Chrysler Imperial Dodge Challenger AMC Javelin Camaro Z28 Pontiac Firebird Ford Pantera L Maserati Bora&quot;</code></pre>
+</div>
+<div id="way-2---using-nest" class="section level1">
+<h1>Way 2 - using <code>nest()</code></h1>
+<p>Of interest, list columns provide a more data frame type answer. We “fold” or “nest” a vector, list, or data frame in one cell:</p>
+<pre class="r"><code>d %&gt;% 
+  group_by(cyl) %&gt;% 
+  nest(car_names)
+#&gt; # A tibble: 3 x 2
+#&gt;     cyl data             
+#&gt;   &lt;dbl&gt; &lt;list&gt;           
+#&gt; 1     6 &lt;tibble [7 × 1]&gt; 
+#&gt; 2     4 &lt;tibble [11 × 1]&gt;
+#&gt; 3     8 &lt;tibble [14 × 1]&gt;</code></pre>
+<p>How to access it?</p>
+<pre class="r"><code>d_nest &lt;- d %&gt;% 
+  group_by(cyl) %&gt;% 
+  nest(car_names)
+
+
+d_nest$data[[1]]
+#&gt; # A tibble: 7 x 1
+#&gt;   car_names     
+#&gt;   &lt;chr&gt;         
+#&gt; 1 Mazda RX4     
+#&gt; 2 Mazda RX4 Wag 
+#&gt; 3 Hornet 4 Drive
+#&gt; 4 Valiant       
+#&gt; 5 Merc 280      
+#&gt; 6 Merc 280C     
+#&gt; 7 Ferrari Dino
+d_nest[[1, &quot;data&quot;]]
+#&gt; # A tibble: 7 x 1
+#&gt;   car_names     
+#&gt;   &lt;chr&gt;         
+#&gt; 1 Mazda RX4     
+#&gt; 2 Mazda RX4 Wag 
+#&gt; 3 Hornet 4 Drive
+#&gt; 4 Valiant       
+#&gt; 5 Merc 280      
+#&gt; 6 Merc 280C     
+#&gt; 7 Ferrari Dino</code></pre>
+<p>How to <code>unnest</code>?</p>
+<p>Simple:</p>
+<pre class="r"><code>d_nest %&gt;% 
+  unnest()
+#&gt; # A tibble: 32 x 2
+#&gt;      cyl car_names     
+#&gt;    &lt;dbl&gt; &lt;chr&gt;         
+#&gt;  1     6 Mazda RX4     
+#&gt;  2     6 Mazda RX4 Wag 
+#&gt;  3     6 Hornet 4 Drive
+#&gt;  4     6 Valiant       
+#&gt;  5     6 Merc 280      
+#&gt;  6     6 Merc 280C     
+#&gt;  7     6 Ferrari Dino  
+#&gt;  8     4 Datsun 710    
+#&gt;  9     4 Merc 240D     
+#&gt; 10     4 Merc 230      
+#&gt; # ... with 22 more rows</code></pre>
+</div>
+<div id="difference-between-and" class="section level1">
+<h1>Difference between <code>[</code> and <code>[[</code></h1>
+<p>By the way, that’s the difference between <code>[</code> and <code>[[</code>? Or is there none?</p>
+<pre class="r"><code>identical(d_nest$data[[1]] , d_nest$data[1])
+#&gt; [1] FALSE</code></pre>
+<p>There is. See the difference between the <code>class</code>es:</p>
+<pre class="r"><code>d_nest$data[[1]] %&gt;% class()
+#&gt; [1] &quot;tbl_df&quot;     &quot;tbl&quot;        &quot;data.frame&quot;
+d_nest$data[1] %&gt;% class()
+#&gt; [1] &quot;list&quot;</code></pre>
+<p><code>[[</code> extracts the actual object, a data frame.</p>
+<p><code>[</code> extracts a list (containing the actual object).</p>
+</div>
+<div id="processing-list-columns" class="section level1">
+<h1>Processing list columns</h1>
+<p>How to process list column data further?</p>
+<p>Say we would like to know if there ist least one Mercedes in each group:</p>
+<pre class="r"><code>d_nest %&gt;% 
+  mutate(mercs_lgl = str_detect(data, &quot;Merc&quot;))
+#&gt; # A tibble: 3 x 3
+#&gt;     cyl data              mercs_lgl
+#&gt;   &lt;dbl&gt; &lt;list&gt;            &lt;lgl&gt;    
+#&gt; 1     6 &lt;tibble [7 × 1]&gt;  TRUE     
+#&gt; 2     4 &lt;tibble [11 × 1]&gt; TRUE     
+#&gt; 3     8 &lt;tibble [14 × 1]&gt; TRUE</code></pre>
+<p>We get a warning because <code>data</code> is not vector, but a data frame (with one column, ie., the car names).</p>
+<p>And how many Mercs are there in each group?</p>
+<p>To start, consider this way of counting instances of Mercs:</p>
+<pre class="r"><code>str_detect(d_nest$data[[1]]$car_names, &quot;Merc&quot;) %&gt;% sum()
+#&gt; [1] 2</code></pre>
+<p>Next, we build that into our dplyr pipeline:</p>
+<pre class="r"><code>d_nest %&gt;% 
+  mutate(names_list = map(data, &quot;car_names&quot;)) %&gt;% 
+  mutate(mercs_n = map(names_list, ~{str_detect(., pattern = &quot;Merc&quot;) %&gt;% sum()})) %&gt;% 
+  unnest(mercs_n)
+#&gt; # A tibble: 3 x 4
+#&gt;     cyl data              names_list mercs_n
+#&gt;   &lt;dbl&gt; &lt;list&gt;            &lt;list&gt;       &lt;int&gt;
+#&gt; 1     6 &lt;tibble [7 × 1]&gt;  &lt;chr [7]&gt;        2
+#&gt; 2     4 &lt;tibble [11 × 1]&gt; &lt;chr [11]&gt;       2
+#&gt; 3     8 &lt;tibble [14 × 1]&gt; &lt;chr [14]&gt;       3</code></pre>
+<p>Phish, that looks frightening. Let’s go throught it:</p>
+<ul>
+<li>First, we pull out the names of the cars, because <code>str_detect()</code> is not happy to work with a data frame as input. Now we have the column <code>names_list</code> which is of type character</li>
+<li>Second, we map <code>str_detect</code> to each row of this new column <code>names_list</code>. This fuctions looks for Merc instances. Wait, we want to sum up the Marc instances, that’s way we also use <code>sum()</code>. The curly braces make sure that only the last evaluated expression is handed back.</li>
+<li>Third, we have to unnest the <code>mercs_n</code> column, because it is still in nested format even it consists of one value only.</li>
+</ul>
+</div>
+<div id="way-3---like-using-nest-but-without-a-special-idiom" class="section level1">
+<h1>Way 3 - like using <code>nest</code> but without a special idiom</h1>
+<p>Again, we fall back to the classical dplyr way of summarising data to a single (scalar) value:</p>
+<pre class="r"><code>d3 &lt;-
+  d %&gt;% 
+  group_by(cyl) %&gt;% 
+  summarise(names_per_cyl = list(car_names),
+            hp_mean_per_cyl = mean(hp))
+
+d3$names_per_cyl[[1]]
+#&gt;  [1] &quot;Datsun 710&quot;     &quot;Merc 240D&quot;      &quot;Merc 230&quot;       &quot;Fiat 128&quot;      
+#&gt;  [5] &quot;Honda Civic&quot;    &quot;Toyota Corolla&quot; &quot;Toyota Corona&quot;  &quot;Fiat X1-9&quot;     
+#&gt;  [9] &quot;Porsche 914-2&quot;  &quot;Lotus Europa&quot;   &quot;Volvo 142E&quot;</code></pre>
+</div>
+<div id="fold-em-all-in-a-list-data-frame" class="section level1">
+<h1>Fold ’em all in a list data frame</h1>
+<p>Let’s take the nesting into list data frames to its extreme:</p>
+<pre class="r"><code>d %&gt;% 
+  group_by(cyl) %&gt;% 
+  summarise_all(&quot;list&quot;)
+#&gt; # A tibble: 3 x 12
+#&gt;     cyl car_names mpg   disp  hp    drat  wt    qsec  vs    am    gear 
+#&gt;   &lt;dbl&gt; &lt;list&gt;    &lt;lis&gt; &lt;lis&gt; &lt;lis&gt; &lt;lis&gt; &lt;lis&gt; &lt;lis&gt; &lt;lis&gt; &lt;lis&gt; &lt;lis&gt;
+#&gt; 1     4 &lt;chr [11… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl…
+#&gt; 2     6 &lt;chr [7]&gt; &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl…
+#&gt; 3     8 &lt;chr [14… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl… &lt;dbl…
+#&gt; # ... with 1 more variable: carb &lt;list&gt;</code></pre>
+</div>
+<div id="way-4---using-map" class="section level1">
+<h1>Way 4 - using <code>map()</code>:</h1>
+<pre class="r"><code>d %&gt;% 
+  split(.$cyl) %&gt;% 
+  map(&quot;car_names&quot;)
+#&gt; $`4`
+#&gt;  [1] &quot;Datsun 710&quot;     &quot;Merc 240D&quot;      &quot;Merc 230&quot;       &quot;Fiat 128&quot;      
+#&gt;  [5] &quot;Honda Civic&quot;    &quot;Toyota Corolla&quot; &quot;Toyota Corona&quot;  &quot;Fiat X1-9&quot;     
+#&gt;  [9] &quot;Porsche 914-2&quot;  &quot;Lotus Europa&quot;   &quot;Volvo 142E&quot;    
+#&gt; 
+#&gt; $`6`
+#&gt; [1] &quot;Mazda RX4&quot;      &quot;Mazda RX4 Wag&quot;  &quot;Hornet 4 Drive&quot; &quot;Valiant&quot;       
+#&gt; [5] &quot;Merc 280&quot;       &quot;Merc 280C&quot;      &quot;Ferrari Dino&quot;  
+#&gt; 
+#&gt; $`8`
+#&gt;  [1] &quot;Hornet Sportabout&quot;   &quot;Duster 360&quot;          &quot;Merc 450SE&quot;         
+#&gt;  [4] &quot;Merc 450SL&quot;          &quot;Merc 450SLC&quot;         &quot;Cadillac Fleetwood&quot; 
+#&gt;  [7] &quot;Lincoln Continental&quot; &quot;Chrysler Imperial&quot;   &quot;Dodge Challenger&quot;   
+#&gt; [10] &quot;AMC Javelin&quot;         &quot;Camaro Z28&quot;          &quot;Pontiac Firebird&quot;   
+#&gt; [13] &quot;Ford Pantera L&quot;      &quot;Maserati Bora&quot;</code></pre>
+</div>
+<div id="debrief" class="section level1">
+<h1>Debrief</h1>
+<p><code>summarise()</code> in dplyr, summarizes a (column) vector to a scalar (single value). This is often handy, but sometimes limiting, as you are only allowed to apply functions that return a scalar. For more complex functions, such as <code>lm()</code> different approaches need be chosen. One way is to work with list columns as they provide a neat way to plug stuff into one cell of a data frame. More flexible approaches can be built upon the family of <code>apply</code> or <code>map()</code> and alike.</p>
+</div>
