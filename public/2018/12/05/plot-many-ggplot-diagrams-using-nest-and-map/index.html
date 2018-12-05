@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.51" />
+
+
+<title>Plot many ggplot diagrams using nest() and map() - Data Se</title>
+<meta property="og:title" content="Plot many ggplot diagrams using nest() and map() - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">3 min read</span>
+    
+
+    <h1 class="article-title">Plot many ggplot diagrams using nest() and map()</h1>
+
+    
+    <span class="article-date">2018/12/05</span>
+    
+
+    <div class="article-content">
+      
+
+
+<p>At times, it is helpflu to plot a multiple of related diagrams, such as a scatterplot for each subgroup. As always, there a number of ways of doing so in R. Specifically, we will make use of <code>ggplot2</code>.</p>
+<pre class="r"><code>library(tidyverse)
+library(glue)</code></pre>
+<pre class="r"><code>data(mtcars)</code></pre>
+<pre class="r"><code>d &lt;- mtcars %&gt;% 
+  rownames_to_column(var = &quot;car_names&quot;)</code></pre>
+<p>Is <code>d</code> a tibble`</p>
+<pre class="r"><code>is_tibble(d)
+#&gt; [1] FALSE</code></pre>
+<p>What is it?</p>
+<pre class="r"><code>class(d)
+#&gt; [1] &quot;data.frame&quot;</code></pre>
+<p>Okay, let’s make a tibble out of it:</p>
+<pre class="r"><code>d &lt;- as_tibble(d)
+class(d)
+#&gt; [1] &quot;tbl_df&quot;     &quot;tbl&quot;        &quot;data.frame&quot;</code></pre>
+<div id="way-1-using-facets" class="section level1">
+<h1>Way 1: using facets</h1>
+<p>One simple way is to plot several facets according to the grouping variable:</p>
+<pre class="r"><code>d %&gt;% 
+  ggplot() +
+  aes(x = hp, y = mpg) +
+  geom_point() +
+  facet_wrap(~ cyl)</code></pre>
+<p><img src="/post/2018-12-05-plot-many-ggplot-diagrams-using-nest-and-map_files/figure-html/unnamed-chunk-7-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="way-2-using-nest-and-map2" class="section level1">
+<h1>Way 2: using <code>nest()</code> and <code>map2()</code></h1>
+<p>First, we nest the data frame:</p>
+<pre class="r"><code>d_nested &lt;- 
+  d %&gt;% 
+  group_by(cyl) %&gt;% 
+  nest()
+
+d_nested
+#&gt; # A tibble: 3 x 2
+#&gt;     cyl data              
+#&gt;   &lt;dbl&gt; &lt;list&gt;            
+#&gt; 1     6 &lt;tibble [7 × 11]&gt; 
+#&gt; 2     4 &lt;tibble [11 × 11]&gt;
+#&gt; 3     8 &lt;tibble [14 × 11]&gt;</code></pre>
+<p>Note that in the column <code>data</code> there is the data of mtcars - broken down for each group. That’s why we have three lines.</p>
+<p>Second, we map the data to ggplot:</p>
+<pre class="r"><code>d_plots &lt;- 
+  d_nested %&gt;% 
+  mutate(plot = map2(data, cyl, ~ ggplot(data = .x, aes(x = hp, y = mpg)) +
+                      ggtitle(glue(&quot;Number of Cylinder: {.y}&quot;)) +
+                      geom_point()))
+
+d_plots
+#&gt; # A tibble: 3 x 3
+#&gt;     cyl data               plot    
+#&gt;   &lt;dbl&gt; &lt;list&gt;             &lt;list&gt;  
+#&gt; 1     6 &lt;tibble [7 × 11]&gt;  &lt;S3: gg&gt;
+#&gt; 2     4 &lt;tibble [11 × 11]&gt; &lt;S3: gg&gt;
+#&gt; 3     8 &lt;tibble [14 × 11]&gt; &lt;S3: gg&gt;</code></pre>
+<p>Finally, we print it:</p>
+<pre class="r"><code>print(d_plots$plot)
+#&gt; [[1]]
+#&gt; 
+#&gt; [[2]]
+#&gt; 
+#&gt; [[3]]</code></pre>
+<p><img src="/post/2018-12-05-plot-many-ggplot-diagrams-using-nest-and-map_files/figure-html/unnamed-chunk-10-1.png" width="100%" style="display: block; margin: auto;" /><img src="/post/2018-12-05-plot-many-ggplot-diagrams-using-nest-and-map_files/figure-html/unnamed-chunk-10-2.png" width="100%" style="display: block; margin: auto;" /><img src="/post/2018-12-05-plot-many-ggplot-diagrams-using-nest-and-map_files/figure-html/unnamed-chunk-10-3.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Note that we need <code>map2()</code> because in the data (<code>data</code>), there is no information on the number of cylinders. Hence, we need to hand over a second vector with the cylinder information. If two vectors serving as input for <code>map()</code>, we need <code>map2()</code>.</p>
+</div>
+<div id="way-3-deprecated-do" class="section level1">
+<h1>Way 3: Deprecated <code>do</code></h1>
+<p>There are of course other ways to achieve what we just explored. For example, good ol’ for-loops are out there. However, here we can make use of R’s beautiful vectorization capabilities. In addition, <code>dplyr::do()</code> is a similar way to map list elements to a function. However, this function <del>is</del>will probably get deprecated:</p>
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr"><a href="https://twitter.com/ijlyttle?ref_src=twsrc%5Etfw">@ijlyttle</a> btw dplyr::do() is now basically deprecated in favour of the purrr approach</p>&mdash; Hadley Wickham (@hadleywickham) <a href="https://twitter.com/hadleywickham/status/719542847045636096?ref_src=twsrc%5Etfw">April 11, 2016</a></blockquote>
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+<p>In addition, <code>nest()</code> bears th advantage, that the (processed plotting) data is nicely stored in a data frame.</p>
+<p>For the sake of completeness:</p>
+<pre class="r"><code>d_plots2 &lt;- d %&gt;% 
+  group_by(cyl) %&gt;% 
+  dplyr::do(plot = {ggplot(data = ., aes(x = hp, y= mpg)) + geom_point() + ggtitle(paste0(&quot;Cylinders: &quot;, .$cyl))})
+
+d_plots2
+#&gt; Source: local data frame [3 x 2]
+#&gt; Groups: &lt;by row&gt;
+#&gt; 
+#&gt; # A tibble: 3 x 2
+#&gt;     cyl plot    
+#&gt; * &lt;dbl&gt; &lt;list&gt;  
+#&gt; 1     4 &lt;S3: gg&gt;
+#&gt; 2     6 &lt;S3: gg&gt;
+#&gt; 3     8 &lt;S3: gg&gt;</code></pre>
+<pre class="r"><code>print(d_plots2$plot)
+#&gt; [[1]]
+#&gt; 
+#&gt; [[2]]
+#&gt; 
+#&gt; [[3]]</code></pre>
+<p><img src="/post/2018-12-05-plot-many-ggplot-diagrams-using-nest-and-map_files/figure-html/unnamed-chunk-13-1.png" width="100%" style="display: block; margin: auto;" /><img src="/post/2018-12-05-plot-many-ggplot-diagrams-using-nest-and-map_files/figure-html/unnamed-chunk-13-2.png" width="100%" style="display: block; margin: auto;" /><img src="/post/2018-12-05-plot-many-ggplot-diagrams-using-nest-and-map_files/figure-html/unnamed-chunk-13-3.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

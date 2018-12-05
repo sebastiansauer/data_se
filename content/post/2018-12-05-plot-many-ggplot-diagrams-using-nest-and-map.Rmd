@@ -1,0 +1,161 @@
+---
+title: Plot many ggplot diagrams using nest() and map()
+author: ''
+date: '2018-12-05'
+slug: plot-many-ggplot-diagrams-using-nest-and-map
+categories:
+  - rstats
+tags:
+  - rstats
+  - tidyverse
+  - plotting
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r knitr-steup, echo = FALSE}
+
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp =   .618,
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+At times, it is helpflu to plot a multiple of related diagrams, such as a scatterplot for each subgroup. As always, there a number of ways of doing so in R. Specifically, we will make use of `ggplot2`.
+
+```{r}
+library(tidyverse)
+library(glue)
+```
+
+
+```{r}
+data(mtcars)
+```
+
+
+
+```{r}
+d <- mtcars %>% 
+  rownames_to_column(var = "car_names")
+```
+
+
+Is `d` a tibble`
+
+```{r}
+is_tibble(d)
+```
+
+What is it?
+
+
+```{r}
+class(d)
+```
+
+
+Okay, let's make a tibble out of it:
+
+```{r}
+d <- as_tibble(d)
+class(d)
+```
+
+
+# Way 1: using facets
+
+One simple way is to plot several facets according to the grouping variable:
+
+
+```{r}
+d %>% 
+  ggplot() +
+  aes(x = hp, y = mpg) +
+  geom_point() +
+  facet_wrap(~ cyl)
+```
+
+
+# Way 2: using `nest()` and `map2()`
+
+
+First, we nest the data frame:
+
+```{r}
+d_nested <- 
+  d %>% 
+  group_by(cyl) %>% 
+  nest()
+
+d_nested
+```
+
+Note that in the column `data` there is the data of mtcars - broken down for each group. That's why we have three lines.
+
+
+Second, we map the data to ggplot:
+
+
+```{r}
+d_plots <- 
+  d_nested %>% 
+  mutate(plot = map2(data, cyl, ~ ggplot(data = .x, aes(x = hp, y = mpg)) +
+                      ggtitle(glue("Number of Cylinder: {.y}")) +
+                      geom_point()))
+
+d_plots
+```
+
+Finally, we print it:
+
+
+```{r}
+print(d_plots$plot)
+```
+
+
+
+Note that we need `map2()` because in the data (`data`), there is no information on the number of cylinders. Hence, we need to hand over a second vector with the cylinder information. If two vectors serving as input for `map()`, we need `map2()`.
+
+
+# Way 3: Deprecated `do`
+
+
+There are of course other ways to achieve what we just explored. For example, good ol' for-loops are out there. However, here we can make use of R's beautiful vectorization capabilities. In addition, `dplyr::do()` is a similar way to map list elements to a function. However, this function ~~is~~will probably get deprecated:
+
+
+```{r echo=FALSE}
+blogdown::shortcode('tweet', '719542847045636096')
+```
+
+
+In addition, `nest()` bears th advantage, that the (processed plotting) data is nicely stored in a data frame.
+
+
+For the sake of completeness:
+
+```{r}
+d_plots2 <- d %>% 
+  group_by(cyl) %>% 
+  dplyr::do(plot = {ggplot(data = ., aes(x = hp, y= mpg)) + geom_point() + ggtitle(paste0("Cylinders: ", .$cyl))})
+
+d_plots2
+```
+
+
+```{r}
+print(d_plots2$plot)
+```
+

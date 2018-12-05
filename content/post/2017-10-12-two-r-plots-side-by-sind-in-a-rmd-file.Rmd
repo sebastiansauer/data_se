@@ -1,0 +1,220 @@
+---
+title: Two r plots side by sind in a Rmd-File - UPDATE
+author: ''
+date: '2017-10-12'
+slug: two-r-plots-side-by-sind-in-a-rmd-file
+categories:
+  - rstats
+tags:
+  - knitr
+  - rmd
+  - RMarkdown
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r knitr-steup, echo = FALSE}
+
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  # fig.align = 'center',
+  # fig.width = 6,
+  # fig.asp =   .618,
+  # fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+---
+
+UPDATE 2018-12-03
+
+Thanks to a comment by [Katharina Hees](https://disqus.com/by/katharinahees/) and [Joyce](https://disqus.com/by/disqus_xUz2QLqWmM/), I know know how to plot two images side by side in an Rmd file.
+
+---
+
+
+
+
+
+
+I kept wondering who to plot two R plots side by side (ie., in one "row") in a .Rmd chunk. Here's a way, well actually a number of ways, some good, some ... not.
+
+
+```{r}
+library(tidyverse)
+library(gridExtra)
+library(grid)
+library(png)
+library(downloader)
+library(grDevices)
+
+data(mtcars)
+```
+
+
+# Plots from `ggplot`
+
+Say, you have two plots from `ggplot2`, and you would like them to put them next to each other, side by side (not underneath each other):
+
+
+```{r warning = FALSE}
+ggplot(mtcars) +
+  aes(x = hp, y = mpg) +
+  geom_point() -> p1
+
+ggplot(mtcars) +
+  aes(x = factor(cyl), y = mpg) +
+  geom_boxplot() +
+  geom_smooth(aes(group = 1), se = FALSE) -> p2
+
+grid.arrange(p1, p2, ncol = 2)
+```
+
+
+So, `grid.arrange` is the key.
+
+# Plots from png-file
+
+
+
+```{r}
+comb2pngs <- function(imgs, bottom_text = NULL){
+  img1 <-  grid::rasterGrob(as.raster(readPNG(imgs[1])),
+                            interpolate = FALSE)
+  img2 <-  grid::rasterGrob(as.raster(readPNG(imgs[2])),
+                            interpolate = FALSE)
+  grid.arrange(img1, img2, ncol = 2, bottom = bottom_text)
+}
+```
+
+
+The code of this function was inspired by code from Ben
+from this SO [post](https://stackoverflow.com/questions/25415365/insert-side-by-side-png-images-using-knitr).
+
+Now, let's load two pngs and then call the function above.
+
+
+First, get the images:
+
+```{r eval = TRUE}
+png1_path <- "https://sebastiansauer.github.io/images/2016-08-30-03.png"
+png2_path <- "https://sebastiansauer.github.io/images/2016-08-31-01.png"
+
+#download(png1_path, destfile = png1_dest)
+#download(png2_path, destfile = png2_dest)
+
+png1_dest <- "/images/img1.png" 
+png2_dest <- "/images/img2.png"
+```
+
+
+Now plot it:
+
+```{r eval = FALSE}
+comb2pngs(c(png1_dest, png2_dest))
+```
+
+
+<img src="https://sebastiansauer.github.io/images/2017-10-12/unnamed-chunk-3-1.png" title="plot of chunk unnamed-chunk-3" alt="plot of chunk unnamed-chunk-3" width="40%" style="display: block; margin: auto;" />
+
+This works, it produces two plots from png files side by side.
+
+# Two plots side-by-side the knitr way. Does not work.
+
+But what about the standard knitr way?
+
+
+```{r eval = TRUE}
+knitr::include_graphics(c(png1_path,png2_path))
+```
+
+<!-- <img src=""https://sebastiansauer.github.io/images/2017-10-12/img1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" width="30%" style="display: block; margin: auto;" /> -->
+<!-- <img src=""https://sebastiansauer.github.io/images/2017-10-12/img2.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" width="30%" style="display: block; margin: auto;" /> -->
+
+Does not work.
+
+Maybe with only one value for `out.width?`?
+
+
+```{r}
+knitr::include_graphics(c(png1_dest, png2_dest))
+```
+
+<img src="https://sebastiansauer.github.io/images/2017-10-12/img1.png" title="plot of chunk unnamed-chunk-5" alt="plot of chunk unnamed-chunk-5" width="30%" style="display: block; margin: auto;" /><img src="https://sebastiansauer.github.io/images/2017-10-12/img2.png" title="plot of chunk unnamed-chunk-5" alt="plot of chunk unnamed-chunk-5" width="30%" style="display: block; margin: auto;" />
+
+
+
+Nope. Does not work.
+
+
+Does not work either, despite [some saying so](http://www.zevross.com/blog/2017/06/19/tips-and-tricks-for-working-with-images-and-figures-in-r-markdown-documents/).
+
+
+Maybe two times `include_graphics`?
+
+
+```{r eval = FALSE}
+imgs <- c(png1_dest, png2_dest)
+imgs
+#> [1] "https://sebastiansauer.github.io/images/2017-10-12/img1.png"
+#> [2] "https://sebastiansauer.github.io/images/2017-10-12/img2.png"
+
+knitr::include_graphics(png1_dest);  knitr::include_graphics(png2_dest)
+```
+
+<img src="https://sebastiansauer.github.io/images/2017-10-12/img1.png" title="plot of chunk unnamed-chunk-6" alt="plot of chunk unnamed-chunk-6" width="20%" style="display: block; margin: auto;" /><img src="https://sebastiansauer.github.io/images/2017-10-12/img2.png" title="plot of chunk unnamed-chunk-6" alt="plot of chunk unnamed-chunk-6" width="20%" style="display: block; margin: auto;" />
+
+
+# An insight why `include_graphics` fails
+
+No avail. Looking at the html code in the md-file which is produced by the knitr -call shows one interesting point: all this version of `include_graphics` produce the same code. And all have this `style="display: block; margin: auto;"` part in it. That obviously created problems. I am unsure who to convince `include_graphics` to divorce from this argument. I tried some versions of the chunk argument `fig.show = hold`, but to no avail.
+
+
+
+# It works with the right chunk options
+
+
+To get the two images side by side (next to each other/ in a row), two options must be set
+
+- the total width of the images must not exeed the maximum width
+- the images should be shown after all codes is executed, ie., the images must be "held"
+
+
+See this code snippet:
+
+
+````
+```{r out.width='30%', fig.show='hold'}`r ''`
+knitr::include_graphics(c(png1_path, png2_path))
+```
+````
+
+
+
+```{r out.width='30%', fig.show='hold'}
+knitr::include_graphics(c(png1_path, png2_path))
+```
+
+
+# Plain markdown works, too
+
+Try this code
+```![](https://sebastiansauer.github.io/images/2017-10-12/img1.png){ width=30% } ![](https://sebastiansauer.github.io/images/2017-10-12/img2.png){ width=40% }
+```
+The two commands `![]...` need not appear in one row. However, no new paragraph may separate them (no blank line between, otherwise the images will appear one below the other).
+
+![](https://sebastiansauer.github.io/images/2017-10-12/img1.png){ width=30% }
+![](https://sebastiansauer.github.io/images/2017-10-12/img2.png){ width=40% }
+
+Works. But the markdown way does not give the fill comfort and power. So, that's not quite perfect.
+
+
+
