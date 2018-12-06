@@ -1,0 +1,131 @@
+---
+title: Coercing an index over a character vector
+author: ''
+date: '2018-12-06'
+slug: coercing-an-index-over-a-character-vector
+categories:
+  - rstats
+tags:
+  - rstats
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+
+
+```{r knitr-steup, echo = FALSE}
+
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp =   .618,
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+
+Assume we have a vector (of type character) such as countries, names, or products. Each element is allowed to show up multiple times. Further assume that there is a rather large number of unique (different) elements. What we would like to achieve is to give each element a unique ID, where the ID ranges from 1 to k (k is the number of different elements).
+
+
+Of course there are different ways to achieve this goal, we'll explore one or two.
+
+
+```{r}
+library(tidyverse)
+```
+
+
+```{r}
+data(tips, package = "reshape2")
+head(tips) %>% 
+  knitr::kable()
+```
+
+Say, `day` is the vector of interest. How many different values are there?
+
+```{r}
+unique(tips$day) %>% length()
+```
+
+Not too many, but for the sake of the example that's okay.
+
+
+# Way 1 - via factors
+
+What' the the type of this variable?
+
+```{r}
+tips$day %>% class()
+```
+
+`factor`. That's good. If it were not, we should transform it to factor:
+
+```{r}
+tips$day <- factor(tips$day)
+```
+
+The trick is simple: Convert the factor to numeric. Due to the way factor variables are stored under the hood, it's very simple to convert them to an index. The underlying reason is that factors are actually stored by the index of the different values (plus the label of each element).
+
+```{r}
+tips$day_ix <- as.numeric(tips$day)
+```
+
+
+Let's check:
+
+```{r}
+tips$day
+tips$day_ix
+```
+
+
+Looks good.
+
+
+# Way 2 - via a join
+
+
+```{r}
+tips$day %>% unique()
+```
+
+Get the levels as a data frame:
+
+```{r}
+levels_df <- data_frame(
+  id = 1 : length(tips$day %>% unique()),
+  levels = tips$day %>% unique()
+)
+levels_df
+```
+
+
+Now join:
+
+```{r}
+tips2 <-tips %>% 
+  full_join(levels_df, by = c("day" = "levels"))
+```
+
+```{r}
+tips2$day
+tips2$id
+```
+
+The ordering is different here (but could easily be fixed), but this way is also useful.
+
+
+# Debrief
+
+Coercing an index over an character of factor vector is quite straight forward and may be useful in some situation.
