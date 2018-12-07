@@ -1,0 +1,91 @@
+---
+title: Applying a function to each row of a data frame
+author: ''
+date: '2018-12-07'
+slug: applying-a-function-to-each-row-of-a-data-frame
+categories:
+  - rstats
+tags:
+  - rstats
+  - tidyverse
+editor_options: 
+  chunk_output_type: console
+---
+
+
+A typical and quite straight forward operation in R and the tidyverse is to apply a function on each column of a data frame (or on each element of a list, which is the same for that regard).
+
+However, the orthogonal question of "how to apply a function on each *row*" is much less laboured. We will look at this question in this post, and explore some (of many) answers to this question.
+
+A typical operation could be to compute the row sums of some variables.
+
+
+# Setup
+
+```{r}
+data(mtcars)
+library(tidyverse)
+library(purrrlyr)
+
+d <- mtcars %>% 
+  select(1:3) %>% 
+  head()
+```
+
+
+# Using `rowSums()` and friends
+
+
+For typical rowwise operations such as mean or sums there are some simple and wellknown functions in base R.
+
+```{r}
+d %>% 
+  mutate(sum_per_row = rowSums(.),
+         avg_per_row = rowMeans(.))
+```
+
+
+# Using `apply()`
+
+A quite general approach is to use the `apply()` family of base R.
+
+```{r}
+d %>% 
+  mutate(avg_per_row = apply(X = d, MARGIN = 1, FUN = mean))
+```
+
+
+
+# Using `rowwise()` from dplyr
+
+
+`rowwise()` is a function from dplyr that groups the dataframe rowwise, that is each row is a group.
+
+
+```{r}
+d %>% 
+  rowwise() %>% 
+  mutate(avg_per_row = mean(c(mpg, cyl, disp)))
+```
+
+
+One disadvange of this appraoch is that the relevant variables (such as `mpg`, `cyl`, `disp`) cannot be referred to using the dot notation.
+
+
+# Using `by_row` from purrrlyr
+
+`by_row()` applies a function rowwise, hence "by row". However, it expects a list (or data frmae) as input.
+
+```{r}
+d %>% 
+  purrrlyr::by_row(lift_vl(mean), .collate = "cols")
+```
+
+
+`lift_vl()` lifts the input of a function from "v" to "list" (hence "vl"). `.collate` is used to determine the output format; default is a list-column. `"cols"` provides columns as outputs.
+
+
+# Debrief
+
+Of course, a data frame could be transposed by the `t()` function, and then the typical column oriented functions could be applied. However, this procedure does seem to exercise too much brute force on the data frame. It seems (to me) much more natural to tell the computer to "apply the function to each row", essentially parallel to the (much more common) idiom of applying a function to each column. Under the hood the technical fabric of the data frame limits the (lower level) functions, sure enough, but from a more high level perspective, it is desirable to clearly state what the machine should work out without gymnastics due to the technical setup of the machine.
+
