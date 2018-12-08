@@ -13,9 +13,34 @@ editor_options:
 ---
 
 
+
+
+
+```{r knitr-steup, echo = FALSE}
+
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp =   .618,
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+
+
+
 A typical and quite straight forward operation in R and the tidyverse is to apply a function on each column of a data frame (or on each element of a list, which is the same for that regard).
 
-However, the orthogonal question of "how to apply a function on each *row*" is much less laboured. We will look at this question in this post, and explore some (of many) answers to this question.
+However, the orthogonal question of "how to apply a function on each *row*" is much less labored. We will look at this question in this post, and explore some (of many) answers to this question.
 
 A typical operation could be to compute the row sums of some variables.
 
@@ -36,12 +61,21 @@ d <- mtcars %>%
 # Using `rowSums()` and friends
 
 
-For typical rowwise operations such as mean or sums there are some simple and wellknown functions in base R.
+For typical row wise operations such as mean or sums there are some simple and well-known functions in base R.
 
 ```{r}
 d %>% 
   mutate(sum_per_row = rowSums(.),
          avg_per_row = rowMeans(.))
+```
+
+
+The choice of columns could be curated in the typical tidyverse way:
+
+
+```{r}
+d %>% 
+  mutate(avg_per_row = rowMeans(select(., 1,2,3)))
 ```
 
 
@@ -59,7 +93,7 @@ d %>%
 # Using `rowwise()` from dplyr
 
 
-`rowwise()` is a function from dplyr that groups the dataframe rowwise, that is each row is a group.
+`rowwise()` is a function from dplyr that groups the data-frame row-wise, that is each row is a group.
 
 
 ```{r}
@@ -69,12 +103,12 @@ d %>%
 ```
 
 
-One disadvange of this appraoch is that the relevant variables (such as `mpg`, `cyl`, `disp`) cannot be referred to using the dot notation.
+One disadvantage of this approach is that the relevant variables (such as `mpg`, `cyl`, `disp`) cannot be (easily) referred to using the dot notation.
 
 
 # Using `by_row` from purrrlyr
 
-`by_row()` applies a function rowwise, hence "by row". However, it expects a list (or data frmae) as input.
+`by_row()` applies a function row-wise, hence "by row". However, it expects a list (or data frame) as input.
 
 ```{r}
 d %>% 
@@ -85,7 +119,60 @@ d %>%
 `lift_vl()` lifts the input of a function from "v" to "list" (hence "vl"). `.collate` is used to determine the output format; default is a list-column. `"cols"` provides columns as outputs.
 
 
+# Using `pmap()` from purrr
+
+
+This is maybe the most abstract approach but with some beauty.
+
+```{r}
+d %>% 
+  mutate(avg_per_row = pmap(d, lift_vd(mean)))
+```
+
+`pmap()` cycles through p vectors in parallel (hence *p*map), that means, it reads the first element from vector 1, and the first element of vector 2, the first element of vector 3 and so on. The resulting vector is then mapped to the chosen function, here `mean()`. However, `mean()` is a function that expects a vector-valued input (v). That's why we need to "lift" its domain to except a variable number of inputs, ie., dots (d). `lift_vd()` does this job. 
+
+From the help page `mean()`:
+
+>    `mean(x, ...)`
+
+
+`mean()` takes a vector as its primary data input. In contrast, `sum()` accepts dots:
+
+>    `sum(..., na.rm = FALSE)`
+
+That's why sum does not need to be lifted when used with `pmap()`.
+
+```{r}
+d %>% 
+  mutate(avg_per_row = pmap(d, sum))
+```
+
+
+
+# And the winner is ... `pmap()`
+
+To me, `pmap()` is the most elegant approach, because it is the most general, and it avoids strange acrobatics.
+
+It's quite cool that the columns (list elements) to be considered for `pmap()` can be considered quite easily:
+
+
+```{r}
+d %>% 
+  mutate(avg_per_row = pmap(list(mpg, cyl), lift_vd(mean)))
+```
+
+Synonymously:
+
+```{r}
+d %>% 
+  mutate(avg_per_row = pmap(select(., mpg, cyl), lift_vd(mean)))
+```
+
+
+
 # Debrief
 
 Of course, a data frame could be transposed by the `t()` function, and then the typical column oriented functions could be applied. However, this procedure does seem to exercise too much brute force on the data frame. It seems (to me) much more natural to tell the computer to "apply the function to each row", essentially parallel to the (much more common) idiom of applying a function to each column. Under the hood the technical fabric of the data frame limits the (lower level) functions, sure enough, but from a more high level perspective, it is desirable to clearly state what the machine should work out without gymnastics due to the technical setup of the machine.
+
+There are a number of great resources on that stuff out there. Check out [Jenny Bryan's talk](https://speakerdeck.com/jennybc/row-oriented-workflows-in-r-with-the-tidyverse). Again, Jenny Bryan has [this great tutorial](https://github.com/jennybc/row-oriented-workflows/blob/master/ex09_row-summaries.md) out there on row-y work using the tidyverse techniques.
 

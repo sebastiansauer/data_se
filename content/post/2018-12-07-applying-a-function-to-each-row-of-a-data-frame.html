@@ -1,0 +1,163 @@
+---
+title: Applying a function to each row of a data frame
+author: ''
+date: '2018-12-07'
+slug: applying-a-function-to-each-row-of-a-data-frame
+categories:
+  - rstats
+tags:
+  - rstats
+  - tidyverse
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+<p>A typical and quite straight forward operation in R and the tidyverse is to apply a function on each column of a data frame (or on each element of a list, which is the same for that regard).</p>
+<p>However, the orthogonal question of “how to apply a function on each <em>row</em>” is much less labored. We will look at this question in this post, and explore some (of many) answers to this question.</p>
+<p>A typical operation could be to compute the row sums of some variables.</p>
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>data(mtcars)
+library(tidyverse)
+library(purrrlyr)
+
+d &lt;- mtcars %&gt;% 
+  select(1:3) %&gt;% 
+  head()</code></pre>
+</div>
+<div id="using-rowsums-and-friends" class="section level1">
+<h1>Using <code>rowSums()</code> and friends</h1>
+<p>For typical row wise operations such as mean or sums there are some simple and well-known functions in base R.</p>
+<pre class="r"><code>d %&gt;% 
+  mutate(sum_per_row = rowSums(.),
+         avg_per_row = rowMeans(.))
+#&gt;    mpg cyl disp sum_per_row avg_per_row
+#&gt; 1 21.0   6  160       187.0    62.33333
+#&gt; 2 21.0   6  160       187.0    62.33333
+#&gt; 3 22.8   4  108       134.8    44.93333
+#&gt; 4 21.4   6  258       285.4    95.13333
+#&gt; 5 18.7   8  360       386.7   128.90000
+#&gt; 6 18.1   6  225       249.1    83.03333</code></pre>
+<p>The choice of columns could be curated in the typical tidyverse way:</p>
+<pre class="r"><code>d %&gt;% 
+  mutate(avg_per_row = rowMeans(select(., 1,2,3)))
+#&gt;    mpg cyl disp avg_per_row
+#&gt; 1 21.0   6  160    62.33333
+#&gt; 2 21.0   6  160    62.33333
+#&gt; 3 22.8   4  108    44.93333
+#&gt; 4 21.4   6  258    95.13333
+#&gt; 5 18.7   8  360   128.90000
+#&gt; 6 18.1   6  225    83.03333</code></pre>
+</div>
+<div id="using-apply" class="section level1">
+<h1>Using <code>apply()</code></h1>
+<p>A quite general approach is to use the <code>apply()</code> family of base R.</p>
+<pre class="r"><code>d %&gt;% 
+  mutate(avg_per_row = apply(X = d, MARGIN = 1, FUN = mean))
+#&gt;    mpg cyl disp avg_per_row
+#&gt; 1 21.0   6  160    62.33333
+#&gt; 2 21.0   6  160    62.33333
+#&gt; 3 22.8   4  108    44.93333
+#&gt; 4 21.4   6  258    95.13333
+#&gt; 5 18.7   8  360   128.90000
+#&gt; 6 18.1   6  225    83.03333</code></pre>
+</div>
+<div id="using-rowwise-from-dplyr" class="section level1">
+<h1>Using <code>rowwise()</code> from dplyr</h1>
+<p><code>rowwise()</code> is a function from dplyr that groups the data-frame row-wise, that is each row is a group.</p>
+<pre class="r"><code>d %&gt;% 
+  rowwise() %&gt;% 
+  mutate(avg_per_row = mean(c(mpg, cyl, disp)))
+#&gt; Source: local data frame [6 x 4]
+#&gt; Groups: &lt;by row&gt;
+#&gt; 
+#&gt; # A tibble: 6 x 4
+#&gt;     mpg   cyl  disp avg_per_row
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;       &lt;dbl&gt;
+#&gt; 1  21       6   160        62.3
+#&gt; 2  21       6   160        62.3
+#&gt; 3  22.8     4   108        44.9
+#&gt; 4  21.4     6   258        95.1
+#&gt; 5  18.7     8   360       129. 
+#&gt; 6  18.1     6   225        83.0</code></pre>
+<p>One disadvantage of this approach is that the relevant variables (such as <code>mpg</code>, <code>cyl</code>, <code>disp</code>) cannot be (easily) referred to using the dot notation.</p>
+</div>
+<div id="using-by_row-from-purrrlyr" class="section level1">
+<h1>Using <code>by_row</code> from purrrlyr</h1>
+<p><code>by_row()</code> applies a function row-wise, hence “by row”. However, it expects a list (or data frame) as input.</p>
+<pre class="r"><code>d %&gt;% 
+  purrrlyr::by_row(lift_vl(mean), .collate = &quot;cols&quot;)
+#&gt; # tibble [6 × 4]
+#&gt;     mpg   cyl  disp  .out
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1  21       6   160  62.3
+#&gt; 2  21       6   160  62.3
+#&gt; 3  22.8     4   108  44.9
+#&gt; 4  21.4     6   258  95.1
+#&gt; 5  18.7     8   360 129. 
+#&gt; 6  18.1     6   225  83.0</code></pre>
+<p><code>lift_vl()</code> lifts the input of a function from “v” to “list” (hence “vl”). <code>.collate</code> is used to determine the output format; default is a list-column. <code>"cols"</code> provides columns as outputs.</p>
+</div>
+<div id="using-pmap-from-purrr" class="section level1">
+<h1>Using <code>pmap()</code> from purrr</h1>
+<p>This is maybe the most abstract approach but with some beauty.</p>
+<pre class="r"><code>d %&gt;% 
+  mutate(avg_per_row = pmap(d, lift_vd(mean)))
+#&gt;    mpg cyl disp avg_per_row
+#&gt; 1 21.0   6  160    62.33333
+#&gt; 2 21.0   6  160    62.33333
+#&gt; 3 22.8   4  108    44.93333
+#&gt; 4 21.4   6  258    95.13333
+#&gt; 5 18.7   8  360       128.9
+#&gt; 6 18.1   6  225    83.03333</code></pre>
+<p><code>pmap()</code> cycles through p vectors in parallel (hence <em>p</em>map), that means, it reads the first element from vector 1, and the first element of vector 2, the first element of vector 3 and so on. The resulting vector is then mapped to the chosen function, here <code>mean()</code>. However, <code>mean()</code> is a function that expects a vector-valued input (v). That’s why we need to “lift” its domain to except a variable number of inputs, ie., dots (d). <code>lift_vd()</code> does this job.</p>
+<p>From the help page <code>mean()</code>:</p>
+<blockquote>
+<p><code>mean(x, ...)</code></p>
+</blockquote>
+<p><code>mean()</code> takes a vector as its primary data input. In contrast, <code>sum()</code> accepts dots:</p>
+<blockquote>
+<p><code>sum(..., na.rm = FALSE)</code></p>
+</blockquote>
+<p>That’s why sum does not need to be lifted when used with <code>pmap()</code>.</p>
+<pre class="r"><code>d %&gt;% 
+  mutate(avg_per_row = pmap(d, sum))
+#&gt;    mpg cyl disp avg_per_row
+#&gt; 1 21.0   6  160         187
+#&gt; 2 21.0   6  160         187
+#&gt; 3 22.8   4  108       134.8
+#&gt; 4 21.4   6  258       285.4
+#&gt; 5 18.7   8  360       386.7
+#&gt; 6 18.1   6  225       249.1</code></pre>
+</div>
+<div id="and-the-winner-is-pmap" class="section level1">
+<h1>And the winner is … <code>pmap()</code></h1>
+<p>To me, <code>pmap()</code> is the most elegant approach, because it is the most general, and it avoids strange acrobatics.</p>
+<p>It’s quite cool that the columns (list elements) to be considered for <code>pmap()</code> can be considered quite easily:</p>
+<pre class="r"><code>d %&gt;% 
+  mutate(avg_per_row = pmap(list(mpg, cyl), lift_vd(mean)))
+#&gt;    mpg cyl disp avg_per_row
+#&gt; 1 21.0   6  160        13.5
+#&gt; 2 21.0   6  160        13.5
+#&gt; 3 22.8   4  108        13.4
+#&gt; 4 21.4   6  258        13.7
+#&gt; 5 18.7   8  360       13.35
+#&gt; 6 18.1   6  225       12.05</code></pre>
+<p>Synonymously:</p>
+<pre class="r"><code>d %&gt;% 
+  mutate(avg_per_row = pmap(select(., mpg, cyl), lift_vd(mean)))
+#&gt;    mpg cyl disp avg_per_row
+#&gt; 1 21.0   6  160        13.5
+#&gt; 2 21.0   6  160        13.5
+#&gt; 3 22.8   4  108        13.4
+#&gt; 4 21.4   6  258        13.7
+#&gt; 5 18.7   8  360       13.35
+#&gt; 6 18.1   6  225       12.05</code></pre>
+</div>
+<div id="debrief" class="section level1">
+<h1>Debrief</h1>
+<p>Of course, a data frame could be transposed by the <code>t()</code> function, and then the typical column oriented functions could be applied. However, this procedure does seem to exercise too much brute force on the data frame. It seems (to me) much more natural to tell the computer to “apply the function to each row”, essentially parallel to the (much more common) idiom of applying a function to each column. Under the hood the technical fabric of the data frame limits the (lower level) functions, sure enough, but from a more high level perspective, it is desirable to clearly state what the machine should work out without gymnastics due to the technical setup of the machine.</p>
+<p>There are a number of great resources on that stuff out there. Check out <a href="https://speakerdeck.com/jennybc/row-oriented-workflows-in-r-with-the-tidyverse">Jenny Bryan’s talk</a>. Again, Jenny Bryan has <a href="https://github.com/jennybc/row-oriented-workflows/blob/master/ex09_row-summaries.md">this great tutorial</a> out there on row-y work using the tidyverse techniques.</p>
+</div>
