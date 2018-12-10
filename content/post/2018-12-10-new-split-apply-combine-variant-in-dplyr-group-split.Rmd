@@ -1,0 +1,251 @@
+---
+title: 'New split-apply-combine variant in dplyr: group_split()'
+author: ''
+date: '2018-12-10'
+slug: new-split-apply-combine-variant-in-dplyr-group-split
+categories:
+  - rstats
+tags: []
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+There are many approaches for what is called the "split-apply-combine" approach (see [this paper](https://www.jstatsoft.org/article/view/v040i01/v40i01.pdf) by Hadley Wickham).
+
+
+I recently thought about the best approach to use split-apply-combine approaches in R (see [tweet](https://twitter.com/sauer_sebastian/status/1071511342220222465), and this [post](https://data-se.netlify.com/2018/12/05/plot-many-ggplot-diagrams-using-nest-and-map/)):
+
+
+And I retweeted some criticism on the "present era" tidyverse approach (see [this tweet](https://twitter.com/sauer_sebastian/status/1071511342220222465)). 
+
+```{r echo = FALSE}
+blogdown::shortcode('tweet', "1071511342220222465")
+```
+
+
+
+Then, Erich Neuwirth (`@neuwirthe`) informed me on Twitter, that there's a new idiom in `purrr()` (as of version 0.8.0) that might come as a remedy: `split_group()`. This post explore some of the uses of this idiom.
+
+
+```{r echo = FALSE}
+blogdown::shortcode('tweet', "1071538348387377152")
+```
+
+
+---
+
+Thanks, Erich!
+
+`r emo::ji("thumbsup")`
+
+---
+
+
+
+
+First, load the tidyverse packages (that is, dplyr, for our purposes):
+
+```{r}
+library(tidyverse)
+library(broom)
+```
+
+Mind that I run this version of dplyr (loaded from github on 2018-12-10):
+
+```{r}
+packageVersion("dplyr")
+```
+
+
+
+# The typical tidyverse approach for split-apply-combine
+
+
+The typical tidyverse approach is the following:
+```{r}
+mtcars %>% 
+  group_by(cyl) %>% 
+  summarise(hp_mean = mean(hp))
+```
+
+Contrast to the overall mean:
+
+```{r}
+mtcars %>% 
+  summarise(mean(hp))
+```
+
+
+# Using `list()` in `summarise()` does NOT convey the grouping
+
+This approach works fine unless one wants to apply a more complex function to each group. "Complex" refers to a function that yields back more than one number, such as `lm()`.
+
+One might hope that the following works:
+
+
+```{r}
+d <- mtcars %>% 
+  group_by(cyl) %>% 
+  summarise(hp_mean = list(tidy(lm(hp ~ 1, data  = .))))
+
+d
+```
+
+This gives what is called a "list column" in tidyverse parlance. To "unpack" or "unnest" this list column use `unnest()`. Notice that this only works if the list column is "tidy", that is, if it can be unpacked to a data frame like structure.
+
+
+```{r}
+d %>% 
+  unnest()
+```
+
+
+However, the summarize function did apparently **not** consider the grouping.
+
+
+
+# Using `split()` and `map()`
+
+
+A more "purrr-ish" approach is this:
+
+```{r}
+mtcars %>% 
+  split(.$cyl) %>% 
+  map( ~ tidy(lm(hp ~ 1, data = .))) %>% 
+  map_dfc("estimate")
+```
+
+
+Works. But.
+
+This approach is different to the dplyr approach, mainly because the grouping idiom of dplyr does not work here (and `split(.$cyl)` looks not very consistent to the tidyverse code).
+
+
+
+# Using `group_by()` and `nest()`ed list-columns
+
+
+List columns do work when used with `group_by()` and `mutate()`:
+
+
+```{r}
+
+apply_lm <- function(df){
+      tidy(lm(data = df, hp ~ 1))      
+}
+
+d <- mtcars %>% 
+  group_by(cyl) %>% 
+  nest() %>% 
+  mutate(hp_mean = purrr::map(.f = apply_lm, . = data)) 
+d
+```
+
+
+Let's see what's in the list columns:
+
+```{r}
+d %>% 
+  unnest(hp_mean)
+```
+
+
+
+# Using `group_split()`
+
+
+Since recently dplyr features `group_split()` (still experimental as of this writing).
+
+The idea of this function is to convey the grouping information from `group_by()` to `split()`.
+
+```{r}
+mtcars %>% 
+  group_by(cyl) %>% 
+  group_split() %>% 
+  map_dfr(~lm(hp ~ 1, data = .) %>% tidy())
+```
+
+When the data frame is ungrouped, `group_split()` can be used to group it:
+
+```{r}
+mtcars %>% 
+  group_split(cyl) %>% 
+  map_dfr(~lm(hp ~ 1, data = .) %>% tidy())
+```
+
+
+# Join model results back to full (raw data) data frame
+
+This dataset could now joined with the initial data:
+
+
+```{r}
+mtcars %>% 
+  group_split(cyl) %>% 
+  map_dfr(~lm(hp ~ 1, data = .) %>% tidy()) %>%
+  mutate(group = mtcars %>% group_keys(cyl) %>% pull(cyl)) %>% 
+  full_join(mtcars, by = c("group" = "cyl"))
+```
+
+Of course, the join builds a lot of duplicated data which can be a waste.
+
+
+
+# One wish remains open  - Adding columns using `group_slit()`
+
+
+However, at the moment at least, I do not see a convenient way to add columns to a existing data frame (e.g., add the estimate) via this approach:
+
+
+```{r error = TRUE}
+mtcars %>%
+  mutate(hp_mean = group_split(., cyl) %>% map(~lm(hp ~ 1, data = .) %>% tidy() %>% map("estimate")))
+  
+```
+
+
+
+
+The error tells us that the nested version seems more reasonable:
+
+
+```{r}
+mtcars %>% 
+  group_by(cyl) %>%
+  nest() %>% 
+  mutate(hp_mean = map(.f = apply_lm, .x = data)) %>% 
+  unnest(hp_mean)
+```
+
+Individual columns can also be extracted using `map()` followed by the name of the element:
+
+```{r}
+mtcars %>% 
+  group_by(cyl) %>%
+  nest() %>% 
+  mutate(hp_mean = map(apply_lm, .x = data)) %>% 
+  mutate(hp_est = map_dbl("estimate", .x = hp_mean))
+```
+
+
+# The same without externally defined function
+
+It may be more direct to define the function for `map()` right within `mutate()`:
+
+```{r}
+mtcars %>% 
+  group_by(cyl) %>%
+  nest() %>% 
+  mutate(hp_lm = map( ~ lm(hp ~ 1, data = .) %>% tidy(), .x = data)) %>% 
+  mutate(hp_mean = map_dbl("estimate", .x = hp_lm))
+```
+
+
+
+# Debrief
+
+
+`split_groups()` is a new function (as of today) which provides some remedy for split-apply-combine actions within the tidyverse. 

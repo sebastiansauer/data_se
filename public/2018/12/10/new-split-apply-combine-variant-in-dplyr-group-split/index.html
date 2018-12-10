@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.52" />
+
+
+<title>New split-apply-combine variant in dplyr: group_split() - Data Se</title>
+<meta property="og:title" content="New split-apply-combine variant in dplyr: group_split() - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">7 min read</span>
+    
+
+    <h1 class="article-title">New split-apply-combine variant in dplyr: group_split()</h1>
+
+    
+    <span class="article-date">2018/12/10</span>
+    
+
+    <div class="article-content">
+      
+
+
+<p>There are many approaches for what is called the “split-apply-combine” approach (see <a href="https://www.jstatsoft.org/article/view/v040i01/v40i01.pdf">this paper</a> by Hadley Wickham).</p>
+<p>I recently thought about the best approach to use split-apply-combine approaches in R (see <a href="https://twitter.com/sauer_sebastian/status/1071511342220222465">tweet</a>, and this <a href="https://data-se.netlify.com/2018/12/05/plot-many-ggplot-diagrams-using-nest-and-map/">post</a>):</p>
+<p>And I retweeted some criticism on the “present era” tidyverse approach (see <a href="https://twitter.com/sauer_sebastian/status/1071511342220222465">this tweet</a>).</p>
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">Nice wrap-up on different Split-Apply-Combine methods in <a href="https://twitter.com/hashtag/rstats?src=hash&amp;ref_src=twsrc%5Etfw">#rstats</a>. Spoiler: <a href="https://twitter.com/hashtag/tidyverse?src=hash&amp;ref_src=twsrc%5Etfw">#tidyverse</a> way loses. <a href="https://t.co/QGZOxxcTwJ">https://t.co/QGZOxxcTwJ</a></p>&mdash; Sebastian Sauer (@sauer_sebastian) <a href="https://twitter.com/sauer_sebastian/status/1071511342220222465?ref_src=twsrc%5Etfw">December 8, 2018</a></blockquote>
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+<p>Then, Erich Neuwirth (<code>@neuwirthe</code>) informed me on Twitter, that there’s a new idiom in <code>purrr()</code> (as of version 0.8.0) that might come as a remedy: <code>split_group()</code>. This post explore some of the uses of this idiom.</p>
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">dplyr 0.8.0 (github only) has group_split. Does that offer a reasonable solution?</p>&mdash; Erich Neuwirth (@neuwirthe) <a href="https://twitter.com/neuwirthe/status/1071538348387377152?ref_src=twsrc%5Etfw">December 8, 2018</a></blockquote>
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+<hr />
+<p>Thanks, Erich!</p>
+<p>👍</p>
+<hr />
+<p>First, load the tidyverse packages (that is, dplyr, for our purposes):</p>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## ── Attaching packages ──────────────────────────────────────────── tidyverse 1.2.1 ──</code></pre>
+<pre><code>## ✔ ggplot2 3.1.0           ✔ purrr   0.2.5      
+## ✔ tibble  1.4.2           ✔ dplyr   0.7.99.9000
+## ✔ tidyr   0.8.2           ✔ stringr 1.3.1      
+## ✔ readr   1.2.1           ✔ forcats 0.3.0</code></pre>
+<pre><code>## ── Conflicts ─────────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>library(broom)</code></pre>
+<p>Mind that I run this version of dplyr (loaded from github on 2018-12-10):</p>
+<pre class="r"><code>packageVersion(&quot;dplyr&quot;)</code></pre>
+<pre><code>## [1] &#39;0.7.99.9000&#39;</code></pre>
+<div id="the-typical-tidyverse-approach-for-split-apply-combine" class="section level1">
+<h1>The typical tidyverse approach for split-apply-combine</h1>
+<p>The typical tidyverse approach is the following:</p>
+<pre class="r"><code>mtcars %&gt;% 
+  group_by(cyl) %&gt;% 
+  summarise(hp_mean = mean(hp))</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##     cyl hp_mean
+##   &lt;dbl&gt;   &lt;dbl&gt;
+## 1     4    82.6
+## 2     6   122. 
+## 3     8   209.</code></pre>
+<p>Contrast to the overall mean:</p>
+<pre class="r"><code>mtcars %&gt;% 
+  summarise(mean(hp))</code></pre>
+<pre><code>##   mean(hp)
+## 1 146.6875</code></pre>
+</div>
+<div id="using-list-in-summarise-does-not-convey-the-grouping" class="section level1">
+<h1>Using <code>list()</code> in <code>summarise()</code> does NOT convey the grouping</h1>
+<p>This approach works fine unless one wants to apply a more complex function to each group. “Complex” refers to a function that yields back more than one number, such as <code>lm()</code>.</p>
+<p>One might hope that the following works:</p>
+<pre class="r"><code>d &lt;- mtcars %&gt;% 
+  group_by(cyl) %&gt;% 
+  summarise(hp_mean = list(tidy(lm(hp ~ 1, data  = .))))
+
+d</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##     cyl hp_mean         
+##   &lt;dbl&gt; &lt;list&gt;          
+## 1     4 &lt;tibble [1 × 5]&gt;
+## 2     6 &lt;tibble [1 × 5]&gt;
+## 3     8 &lt;tibble [1 × 5]&gt;</code></pre>
+<p>This gives what is called a “list column” in tidyverse parlance. To “unpack” or “unnest” this list column use <code>unnest()</code>. Notice that this only works if the list column is “tidy”, that is, if it can be unpacked to a data frame like structure.</p>
+<pre class="r"><code>d %&gt;% 
+  unnest()</code></pre>
+<pre><code>## # A tibble: 3 x 6
+##     cyl term        estimate std.error statistic  p.value
+##   &lt;dbl&gt; &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+## 1     4 (Intercept)     147.      12.1      12.1 2.79e-13
+## 2     6 (Intercept)     147.      12.1      12.1 2.79e-13
+## 3     8 (Intercept)     147.      12.1      12.1 2.79e-13</code></pre>
+<p>However, the summarize function did apparently <strong>not</strong> consider the grouping.</p>
+</div>
+<div id="using-split-and-map" class="section level1">
+<h1>Using <code>split()</code> and <code>map()</code></h1>
+<p>A more “purrr-ish” approach is this:</p>
+<pre class="r"><code>mtcars %&gt;% 
+  split(.$cyl) %&gt;% 
+  map( ~ tidy(lm(hp ~ 1, data = .))) %&gt;% 
+  map_dfc(&quot;estimate&quot;)</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##     `4`   `6`   `8`
+##   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1  82.6  122.  209.</code></pre>
+<p>Works. But.</p>
+<p>This approach is different to the dplyr approach, mainly because the grouping idiom of dplyr does not work here (and <code>split(.$cyl)</code> looks not very consistent to the tidyverse code).</p>
+</div>
+<div id="using-group_by-and-nested-list-columns" class="section level1">
+<h1>Using <code>group_by()</code> and <code>nest()</code>ed list-columns</h1>
+<p>List columns do work when used with <code>group_by()</code> and <code>mutate()</code>:</p>
+<pre class="r"><code>apply_lm &lt;- function(df){
+      tidy(lm(data = df, hp ~ 1))      
+}
+
+d &lt;- mtcars %&gt;% 
+  group_by(cyl) %&gt;% 
+  nest() %&gt;% 
+  mutate(hp_mean = purrr::map(.f = apply_lm, . = data)) 
+d</code></pre>
+<pre><code>## # A tibble: 3 x 3
+##     cyl data               hp_mean         
+##   &lt;dbl&gt; &lt;list&gt;             &lt;list&gt;          
+## 1     6 &lt;tibble [7 × 10]&gt;  &lt;tibble [1 × 5]&gt;
+## 2     4 &lt;tibble [11 × 10]&gt; &lt;tibble [1 × 5]&gt;
+## 3     8 &lt;tibble [14 × 10]&gt; &lt;tibble [1 × 5]&gt;</code></pre>
+<p>Let’s see what’s in the list columns:</p>
+<pre class="r"><code>d %&gt;% 
+  unnest(hp_mean)</code></pre>
+<pre><code>## # A tibble: 3 x 7
+##     cyl data            term      estimate std.error statistic     p.value
+##   &lt;dbl&gt; &lt;list&gt;          &lt;chr&gt;        &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;       &lt;dbl&gt;
+## 1     6 &lt;tibble [7 × 1… (Interce…    122.       9.17      13.3     1.10e-5
+## 2     4 &lt;tibble [11 × … (Interce…     82.6      6.31      13.1     1.28e-7
+## 3     8 &lt;tibble [14 × … (Interce…    209.      13.6       15.4     1.03e-9</code></pre>
+</div>
+<div id="using-group_split" class="section level1">
+<h1>Using <code>group_split()</code></h1>
+<p>Since recently dplyr features <code>group_split()</code> (still experimental as of this writing).</p>
+<p>The idea of this function is to convey the grouping information from <code>group_by()</code> to <code>split()</code>.</p>
+<pre class="r"><code>mtcars %&gt;% 
+  group_by(cyl) %&gt;% 
+  group_split() %&gt;% 
+  map_dfr(~lm(hp ~ 1, data = .) %&gt;% tidy())</code></pre>
+<pre><code>## # A tibble: 3 x 5
+##   term        estimate std.error statistic       p.value
+##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;         &lt;dbl&gt;
+## 1 (Intercept)     82.6      6.31      13.1 0.000000128  
+## 2 (Intercept)    122.       9.17      13.3 0.0000110    
+## 3 (Intercept)    209.      13.6       15.4 0.00000000103</code></pre>
+<p>When the data frame is ungrouped, <code>group_split()</code> can be used to group it:</p>
+<pre class="r"><code>mtcars %&gt;% 
+  group_split(cyl) %&gt;% 
+  map_dfr(~lm(hp ~ 1, data = .) %&gt;% tidy())</code></pre>
+<pre><code>## # A tibble: 3 x 5
+##   term        estimate std.error statistic       p.value
+##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;         &lt;dbl&gt;
+## 1 (Intercept)     82.6      6.31      13.1 0.000000128  
+## 2 (Intercept)    122.       9.17      13.3 0.0000110    
+## 3 (Intercept)    209.      13.6       15.4 0.00000000103</code></pre>
+</div>
+<div id="join-model-results-back-to-full-raw-data-data-frame" class="section level1">
+<h1>Join model results back to full (raw data) data frame</h1>
+<p>This dataset could now joined with the initial data:</p>
+<pre class="r"><code>mtcars %&gt;% 
+  group_split(cyl) %&gt;% 
+  map_dfr(~lm(hp ~ 1, data = .) %&gt;% tidy()) %&gt;%
+  mutate(group = mtcars %&gt;% group_keys(cyl) %&gt;% pull(cyl)) %&gt;% 
+  full_join(mtcars, by = c(&quot;group&quot; = &quot;cyl&quot;))</code></pre>
+<pre><code>## # A tibble: 32 x 16
+##    term  estimate std.error statistic p.value group   mpg  disp    hp  drat
+##    &lt;chr&gt;    &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1 (Int…     82.6      6.31      13.1 1.28e-7     4  22.8 108      93  3.85
+##  2 (Int…     82.6      6.31      13.1 1.28e-7     4  24.4 147.     62  3.69
+##  3 (Int…     82.6      6.31      13.1 1.28e-7     4  22.8 141.     95  3.92
+##  4 (Int…     82.6      6.31      13.1 1.28e-7     4  32.4  78.7    66  4.08
+##  5 (Int…     82.6      6.31      13.1 1.28e-7     4  30.4  75.7    52  4.93
+##  6 (Int…     82.6      6.31      13.1 1.28e-7     4  33.9  71.1    65  4.22
+##  7 (Int…     82.6      6.31      13.1 1.28e-7     4  21.5 120.     97  3.7 
+##  8 (Int…     82.6      6.31      13.1 1.28e-7     4  27.3  79      66  4.08
+##  9 (Int…     82.6      6.31      13.1 1.28e-7     4  26   120.     91  4.43
+## 10 (Int…     82.6      6.31      13.1 1.28e-7     4  30.4  95.1   113  3.77
+## # ... with 22 more rows, and 6 more variables: wt &lt;dbl&gt;, qsec &lt;dbl&gt;,
+## #   vs &lt;dbl&gt;, am &lt;dbl&gt;, gear &lt;dbl&gt;, carb &lt;dbl&gt;</code></pre>
+<p>Of course, the join builds a lot of duplicated data which can be a waste.</p>
+</div>
+<div id="one-wish-remains-open---adding-columns-using-group_slit" class="section level1">
+<h1>One wish remains open - Adding columns using <code>group_slit()</code></h1>
+<p>However, at the moment at least, I do not see a convenient way to add columns to a existing data frame (e.g., add the estimate) via this approach:</p>
+<pre class="r"><code>mtcars %&gt;%
+  mutate(hp_mean = group_split(., cyl) %&gt;% map(~lm(hp ~ 1, data = .) %&gt;% tidy() %&gt;% map(&quot;estimate&quot;)))</code></pre>
+<pre><code>## Error: Column `hp_mean` must be length 32 (the number of rows) or one, not 3</code></pre>
+<p>The error tells us that the nested version seems more reasonable:</p>
+<pre class="r"><code>mtcars %&gt;% 
+  group_by(cyl) %&gt;%
+  nest() %&gt;% 
+  mutate(hp_mean = map(.f = apply_lm, .x = data)) %&gt;% 
+  unnest(hp_mean)</code></pre>
+<pre><code>## # A tibble: 3 x 7
+##     cyl data            term      estimate std.error statistic     p.value
+##   &lt;dbl&gt; &lt;list&gt;          &lt;chr&gt;        &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;       &lt;dbl&gt;
+## 1     6 &lt;tibble [7 × 1… (Interce…    122.       9.17      13.3     1.10e-5
+## 2     4 &lt;tibble [11 × … (Interce…     82.6      6.31      13.1     1.28e-7
+## 3     8 &lt;tibble [14 × … (Interce…    209.      13.6       15.4     1.03e-9</code></pre>
+<p>Individual columns can also be extracted using <code>map()</code> followed by the name of the element:</p>
+<pre class="r"><code>mtcars %&gt;% 
+  group_by(cyl) %&gt;%
+  nest() %&gt;% 
+  mutate(hp_mean = map(apply_lm, .x = data)) %&gt;% 
+  mutate(hp_est = map_dbl(&quot;estimate&quot;, .x = hp_mean))</code></pre>
+<pre><code>## # A tibble: 3 x 4
+##     cyl data               hp_mean          hp_est
+##   &lt;dbl&gt; &lt;list&gt;             &lt;list&gt;            &lt;dbl&gt;
+## 1     6 &lt;tibble [7 × 10]&gt;  &lt;tibble [1 × 5]&gt;  122. 
+## 2     4 &lt;tibble [11 × 10]&gt; &lt;tibble [1 × 5]&gt;   82.6
+## 3     8 &lt;tibble [14 × 10]&gt; &lt;tibble [1 × 5]&gt;  209.</code></pre>
+</div>
+<div id="the-same-without-externally-defined-function" class="section level1">
+<h1>The same without externally defined function</h1>
+<p>It may be more direct to define the function for <code>map()</code> right within <code>mutate()</code>:</p>
+<pre class="r"><code>mtcars %&gt;% 
+  group_by(cyl) %&gt;%
+  nest() %&gt;% 
+  mutate(hp_lm = map( ~ lm(hp ~ 1, data = .) %&gt;% tidy(), .x = data)) %&gt;% 
+  mutate(hp_mean = map_dbl(&quot;estimate&quot;, .x = hp_lm))</code></pre>
+<pre><code>## # A tibble: 3 x 4
+##     cyl data               hp_lm            hp_mean
+##   &lt;dbl&gt; &lt;list&gt;             &lt;list&gt;             &lt;dbl&gt;
+## 1     6 &lt;tibble [7 × 10]&gt;  &lt;tibble [1 × 5]&gt;   122. 
+## 2     4 &lt;tibble [11 × 10]&gt; &lt;tibble [1 × 5]&gt;    82.6
+## 3     8 &lt;tibble [14 × 10]&gt; &lt;tibble [1 × 5]&gt;   209.</code></pre>
+</div>
+<div id="debrief" class="section level1">
+<h1>Debrief</h1>
+<p><code>split_groups()</code> is a new function (as of today) which provides some remedy for split-apply-combine actions within the tidyverse.</p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+
