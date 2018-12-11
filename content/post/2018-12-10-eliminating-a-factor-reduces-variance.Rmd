@@ -1,0 +1,150 @@
+---
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+\\---
+title: Eliminating a factor reduces variance
+author: ''
+date: '2018-12-10'
+slug: eliminating-a-factor-reduces-variance
+draft: TRUE
+categories:
+  - rstats
+tags:
+  - tutorial
+  - plotting
+---
+
+
+A well known measure to reduce variability and increase power in experimental (and observational) research design is to eliminate a factor that may influence the outcome variable.
+
+"Eliminating" a factor means, by and above, to hold it constant.
+
+Consider the following example. Say, an experiment is performed with two groups, and the experimental groups shows higher values than the control group. Assume, conly male subjects were selected for this experiment. More formally:
+
+
+$$y_{i | G=e, S=m} \sim N(1, 1) \\
+  y_{i | G=c, S=m} \sim N(0, 1) \\$$
+  
+  
+Here, $e$ refers to the experimental group and $c$ to the control group; $f$ ($m$) denotes females (males).
+
+Now suppose in onother trials of the same experiment, only females were selected, and the distributions are as follows:
+
+
+$$y_{i | G=e, S=f} \sim N(2, 1) \\
+  y_{i | G=c, S=f} \sim N(1, 1) \\$$
+  
+
+That is, one SD higher compared to men.
+
+First, we simulate the data in R:
+
+```{r message = FALSE}
+library(tidyverse)
+```
+
+
+```{r}
+n <- 1e05
+set.seed(42)
+d <- data_frame(
+  e_m = rnorm(n = n, mean = 1, sd = 1),
+  c_m = rnorm(n = n, mean = 0, sd = 1),
+  e_f = rnorm(n = n, mean = 2, sd= 1),
+  c_f = rnorm(n = n, mean= 1, sd = 1)
+)
+```
+
+Change this "wide" format to "long" format (i.e., tidy format).
+
+```{r}
+d_long <- 
+  d %>% 
+  gather(key = group, value = value) %>% 
+  separate(col = group, c("exp", "sex"))
+```
+
+
+```{r}
+d_no_group <-
+  d_long %>% 
+  select(value)
+```
+
+
+
+Now let's plot. First, as density:
+
+
+```{r}
+d_long %>% 
+  ggplot(aes(x = value)) +
+  facet_grid(~sex) +
+  geom_density(data = d_no_group, alpha = .3, fill = "grey20") +
+  geom_density(aes(color = exp)) 
+```
+
+
+Similarly, as boxplot:
+
+```{r}
+d_long %>% 
+  ggplot(aes(x = exp, y = value, fill = exp)) +
+  facet_grid(~sex) +
+  geom_boxplot()
+```
+
+
+As can be seen, the *ungrouped* dataframe has a larger variability compared to the individual groups.
+
+```{r}
+d_no_group %>% 
+  ggplot(aes(x = value)) +
+  geom_density()
+```
+
+
+```{r}
+d_no_group %>% 
+  ggplot(aes(x = "all", y = value)) +
+  geom_boxplot()
+```
+
+
+Let's check the figures exactly. SDs for the individual groups:
+
+
+```{r}
+d_long %>% 
+  group_by(sex, exp) %>% 
+  summarise(sd(value))
+```
+
+
+For the whole, ungrouped data:
+
+
+```{r}
+d_long %>% 
+  summarise(sd(value))
+```
+
+And for the "half" grouped data (ie., only one grouping variable):
+
+
+```{r}
+d_long %>% 
+  group_by(sex) %>% 
+  summarise(sd(value))
+```
+
+
+
+```{r}
+d_long %>% 
+  group_by(exp) %>% 
+  summarise(sd(value))
+```
+
