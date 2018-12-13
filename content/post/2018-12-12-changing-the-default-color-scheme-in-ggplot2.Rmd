@@ -15,6 +15,13 @@ editor_options:
 ---
 
 
+---
+
+UPDATE: see update below based on comments from [@nmarkgraf](https://disqus.com/by/nmarkgraf/?utm_source=reply&utm_medium=email&utm_content=comment_author).
+
+---
+
+
 The default color scheme in ggplot2 is suitable for many purposes, but, for instance, it is not suitable for b/w printing, and maybe not suitable for persons with limited color perception.
 
 Of course, it is straightforward to edit the color scheme for one given plot. But how to change the default color scheme in ggplot2?
@@ -198,6 +205,96 @@ ggplot(tips) +
 
 
 Works sufficiently well.
+
+
+
+```{r}
+library(mosaic)
+mosaic::CIAdata() 
+```
+
+
+# UPDATE
+
+This is an update triggered by comments from [@nmarkgraf](https://disqus.com/by/nmarkgraf/?utm_source=reply&utm_medium=email&utm_content=comment_author).
+
+
+
+## Bar graph
+
+Let's try a bargraph differentiating counts per group.
+
+```{r}
+ggplot(tips) +
+  aes(x = day, fill = day) +
+  geom_bar()
+```
+
+
+Upps, we need to define the new content of `scale_fill_discrete()`:
+
+```{r}
+scale_fill_discrete <- function(...) {
+   scale_fill_manual(..., values = viridis_qualitative_pal7)
+} 
+```
+
+
+Let's try it.
+
+```{r}
+ggplot(tips) +
+  aes(x = day, fill = day) +
+  geom_bar()
+```
+
+
+Works.
+
+
+Thanks, [@nmarkgraf](https://disqus.com/by/nmarkgraf/?utm_source=reply&utm_medium=email&utm_content=comment_author) for pointing out!
+
+
+Alternatively, using the geom `col`:
+
+
+```{r}
+tips %>% 
+  count(day) %>% 
+  ggplot() +
+    aes(x = day, y = n, fill = day) +
+    geom_col()
+```
+
+
+Works.
+
+
+
+## Violin plots
+
+Let's map `day` to `fill`:
+
+```{r}
+ggplot(tips) +
+  aes(x = day, y = tip, fill = day) +
+  geom_violin()
+```
+
+Works.
+
+
+And now let's map `day` to `color`:
+
+```{r}
+ggplot(tips) +
+  aes(x = day, y = tip, color = day) +
+  geom_violin()
+```
+
+Works.
+
+
 
 
 
