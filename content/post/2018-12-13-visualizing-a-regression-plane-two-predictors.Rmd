@@ -1,0 +1,125 @@
+---
+title: Visualizing a regression plane (two predictors)
+author: ''
+date: '2018-12-13'
+draft: FALSE
+slug: visualizing-a-regression-plane-two-predictors
+categories:
+  - rstats
+tags:
+  - rstats
+  - plotting
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+Plotting a "simple" regression (one regression) is pretty straight forward in R.
+
+
+# Setup
+
+```{r message = FALSE}
+library(tidyverse)
+data(mtcars)
+library(mosaic)
+library(modelr)
+library(plotly)
+```
+
+# Define model
+
+
+```{r}
+lm1 <- lm(mpg ~ hp, data = mtcars)
+
+mtcars <- mtcars %>% 
+  mutate(lm1_pred = predict(lm1))
+```
+
+
+# Plot
+
+One way:
+
+```{r}
+ggplot(mtcars) +
+  aes(y = mpg, x = hp) +
+  geom_point() +
+  geom_lm()
+```
+
+
+Another way:
+
+```{r}
+ggplot(mtcars) +
+  aes(x = hp) +
+  geom_point(aes(y = mpg)) +
+  geom_point(aes(y = lm1_pred), color = "blue") +
+  geom_line(aes(y = lm1_pred), color = "blue")
+```
+
+
+Using  the `ggformula` interface to `ggplot2`:
+
+
+```{r}
+gf_point(mpg ~ hp, data = mtcars) %>% 
+  gf_lm()
+```
+
+
+
+# 3D scatterplot with regression plane
+
+## Define model with two predictors
+
+```{r}
+lm2 <- lm(mpg ~ hp  + wt, data = mtcars)
+
+mtcars <- 
+  mtcars %>% 
+  mutate(lm2_pred = predict(lm2))
+```
+
+
+
+## Plot with plotly
+
+
+Define prediction grid as the cartesian product of (the unique values of) weight and hp.
+
+```{r}
+wts <- unique(mtcars$wt)
+hps <- unique(mtcars$hp)
+
+wts <- seq(min(mtcars$wt), max(mtcars$wt), length.out = 25)
+hps <- seq(min(mtcars$hp), max(mtcars$hp), length.out = 25)
+
+pred_grid <- expand.grid(wts, hps) %>% 
+  rename(wt = Var1,
+         hp = Var2) %>% 
+  add_predictions(lm2)
+```
+
+Plotly needs the prediction data in matrix form.
+
+
+```{r}
+pred_mx <- matrix(pred_grid$pred,
+                  ncol = 25,
+                  nrow = 25)
+```
+
+
+And plot it:
+
+```{r}
+plot_ly() %>% add_surface(x = ~ 1:5, 
+                          y = ~ 50:300, 
+                          z = ~ pred_mx
+                          )
+```
+

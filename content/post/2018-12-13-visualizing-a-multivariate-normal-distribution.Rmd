@@ -1,0 +1,183 @@
+---
+title: Visualizing a multivariate normal distribution
+author: ''
+date: '2018-12-13'
+slug: visualizing-a-multivariate-normal-distribution
+draft: FALSE
+categories:
+  - rstats
+tags:
+  - plotting
+editor_options: 
+  chunk_output_type: console
+---
+
+
+In R, it is quite straight forward to plot a normal distribution, eg., using the package `ggplot2` or plotly.
+
+# Setup
+
+```{r message = FALSE}
+library(tidyverse)
+library(mvtnorm)
+library(plotly)
+library(MASS)
+```
+
+
+
+
+# Simulate multivariate normal data
+
+First, let's define a covariance matrix $\Sigma$:
+
+```{r}
+sigma <- matrix(c(4,2,2,3), ncol = 2)
+sigma
+```
+
+Then, simulate observations n = `n` from these covariance matrix; the means need be defined, too. As the rank of our covariance matrix is 2, we need two means:
+
+```{r}
+means <- c(0, 0)
+n <- 1000
+```
+
+
+
+```{r}
+set.seed(42)
+x <- rmvnorm(n = n, mean = means, sigma = sigma)
+```
+
+
+What's the structure of `x`?
+
+```{r}
+str(x)
+```
+
+Let's make a data frame out of it:
+
+```{r}
+d <- data.frame(x)
+names(d)
+```
+
+
+Now, let's plot.
+
+# Plotting
+
+## Plotting univariate (sampled) normal data
+
+Well, that's obvious.
+
+```{r}
+d %>% 
+  ggplot(aes(x = X1)) +
+  geom_density()
+```
+
+
+### Plot theoretic normal curve
+
+
+```{r}
+p1 <- data_frame(x = -3:3) %>% 
+  ggplot(aes(x = x)) +
+  stat_function(fun = dnorm, n = n)
+
+p1
+```
+
+
+### Interactive version of normal curve
+
+```{r}
+ggplotly(p1)
+```
+
+## Plotting multivariate data
+
+
+### 2D density
+
+```{r}
+p2 <- ggplot(d, aes(x = X1, y = X2)) +
+  geom_point(alpha = .5) +
+  geom_density_2d()
+
+p2
+```
+
+### Same with plotly
+
+```{r}
+ggplotly(p2)
+```
+
+
+### Geom binhex
+
+
+```{r}
+p3 <- ggplot(d, aes(x = X1, y = X2)) +
+  geom_point(alpha = .5) +
+  geom_bin2d() +
+  scale_fill_viridis_c()
+
+p3
+```
+
+
+### 2D histogram (heatmap) with plotly
+
+```{r}
+(p <- plot_ly(d, x = ~X1, y = ~X2))
+
+add_histogram2d(p)
+
+```
+
+### 2D cntour with plotly
+
+```{r}
+add_histogram2dcontour(p)
+```
+
+
+## 3D plot
+
+#### Surface
+
+```{r}
+dens <- kde2d(d$X1, d$X2)
+
+plot_ly(x = dens$x,
+        y = dens$y,
+        z = dens$z) %>% add_surface()
+```
+
+### 3D Scatter
+
+
+First, compute the density of each (X1, X2) pair.
+
+```{r}
+d$dens <- dmvnorm(x = d)
+```
+
+
+Now plot a point for each (X1, X2, dens) tuple.
+
+
+```{r}
+p4 <- plot_ly(d, x = ~ X1, y = ~ X2, z = ~ dens,
+              marker = list(color = ~ dens,
+                            showscale = TRUE)) %>% 
+  add_markers()
+
+p4
+```
+
