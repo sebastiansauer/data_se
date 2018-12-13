@@ -1,0 +1,203 @@
+---
+title: Changing the default color scheme in ggplot2
+author: ''
+date: '2018-12-12'
+slug: changing-the-default-color-scheme-in-ggplot2
+draft: TRUE
+categories:
+  - rstats
+tags:
+  - tidyverse
+  - plot
+  - ggplot2
+editor_options: 
+  chunk_output_type: console
+---
+
+
+The default color scheme in ggplot2 is suitable for many purposes, but, for instance, it is not suitable for b/w printing, and maybe not suitable for persons with limited color perception.
+
+Of course, it is straightforward to edit the color scheme for one given plot. But how to change the default color scheme in ggplot2?
+
+As it turns out, there are some helpful ways to address that -- Kudos to @ben-bolker who helped me out on [this Stackoverflow post](https://stackoverflow.com/questions/53750310/how-to-change-default-color-scheme-in-ggplot2/53750568#53750568).
+
+
+Assume that we would like to use Viridis color scheme, because that's nice for black-white printing and it works for people suffering from color blindness according to this source.
+
+
+>    The viridis scales provide colour maps that are perceptually uniform in both colour and black-and-white. They are also designed to be perceived by viewers with common forms of colour blindness. See also https://bids.github.io/colormap/.
+
+
+# Setup
+
+```{r message = FALSE}
+library(tidyverse)
+library(viridis)
+library(scales)
+
+data(mtcars)
+```
+
+
+# Continuous scales
+
+We have to differentiate between continuous and discrete scales. Let's start with the former.
+
+There are two option settings for continuous color and fill used by ggplot2:
+
+```{r}
+opts <- options()  # save old options
+
+options(ggplot2.continuous.colour="viridis")
+options(ggplot2.continuous.fill = "viridis")
+```
+
+Let's try it out.
+
+
+```{r}
+ggplot(data = mtcars, aes(x = hp, y = mpg, color = wt )) + 
+  geom_point()
+```
+
+
+Works!
+
+We can also map a discrete variable (such as `am`) to a continuous color scheme, without too much harm:
+
+```{r}
+ggplot(data = mtcars, aes(x = hp, y = mpg, color = am )) + 
+  geom_point()
+```
+
+
+Of course, the legend does reveal that we have used a continuous mapping where a discrete mapping would be preferable.
+
+
+
+
+
+
+
+# Discrete scales, way 1
+
+
+It appears that there's no option we can call for discrete values. One reason may be that ggplot2 uses viridis as a default for ordered factors. So what we do is to define the color mapping variables as an ordered factor.
+
+
+```{r}
+mtcars$am_f <- ordered(mtcars$am)
+```
+
+
+Now we plot again:
+
+```{r}
+ggplot(data = mtcars, aes(x = hp, y = mpg, color = am_f)) + 
+  geom_point()
+```
+
+
+Works.
+
+# Discrete scales, way 2
+
+
+Another option is to redefine `scale_color_discrete()` which is apparently silently called by each ggplot call.
+
+
+
+```{r}
+scale_colour_discrete <- function(...) {
+  scale_colour_manual(..., values = viridis::viridis(2))
+}
+```
+
+
+Let's take another color mapping variable for the sake of demonstration.
+
+```{r}
+ggplot(data = mtcars, aes(x = hp, y = mpg, color = factor(vs))) + 
+  geom_point()
+```
+
+
+
+Works. But.
+
+
+The downside of this approach is that we have to define the numbers of different colors upfront. This is a strong limitation. Consider the case that we would have defined 7 colors upfront.
+
+
+
+```{r}
+scale_colour_discrete <- function(...) {
+  scale_colour_manual(..., values = viridis::viridis(7))
+}
+```
+
+
+That's these ones:
+
+```{r}
+show_col(viridis_pal()(7))
+```
+
+
+
+Now plot that:
+
+```{r}
+ggplot(data = mtcars, aes(x = hp, y = mpg, color = factor(vs))) +
+  geom_point()
+```
+
+
+As can be seen, color #1 and #2 are selected. We would have needed that the first and the last color in this array would had been chosen.
+
+
+# Discrete scales, way 3 (Work around for way 2)
+
+
+What we can do, of course, is to pick and choose and our own values. We can take a glimpse at the hex values from viridis, of course:
+
+```{r}
+viridis_pal()(7)
+```
+
+
+Now, we take #1, then #7, then #2, and so on, yielding:
+
+
+```{r}
+viridis_qualitative_pal7 <- c("#440154FF", "#FDE725FF", "#443A83FF", 
+                              "#8FD744FF", "#31688EFF",  "#35B779FF", 
+                              "#21908CFF")
+```
+
+These values are now plugged into `scale_color_manual()`:
+
+
+```{r}
+scale_colour_discrete <- function(...) {
+  scale_colour_manual(..., values = viridis_qualitative_pal7)
+}
+```
+
+
+Let's take some other dataset for the sake of demonstration:
+
+
+```{r}
+data(tips, package = "reshape2")
+
+ggplot(tips) +
+  aes(x = total_bill, y = tip, color = day) + 
+  geom_point()
+```
+
+
+Works sufficiently well.
+
+
+
