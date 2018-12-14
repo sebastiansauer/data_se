@@ -10,6 +10,14 @@ editor_options:
   chunk_output_type: console
 ---
 
+
+---
+
+UPDATE 2018-12-13: Based on a comment from @nmarkgraf, I added a section on how to export diagrammeR diagrams.
+
+---
+
+
 Here are some examples of diagrams build with DiagrammeR:
 
 ```{r knitr-steup, echo = FALSE}
@@ -29,35 +37,43 @@ knitr::opts_chunk$set(
 )
 ```
 
+# Setup
 
 ```{r}
 library(tidyverse)
 library(DiagrammeR)
+library(DiagrammeRsvg)
+library(magick)
 ```
 
 
+# DiagrammeR using `grViz()`
+
+Define the graph:
 
 ```{r eval = TRUE}
-grViz("
-digraph boxes_and_circles {
+g1 <- "digraph boxes_and_circles {
       graph [layout = circo,
              overlap = true]
-
       node [shape = circle,
             fixedsize = true,
             fontname = Helvetica,
             width = 1]
       Problem; Plan; Data; Analysis; Conclusion
-      
-
+    
       edge [color = grey]      
       Problem -> Plan
       Plan -> Data
       Data -> Analysis
       Analysis -> Conclusion
       Conclusion -> Problem
-      }
-      ")
+      }"
+```
+
+Print it to the screen:
+
+```{r}
+grViz(g1)
 ```
 
 
@@ -65,5 +81,50 @@ digraph boxes_and_circles {
 <!-- ![](/post/2018-11-07-simple-examples-with-diagrammer_files/diagrammer1.png) -->
 
 This diagram is inspired by Figure 1 from the paper of [Wild and Pfannkuch, 1999](https://www.stat.auckland.ac.nz/~iase/publications/isr/99.Wild.Pfannkuch.pdf).
+
+# Convert to SVG
+
+SVG is an xml based markup language for defining 2D vector images [see Wikipedia](https://en.wikipedia.org/wiki/Scalable_Vector_Graphics).
+
+[GraphViz](https://www.graphviz.org/) can be described as follows:
+
+>    Graphviz is open source graph visualization software. Graph visualization is a way of representing structural information as diagrams of abstract graphs and networks. It has important applications in networking, bioinformatics,  software engineering, database and web design, machine learning, and in visual interfaces for other technical domains. 
+
+(taken from the link above)
+
+
+We can convert from GraphViz to SVG using this function:
+
+
+```{r}
+svg <- grViz(g1) %>% export_svg() 
+```
+
+Save this SVG markup as a text file, and your browser will display it.
+
+
+```{r eval = FALSE}
+fileConn<-file("graph.svg")
+writeLines(svg, fileConn)
+close(fileConn)
+```
+
+
+
+# Convert SVG to PNG
+
+
+There are a number of programs to convert from one image format to another. Image Magick is a popular tool (see [this post](https://stackoverflow.com/questions/9853325/how-to-convert-a-svg-to-a-png-with-image-magick/26048343) for some discussion and problems).
+
+Within R, one can call Image Magick, one can call IM using the `magick` package (see [here](https://cran.r-project.org/web/packages/magick/vignettes/intro.html)).
+
+
+
+```{r eval = FALSE}
+img_svg <- image_read_svg('graph.svg', width = 400)
+img_png <- image_convert(img_svg, "png")
+image_write(img_png, path = "graph.png", format = "png")
+```
+
 
 
