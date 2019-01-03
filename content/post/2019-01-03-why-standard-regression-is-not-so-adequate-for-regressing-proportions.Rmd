@@ -1,0 +1,257 @@
+---
+title: Why standard regression is not (so) adequate for regressing proportions
+author: Sebastian Sauer
+date: '2019-01-03'
+slug: why-standard-regression-is-not-so-adequate-for-regressing-proportions
+categories:
+  - rstats
+tags: [tutorial]
+editor_options: 
+  chunk_output_type: console
+---
+
+
+# Intro
+
+Professor Sweet is conducting some research to investigate the risk factor and drivers of student exam success. In a recent analysis he considers the variable "exam sucessfully passed" (vs. not passed) as the criterion (output) and the amount of time spent for preparation (aka study time) as predictor.
+
+
+```{r knitrsetup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp =  0.618ß,  #0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Setup
+
+```{r message = FALSE}
+data(stats_test, package = "pradadata")
+library(tidyverse)
+library(ggpubr)
+library(glue)
+library(ggExtra)
+library(broom)
+```
+
+
+
+Let's change some output formatting of ggplot (see [this post](https://data-se.netlify.com/2018/12/12/changing-the-default-color-scheme-in-ggplot2/) for details)
+
+```{r}
+options(ggplot2.continuous.colour="viridis")
+options(ggplot2.continuous.fill = "viridis")
+scale_colour_discrete <- scale_colour_viridis_d
+scale_fill_discrete <- scale_fill_viridis_d
+
+theme_set(theme_pubr())
+
+```
+
+
+# Glimpse
+
+First, Professor Sweet checks the univariate distribution of each variable of interest:
+
+```{r}
+stats_test <- stats_test %>% 
+  mutate_if(is.integer, as.numeric)
+
+glimpse(stats_test)
+```
+
+
+# Add some noise
+
+Let's add some noise to study time in order to adjust for measurement error:
+
+
+```{r}
+stats_test <- stats_test %>% 
+  mutate(study_time_noise = study_time + rnorm(n = nrow(.), 0,.5))
+```
+
+
+
+```{r}
+p1 <- stats_test %>% 
+  select(study_time_noise, score) %>% 
+  map2(., names(.), ~ggplot(data = data_frame(.x), aes(x = .x)) + 
+         labs(x = .y,
+              title = glue("Variable: {.y}")) + 
+         geom_histogram())
+
+print(p1)
+```
+
+
+
+# Bivariate association
+
+```{r}
+p2 <- ggplot(stats_test) +
+  aes(x = study_time_noise, y = score) +
+  geom_jitter(alpha = .5) +
+  geom_smooth() +
+  labs(title = "Bivariate association of study time \nand score")
+
+p3 <- ggMarginal(p2)
+p3
+```
+
+
+
+# Regression
+
+Now, Professor Sweet computes a simple regression. Curiously, he sits and watches what the software spits out. First, a visual sketch:
+
+```{r}
+stats_test %>% 
+  ggplot() +
+  aes(y = score, x = study_time_noise) +
+  geom_jitter(alpha = .5) +
+  geom_smooth(method = "lm")
+```
+
+
+
+Then he computes the actual regression:
+
+
+```{r}
+lm1 <- lm(score ~ study_time_noise, data = stats_test)
+  
+tidy(lm1)  
+```
+
+
+Compute the predicted values:
+
+```{r}
+stats_test <- stats_test %>% 
+  mutate(pred_lm1 = predict(lm1, newdata = stats_test))
+```
+
+
+Visual sketch:
+
+```{r}
+p4 <- stats_test %>% 
+  ggplot() +
+  aes(x = study_time_noise) +
+  geom_jitter(aes(y = score), alpha = .5) +
+  geom_line(aes(y = pred_lm1), color = "red", size = 5) +
+  labs(title = "Regression of exam score \nby study time")
+
+p4
+```
+
+
+
+But what would happen if study time was, say, 10?
+
+
+```{r}
+data_new <- data_frame(
+  study_time_noise = 0:10,
+  score = predict(lm1, newdata = data.frame(study_time_noise = 0:10))
+)
+```
+
+
+
+```{r}
+p5 <- ggplot(stats_test) +
+  aes(x = study_time_noise, y = score) +
+  geom_jitter(alpha = .5) +
+  geom_line(data = data_new, color = "red", size = 3) +
+  scale_x_continuous(limits = c(0,10)) +
+  scale_y_continuous(breaks = seq(0,1,.25)) +
+  labs(title = "Regression with high values \nof study time")
+
+
+p5
+```
+
+
+
+# Pause
+
+Now the exhausted professor sits and pauses in an attempt to conceive whats has been achieved.
+
+
+```{r}
+ggarrange(p3, p4, p5, labels = c("A", "B", "C"))
+```
+
+
+
+This approach may yield implausible score values, ie above 1. Clearly, a different approach is needed.
+
+
+
+# Sigmoid curve
+
+A simple alternative would be to replace to straight line by a sigmoid curve, such as in the following.
+
+This function computes it:
+
+```{r}
+glm1 <- glm(score ~ study_time_noise, data = stats_test, family = "binomial")
+```
+
+
+Add the according predicted values:
+
+```{r}
+stats_test <-  stats_test %>% 
+  mutate(pred_glm1 = predict(glm1, newdata = stats_test, type = "response"))
+```
+
+
+
+Plot the predicted values:
+
+
+```{r}
+df_glm <- data_frame(
+  study_time_noise = 0:10,
+  pred_glm1 = predict(glm1, 
+                      newdata = data.frame(study_time_noise = 0:10),
+                      type = "response")
+)
+```
+
+
+
+```{r}
+p6 <- ggplot(stats_test) +
+  aes(x = study_time_noise, y = score) +
+  geom_jitter(alpha = .5) +
+  labs(title = "Sigmoid regression line") + 
+  geom_line(data = df_glm, aes(y = pred_glm1), 
+               color = "red", size = 3)
+
+p6
+```
+
+
+
+
+# Pause again
+
+```{r}
+ggarrange(p3, p4, p5, p6, labels = c("A", "B", "C", "D"))
+```
+

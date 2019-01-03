@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.52" />
+
+
+<title>Why standard regression is not (so) adequate for regressing proportions - Data Se</title>
+<meta property="og:title" content="Why standard regression is not (so) adequate for regressing proportions - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">4 min read</span>
+    
+
+    <h1 class="article-title">Why standard regression is not (so) adequate for regressing proportions</h1>
+
+    
+    <span class="article-date">2019/01/03</span>
+    
+
+    <div class="article-content">
+      
+
+
+<div id="intro" class="section level1">
+<h1>Intro</h1>
+<p>Professor Sweet is conducting some research to investigate the risk factor and drivers of student exam success. In a recent analysis he considers the variable “exam sucessfully passed” (vs. not passed) as the criterion (output) and the amount of time spent for preparation (aka study time) as predictor.</p>
+</div>
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>data(stats_test, package = &quot;pradadata&quot;)
+library(tidyverse)
+library(ggpubr)
+library(glue)
+library(ggExtra)
+library(broom)</code></pre>
+<p>Let’s change some output formatting of ggplot (see <a href="https://data-se.netlify.com/2018/12/12/changing-the-default-color-scheme-in-ggplot2/">this post</a> for details)</p>
+<pre class="r"><code>options(ggplot2.continuous.colour=&quot;viridis&quot;)
+options(ggplot2.continuous.fill = &quot;viridis&quot;)
+scale_colour_discrete &lt;- scale_colour_viridis_d
+scale_fill_discrete &lt;- scale_fill_viridis_d
+
+theme_set(theme_pubr())</code></pre>
+</div>
+<div id="glimpse" class="section level1">
+<h1>Glimpse</h1>
+<p>First, Professor Sweet checks the univariate distribution of each variable of interest:</p>
+<pre class="r"><code>stats_test &lt;- stats_test %&gt;% 
+  mutate_if(is.integer, as.numeric)
+
+glimpse(stats_test)
+#&gt; Observations: 1,646
+#&gt; Variables: 7
+#&gt; $ date_time  &lt;chr&gt; &quot;08.12.2015 07:34:29&quot;, &quot;08.12.2015 12:46:49&quot;, &quot;08.1...
+#&gt; $ study_time &lt;dbl&gt; 3, 4, 3, 4, 2, 2, 4, 1, 3, 3, 2, 4, 3, 3, 3, 4, 4, ...
+#&gt; $ self_eval  &lt;dbl&gt; 7, 8, 4, 7, 6, 6, 6, 7, 8, 7, 8, 8, 7, 7, 4, 6, 8, ...
+#&gt; $ interest   &lt;dbl&gt; 4, 5, 1, 5, 3, 4, 3, 4, 5, 5, 3, 5, 4, 4, 1, 4, 5, ...
+#&gt; $ score      &lt;dbl&gt; 0.7500000, 0.8250000, 0.7894737, 0.8250000, 0.80000...
+#&gt; $ row_number &lt;dbl&gt; 21, 22, 23, 24, 25, 26, 28, 29, 30, 31, 32, 33, 34,...
+#&gt; $ bestanden  &lt;chr&gt; &quot;ja&quot;, &quot;ja&quot;, &quot;ja&quot;, &quot;ja&quot;, &quot;ja&quot;, &quot;ja&quot;, &quot;ja&quot;, &quot;ja&quot;, &quot;ja...</code></pre>
+</div>
+<div id="add-some-noise" class="section level1">
+<h1>Add some noise</h1>
+<p>Let’s add some noise to study time in order to adjust for measurement error:</p>
+<pre class="r"><code>stats_test &lt;- stats_test %&gt;% 
+  mutate(study_time_noise = study_time + rnorm(n = nrow(.), 0,.5))</code></pre>
+<pre class="r"><code>p1 &lt;- stats_test %&gt;% 
+  select(study_time_noise, score) %&gt;% 
+  map2(., names(.), ~ggplot(data = data_frame(.x), aes(x = .x)) + 
+         labs(x = .y,
+              title = glue(&quot;Variable: {.y}&quot;)) + 
+         geom_histogram())
+
+print(p1)
+#&gt; $study_time_noise
+#&gt; 
+#&gt; $score</code></pre>
+<p><img src="/post/2019-01-03-why-standard-regression-is-not-so-adequate-for-regressing-proportions_files/figure-html/unnamed-chunk-5-1.png" width="70%" style="display: block; margin: auto;" /><img src="/post/2019-01-03-why-standard-regression-is-not-so-adequate-for-regressing-proportions_files/figure-html/unnamed-chunk-5-2.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="bivariate-association" class="section level1">
+<h1>Bivariate association</h1>
+<pre class="r"><code>p2 &lt;- ggplot(stats_test) +
+  aes(x = study_time_noise, y = score) +
+  geom_jitter(alpha = .5) +
+  geom_smooth() +
+  labs(title = &quot;Bivariate association of study time \nand score&quot;)
+
+p3 &lt;- ggMarginal(p2)
+p3</code></pre>
+<p><img src="/post/2019-01-03-why-standard-regression-is-not-so-adequate-for-regressing-proportions_files/figure-html/unnamed-chunk-6-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="regression" class="section level1">
+<h1>Regression</h1>
+<p>Now, Professor Sweet computes a simple regression. Curiously, he sits and watches what the software spits out. First, a visual sketch:</p>
+<pre class="r"><code>stats_test %&gt;% 
+  ggplot() +
+  aes(y = score, x = study_time_noise) +
+  geom_jitter(alpha = .5) +
+  geom_smooth(method = &quot;lm&quot;)</code></pre>
+<p><img src="/post/2019-01-03-why-standard-regression-is-not-so-adequate-for-regressing-proportions_files/figure-html/unnamed-chunk-7-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Then he computes the actual regression:</p>
+<pre class="r"><code>lm1 &lt;- lm(score ~ study_time_noise, data = stats_test)
+  
+tidy(lm1)  
+#&gt; # A tibble: 2 x 5
+#&gt;   term             estimate std.error statistic  p.value
+#&gt;   &lt;chr&gt;               &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+#&gt; 1 (Intercept)        0.638    0.00835      76.5 0.      
+#&gt; 2 study_time_noise   0.0455   0.00267      17.0 4.45e-60</code></pre>
+<p>Compute the predicted values:</p>
+<pre class="r"><code>stats_test &lt;- stats_test %&gt;% 
+  mutate(pred_lm1 = predict(lm1, newdata = stats_test))</code></pre>
+<p>Visual sketch:</p>
+<pre class="r"><code>p4 &lt;- stats_test %&gt;% 
+  ggplot() +
+  aes(x = study_time_noise) +
+  geom_jitter(aes(y = score), alpha = .5) +
+  geom_line(aes(y = pred_lm1), color = &quot;red&quot;, size = 5) +
+  labs(title = &quot;Regression of exam score \nby study time&quot;)
+
+p4</code></pre>
+<p><img src="/post/2019-01-03-why-standard-regression-is-not-so-adequate-for-regressing-proportions_files/figure-html/unnamed-chunk-10-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>But what would happen if study time was, say, 10?</p>
+<pre class="r"><code>data_new &lt;- data_frame(
+  study_time_noise = 0:10,
+  score = predict(lm1, newdata = data.frame(study_time_noise = 0:10))
+)</code></pre>
+<pre class="r"><code>p5 &lt;- ggplot(stats_test) +
+  aes(x = study_time_noise, y = score) +
+  geom_jitter(alpha = .5) +
+  geom_line(data = data_new, color = &quot;red&quot;, size = 3) +
+  scale_x_continuous(limits = c(0,10)) +
+  scale_y_continuous(breaks = seq(0,1,.25)) +
+  labs(title = &quot;Regression with high values \nof study time&quot;)
+
+
+p5</code></pre>
+<p><img src="/post/2019-01-03-why-standard-regression-is-not-so-adequate-for-regressing-proportions_files/figure-html/unnamed-chunk-12-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="pause" class="section level1">
+<h1>Pause</h1>
+<p>Now the exhausted professor sits and pauses in an attempt to conceive whats has been achieved.</p>
+<pre class="r"><code>ggarrange(p3, p4, p5, labels = c(&quot;A&quot;, &quot;B&quot;, &quot;C&quot;))</code></pre>
+<p><img src="/post/2019-01-03-why-standard-regression-is-not-so-adequate-for-regressing-proportions_files/figure-html/unnamed-chunk-13-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>This approach may yield implausible score values, ie above 1. Clearly, a different approach is needed.</p>
+</div>
+<div id="sigmoid-curve" class="section level1">
+<h1>Sigmoid curve</h1>
+<p>A simple alternative would be to replace to straight line by a sigmoid curve, such as in the following.</p>
+<p>This function computes it:</p>
+<pre class="r"><code>glm1 &lt;- glm(score ~ study_time_noise, data = stats_test, family = &quot;binomial&quot;)</code></pre>
+<p>Add the according predicted values:</p>
+<pre class="r"><code>stats_test &lt;-  stats_test %&gt;% 
+  mutate(pred_glm1 = predict(glm1, newdata = stats_test, type = &quot;response&quot;))</code></pre>
+<p>Plot the predicted values:</p>
+<pre class="r"><code>df_glm &lt;- data_frame(
+  study_time_noise = 0:10,
+  pred_glm1 = predict(glm1, 
+                      newdata = data.frame(study_time_noise = 0:10),
+                      type = &quot;response&quot;)
+)</code></pre>
+<pre class="r"><code>p6 &lt;- ggplot(stats_test) +
+  aes(x = study_time_noise, y = score) +
+  geom_jitter(alpha = .5) +
+  labs(title = &quot;Sigmoid regression line&quot;) + 
+  geom_line(data = df_glm, aes(y = pred_glm1), 
+               color = &quot;red&quot;, size = 3)
+
+p6</code></pre>
+<p><img src="/post/2019-01-03-why-standard-regression-is-not-so-adequate-for-regressing-proportions_files/figure-html/unnamed-chunk-17-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="pause-again" class="section level1">
+<h1>Pause again</h1>
+<pre class="r"><code>ggarrange(p3, p4, p5, p6, labels = c(&quot;A&quot;, &quot;B&quot;, &quot;C&quot;, &quot;D&quot;))</code></pre>
+<p><img src="/post/2019-01-03-why-standard-regression-is-not-so-adequate-for-regressing-proportions_files/figure-html/unnamed-chunk-18-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+
