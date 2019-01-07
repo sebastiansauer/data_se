@@ -1,0 +1,206 @@
+---
+title: A short tutorial for the logistic regression
+author: Sebastian Sauer
+date: '2019-01-07'
+slug: a-short-tutorial-for-the-logistic-regression
+categories:
+  - rstats
+tags: [tutorial]
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+```{r echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp =  0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+Here's q quick walk-through for a logistic regression in R.
+
+# Setup
+
+```{r}
+library(tidyverse)
+library(reshape2)  # dataset "tips"
+library(caret)
+library(mosaic)
+```
+
+
+We'll use the `tips` dataset:
+
+```{r}
+data(tips)
+```
+
+
+# Research question
+
+Assume we would like to predict if a person is female based on some predictor such as the amount of tip she/he give.
+
+How many instances of each type of the outcome variable are in the data set?
+
+```{r}
+tally(~ sex, data = tips, format = "proportion")
+tally(~ sex, data = tips)
+
+```
+
+
+
+# Preparation
+
+It is helpful (but not mandatory) to have the outcome variable as binary, ie., of type 0/1.
+
+
+```{r}
+tips <- tips %>% 
+  mutate(sex_binary = case_when(
+    sex == "Female" ~ 1,
+    sex == "Male" ~ 0
+  ))
+```
+
+
+# Regression
+
+
+```{r}
+glm1 <- glm(sex_binary ~ tip, data = tips, 
+            family = "binomial")
+
+summary(glm1)
+```
+
+
+Let's compare the AIC to the null model:
+
+
+```{r}
+glm0 <- glm(sex_binary ~ 1, data = tips, 
+            family = "binomial")
+
+summary(glm0)
+```
+
+As can be seen, the AICs do *not* differ. Our model `glm1` is not better than the null model (`glm0`).
+
+
+There's no difference if we had used the factor variable version of `sex` instead:
+
+```{r}
+glm2 <- glm(sex ~ tip, data = tips,
+            family = "binomial")
+
+summary(glm2)
+```
+
+
+Apparently, our model did not work out. For the sake of explanation, let's try  different predictors:
+
+```{r}
+glm3 <- glm(sex ~ total_bill + time + smoker, 
+            data = tips,
+            family = "binomial")
+summary(glm3)
+```
+
+
+OK, that's better - at least the predictors appear to be of some use. Let's keep on working with this model (`glm3`).
+
+# Get predictions
+
+Let's get the predictions of the model:
+
+```{r}
+tips <- tips %>% 
+  mutate(glm3_prediction = predict(glm3, 
+                                    newdata = tips,
+                                    type = "response"))
+
+head(tips$glm3_prediction)
+```
+
+
+What the predict functions gives back, is the *probability* of being female. In other words, if `0` is surely a male, and `1` surely a woman, a value of say `0.30` can be interpreted as something like "likely a man".
+
+In order to distill the "male" vs. "female" verdict out of the probabilities, we need a rule that says something like "if the probability is greater than my threshold of, say, 0.50, than let's conclude it's a female, else we conclude it's a man."
+
+This can be achieved like this:
+
+```{r}
+tips <- tips %>% 
+  mutate(sex_predicted = case_when(
+    glm3_prediction > 0.5 ~ "Female",
+    glm3_prediction <= 0.5 ~ "Male")
+  )
+
+head(tips$sex_predicted)
+```
+
+
+# Check
+
+Let's see how many females and how many males our model predicts:
+
+```{r}
+tally(~ sex_predicted, data = tips)
+```
+
+
+What's the data type of our predicted data and the observed (outcome) data?`
+
+```{r}
+str(tips$sex)
+str(tips$sex_predicted)
+```
+
+
+Note that `tips$sex_predicted` is of type `character`. A later function will only digest factor variables, so let's change the type now:
+
+```{r}
+tips$sex_predicted <- factor(tips$sex_predicted)
+```
+
+
+
+# Confusion matrix
+
+There are a number of packages and functions available, but I find this one (from the package `caret`) handy:
+
+
+
+
+```{r}
+confusionMatrix(data = tips$sex, reference = tips$sex_predicted)
+```
+
+
+Our model is lousy; The no information rate is .72; our accuracy is much below. What's the "no information rate"? From the help page of  `confusionMatrix`:
+
+>     the "no information rate," which is taken to be the largest class percentage in the data.
+
+
+
+
+
+# Debrief
+
+That's only a very brief example on how to conduct a statistical classification. See [this post](https://www.hranalytics101.com/how-to-assess-model-accuracy-the-basics/) for a slightly more advanced example.
+
+
+
