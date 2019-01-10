@@ -1,0 +1,184 @@
+---
+title: Barplots with mosaic
+author: Sebastian Sauer
+date: '2019-01-10'
+slug: barplots-with-mosaic
+categories: []
+tags:
+  - rstats
+  - plotting
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+<p>Plotting barplots is a frequent endeavor for the analysis of qualitative data. Numerous methods for plotting barplots exist; the popular R package <code>mosaic</code> also provides methods.</p>
+<p>More recently, <code>mosaic</code> switched to a ggplot wrapper for plotting diagrams, that is <code>gf_XXX()</code>, packaged in <code>ggformula</code>. That implies that input data is expected to be tidy, because ggplot, a central member of the tidyverse, excepts its input data to be tidy.</p>
+<p>Let’s check an example.</p>
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>library(mosaic)
+data(tips, package = &quot;reshape2&quot;)</code></pre>
+</div>
+<div id="old-way-of-barplots-in-mosaic" class="section level1">
+<h1>Old way of barplots in mosaic</h1>
+<p>The “old” way of plotting barplots in mosaic was lattice based:</p>
+<pre class="r"><code>bargraph(~day, data = tips)</code></pre>
+<p><img src="/post/2019-01-10-barplots-with-mosaic_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+</div>
+<div id="tidyverse-simple" class="section level1">
+<h1>Tidyverse, simple</h1>
+<p>Here, the present day tidyverse style:</p>
+<pre class="r"><code>gf_bar( ~ day, data = tips)</code></pre>
+<p><img src="/post/2019-01-10-barplots-with-mosaic_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>That’s simple.</p>
+</div>
+<div id="more-complex-case-dplyr-style" class="section level1">
+<h1>More complex case, dplyr-style</h1>
+<p>Assume we are doing some analysis upfront, and we do it the dplyr way:</p>
+<pre class="r"><code>tips_count &lt;- tips %&gt;% 
+  filter(tip &gt; 2, day != &quot;Thu&quot;) %&gt;% 
+  count(day)
+
+tips_count</code></pre>
+<pre><code>## # A tibble: 4 x 2
+##   day       n
+##   &lt;fct&gt; &lt;int&gt;
+## 1 Fri      13
+## 2 Sat      60
+## 3 Sun      57
+## 4 Thur     36</code></pre>
+<p>That’s a tidy output. Now again, let’s plot the frequencies:</p>
+<pre class="r"><code>gf_col(n ~ day, data = tips_count)</code></pre>
+<p><img src="/post/2019-01-10-barplots-with-mosaic_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>Simple, works.</p>
+</div>
+<div id="more-complex-case-using-mosaic" class="section level1">
+<h1>More complex case, using mosaic</h1>
+<pre class="r"><code>tips_count2 &lt;- tips_count &lt;- tips %&gt;% 
+  filter(tip &gt; 2, day != &quot;Thu&quot;) %&gt;% 
+  mosaic::tally(~day, data = .)
+
+tips_count2</code></pre>
+<pre><code>## day
+##  Fri  Sat  Sun Thur 
+##   13   60   57   36</code></pre>
+<pre class="r"><code>str(tips_count2)</code></pre>
+<pre><code>##  &#39;table&#39; int [1:4(1d)] 13 60 57 36
+##  - attr(*, &quot;dimnames&quot;)=List of 1
+##   ..$ day: chr [1:4] &quot;Fri&quot; &quot;Sat&quot; &quot;Sun&quot; &quot;Thur&quot;</code></pre>
+<p>mosaic’s <code>tally()</code> does not produce a tidy data frame, so cannot (directly) be handed over to <code>gf_XXX()</code>.</p>
+</div>
+<div id="workarounds" class="section level1">
+<h1>Workarounds</h1>
+<p>Of course, there are workarounds, if one wants to go on using mosaic’s <code>tally()</code>. For instance, gathering works:</p>
+<pre class="r"><code>library(tidyverse)
+tips_count2 %&gt;% 
+  as_tibble() %&gt;% 
+  tidyr::gather(key = day, value = n)</code></pre>
+<pre><code>## # A tibble: 4 x 2
+##   day       n
+##   &lt;chr&gt; &lt;int&gt;
+## 1 Fri      13
+## 2 Sat      60
+## 3 Sun      57
+## 4 Thur     36</code></pre>
+<p>Tidy again. Note that <code>gather()</code> is not attached by <code>mosaic()</code>, hence the call <code>library(tidyverse)</code>.</p>
+<p>Again, there are functions which are happy to digest a <code>table</code> (aka, not tidy) as given back by <code>mosaic::tally()</code>:</p>
+<pre class="r"><code>barplot(tips_count2)</code></pre>
+<p><img src="/post/2019-01-10-barplots-with-mosaic_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+</div>
+<div id="df_stats-does-not-work-apparently" class="section level1">
+<h1><code>df_stats()</code> does not work, apparently</h1>
+<p><a href="https://cran.r-project.org/web/packages/mosaicCore/mosaicCore.pdf">From the package description</a> of <code>mosaicCore</code> for <code>df_stats()</code>:</p>
+<blockquote>
+<p>Creates a data frame of statistics calculated on one variable, possibly for each group formed by
+combinations of additional variables. The resulting data frame has one column for each of the
+statistics requested as well as columns for any grouping variables.</p>
+</blockquote>
+<p>So, <code>df_stats()</code> should be useful to get tidy data. However, for <code>tally()</code> it appears not to do so:</p>
+<pre class="r"><code>df_stats(~day, data = tips, tally)</code></pre>
+<pre><code>##   Fri Sat Sun Thur
+## 1  19  87  76   62</code></pre>
+<pre class="r"><code>df_stats(~day, data = tips, tally) %&gt;% str()</code></pre>
+<pre><code>## &#39;data.frame&#39;:    1 obs. of  4 variables:
+##  $ Fri : int 19
+##  $ Sat : int 87
+##  $ Sun : int 76
+##  $ Thur: int 62</code></pre>
+<p>The function outputs a data.frame, but not in tidy format.</p>
+<p>Similarly, with LHS formula:</p>
+<pre class="r"><code>df_stats(day ~ sex, data = tips, tally)</code></pre>
+<pre><code>##      sex Fri Sat Sun Thur
+## 1 Female   9  28  18   32
+## 2   Male  10  59  58   30</code></pre>
+<p>Some interesting (minor?) differences:</p>
+<pre class="r"><code>df_stats(day ~ sex, data = tips, counts)</code></pre>
+<pre><code>##      sex n_Fri n_Sat n_Sun n_Thur
+## 1 Female     9    28    18     32
+## 2   Male    10    59    58     30</code></pre>
+<pre class="r"><code>df_stats(day ~ sex, data = tips, count)</code></pre>
+<pre><code>##      sex n_Fri
+## 1 Female     9
+## 2   Male    10</code></pre>
+<pre class="r"><code>df_stats(sex ~ day, data = tips, counts)</code></pre>
+<pre><code>##    day n_Female n_Male
+## 1  Fri        9     10
+## 2  Sat       28     59
+## 3  Sun       18     58
+## 4 Thur       32     30</code></pre>
+<pre class="r"><code>df_stats(~ day | sex, data = tips, counts, props)</code></pre>
+<pre><code>##      sex n_Fri n_Sat n_Sun n_Thur   prop_Fri  prop_Sat  prop_Sun prop_Thur
+## 1 Female     9    28    18     32 0.10344828 0.3218391 0.2068966 0.3678161
+## 2   Male    10    59    58     30 0.06369427 0.3757962 0.3694268 0.1910828</code></pre>
+<p>Nice, but still not tidy.</p>
+</div>
+<div id="df_stats-long-format-one-variable---does-not-work" class="section level1">
+<h1><code>df_stats()</code>, long format, one variable - does not work</h1>
+<p>I just discovered that there’s a long format parameter in `df_stats(). Let’s checkout that.</p>
+<pre class="r"><code>df_stats( ~ day, data = tips, tally, format = &quot;long&quot;)</code></pre>
+<pre><code>##   Fri stat value
+## 1  19  Sat    87
+## 2  19  Sun    76
+## 3  19 Thur    62</code></pre>
+<p>Well, that’s kind of tidy, but not really, it seems hard to make use of that. Compare to standard <code>tally()</code> once more:</p>
+<pre class="r"><code>tally(~day, data = tips)</code></pre>
+<pre><code>## day
+##  Fri  Sat  Sun Thur 
+##   19   87   76   62</code></pre>
+</div>
+<div id="df_stats-long-format-two-variables---works" class="section level1">
+<h1><code>df_stats()</code>, long format, two variables - works</h1>
+<p>Maybe this way:</p>
+<pre class="r"><code>df_stats(~ day | sex, data = tips, tally, format = &quot;long&quot;)</code></pre>
+<pre><code>##      sex stat value
+## 1 Female  Fri     9
+## 2   Male  Fri    10
+## 3 Female  Sat    28
+## 4   Male  Sat    59
+## 5 Female  Sun    18
+## 6   Male  Sun    58
+## 7 Female Thur    32
+## 8   Male Thur    30</code></pre>
+<pre class="r"><code>count(tips, day, sex)</code></pre>
+<pre><code>## # A tibble: 8 x 3
+##   day   sex        n
+##   &lt;fct&gt; &lt;fct&gt;  &lt;int&gt;
+## 1 Fri   Female     9
+## 2 Fri   Male      10
+## 3 Sat   Female    28
+## 4 Sat   Male      59
+## 5 Sun   Female    18
+## 6 Sun   Male      58
+## 7 Thur  Female    32
+## 8 Thur  Male      30</code></pre>
+<p>Hey, now it works! We’ve received a tidy data frame.</p>
+</div>
+<div id="conclusions" class="section level1">
+<h1>Conclusions</h1>
+<p><code>mosaic</code> gives tidy data frames using the function <code>df_stats()</code>, that works great for numeric summaries, such as <code>favstats()</code>. For qualitative variables, things appear more complicated. With two variables, ie., <code>day ~ sex</code> things workout, but apparently not for simply <code>~ day</code>. What to do in this case`?</p>
+<p>One conclusion would be not to use <code>mosaic::tally()</code> but <code>dplyr::count()</code> instead, as <code>count()</code> yields back a tidy data frame.</p>
+<p>Alternative, the output of mosaic’s <code>tally()</code> can be “tidyfied” after the fact using <code>tidyr::gather()</code>.</p>
+<p>The mosaic functions such as <code>df_stats()</code> are in active development, so we can expect new developments. In addition, I may be missing something.</p>
+</div>

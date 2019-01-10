@@ -1,0 +1,192 @@
+---
+title: Barplots with mosaic
+author: Sebastian Sauer
+date: '2019-01-10'
+slug: barplots-with-mosaic
+categories: []
+tags:
+  - rstats
+  - plotting
+editor_options: 
+  chunk_output_type: console
+---
+
+
+Plotting barplots is a frequent endeavor for the analysis of qualitative data. Numerous methods for plotting barplots exist; the popular R package `mosaic` also provides methods.
+
+More recently, `mosaic` switched to a ggplot wrapper for plotting diagrams, that is `gf_XXX()`, packaged in `ggformula`. That implies that input data is expected to be tidy, because ggplot, a central member of the tidyverse, excepts its input data to be tidy.
+
+Let's check an example.
+
+# Setup
+
+```{r message  = FALSE}
+library(mosaic)
+data(tips, package = "reshape2")
+```
+
+
+# Old way of barplots in mosaic
+
+
+The "old" way of plotting barplots in mosaic was lattice based:
+
+```{r}
+bargraph(~day, data = tips)
+```
+
+
+
+
+# Tidyverse, simple
+
+Here, the present day tidyverse style:
+
+
+```{r}
+gf_bar( ~ day, data = tips)
+```
+
+
+That's simple.
+
+
+# More complex case, dplyr-style
+
+
+Assume we are doing some analysis upfront, and we do it the dplyr way:
+
+```{r}
+tips_count <- tips %>% 
+  filter(tip > 2, day != "Thu") %>% 
+  count(day)
+
+tips_count
+```
+
+That's a tidy output. Now again, let's plot the frequencies:
+
+```{r}
+gf_col(n ~ day, data = tips_count)
+```
+
+Simple, works.
+
+
+# More complex case, using mosaic
+
+
+```{r}
+tips_count2 <- tips_count <- tips %>% 
+  filter(tip > 2, day != "Thu") %>% 
+  mosaic::tally(~day, data = .)
+
+tips_count2
+str(tips_count2)
+```
+
+mosaic's `tally()` does not produce a tidy data frame, so cannot (directly) be handed over to `gf_XXX()`.
+
+
+# Workarounds
+
+Of course, there are workarounds, if one wants to go on using mosaic's `tally()`. For instance, gathering works:
+
+
+```{r message = FALSE, warning = FALSE}
+library(tidyverse)
+tips_count2 %>% 
+  as_tibble() %>% 
+  tidyr::gather(key = day, value = n)
+```
+
+
+Tidy again. Note that `gather()` is not attached by `mosaic()`, hence the call `library(tidyverse)`.
+
+
+Again, there are functions which are happy to digest a `table` (aka, not tidy) as given back by `mosaic::tally()`:
+
+```{r}
+barplot(tips_count2)
+```
+
+
+# `df_stats()` does not work, apparently
+
+[From the package description](https://cran.r-project.org/web/packages/mosaicCore/mosaicCore.pdf) of `mosaicCore` for `df_stats()`:
+
+>   Creates a data frame of statistics calculated on one variable, possibly for each group formed by
+combinations of additional variables. The resulting data frame has one column for each of the
+statistics requested as well as columns for any grouping variables.
+
+
+So, `df_stats()` should be useful to get tidy data. However, for `tally()` it appears not to do so:
+
+```{r}
+df_stats(~day, data = tips, tally)
+
+df_stats(~day, data = tips, tally) %>% str()
+```
+
+
+The function outputs a data.frame, but not in tidy format.
+
+Similarly, with LHS formula:
+
+```{r}
+df_stats(day ~ sex, data = tips, tally)
+```
+
+
+Some interesting (minor?) differences:
+
+```{r}
+df_stats(day ~ sex, data = tips, counts)
+df_stats(day ~ sex, data = tips, count)
+df_stats(sex ~ day, data = tips, counts)
+df_stats(~ day | sex, data = tips, counts, props)
+```
+
+Nice, but still not tidy.
+
+
+# `df_stats()`, long format, one variable - does not work
+
+I just discovered that there's a long format parameter in `df_stats(). Let's checkout that.
+
+
+```{r}
+df_stats( ~ day, data = tips, tally, format = "long")
+```
+
+Well, that's kind of tidy, but not really, it seems hard to make use of that. Compare to standard  `tally()` once more:
+
+```{r}
+tally(~day, data = tips)
+```
+
+
+# `df_stats()`, long format, two variables - works
+
+Maybe this way:
+
+```{r}
+df_stats(~ day | sex, data = tips, tally, format = "long")
+count(tips, day, sex)
+```
+
+Hey, now it works! We've received a tidy data frame.
+
+
+
+# Conclusions
+
+`mosaic` gives tidy data frames using the function `df_stats()`, that works great for numeric summaries, such as `favstats()`. For qualitative variables, things appear more complicated. With two variables, ie., `day ~ sex` things workout, but apparently not for simply `~ day`. What to do in this case`?
+
+
+One conclusion would be not to use `mosaic::tally()` but `dplyr::count()` instead, as `count()` yields back a tidy data frame.
+
+Alternative, the output of mosaic's `tally()` can be "tidyfied" after the fact using `tidyr::gather()`.
+
+The mosaic functions such as `df_stats()` are in active development, so we can expect new developments. In addition, I may be missing something.
+
