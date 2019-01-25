@@ -31,8 +31,11 @@ A little more in depth, consider that the text binary representation for some te
 So much for theory. Now, let's test it. Assume we have a text file, and we do not know the encoding. So what we do is, we *guess* it:
 
 
+# Guessing encoding
+
 ```{r}
 library(readr)
+library(readxl)
 ```
 
 Here's the file (ignore for the moment that the file name suggests an encoding):
@@ -47,11 +50,13 @@ guess_encoding(fileurl)
 ```
 
 
-Now that we have an educated guess, let's try to parse it:
+Now that we have an educated guess, let's try to parse it. The parameter `locale` can be used to adapt to local language settings such as used for text encoding.
 
+
+# Read textfile with specified encoding
 
 ```{r eval = FALSE}
-text <- read_csv(file = url, locale = locale(encoding = "ISO-8859-1"))
+text <- read_csv(file = fileurl, locale = locale(encoding = "ISO-8859-1"))
 ```
 
 
@@ -62,9 +67,40 @@ text
 ```
 
 
-Worked. Of course we can define the encoding when writing to a text file too:
 
-```{r}
+# Save text file with specified encoding 
 
+Note that `write_csv()` will only write to UTF8.
+
+```{r eval = FALSE}
+write_csv(x = text, path = "path/to/file.csv")
+```
+
+
+However, `write.csv()` and friends can be used to define the encoding:
+
+
+```{r eval = FALSE}
+write.csv(x = text, file = "test2.csv", fileEncoding = "utf8")
+```
+
+
+
+# Hazzle free with Excel?
+
+
+
+Maybe easier to use an excel data file where the encoding is defined within the data (xls(x)) file? Well, yes, but some times no.
+
+Let's try it:
+
+```{r eval = FALSE}
+textxlsxurl <- download.file("https://data-se.netlify.com/download/text.xlsx",
+                             destfile = "text.xslx")
+
+text_destfile <- paste0(here(), "/text.xlsx")
+text_xlsx <- read_xlsx(path =  text_destfile)
+
+text_xlsx <- read_xlsx(path = "https://data-se.netlify.com/download/text.xlsx")
 ```
 

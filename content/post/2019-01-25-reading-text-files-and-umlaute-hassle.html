@@ -25,12 +25,37 @@ editor_options:
 <p><img src="https://en.wikipedia.org/wiki/File:Utf8webgrowth.svg" /></p>
 <p>A little more in depth, consider that the text binary representation for some text (string). It will be pinned down to some bits and bytes. The question is what “translation code” from text to bits (or vice versa) is used? That’s exactly what’s defined in a text encoding scheme such aus UTF8. By the way, it seems that UTF8 is a reasonable standard, dear Windows user, consider following this standard. Your favorite text editor, such as Notepad++, or Text Mate, will offer you an option to “save with encoding” or similar. By the way, RStudio will do that for you, too (see File &gt; Save with Encoding…).</p>
 <p>So much for theory. Now, let’s test it. Assume we have a text file, and we do not know the encoding. So what we do is, we <em>guess</em> it:</p>
-<pre class="r"><code>library(readr)</code></pre>
+<div id="guessing-encoding" class="section level1">
+<h1>Guessing encoding</h1>
+<pre class="r"><code>library(readr)
+library(readxl)</code></pre>
 <p>Here’s the file (ignore for the moment that the file name suggests an encoding):</p>
 <pre class="r"><code>fileurl &lt;- &quot;https://data-se.netlify.com/download/text-latin1.csv&quot;</code></pre>
 <pre class="r"><code>guess_encoding(fileurl)</code></pre>
-<p>Now that we have an educated guess, let’s try to parse it:</p>
-<pre class="r"><code>text &lt;- read_csv(file = url, locale = locale(encoding = &quot;ISO-8859-1&quot;))</code></pre>
+<p>Now that we have an educated guess, let’s try to parse it. The parameter <code>locale</code> can be used to adapt to local language settings such as used for text encoding.</p>
+</div>
+<div id="read-textfile-with-specified-encoding" class="section level1">
+<h1>Read textfile with specified encoding</h1>
+<pre class="r"><code>text &lt;- read_csv(file = fileurl, locale = locale(encoding = &quot;ISO-8859-1&quot;))</code></pre>
 <p>Let’s see whether it worked out:</p>
 <pre class="r"><code>text</code></pre>
-<p>Worked. Of course we can define the encoding when writing to a text file too:</p>
+</div>
+<div id="save-text-file-with-specified-encoding" class="section level1">
+<h1>Save text file with specified encoding</h1>
+<p>Note that <code>write_csv()</code> will only write to UTF8.</p>
+<pre class="r"><code>write_csv(x = text, path = &quot;path/to/file.csv&quot;)</code></pre>
+<p>However, <code>write.csv()</code> and friends can be used to define the encoding:</p>
+<pre class="r"><code>write.csv(x = text, file = &quot;test2.csv&quot;, fileEncoding = &quot;utf8&quot;)</code></pre>
+</div>
+<div id="hazzle-free-with-excel" class="section level1">
+<h1>Hazzle free with Excel?</h1>
+<p>Maybe easier to use an excel data file where the encoding is defined within the data (xls(x)) file? Well, yes, but some times no.</p>
+<p>Let’s try it:</p>
+<pre class="r"><code>textxlsxurl &lt;- download.file(&quot;https://data-se.netlify.com/download/text.xlsx&quot;,
+                             destfile = &quot;text.xslx&quot;)
+
+text_destfile &lt;- paste0(here(), &quot;/text.xlsx&quot;)
+text_xlsx &lt;- read_xlsx(path =  text_destfile)
+
+text_xlsx &lt;- read_xlsx(path = &quot;https://data-se.netlify.com/download/text.xlsx&quot;)</code></pre>
+</div>
