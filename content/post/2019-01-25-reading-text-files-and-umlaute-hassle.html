@@ -32,13 +32,29 @@ library(readxl)</code></pre>
 <p>Here’s the file (ignore for the moment that the file name suggests an encoding):</p>
 <pre class="r"><code>fileurl &lt;- &quot;https://data-se.netlify.com/download/text-latin1.csv&quot;</code></pre>
 <pre class="r"><code>guess_encoding(fileurl)</code></pre>
+<pre><code>## # A tibble: 1 x 2
+##   encoding   confidence
+##   &lt;chr&gt;           &lt;dbl&gt;
+## 1 ISO-8859-1       0.36</code></pre>
 <p>Now that we have an educated guess, let’s try to parse it. The parameter <code>locale</code> can be used to adapt to local language settings such as used for text encoding.</p>
 </div>
 <div id="read-textfile-with-specified-encoding" class="section level1">
 <h1>Read textfile with specified encoding</h1>
 <pre class="r"><code>text &lt;- read_csv(file = fileurl, locale = locale(encoding = &quot;ISO-8859-1&quot;))</code></pre>
+<pre><code>## Parsed with column specification:
+## cols(
+##   col1 = col_character(),
+##   col2 = col_double(),
+##   col3 = col_double()
+## )</code></pre>
 <p>Let’s see whether it worked out:</p>
 <pre class="r"><code>text</code></pre>
+<pre><code>## # A tibble: 3 x 3
+##   col1        col2  col3
+##   &lt;chr&gt;      &lt;dbl&gt; &lt;dbl&gt;
+## 1 Nürnberg     1.1   1.1
+## 2 München      2     2  
+## 3 Düsseldorf   3     3</code></pre>
 </div>
 <div id="save-text-file-with-specified-encoding" class="section level1">
 <h1>Save text file with specified encoding</h1>
@@ -51,11 +67,47 @@ library(readxl)</code></pre>
 <h1>Hazzle free with Excel?</h1>
 <p>Maybe easier to use an excel data file where the encoding is defined within the data (xls(x)) file? Well, yes, but some times no.</p>
 <p>Let’s try it:</p>
-<pre class="r"><code>textxlsxurl &lt;- download.file(&quot;https://data-se.netlify.com/download/text.xlsx&quot;,
-                             destfile = &quot;text.xslx&quot;)
+<pre class="r"><code>textxlsxurl &lt;- &quot;https://data-se.netlify.com/download/text.xlsx&quot;
 
-text_destfile &lt;- paste0(here(), &quot;/text.xlsx&quot;)
-text_xlsx &lt;- read_xlsx(path =  text_destfile)
+destfilename &lt;- &quot;text.xlsx&quot;
 
-text_xlsx &lt;- read_xlsx(path = &quot;https://data-se.netlify.com/download/text.xlsx&quot;)</code></pre>
+textxlsx &lt;- download.file(&quot;https://data-se.netlify.com/download/text.xlsx&quot;,
+                             destfile = destfilename)
+
+file.exists(destfilename)</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<pre class="r"><code>text_xlsx &lt;- read_xlsx(path = destfilename)
+text_xlsx</code></pre>
+<pre><code>## # A tibble: 3 x 3
+##   col1        col2  col3
+##   &lt;chr&gt;      &lt;dbl&gt; &lt;dbl&gt;
+## 1 Nürnberg       1     1
+## 2 München        2     2
+## 3 Düsseldorf     3     3</code></pre>
+<pre class="r"><code>if (file.exists(destfilename)) file.remove(destfilename)  # remove file</code></pre>
+<pre><code>## [1] TRUE</code></pre>
+<p>That seems to work easily. Maybe that’s the easiest way at the end of the day (?).</p>
+<p>One problem that <em>may</em> arise - besides building on proprietary code that may change without notice - is that Excel may have problems reading a UTF8 csv, as <a href="https://appsilon.com/writing-excel-formatted-csv-using-readrwrite_excel_csv2/">explained here</a>.</p>
+</div>
+<div id="get-encoding-of-string" class="section level1">
+<h1>Get encoding of string</h1>
+<p>Assume there is some text (string), already loaded in your R session. How to determine and change the encoding then?</p>
+<p>Here’s the string:</p>
+<pre class="r"><code>text$col1</code></pre>
+<pre><code>## [1] &quot;Nürnberg&quot;   &quot;München&quot;    &quot;Düsseldorf&quot;</code></pre>
+<p>What’s the encoding?</p>
+<pre class="r"><code>Encoding(text$col1)</code></pre>
+<pre><code>## [1] &quot;UTF-8&quot; &quot;UTF-8&quot; &quot;UTF-8&quot;</code></pre>
+<p>Now let’s change the encoding:</p>
+<pre class="r"><code>Encoding(text$col1) &lt;- &quot;latin1&quot;
+Encoding(text$col1)</code></pre>
+<pre><code>## [1] &quot;latin1&quot; &quot;latin1&quot; &quot;latin1&quot;</code></pre>
+<p>To get an overview on supported encodings, use <code>iconvlist()</code>. Be aware, the list is long:</p>
+<pre class="r"><code>length(iconvlist())</code></pre>
+<pre><code>## [1] 419</code></pre>
+<p>To get the default encoding of your system, use this function:</p>
+<pre class="r"><code>Sys.getlocale()</code></pre>
+<pre><code>## [1] &quot;en_US.UTF-8/en_US.UTF-8/en_US.UTF-8/C/en_US.UTF-8/en_US.UTF-8&quot;</code></pre>
+<p>If R says the encoding is <code>unknown</code> it often means that it’s the system’s default.</p>
+<p>For more details, check out <a href="http://kevinushey.github.io/blog/2018/02/21/string-encoding-and-r/">this post</a>.</p>
 </div>

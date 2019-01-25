@@ -45,7 +45,7 @@ fileurl <- "https://data-se.netlify.com/download/text-latin1.csv"
 ```
 
 
-```{r eval = FALSE}
+```{r eval = TRUE}
 guess_encoding(fileurl)
 ```
 
@@ -55,14 +55,14 @@ Now that we have an educated guess, let's try to parse it. The parameter `locale
 
 # Read textfile with specified encoding
 
-```{r eval = FALSE}
+```{r eval = TRUE}
 text <- read_csv(file = fileurl, locale = locale(encoding = "ISO-8859-1"))
 ```
 
 
 Let's see whether it worked out:
 
-```{r eval = FALSE}
+```{r eval = TRUE}
 text
 ```
 
@@ -94,13 +94,75 @@ Maybe easier to use an excel data file where the encoding is defined within the 
 
 Let's try it:
 
-```{r eval = FALSE}
-textxlsxurl <- download.file("https://data-se.netlify.com/download/text.xlsx",
-                             destfile = "text.xslx")
+```{r eval = TRUE}
+textxlsxurl <- "https://data-se.netlify.com/download/text.xlsx"
 
-text_destfile <- paste0(here(), "/text.xlsx")
-text_xlsx <- read_xlsx(path =  text_destfile)
+destfilename <- "text.xlsx"
 
-text_xlsx <- read_xlsx(path = "https://data-se.netlify.com/download/text.xlsx")
+textxlsx <- download.file("https://data-se.netlify.com/download/text.xlsx",
+                             destfile = destfilename)
+
+file.exists(destfilename)
+
+text_xlsx <- read_xlsx(path = destfilename)
+text_xlsx
+if (file.exists(destfilename)) file.remove(destfilename)  # remove file
 ```
+
+
+That seems to work easily. Maybe that's the easiest way at the end of the day (?).
+
+
+One problem that *may* arise - besides building on proprietary code that may change without notice - is that Excel may have problems reading a UTF8 csv, as [explained here](https://appsilon.com/writing-excel-formatted-csv-using-readrwrite_excel_csv2/).
+
+
+
+# Get encoding of string
+
+
+Assume there is some text (string), already loaded in your R session. How to determine and change the encoding then?
+
+Here's the string:
+
+```{r}
+text$col1
+```
+
+
+What's the encoding?
+
+```{r}
+Encoding(text$col1)
+```
+
+
+Now let's change the encoding:
+
+```{r}
+Encoding(text$col1) <- "latin1"
+Encoding(text$col1)
+```
+
+
+
+
+To get an overview on supported encodings, use `iconvlist()`. Be aware, the list is long:
+
+```{r}
+length(iconvlist())
+```
+
+
+To get the default encoding of your system, use this function:
+
+```{r}
+Sys.getlocale()
+```
+
+
+If R says the encoding is `unknown` it often means that it's the system's default.
+
+
+For more details, check out [this post](http://kevinushey.github.io/blog/2018/02/21/string-encoding-and-r/).
+
 
