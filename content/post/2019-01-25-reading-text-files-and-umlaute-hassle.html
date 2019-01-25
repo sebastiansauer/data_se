@@ -1,0 +1,31 @@
+---
+title: Reading text files and Umlaute hassle
+author: Sebastian Sauer
+date: '2019-01-25'
+slug: reading-text-files-and-umlaute-hassle
+categories:
+  - rstats
+tags:
+  - text
+  - Encoding
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+<p>Data is often stored as plain text file. That’s good because it is a simple format. However, simplicity comes with a cost: Not all questions may have definite answers. The most common hassle when reading/importing text files is that the encoding scheme is unknown, aka wrong. This problem mostly occurs when, say, a Mac user stores a text file, where per default UTF8 text encoding is applied. In contrast, on a Windows machine, Windows-encoding (often dubbed “latin1”,“Windows 1252” or “ISO-8859-1”) is the default. What happens then is similar to what would happen if type a letter any you read thinking that it is in French – confusion guaranted.</p>
+<p>With a little more details,</p>
+<ul>
+<li><a href="https://en.wikipedia.org/wiki/Windows-1252">“Windows 1252”</a> is a widely used 8-bit encoding scheme, including mostly English letters.</li>
+<li><a href="https://en.wikipedia.org/wiki/ISO/IEC_8859-1">“ISO-8859-1”</a> is also 8-bit, and covers the latin character set, thereby suitably depicting most European Languages. For example, the letter “A” is encoded as “0032” (hex).</li>
+<li><a href="https://en.wikipedia.org/wiki/UTF-8">“UTF-8”</a> (“Unicode Transformation Format”) is the predominant encoding in the WWW; it covers more than 100 scripts (languages) from all over the world, including emojis, and special characters. Encoding a letter via UTF8 may produce a byte sequence betweeen 1 and 4 bytes. More frequently used letters are stored in the beginning of the code page, so that only 1 byte is needed for encoding.</li>
+</ul>
+<p>According to <a href="">Wikipedia</a>, UTF8 is the defacto standard in the internet:</p>
+<p><img src="https://en.wikipedia.org/wiki/File:Utf8webgrowth.svg" /></p>
+<p>A little more in depth, consider that the text binary representation for some text (string). It will be pinned down to some bits and bytes. The question is what “translation code” from text to bits (or vice versa) is used? That’s exactly what’s defined in a text encoding scheme such aus UTF8. By the way, it seems that UTF8 is a reasonable standard, dear Windows user, consider following this standard. Your favorite text editor, such as Notepad++, or Text Mate, will offer you an option to “save with encoding” or similar. By the way, RStudio will do that for you, too (see File &gt; Save with Encoding…).</p>
+<p>So much for theory. Now, let’s test it. Assume we have a text file, and we do not know the encoding. So what we do is, we <em>guess</em> it:</p>
+<pre class="r"><code>library(readr)</code></pre>
+<p>Here’s the file (ignore for the moment that the file name suggests an encoding):</p>
+<pre class="r"><code>fileurl &lt;- &quot;https://data-se.netlify.com/download/text-latin1.csv&quot;</code></pre>
+<pre class="r"><code>guess_encoding(fileurl)</code></pre>
