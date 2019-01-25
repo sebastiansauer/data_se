@@ -1,0 +1,862 @@
+---
+title: Bayesian modeling of populist party success in German federal elections - A notebook from the lab
+author: ''
+date: '2018-08-25'
+draft: TRUE
+slug: bayesian-modeling-of-populist-party-success-in-german-federal-elections
+categories:
+  - rstats
+tags:
+  - Bayes
+  - rstats
+  - plotting
+  - dataviz
+  - geo
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+<p>Following up on an <a href="https://data-se.netlify.com/2017/10/10/afd-map/">earlier post</a>, we will model the voting success of the (most prominent) populist party, AfD, in the recent federal elections. This time, Bayesian modeling techniques will be used, drawing on the <a href="https://xcelab.net/rm/statistical-rethinking/">excellent textbook</a> my McElreath.</p>
+<p>Note that this post is rather a notebook of my thinking, doing, and erring. I’ve made no efforts to hide scaffolding. I think it will be confusing to the uniniate and the initiate as well …</p>
+<hr />
+<p>Note: Data is based on data published by the Bundeswahlleiter 2017, (c) Der Bundeswahlleiter, Wiesbaden 2017, <a href="https://www.bundeswahlleiter.de/info/impressum.html" class="uri">https://www.bundeswahlleiter.de/info/impressum.html</a>, Data is made available for unrestricted use provided the source is credited.</p>
+<hr />
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<p>Some packages that will help us:</p>
+<pre class="r"><code>library(tidyverse)
+library(rethinking)
+library(pradadata)
+library(sjmisc)
+library(viridis)</code></pre>
+<p>First, get the election data.They can be accessed from the <a href="https://www.bundeswahlleiter.de/dam/jcr/72f186bb-aa56-47d3-b24c-6a46f5de22d0/btw17_kerg.csv">Bundeswahlleiter</a>. More conveniently, I have put them in a R package (after some cleansing):</p>
+<pre class="r"><code>data(&quot;elec_results&quot;)</code></pre>
+<p>In order to combine socioeconomic data with the election results, we can make use of data from the same source as above. Again accessible via the same R pacakge:</p>
+<pre class="r"><code>data(&quot;socec&quot;)</code></pre>
+<p>Note that a code book is available for these data:</p>
+<pre class="r"><code>data(&quot;socec_dict&quot;)
+</code></pre>
+<p>These data will be used as predictors for modeling the election results.</p>
+<p>Third, we will make use of geo data in order to geoplot the modeling results. The Bundeswahlleiter provides such data (again via <code>pradadata</code>):</p>
+<pre class="r"><code>data(&quot;wahlkreise_shp&quot;)</code></pre>
+<p>Note: Data objects can also be downloaded <a href="https://osf.io/2yhr9/">from this source</a>.</p>
+</div>
+<div id="data-preparation" class="section level1">
+<h1>Data preparation</h1>
+<p>Now let’s merge the data frames. There will also be some janitor work such as renaming columns etc.</p>
+<p>First, change the names of the <code>socec</code> data to a common format:</p>
+<pre class="r"><code>socec_renamed &lt;- socec %&gt;%
+  rename(state = V01,
+         area_nr = V02,
+         area_name = V03,
+         total_n = V06,
+         germans_n = V07,
+         for_prop = V08,
+         pop_move_prop = V11,
+         pop_migr_background_prop = V19,
+         income = V26,
+         unemp_prop = V47) 
+</code></pre>
+<p>Compute some more columns:</p>
+<pre class="r"><code>socec2 &lt;- socec_renamed %&gt;% 
+   mutate(foreigner_n = total_n - germans_n,
+         pop_move_n = pop_move_prop * total_n,
+         unemp_n = unemp_prop * total_n / 100,
+         pop_migr_background_n = pop_migr_background_prop * total_n / 100) %&gt;% 
+  drop_na()</code></pre>
+<p>Same thing with the election data, here we only need the criterion (AfD success) and the ID variables for merging:</p>
+<pre class="r"><code>elec_results2 &lt;- elec_results %&gt;%
+  rename(afd_votes = AfD_3,
+         area_nr = district_nr,
+         area_name = district_name,
+         votes_total = votes_valid_3) %&gt;% 
+   mutate(afd_prop = afd_votes/votes_total)    # valid votes only, and of the present Zweitstimme</code></pre>
+<p>Note that we are focusing on the Zweitstimme of the present election (hence the <code>3</code> in <code>votes_valid_3</code> and in <code>AfD_3</code>).</p>
+</div>
+<div id="merge" class="section level1">
+<h1>Merge</h1>
+<pre class="r"><code>socec2 %&gt;%
+  left_join(elec_results2, by = &quot;area_name&quot;) %&gt;% 
+  left_join(wahlkreise_shp, by = c(&quot;area_name&quot; = &quot;WKR_NAME&quot;)) -&gt; d_all_with_na</code></pre>
+</div>
+<div id="after-merge-preparations" class="section level1">
+<h1>After-merge preparations</h1>
+<!-- Now let's remove missings: -->
+<!-- ```{r drop-na} -->
+<!-- d_all <- drop_na(d_all_with_na) -->
+<!-- ``` -->
+<p>Add variable for East (1) vs. West (0):</p>
+<pre class="r"><code>d_all_with_na &lt;- d_all_with_na %&gt;% 
+  mutate(east = case_when(
+    state %in% c(&quot;Mecklenburg-Vorpommern&quot;, &quot;Brandenburg&quot;, &quot;Berlin&quot;, &quot;Sachsen-Anhalt&quot;, &quot;Sachsen&quot;, &quot;Thüringen&quot;) ~ &quot;yes&quot;,
+    TRUE ~ &quot;no&quot;
+    ) 
+  )
+
+d_all_with_na$east_num &lt;- ifelse(d_all_with_na$east == &quot;yes&quot;, 1, 0)</code></pre>
+</div>
+<div id="main-data-frame-d_short-and-d_short_x" class="section level1">
+<h1>Main data frame: d_short and d_short_X</h1>
+<p>We will also provide a version without the geo data, and in pure (old school) <code>data frame</code> form (ie., not as tibble)_</p>
+<pre class="r"><code>d_all_with_na %&gt;%
+  rename(area_nr = area_nr.x) %&gt;% 
+  select(state,
+         area_nr,
+         area_name,
+         total_n,
+         germans_n,
+         foreigner_n,
+         for_prop,
+         pop_move_n,
+         pop_migr_background_n,
+         income ,
+         unemp_n,
+         unemp_prop,
+         votes_total,
+         afd_votes,
+         afd_prop,
+         state,
+         east,
+         east_num) -&gt; d_short_with_nas
+
+names(d_short_with_nas)</code></pre>
+<p>Remove NAs:</p>
+<pre class="r"><code>d_short_with_nas %&gt;% 
+  drop_na() -&gt; d_short_nona</code></pre>
+<p>Add state id:</p>
+<pre class="r"><code>d_short_nona$state_id &lt;- coerce_index(d_short_nona$state)</code></pre>
+<p>Multiply by 1000 to get the real numbers so that a count model gets the “right” data</p>
+<pre class="r"><code>d_short_nona %&gt;%
+  mutate_at(vars(total_n, germans_n, foreigner_n, pop_move_n,
+                    pop_migr_background_n, unemp_n), funs(. * 1000)
+  ) -&gt; d_short_nona_1000
+glimpse(d_short_nona_1000)
+</code></pre>
+</div>
+<div id="some-checks" class="section level1">
+<h1>Some checks</h1>
+<p>I know that there are 299 districts in Germany, so let’s check the row numbers</p>
+<pre class="r"><code>nrow(d_short_nona_1000) == 299</code></pre>
+<p>By the way, the number 316 of the data frame <code>d_all_1000</code> is the sum of the districts plus the 16 federal states plus 1 for Germany itself.</p>
+<p>Let’s do a similar check for the district names:</p>
+<pre class="r"><code>identical(elec_results$district_name,socec$V03)</code></pre>
+<p>Does not match. Maybe the order is different?</p>
+<pre class="r"><code>head(elec_results$district_name, 10)
+head(socec$V03, 10)</code></pre>
+<p>Looks reassuring.</p>
+<p>Let’s check which one is present in one but not in the other data frame:</p>
+<pre class="r"><code>elec_results2 %&gt;% 
+  select(area_name, area_nr) %&gt;% 
+  full_join(select(socec2, area_name, area_nr), by = &quot;area_nr&quot;) -&gt; merge_test</code></pre>
+<p>Low let’s filter for missings, ie non-matches:</p>
+<pre class="r"><code>merge_test %&gt;% 
+  filter(is.na(area_name.x))</code></pre>
+<p>“Land insgesamt” indicats the grand total of the federal state. We don’t need that data. Seems like all is fine.</p>
+</div>
+<div id="round-values" class="section level1">
+<h1>Round values</h1>
+<p>Round values in order to work with counts:</p>
+<pre class="r"><code>d_short_not_rounded &lt;- d_short_nona_1000  # backup</code></pre>
+<p>We need to convert the variables back to integer, bacause stan need integer for count models (makes sense):</p>
+<pre class="r"><code>d_short_nona_1000 %&gt;% 
+  mutate_at(vars(total_n:afd_votes), funs(as.integer)) -&gt; d_short_as_int
+glimpse(d_short_as_int)
+</code></pre>
+<p>Main dataframe:</p>
+<pre class="r"><code>d_short &lt;- d_short_as_int</code></pre>
+<p>Any NAs left:</p>
+<pre class="r"><code>anyNA(d_short)</code></pre>
+<div id="z-transformation" class="section level2">
+<h2>z-transformation</h2>
+<p>Transform to z-values:</p>
+<pre class="r"><code>d_short %&gt;% 
+  sjmisc::std() %&gt;%  
+  select(-c(state_z, area_nr_z, area_name_z, state_id_z, east_z, east_num_z)) -&gt; d_short_z
+
+names(d_short_z)</code></pre>
+</div>
+<div id="center" class="section level2">
+<h2>center</h2>
+<pre class="r"><code>d_short_as_int %&gt;% 
+  sjmisc::center() %&gt;% 
+  select(-c(state_c, area_nr_c, area_name_c, state_id_c, east_c, east_num_c)) -&gt; d_short_c
+
+names(d_short_c)</code></pre>
+<p>Coerce to normal data frame, no tibble</p>
+<pre class="r"><code>d_short &lt;- data.frame(d_short)
+d_short_z &lt;- data.frame(d_short_z)
+d_short_c &lt;- data.frame(d_short_c)</code></pre>
+</div>
+</div>
+<div id="data-export" class="section level1">
+<h1>Data export</h1>
+<p>On a side note, this last data frame appears useful. I will upload it to a common repository, so that others can work with it.</p>
+<pre class="r"><code>election_modeling_data %&gt;% 
+  write_rds(&quot;election_modeling_data.rds&quot;)
+
+d_short %&gt;% 
+  write_csv(&quot;d_short.csv&quot;)
+
+d_short_c %&gt;% 
+  write_csv(&quot;d_short_c.csv&quot;)
+
+d_short_z %&gt;% 
+  write_csv(&quot;d_short_z.csv&quot;)
+</code></pre>
+<p>This dataset is now made available via <a href="https://osf.io/2yhr9/">osf</a>, DOI: 10.17605/OSF.IO/2YHR9. Similarly, our data frame <code>d</code> is available via the same plattform (note the file names of the CSV files).</p>
+</div>
+<div id="model-output-list" class="section level1">
+<h1>model output list</h1>
+<p>I use this list to store the model outputs.</p>
+<pre class="r"><code>models_stan &lt;- list()</code></pre>
+</div>
+<div id="helper-functions" class="section level1">
+<h1>Helper functions</h1>
+<p>The traceplot function from <code>rethinking</code> appears to have a bug, or does not work as I expected. Here’s a helper function:</p>
+<pre class="r"><code>my_traceplot &lt;- function(model) {
+  rstan::traceplot(model@stanfit, pars=names(model@start[[1]]))
+}</code></pre>
+</div>
+<div id="m9-some-metric-linear-models-with-eastwest-foreigner-unemp-as-predictors" class="section level1">
+<h1>m9: Some (metric) linear models with east/west, foreigner, unemp as predictors</h1>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;east&quot;)]
+
+m9_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu &lt;-  beta0[east] +  beta1*for_prop_z + beta2*unemp_prop_z,
+    beta0[east] ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2
+)</code></pre>
+<pre class="r"><code>my_traceplot(m9_stan)
+precis(m9_stan, depth = 2)
+models_stan[[&quot;m9_stan&quot;]] &lt;- m9_stan
+WAIC(m9_stan)</code></pre>
+<p>DIC is not being produced, some issues exist.</p>
+</div>
+<div id="m9a-metric-model-with-no-eastwest" class="section level1">
+<h1>m9a: metric model with no east/west</h1>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;)]
+
+m9a_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu &lt;- alpha +  beta1*for_prop_z + beta2*unemp_prop_z,
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2)</code></pre>
+<p>Looks good:</p>
+<pre class="r"><code>my_traceplot(m9a_stan)
+precis(m9a_stan)
+models_stan[[&quot;m9a_stan&quot;]] &lt;- m9a_stan</code></pre>
+<p>Here’s the data in the S4 object for the MCMC chains:</p>
+<pre class="r"><code>m9_stan@stanfit@sim$samples[[1]] %&gt;% str()</code></pre>
+<pre class="r"><code>precis(m9a_stan, depth = 2)
+WAIC(m9a_stan)
+DIC(m9a_stan)</code></pre>
+</div>
+<div id="m10-eastwest-as-numeric-predictor-not-as-varying-intercept" class="section level1">
+<h1>m10: East/West as numeric predictor, not as varying intercept</h1>
+<pre class="r"><code>
+d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;east_num&quot;)]
+
+m10_stan &lt;- map2stan( 
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu &lt;- alpha + beta1*for_prop_z + beta2*unemp_prop_z + beta3*east_num,
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1),
+    beta3 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2
+)</code></pre>
+<p>Model output:</p>
+<pre class="r"><code>precis(m10_stan)
+my_traceplot(m10_stan)
+DIC(m10_stan)
+WAIC(m10_stan)
+models_stan[[&quot;m10_stan&quot;]] &lt;- m10_stan
+</code></pre>
+<p>Looks ok, but why are the coefficients so large? Strange.</p>
+</div>
+<div id="predictor-importance" class="section level1">
+<h1>Predictor importance</h1>
+<p>Let’s compare two models with only one predictor - either unemployment or migration or foreigners to see which model has a better entropy.</p>
+<div id="foreigner-prop" class="section level2">
+<h2>foreigner prop</h2>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;east&quot;)]
+
+m11a_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu &lt;- alpha +  beta1*for_prop_z,
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2)</code></pre>
+<p>Looks good:</p>
+<pre class="r"><code>my_traceplot(m11a_stan)
+precis(m11a_stan)
+models_stan[[&quot;m11a_stan&quot;]] &lt;- m11a_stan
+</code></pre>
+</div>
+<div id="unemployment" class="section level2">
+<h2>unemployment</h2>
+<pre class="r"><code>
+d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;east&quot;)]
+
+m11c_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu &lt;- alpha +  beta1*unemp_prop_z,
+    alpha ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2)</code></pre>
+<pre class="r"><code>my_traceplot(m11c_stan)
+precis(m11c_stan)
+models_stan[[&quot;m11c_stan&quot;]] &lt;- m11c_stan</code></pre>
+</div>
+<div id="east-only" class="section level2">
+<h2>east only</h2>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;east&quot;)]
+
+d$east_num &lt;- ifelse(d$east == &quot;yes&quot;, 1, 0)
+
+m11d_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),
+    mu &lt;- beta1*east_num,
+    beta1 ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+      ),
+  data = d,
+  chains = 2,
+  cores = 2)</code></pre>
+<p>Looks good:</p>
+<pre class="r"><code>my_traceplot(m11d_stan)
+precis(m11d_stan)
+WAIC(m11d_stan)
+models_stan[[&quot;m11d_stan&quot;]] &lt;- m11d_stan</code></pre>
+</div>
+</div>
+<div id="multilevel-normal-models" class="section level1">
+<h1>Multilevel normal models</h1>
+<div id="area-as-multilevel" class="section level2">
+<h2>area as multilevel</h2>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;,  &quot;area_nr&quot;)]
+#&gt; Error in eval(expr, envir, enclos): object &#39;d_short_z&#39; not found
+
+m12_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu &lt;- beta0[area_nr],
+    beta0[area_nr] ~ dnorm(a, sigma),
+    a ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1),
+    alpha ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2
+)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[area_nr], : could not find function &quot;map2stan&quot;</code></pre>
+<pre class="r"><code>precis(m12_stan, depth = 2) %&gt;% head()
+#coeftab(m12_stan)
+my_traceplot(m12_stan)
+models_stan[[&quot;m12_stan&quot;]] &lt;- m12_stan</code></pre>
+<p>Too many coefficients…</p>
+</div>
+<div id="state-as-multilevel" class="section level2">
+<h2>state as multilevel</h2>
+<pre class="r"><code>
+d &lt;- d_short_z[, c(&quot;afd_prop&quot;,  &quot;state_id&quot;)]
+#&gt; Error in eval(expr, envir, enclos): object &#39;d_short_z&#39; not found
+
+m13_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu &lt;- beta0[state_id],
+    beta0[state_id] ~ dnorm(0, sigma2),
+    sigma ~ dnorm(0, 1),
+    sigma2 ~ dnorm(0, 1)
+  ),
+  data = d,
+  cores = 2,
+  chains = 2
+)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[state_id], : could not find function &quot;map2stan&quot;</code></pre>
+<pre class="r"><code>precis(m13_stan, depth = 2)
+coeftab(m13_stan)
+WAIC(m13_stan)
+my_traceplot(m13_stan)
+models_stan[[&quot;m13_stan&quot;]] &lt;- m13_stan</code></pre>
+<p>Rhat is ok. Traceplot indicates problems. neff indicates problems.</p>
+</div>
+<div id="east-for_prop-unemp_prop" class="section level2">
+<h2>east + for_prop + unemp_prop</h2>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;east&quot;)]
+#&gt; Error in eval(expr, envir, enclos): object &#39;d_short_z&#39; not found
+
+m14_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu &lt;- beta0[east] +  beta1*for_prop_z + beta2*unemp_prop_z,
+    beta0[east] ~ dnorm(0, sigma2),
+    sigma ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1),
+    sigma2 ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores = 2
+)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[east] + : could not find function &quot;map2stan&quot;</code></pre>
+<pre class="r"><code>precis(m14_stan, depth = 2)
+coeftab(m14_stan)
+my_traceplot(m14_stan)
+models_stan[[&quot;m14_stan&quot;]] &lt;- m14_stan
+</code></pre>
+</div>
+<div id="state-for_prop-unemp_prop" class="section level2">
+<h2>state + for_prop + unemp_prop</h2>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;state_id&quot;)]
+#&gt; Error in eval(expr, envir, enclos): object &#39;d_short_z&#39; not found
+
+m15_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu &lt;- beta0[state_id] +  beta1*for_prop_z + beta2*unemp_prop_z,
+    beta0[state_id] ~ dnorm(0, sigma2),
+    sigma ~ dnorm(0, 1),
+    sigma2 ~ dnorm(0, 1),
+    beta1 ~ dnorm(0, 1),
+    beta2 ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2,
+  cores  = 2
+)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[state_id] + : could not find function &quot;map2stan&quot;</code></pre>
+<pre class="r"><code>precis(m15_stan, depth = 2)
+coeftab(m15_stan)
+my_traceplot(m15_stan)
+models_stan[[&quot;m15_stan&quot;]] &lt;- m15_stan
+</code></pre>
+</div>
+</div>
+<div id="normal-null-model" class="section level1">
+<h1>Normal null model</h1>
+<pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;), drop = FALSE]
+#&gt; Error in eval(expr, envir, enclos): object &#39;d_short_z&#39; not found
+
+m16_stan &lt;- map2stan(
+  alist(
+    afd_prop ~ dnorm(mu, sigma),    
+    mu &lt;- alpha,
+    alpha ~ dnorm(0, 1),
+    sigma ~ dnorm(0, 1)
+  ),
+  data = d,
+  chains = 2
+)
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha, alpha ~ : could not find function &quot;map2stan&quot;</code></pre>
+<pre class="r"><code>precis(m16_stan, depth = 2)
+coeftab(m16_stan)
+my_traceplot(m16_stan)
+models_stan[[&quot;m16_stan&quot;]] &lt;- m16_stan
+</code></pre>
+</div>
+<div id="compare-normal-models" class="section level1">
+<h1>Compare Normal models</h1>
+<p>Now check which one has a lower DIC or WAIC:</p>
+<pre class="r"><code>stan_normal_models &lt;- list(&quot;m9_stan&quot; = m9_stan, 
+                           &quot;m9a_stan&quot; = m9a_stan, 
+                           &quot;m10_stan&quot; = m10_stan,
+                           &quot;m11a_stan&quot; = m11a_stan, 
+                           &quot;m11c_stan&quot; = m11c_stan,
+                           &quot;m11d_stan&quot; = m11d_stan,
+                           &quot;m12_stan&quot; = m12_stan,
+                           &quot;m13_stan&quot; = m13_stan,
+                           &quot;m14_stan&quot; = m14_stan,
+                           &quot;m15_stan&quot; = m15_stan,
+                           &quot;m16_stan&quot; = m16_stan)
+
+stan_normal_models_vec &lt;- c(&quot;m9_stan&quot; = m9_stan, 
+                            &quot;m9a_stan&quot; = m9a_stan, 
+                            &quot;m10_stan&quot; = m10_stan,
+                            &quot;m11a_stan&quot; = m11a_stan, 
+                            &quot;m11c_stan&quot; = m11c_stan,
+                            &quot;m11d_stan&quot; = m11d_stan,
+                            &quot;m12_stan&quot; = m12_stan,
+                            &quot;m13_stan&quot; = m13_stan,
+                            &quot;m14_stan&quot; = m14_stan,
+                            &quot;m15_stan&quot; = m15_stan,
+                            &quot;m16_stan&quot; = m16_stan)
+
+
+#stan_normal_models
+
+#save(stan_normal_models, file = &quot;stan_normal_models.Rda&quot;)
+stan_model_comparison &lt;- compare(m9_stan, m9a_stan, 
+                                 m10_stan,
+                                 m11a_stan, m11c_stan, m11d_stan,
+                                 m12_stan, m13_stan, m14_stan, m15_stan,
+                                 m16_stan)
+stan_model_comparison 
+
+save(stan_model_comparison, file = &quot;stan_model_comparison.Rda&quot;)</code></pre>
+<p><code>m11b</code> is better than <code>m11a</code> - unemployment apears to be more important to predict AfD success compared to migration rate in the area.</p>
+</div>
+<div id="get-best-normal-model" class="section level1">
+<h1>Get best (normal) model</h1>
+<p>Which model ist best? Let’s define the model with the lowest WAIC as best:</p>
+<pre class="r"><code>stan_model_comparison@output %&gt;% 
+  rownames_to_column(var = &quot;model_name&quot;) %&gt;%  
+  slice(which.min(WAIC)) -&gt; best_model</code></pre>
+<p>And now extract the name of the best model:</p>
+<pre class="r"><code>best_model_name &lt;-
+  best_model %&gt;%
+  pull(model_name)</code></pre>
+</div>
+<div id="geo-plotting" class="section level1">
+<h1>Geo plotting</h1>
+<p>AfD success in the election:</p>
+<pre class="r"><code>wahlkreise_shp %&gt;% 
+  left_join(select(d_short, area_nr, afd_prop), by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;% 
+  ggplot() +
+  geom_sf(aes(fill = afd_prop)) +
+  theme_void() +
+  scale_fill_viridis() +
+  labs(fill=&quot;Afd votes\n(Zweitstimme)&quot;,
+       caption = &quot;Data provided by the Bundeswahlleiter 2017&quot;) -&gt; p_afd
+p_afd
+
+# ggsave(&quot;img/p-afd.pdf&quot;)</code></pre>
+<p>Unemployment rates in Germany per district:</p>
+<pre class="r"><code>wahlkreise_shp %&gt;% 
+  left_join(select(d_short, area_nr, unemp_n, total_n), by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;% 
+  mutate(unemp_prop = unemp_n / total_n) %&gt;% 
+  ggplot() +
+  geom_sf(aes(fill = unemp_prop)) + 
+  theme_void() +
+  scale_fill_viridis() +
+  labs(fill=&quot;unemployment rate&quot;,
+       caption = &quot;Data provided by the Bundeswahlleiter 2017&quot;) -&gt; p_unemp
+p_unemp
+
+# ggsave(&quot;img/p-unemp.pdf&quot;)</code></pre>
+<p>Foreigner rates:</p>
+<pre class="r"><code>wahlkreise_shp %&gt;% 
+  left_join(select(d_short, area_nr, for_prop, total_n), by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;% 
+  ggplot() +
+  geom_sf(aes(fill = for_prop)) + 
+  theme_void() +
+  scale_fill_viridis() +
+  labs(fill=&quot;Foreigner rate&quot;,
+       caption = &quot;Data provided by the Bundeswahlleiter 2017&quot;) -&gt; p_foreign
+
+p_foreign
+
+# ggsave(&quot;img/p-foreigners.pdf&quot;)</code></pre>
+<p>Joint diagrams</p>
+<pre class="r"><code>library(gridExtra)
+
+grid.arrange(p_unemp, p_afd, nrow = 1)
+grid.arrange(p_foreign, p_afd, nrow = 1)</code></pre>
+</div>
+<div id="computing-prediction-errors" class="section level1">
+<h1>Computing prediction errors</h1>
+<p>Here’s a function to compute the modeling error, defined as the absolute difference of the estimated model value (of afd proportion) minus the observed value (of afd proportion).</p>
+<pre class="r"><code>comp_error &lt;- function(model, data = d_short_z, fun = mean) {
+  posterior_per_person &lt;- link(model)
+  
+  
+  as_tibble(posterior_per_person) %&gt;% 
+    summarise_all(fun) %&gt;% 
+    gather() %&gt;% 
+    rename(estimate = value) %&gt;% 
+    mutate(afd_prop = data$afd_votes / data$votes_total,
+           error = abs(estimate - afd_prop)) %&gt;% 
+    pull(error) -&gt; error_vec
+  
+  return(error_vec)
+}
+</code></pre>
+<p>Apply the function on all models:</p>
+<pre class="r"><code>model_error &lt;- lapply(stan_normal_models, comp_error)
+
+#model_error
+#save(model_error, file = &quot;model_error.Rda&quot;)</code></pre>
+<p>Compute the median absolute error:</p>
+<pre class="r"><code>md_abs_error_all_models &lt;- sapply(model_error, median) %&gt;% unlist()
+md_abs_error_all_models
+
+best_model_name &lt;- md_abs_error_all_models[which.min(md_abs_error_all_models)] %&gt;% names()
+</code></pre>
+<p>Also, compute the IQR of the errors:</p>
+<pre class="r"><code>modell_error_IQR &lt;- lapply(stan_normal_models, comp_error, fun = IQR)
+</code></pre>
+</div>
+<div id="visualizing-prediction-error" class="section level1">
+<h1>Visualizing prediction error</h1>
+<p>Some preparation:</p>
+<pre class="r"><code>model_error %&gt;% 
+    as.data.frame() -&gt; model_error_df
+
+#glimpse(model_error_df)
+
+# model_names_binom &lt;- list(&quot;m0_stan&quot;, &quot;m1_stan&quot;, &quot;m2_stan&quot;, &quot;m3_stan&quot;,
+#                &quot;m4_stan&quot;, &quot;m5_stan&quot;, &quot;m6_stan&quot;, &quot;m7_stan&quot;) 
+
+model_names &lt;- c(&quot;m9_stan&quot;,
+                 &quot;m9a_stan&quot;,
+                 &quot;m10_stan&quot; ,
+                 &quot;m11a_stan&quot;,
+                 &quot;m11c_stan&quot;,
+                 &quot;m11d_stan&quot;,
+                 &quot;m12_stan&quot;,
+                 &quot;m13_stan&quot;,
+                 &quot;m14_stan&quot;,
+                 &quot;m15_stan&quot; ,
+                 &quot;m16_stan&quot;)
+
+
+names(model_error_df) &lt;- model_names
+
+model_error_df %&gt;% 
+  mutate(afd_prop = d_short$afd_prop,
+         id = 1:nrow(model_error_df)) -&gt; model_error_df
+
+
+modell_error_IQR %&gt;% 
+  as.data.frame() -&gt; model_error_IQR_df
+
+
+names(model_error_IQR_df) &lt;- model_names
+
+model_error_IQR_df %&gt;% 
+  mutate(id = 1:nrow(model_error_IQR_df)) -&gt; model_error_IQR_df
+</code></pre>
+<p>Convert to long version for plotting:</p>
+<pre class="r"><code>model_error_IQR_df %&gt;% 
+  gather(key = model, value = iqr, -c(id)) %&gt;% 
+  mutate(stat = &quot;IQR&quot;) -&gt; model_error_IQR_df_long
+
+
+model_error_df %&gt;% 
+  gather(key = model, value = error, -c(afd_prop, id)) %&gt;% 
+  mutate(stat = &quot;median&quot;) -&gt; model_error_df_long
+
+model_error_df_long %&gt;% 
+  bind_rows(model_error_IQR_df_long) -&gt; model_error_long
+
+
+model_error_df_long %&gt;% 
+  left_join(model_error_IQR_df_long, by = c(&quot;id&quot;, &quot;model&quot;)) %&gt;% 
+  select(-c(stat.x, stat.y)) -&gt; model_error_md_iqr
+
+glimpse(model_error_md_iqr)
+
+#save(model_error_md_iqr, file = &quot;model_error_md_iqr.RDa&quot;)</code></pre>
+<p>Now plot:</p>
+<pre class="r"><code>
+as_tibble(md_abs_error_all_models) %&gt;% 
+  mutate(model = unlist(model_names),
+         best_model = ifelse(model_names == best_model_name, TRUE, FALSE)) -&gt; md_abs_error_all_models
+
+glimpse(md_abs_error_all_models)
+
+model_error_md_iqr %&gt;% 
+  arrange(-error) %&gt;% 
+  ggplot(aes(x = id)) +
+  facet_wrap(~model) +
+  geom_hline(aes(yintercept = value), data = md_abs_error_all_models) +
+    geom_errorbar(aes(ymin = error - (iqr/2),
+                    ymax = error + (iqr/2)),
+                alpha = .3,
+                color = &quot;gray40&quot;) +
+  geom_point(aes(y = error), alpha = .1) +
+  geom_label(aes(label = round(value, 3),
+                 color = best_model), x = 1, y = .2, 
+            data = md_abs_error_all_models, 
+            hjust = 0) +
+  guides(color=FALSE) +
+  theme_classic() +
+  labs(x = &quot;ID of electorial district&quot;,
+       y = &quot;(absolute) prediction error&quot;)
+  scale_color_manual(values = c(&quot;red&quot;, &quot;darkgreen&quot;))
+
+# ggsave(filename = &quot;img/model-error-comp.pdf&quot;)</code></pre>
+</div>
+<div id="plotting-prediction-error-against-observed-values" class="section level1">
+<h1>Plotting prediction error against observed values</h1>
+<pre class="r"><code>posterior_per_person_best_model &lt;- link(m15_stan)
+  
+posterior_per_person_best_model %&gt;%  
+  as_tibble() %&gt;% 
+    summarise_all(median) %&gt;% 
+    gather() %&gt;% 
+    rename(estimate = value) %&gt;% 
+  add_column(area_nr = 1:nrow(.)) %&gt;% 
+  full_join(d_short) %&gt;%
+  mutate(error = abs(estimate - afd_prop),
+         top05 = percent_rank(error) &gt;= .95) -&gt; d_short_w_pred_err 
+
+
+polygon_pos &lt;- data.frame(
+  x = c(0, 0.4, 0.4,    0, 0.4, 0, 0 ),
+  y = c(0, 0, 0.4,      0, 0.4, 0.4, 0),
+  value = c(&quot;underestimates&quot;, &quot;underestimates&quot;, &quot;underestimates&quot;, &quot;overestimates&quot;, &quot;overestimates&quot;, &quot;overestimates&quot;, &quot;overestimates&quot;)
+)
+ 
+d_short_w_pred_err %&gt;%  
+  ggplot() +
+  aes(x = afd_prop, y = estimate) +
+  geom_abline(slope = 1, intercept = 0, color = &quot;grey60&quot;) +
+  geom_polygon(data = polygon_pos, aes(x = x, y = y, fill = value), alpha = .1) +
+  geom_point(aes(color = error,
+                 shape = east),
+             alpha = .6,
+             size = 2) +
+  ggrepel::geom_label_repel(aes(label = area_name), data = filter(d_short_w_pred_err, top05 == TRUE)) +
+  annotate(&quot;text&quot;, x = 0.4, y = 0, label = &quot;model understimates&quot;, hjust = 1, vjust = 0) +
+  annotate(&quot;text&quot;, x = 0, y = 0.4, label = &quot;model overestimates&quot;, hjust = 0, vjust = 1) +
+  labs(x = &quot;Observed AfD votes (proportion)&quot;,
+       y = &quot;Estimated AfD votes (proportion)&quot;,
+       caption = &quot;n=299 electoral districts; data provided by Bundeswahlleiter 2017&quot;) +
+  guides(fill = FALSE) +
+  theme_classic()
+
+ggsave(&quot;img/modelest-vs-obs.pdf&quot;, width = 10, height = 5)
+</code></pre>
+</div>
+<div id="sensecheck" class="section level1">
+<h1>Sensecheck</h1>
+<p>I just wondered what the bivariate correlations of the predictors to <code>afd_vote</code> is`. Let’s check that.</p>
+<pre class="r"><code>library(GGally)
+
+ggpairs(d_short, columns = c(&quot;foreigner_n&quot;, &quot;unemp_n&quot;, &quot;afd_votes&quot;))
+</code></pre>
+<p>There is a substantial <em>negatie</em> correlations with number of foreigners and a positive correlation with unemployment, but (nearly) no correlation with unemployment numbers.
+But our analysis above suggest that these associations are spurious once the state is controlled for. To make things easy, let’s pick two states, say Sachsen und Bayern and check in each state the assoctions.</p>
+<pre class="r"><code>d_short %&gt;%
+  filter(state == &quot;Bayern&quot;) %&gt;% 
+  ggpairs( columns = c(&quot;foreigner_n&quot;, &quot;unemp_n&quot;, &quot;afd_votes&quot;))</code></pre>
+<pre class="r"><code>d_short %&gt;%
+  filter(state == &quot;Sachsen&quot;) %&gt;% 
+  ggpairs( columns = c(&quot;foreigner_n&quot;, &quot;unemp_n&quot;, &quot;afd_votes&quot;))</code></pre>
+<p>Interestingly, in Sachsen manifests a strong negative correlation between AfD and foreigner rates.</p>
+</div>
+<div id="check-some-model-assumptions" class="section level1">
+<h1>Check some model assumptions</h1>
+<p>Let’s compute the predictions for each model:</p>
+<pre class="r"><code>
+model_predictions &lt;- lapply(stan_normal_models, link)
+ </code></pre>
+<p>Now plot the predictions against the error, as advised by Gelman and Hill.</p>
+<p>First, get predictions of the best moel:</p>
+<pre class="r"><code>model_predictions[[best_model_name]] %&gt;% 
+  as_tibble %&gt;% 
+  summarise_all(mean) %&gt;% 
+  gather() -&gt; best_model_preds
+
+# save(best_model_preds, file = &quot;best_model_preds.Rda&quot;)</code></pre>
+<p>Each observation is one <em>row</em> in this data frame.</p>
+<p>Similarly, get errors of the best model:</p>
+<pre class="r"><code>model_error[[best_model_name]] %&gt;% 
+  as_tibble() %&gt;%
+  rename(error = value) %&gt;% 
+  mutate(pred = best_model_preds$value) -&gt; best_model_pred_err
+  
+best_model_pred_err %&gt;% 
+  ggplot() +
+  aes(x = pred, y = error) +
+  geom_hline(yintercept = quantile(best_model_pred_err$error, .5),
+             color = &quot;grey60&quot;) +
+  geom_hline(yintercept = quantile(best_model_pred_err$error, .975),
+             color = &quot;grey80&quot;, , linetype = &quot;dashed&quot;) +
+  geom_hline(yintercept = quantile(best_model_pred_err$error, .025),
+             color = &quot;grey80&quot;, , linetype = &quot;dashed&quot;) +
+  geom_point() +
+  theme_classic() +
+  labs(title = best_model_name,
+       xlab = &quot;Model predictions&quot;,
+       ylab = &quot;Model error&quot;,
+       caption = &quot;Note. Horizontal lines denote .025, .5, and .975 quantiles, respectively&quot;) 
+  
+# ggsave(&quot;best-model-pred-err.pdf&quot;)</code></pre>
+</div>
+<div id="check-posterior-distribution-of-predictors" class="section level1">
+<h1>Check posterior distribution of predictors</h1>
+<p>Let’s have a look at the posterior distribution of the <code>best_model</code>.</p>
+<pre class="r"><code>post_best_model &lt;- extract.samples(stan_normal_models[[best_model_name]])</code></pre>
+<p>This object is a list. Let’s convert it to a data frame for easier plotting.</p>
+<pre class="r"><code>post_best_model_df &lt;- data_frame(
+  sigma = post_best_model[[&quot;sigma&quot;]],
+  sigma2 = post_best_model[[&quot;sigma2&quot;]],
+  beta1 = post_best_model[[&quot;beta1&quot;]],
+  beta2= post_best_model[[&quot;beta2&quot;]]
+)</code></pre>
+<p>And now we plot a number of histograms:</p>
+<pre class="r"><code>post_best_model_df %&gt;% 
+  gather() %&gt;%  
+  rename(coef = key) %&gt;% 
+  ggplot() +
+  aes(x = value) +
+  facet_wrap(~coef, scales = &quot;free&quot;) +
+  geom_histogram() -&gt; p_post_best_model
+p_post_best_model</code></pre>
+<p>Now compute summary statistics:</p>
+<pre class="r"><code>post_best_model_df %&gt;% 
+  gather() %&gt;% 
+  rename(coef = key) %&gt;% 
+  group_by(coef) %&gt;% 
+  summarise(q05 = quantile(value, .05),
+            q50 = quantile(value, .5),
+            q95 = quantile(value, .95),
+            value = mean(value)
+  )  -&gt; post_best_model_df_sum
+  #gather(key = my_quantile, value = value, -coef) -&gt; post_best_model_df_sum
+
+head(post_best_model_df_sum)</code></pre>
+<p>Now plot both:</p>
+<pre class="r"><code>p_post_best_model +
+  geom_rect(data = post_best_model_df_sum,
+              aes(xmin = q05,
+                  xmax = q95,
+                  ymin = 0,
+                  ymax = Inf),
+            fill = &quot;red&quot;,
+            alpha = .2) +
+  theme(axis.text.y=element_blank(),
+        axis.ticks.y = element_blank()) +
+  theme_classic() + 
+  labs(title = best_model_name,
+       y = &quot;&quot;,
+       caption = &quot;Note. Shaded areas demark 90% mass intervals&quot;)
+
+ggsave(&quot;img/p-post-best-model.pdf&quot;)</code></pre>
+</div>

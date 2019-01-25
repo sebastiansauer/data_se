@@ -2,7 +2,7 @@
 title: Bayesian modeling of populist party success in German federal elections - A notebook from the lab
 author: ''
 date: '2018-08-25'
-draft: FALSE
+draft: TRUE
 slug: bayesian-modeling-of-populist-party-success-in-german-federal-elections
 categories:
   - rstats
@@ -99,7 +99,6 @@ Third, we will make use of geo data in order to geoplot the modeling results. Th
 
 ```{r data-shp}
 data("wahlkreise_shp")
-
 ```
 
 
@@ -431,7 +430,7 @@ The traceplot function from `rethinking` appears to have a bug, or does not work
 
 ```{r my-traceplot}
 my_traceplot <- function(model) {
-  rstan::traceplot( model@stanfit, pars=names(model@start[[1]]))
+  rstan::traceplot(model@stanfit, pars=names(model@start[[1]]))
 }
 ```
 
@@ -892,12 +891,14 @@ AfD success in the election:
 wahlkreise_shp %>% 
   left_join(select(d_short, area_nr, afd_prop), by = c("WKR_NR" = "area_nr")) %>% 
   ggplot() +
-  geom_sf(aes(fill = afd_prop)) + 
+  geom_sf(aes(fill = afd_prop)) +
   theme_void() +
   scale_fill_viridis() +
   labs(fill="Afd votes\n(Zweitstimme)",
        caption = "Data provided by the Bundeswahlleiter 2017") -> p_afd
 p_afd
+
+# ggsave("img/p-afd.pdf")
 ```
 
 
@@ -916,6 +917,7 @@ wahlkreise_shp %>%
        caption = "Data provided by the Bundeswahlleiter 2017") -> p_unemp
 p_unemp
 
+# ggsave("img/p-unemp.pdf")
 ```
 
 
@@ -933,6 +935,7 @@ wahlkreise_shp %>%
 
 p_foreign
 
+# ggsave("img/p-foreigners.pdf")
 ```
 
 
@@ -1001,6 +1004,7 @@ Also, compute the IQR of the errors:
 
 ```{r iqr-abs-err, results = "hide"}
 modell_error_IQR <- lapply(stan_normal_models, comp_error, fun = IQR)
+
 ```
 
 
@@ -1093,15 +1097,20 @@ model_error_md_iqr %>%
   geom_hline(aes(yintercept = value), data = md_abs_error_all_models) +
     geom_errorbar(aes(ymin = error - (iqr/2),
                     ymax = error + (iqr/2)),
-                alpha = .8,
+                alpha = .3,
                 color = "gray40") +
-  geom_point(aes(y = error)) +
+  geom_point(aes(y = error), alpha = .1) +
   geom_label(aes(label = round(value, 3),
                  color = best_model), x = 1, y = .2, 
             data = md_abs_error_all_models, 
             hjust = 0) +
   guides(color=FALSE) +
+  theme_classic() +
+  labs(x = "ID of electorial district",
+       y = "(absolute) prediction error")
   scale_color_manual(values = c("red", "darkgreen"))
+
+# ggsave(filename = "img/model-error-comp.pdf")
 ```
 
 
@@ -1143,9 +1152,10 @@ d_short_w_pred_err %>%
   labs(x = "Observed AfD votes (proportion)",
        y = "Estimated AfD votes (proportion)",
        caption = "n=299 electoral districts; data provided by Bundeswahlleiter 2017") +
-  guides(fill = FALSE)
+  guides(fill = FALSE) +
+  theme_classic()
 
-
+ggsave("img/modelest-vs-obs.pdf", width = 10, height = 5)
 
 ```
 
@@ -1238,11 +1248,13 @@ best_model_pred_err %>%
   geom_hline(yintercept = quantile(best_model_pred_err$error, .025),
              color = "grey80", , linetype = "dashed") +
   geom_point() +
+  theme_classic() +
   labs(title = best_model_name,
        xlab = "Model predictions",
        ylab = "Model error",
        caption = "Note. Horizontal lines denote .025, .5, and .975 quantiles, respectively") 
   
+# ggsave("best-model-pred-err.pdf")
 ```
 
 
@@ -1312,8 +1324,11 @@ p_post_best_model +
             alpha = .2) +
   theme(axis.text.y=element_blank(),
         axis.ticks.y = element_blank()) +
+  theme_classic() + 
   labs(title = best_model_name,
        y = "",
        caption = "Note. Shaded areas demark 90% mass intervals")
+
+ggsave("img/p-post-best-model.pdf")
 ```
 
