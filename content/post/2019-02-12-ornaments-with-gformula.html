@@ -1,0 +1,113 @@
+---
+title: Ornaments with ggformula
+author: Sebastian Sauer
+date: '2019-02-12'
+slug: ornaments-with-gformula
+categories:
+  - rstats
+tags:
+  - visualization
+  - plotting
+  - ggplot2
+  - tidyverse
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+<p>Since some time, there’s a wrapper for <code>ggplot2</code> available, bundled in the package <code>ggformula</code>. One nice thing is that in that it plays nicely with the popular R package <code>mosaic</code>. <code>mosaic</code> provides some useful functions for modeling along with a tamed and consistent syntax. In this post, we will discuss some “ornaments”, that is, some details of beautification of a plot. I confess that every one will deem it central, but in some cases in comes in handy to know how to “refine” a plot using <code>ggformula</code>.</p>
+<p>Note that this “refinement” is primarily controlled via the function <code>gf_refine()</code> (most stuff), <code>gf_lab()</code> (for labs), and <code>gf_lims()</code> (for axis limits). Themes can be adjusted using <code>gf_theme()</code>.</p>
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>library(mosaic)
+library(ggthemes)
+
+data(mtcars)
+data(diamonds)</code></pre>
+</div>
+<div id="axis-labels" class="section level1">
+<h1>Axis labels</h1>
+<pre class="r"><code>gf_point(mpg ~ hp, data = mtcars)  %&gt;% 
+  gf_labs(x = &quot;Horsepower&quot;,
+          y = &quot;Miles per gallone&quot;,
+          title = &quot;A cool plot&quot;)</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
+</div>
+<div id="axis-limits" class="section level1">
+<h1>Axis limits</h1>
+<pre class="r"><code>gf_point(mpg ~ hp, data = mtcars) %&gt;% 
+  gf_lims(x = c(100,150))</code></pre>
+<pre><code>## Warning: Removed 22 rows containing missing values (geom_point).</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p>Beware! This function will not only “zoom in” but will also kick out the non-displayed data thereby possibly altering geoms such as boxplot or regression line. To just zoom in, use this function instead:</p>
+<pre class="r"><code>gf_point(mpg ~ hp, data = mtcars) %&gt;% 
+  gf_refine(coord_cartesian(xlim = c(100, 150)))</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>
+<div id="axis-breaks" class="section level1">
+<h1>Axis breaks</h1>
+<pre class="r"><code>gf_point(mpg ~ hp, data = mtcars) %&gt;% 
+  gf_refine(scale_x_continuous(breaks = seq(from = 50, to = 400, by = 50)))</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>Basically, <code>gf_refine()</code> takes some scaling functions from ggplot as input, such as <code>scale_XXX_continuous</code>. So check out these functions to get fine control over axis and, more generally, mapping from variables to visuals.</p>
+</div>
+<div id="axis-labels-for-discrete-axes" class="section level1">
+<h1>Axis labels for discrete axes</h1>
+<pre class="r"><code>gf_boxplot(hp ~ factor(am), data = mtcars) %&gt;% 
+  gf_refine(scale_x_discrete(labels  = c(&quot;manual&quot;, &quot;automatic&quot;)))</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>As now the x-axis is discrete (as a result of a factor variables on the x-axis), we need to use <code>scale_XXX_discrete</code> this time, where <code>XXX</code> is the x-axis in this example.</p>
+</div>
+<div id="change-theme" class="section level1">
+<h1>Change theme</h1>
+<pre class="r"><code>gf_boxplot(hp ~ factor(am), data = mtcars) %&gt;% 
+  gf_theme(theme_classic())</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+<pre class="r"><code>gf_boxplot(hp ~ factor(am), data = mtcars) %&gt;% 
+  gf_theme(theme_minimal())</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<pre class="r"><code>gf_boxplot(hp ~ factor(am), data = mtcars) %&gt;% 
+  gf_theme(theme_bw())</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+<pre class="r"><code>gf_boxplot(hp ~ factor(am), data = mtcars) %&gt;% 
+  gf_theme(theme_void())</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+</div>
+<div id="theme-packages" class="section level1">
+<h1>Theme packages</h1>
+<p>There are some packages out there providing additional themes out of the box. One example is the package <code>ggthemes</code>.</p>
+<pre class="r"><code>gf_boxplot(hp ~ factor(am), data = mtcars) %&gt;% 
+gf_theme(theme_tufte())</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+</div>
+<div id="change-colors-predefined-colors" class="section level1">
+<h1>Change colors – predefined colors</h1>
+<p>The package <code>viridis</code> provides a nice color scheme.</p>
+<p>Standard colors:</p>
+<pre class="r"><code>gf_hex(price ~ carat, data = diamonds)</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<pre class="r"><code>gf_hex(price ~ carat, data = diamonds) %&gt;% 
+  gf_refine(scale_fill_viridis_c()) %&gt;% 
+  gf_theme(theme_minimal())</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+</div>
+<div id="change-colors-own-color-scale" class="section level1">
+<h1>Change colors – own color scale</h1>
+<p>I recommend against using own color schemes, at least not without taking great care.</p>
+<pre class="r"><code>gf_boxplot(hp ~ factor(am), 
+           data = mtcars,
+           fill = ~ factor(am)) %&gt;% 
+  gf_theme(theme_classic()) %&gt;% 
+  gf_refine(scale_fill_manual(values = c(&quot;red&quot;, &quot;blue&quot;)))</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p>Use hex (RGB) color codes instead of the color names:</p>
+<pre class="r"><code>gf_boxplot(hp ~ factor(am), 
+           data = mtcars,
+           fill = ~ factor(am)) %&gt;% 
+  gf_theme(theme_classic()) %&gt;% 
+  gf_refine(scale_fill_manual(values = c(&quot;#00FF11&quot;, &quot;#123456&quot;))) %&gt;% 
+  gf_refine(scale_x_discrete(labels = c(&quot;Some cars&quot;, &quot;some other cars&quot;)),
+            scale_y_continuous(breaks = c(70, 100, 300)))</code></pre>
+<p><img src="/post/2019-02-12-ornaments-with-gformula_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+</div>

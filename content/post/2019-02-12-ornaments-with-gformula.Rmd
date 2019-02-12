@@ -1,0 +1,175 @@
+---
+title: Ornaments with ggformula
+author: Sebastian Sauer
+date: '2019-02-12'
+slug: ornaments-with-gformula
+categories:
+  - rstats
+tags:
+  - visualization
+  - plotting
+  - ggplot2
+  - tidyverse
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+Since some time, there's a wrapper for `ggplot2` available, bundled in the package `ggformula`. One nice thing is that in that it plays nicely with the popular R package `mosaic`. `mosaic` provides some useful functions for modeling along with a tamed and consistent syntax. In this post, we will discuss some "ornaments", that is, some details of beautification of a plot. I confess that every one will deem it central, but in some cases in comes in handy to know how to "refine" a plot using `ggformula`. 
+
+Note that this "refinement" is primarily controlled via the function `gf_refine()` (most stuff), `gf_lab()` (for labs), and `gf_lims()` (for axis limits). Themes can be adjusted using `gf_theme()`.
+
+
+
+# Setup
+
+
+```{r message = FALSE}
+library(mosaic)
+library(ggthemes)
+
+data(mtcars)
+data(diamonds)
+```
+
+
+# Axis labels
+
+
+```{r}
+gf_point(mpg ~ hp, data = mtcars)  %>% 
+  gf_labs(x = "Horsepower",
+          y = "Miles per gallone",
+          title = "A cool plot")
+```
+
+
+
+
+
+
+# Axis limits
+
+
+```{r}
+gf_point(mpg ~ hp, data = mtcars) %>% 
+  gf_lims(x = c(100,150))
+```
+
+Beware! This function will not only "zoom in" but will also kick out the non-displayed data thereby possibly altering geoms such as boxplot or regression line. To just zoom in, use this function instead:
+
+
+```{r}
+gf_point(mpg ~ hp, data = mtcars) %>% 
+  gf_refine(coord_cartesian(xlim = c(100, 150)))
+```
+
+
+
+# Axis breaks
+
+
+```{r}
+gf_point(mpg ~ hp, data = mtcars) %>% 
+  gf_refine(scale_x_continuous(breaks = seq(from = 50, to = 400, by = 50)))
+```
+
+Basically, `gf_refine()` takes some scaling functions from ggplot as input, such as `scale_XXX_continuous`. So check out these functions to get fine control over axis and, more generally, mapping from variables to visuals.
+
+
+
+# Axis labels for discrete axes
+
+```{r}
+gf_boxplot(hp ~ factor(am), data = mtcars) %>% 
+  gf_refine(scale_x_discrete(labels  = c("manual", "automatic")))
+```
+
+As now the x-axis is discrete (as a result of a factor variables on the x-axis), we need to use `scale_XXX_discrete` this time, where `XXX` is the x-axis in this example.
+
+
+
+# Change theme
+
+
+```{r}
+gf_boxplot(hp ~ factor(am), data = mtcars) %>% 
+  gf_theme(theme_classic())
+```
+
+```{r}
+gf_boxplot(hp ~ factor(am), data = mtcars) %>% 
+  gf_theme(theme_minimal())
+```
+
+```{r}
+gf_boxplot(hp ~ factor(am), data = mtcars) %>% 
+  gf_theme(theme_bw())
+```
+
+
+```{r}
+gf_boxplot(hp ~ factor(am), data = mtcars) %>% 
+  gf_theme(theme_void())
+```
+
+
+# Theme packages
+
+
+There are some packages out there providing additional themes out of the box. One example is the package `ggthemes`.
+
+
+```{r}
+gf_boxplot(hp ~ factor(am), data = mtcars) %>% 
+gf_theme(theme_tufte())
+```
+
+
+# Change colors -- predefined colors
+
+
+The package `viridis` provides a nice color scheme.
+
+Standard colors:
+
+```{r}
+gf_hex(price ~ carat, data = diamonds)
+```
+
+
+```{r}
+gf_hex(price ~ carat, data = diamonds) %>% 
+  gf_refine(scale_fill_viridis_c()) %>% 
+  gf_theme(theme_minimal())
+```
+
+
+
+# Change colors -- own color scale
+
+I recommend against using own color schemes, at least not without taking great care.
+
+
+```{r}
+gf_boxplot(hp ~ factor(am), 
+           data = mtcars,
+           fill = ~ factor(am)) %>% 
+  gf_theme(theme_classic()) %>% 
+  gf_refine(scale_fill_manual(values = c("red", "blue")))
+```
+
+
+Use hex (RGB) color codes instead of the color names:
+
+```{r}
+gf_boxplot(hp ~ factor(am), 
+           data = mtcars,
+           fill = ~ factor(am)) %>% 
+  gf_theme(theme_classic()) %>% 
+  gf_refine(scale_fill_manual(values = c("#00FF11", "#123456"))) %>% 
+  gf_refine(scale_x_discrete(labels = c("Some cars", "some other cars")),
+            scale_y_continuous(breaks = c(70, 100, 300)))
+```
+
