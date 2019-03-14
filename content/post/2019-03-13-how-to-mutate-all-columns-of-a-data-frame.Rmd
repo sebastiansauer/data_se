@@ -1,0 +1,114 @@
+---
+title: How to mutate all columns of a data frame
+author: Sebastian Sauer
+date: '2019-03-13'
+slug: how-to-mutate-all-columns-of-a-data-frame
+categories:
+  - rstats
+tags:
+  - tidyverse
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+Say, you have a data frame with a number of columns, and you need to change every column in a similar way. A common example might be to standardize all (numeric) variables. How to do that in R? This post shows and explains an example using `mutate_all()` from the tidyverse.
+
+Let's stick to the question "how to z-standardize all columns" for the sake of simplicity (and neglect that there are precooked solutions, for example from the superb package `sjmisc` by strengejacke.)
+
+
+```{r}
+library(tidyverse)
+data(iris)
+```
+
+
+
+# Easy but inefficient way
+
+```{r}
+iris %>% 
+  mutate(Sepal.Length_z = (Sepal.Length - mean(iris$Sepal.Length)) / sd(iris$Sepal.Length),
+         Sepal.Width_z = (Sepal.Width - mean(iris$Sepal.Width)) / sd(iris$Sepal.Width))  %>% 
+  head()
+```
+
+Beware the braces; it's easy to get bitten (happened to me).
+
+Clearly, this appraoch dow not scale well. In addition, you'll strain your hand. And will enjoy the funniest typos.
+
+
+
+# Define helper function
+
+A first useful step is to define a helper function which we will apply on every column:
+
+```{r}
+z_std <- function(observed) {
+  
+  result <- (observed - mean(observed)) / sd(observed)
+}
+```
+
+Of course, such a fucntion already exists a myriad times in other scripts, and yes, it is not crafted beautifully, but it will serve as a prgramatic start.
+
+Now let's apply it:
+
+```{r}
+iris %>% 
+  mutate(Sepal.Length_z = z_std(Sepal.Length)) %>% 
+  head()
+```
+
+
+Much cleaner, simpler, more relaxing.
+
+
+
+# Now to the conveyer belt
+
+Now let's apply it to each column:
+
+
+```{r}
+iris %>% 
+  select_if(is.numeric) %>% 
+  mutate_all(funs(z = z_std(.))) %>% 
+  head()
+```
+
+
+
+# Changes in dplyr
+
+
+You might have noticed this warning:
+
+`Warning: funs() is soft deprecated as of dplyr 0.8.0`
+
+
+So let's change the code above to reflect the change in dplyr.
+
+
+```{r}
+iris %>% 
+  select_if(is.numeric) %>% 
+  mutate_all(list(z = ~ z_std(.))) %>% 
+  head()
+```
+
+
+This code can be written more compact, see below.
+
+
+```{r}
+iris %>% 
+  select_if(is.numeric) %>% 
+  mutate_all( ~ z_std(.)) %>% 
+  head()
+```
+
+
+Note that if you *don't* supply a name (suffix) such as `z` in the example above, the function will silently overwrite the original variables.
+
