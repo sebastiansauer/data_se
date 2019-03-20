@@ -1,0 +1,270 @@
+---
+title: Beispiel für eine logistische Regression
+author: Sebastian Sauer
+date: '2019-03-20'
+slug: beispiel-für-eine-logistische-regression
+categories:
+  - rstats
+tags:
+  - tutorial
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+<div id="wozu-ist-das-gut" class="section level1">
+<h1>Wozu ist das gut?</h1>
+<p>Kurz gesagt ist die <em>logistische Regression</em> ein Werkzeug, um <em>dichotome</em> (zweiwertige) Ereignisse vorherzusagen (auf Basis eines Datensatzes mit einigen Prädiktoren).</p>
+</div>
+<div id="was-sagt-uns-die-logistische-regression" class="section level1">
+<h1>Was sagt uns die logistische Regression?</h1>
+<p>Möchte man z.B. vorhersagen, ob eine E-Mail Spam ist oder nicht, so ist es nützlich, für jede zu prüfende Mail eine Wahrscheinlichkeit zu bekommen. So könnte uns die logistische Regression sagen: “Eine Mail mit diesen Ausprägungen in den Prädiktoren hat eine Wahrschenlichkeit von X Prozent, dass es sich um Spam handelt”.</p>
+</div>
+<div id="warum-nicht-die-normale-regression" class="section level1">
+<h1>Warum nicht die “normale” Regression?</h1>
+<p>Die “normale” Regression ist für so eine Situation nicht (gut) geeignet, da die normale Regression sowohl negative Werte als auch Werte über 1 (100%) vorhersagen kann - was für Wahrscheinlichkeiten keinen Sinn machen würde.</p>
+</div>
+<div id="beispiel-bitte" class="section level1">
+<h1>Beispiel bitte!</h1>
+<p>Nehmen wir den Datensatz <code>Titanic</code> als Beispiel-Datensatz. Die Forschungsfrage lautet:</p>
+<blockquote>
+<p>Hat die Passagierklasse einen Einfluss auf die Überlebenswahrscheinlichkeit?</p>
+</blockquote>
+</div>
+<div id="vorbereitung-daten-und-pakete-laden" class="section level1">
+<h1>Vorbereitung: Daten und Pakete laden</h1>
+<pre class="r"><code>library(&quot;titanic&quot;)
+data(&quot;titanic_train&quot;)
+library(mosaic)</code></pre>
+<pre><code>## Warning: package &#39;dplyr&#39; was built under R version 3.5.2</code></pre>
+</div>
+<div id="datensatz-anschauen" class="section level1">
+<h1>Datensatz anschauen</h1>
+<pre class="r"><code>inspect(titanic_train)</code></pre>
+<pre><code>## 
+## categorical variables:  
+##       name     class levels   n missing
+## 1     Name character    891 891       0
+## 2      Sex character      2 891       0
+## 3   Ticket character    681 891       0
+## 4    Cabin character    148 891       0
+## 5 Embarked character      4 891       0
+##                                    distribution
+## 1 Abbing, Mr. Anthony (0.1%) ...               
+## 2 male (64.8%), female (35.2%)                 
+## 3 1601 (0.8%), 347082 (0.8%) ...               
+## 4  (77.1%), B96 B98 (0.4%) ...                 
+## 5 S (72.3%), C (18.9%), Q (8.6%) ...           
+## 
+## quantitative variables:  
+##          name   class  min       Q1   median    Q3      max        mean
+## 1 PassengerId integer 1.00 223.5000 446.0000 668.5 891.0000 446.0000000
+## 2    Survived integer 0.00   0.0000   0.0000   1.0   1.0000   0.3838384
+## 3      Pclass integer 1.00   2.0000   3.0000   3.0   3.0000   2.3086420
+## 4         Age numeric 0.42  20.1250  28.0000  38.0  80.0000  29.6991176
+## 5       SibSp integer 0.00   0.0000   0.0000   1.0   8.0000   0.5230079
+## 6       Parch integer 0.00   0.0000   0.0000   0.0   6.0000   0.3815937
+## 7        Fare numeric 0.00   7.9104  14.4542  31.0 512.3292  32.2042080
+##            sd   n missing
+## 1 257.3538420 891       0
+## 2   0.4865925 891       0
+## 3   0.8360712 891       0
+## 4  14.5264973 714     177
+## 5   1.1027434 891       0
+## 6   0.8060572 891       0
+## 7  49.6934286 891       0</code></pre>
+<p>Aha! Etwa 38% der Menschen an Board haben überlebt.</p>
+</div>
+<div id="deskriptive-analyse" class="section level1">
+<h1>Deskriptive Analyse</h1>
+<p>Ob die Überlebensrate (Wahrscheinlichkeit) von der Passagierklasse (<code>pclass</code>) abhängt? Schauen wir uns die Häufigkeitsunterschied an:</p>
+<pre class="r"><code>tally(~ Survived | Pclass, 
+      data = titanic_train)</code></pre>
+<pre><code>##         Pclass
+## Survived   1   2   3
+##        0  80  97 372
+##        1 136  87 119</code></pre>
+<p>Besser in Anteilen:</p>
+<pre class="r"><code>tally(~ Survived | Pclass, 
+      data = titanic_train,
+      format = &quot;proportion&quot;)</code></pre>
+<pre><code>##         Pclass
+## Survived         1         2         3
+##        0 0.3703704 0.5271739 0.7576375
+##        1 0.6296296 0.4728261 0.2423625</code></pre>
+<p>In der ersten Klasse lag die Überlebensrate bi ca. 63%, in der dritten nur noch bei 24%. Das ist ein großer Unterschied. Rein deskriptiv können wir unsere Forschungsfrage also bejaen, oder genauer, festhalten, dass die Daten diesen Schluss nahe legen.</p>
+</div>
+<div id="regressionsmodell-spezifizieren" class="section level1">
+<h1>Regressionsmodell spezifizieren</h1>
+<pre class="r"><code>mein_glm1 &lt;- glm(Survived ~ Pclass, 
+                 data = titanic_train,
+                 family = &quot;binomial&quot;)</code></pre>
+</div>
+<div id="ergebnisse-betrachten" class="section level1">
+<h1>Ergebnisse betrachten</h1>
+<pre class="r"><code>summary(mein_glm1)</code></pre>
+<pre><code>## 
+## Call:
+## glm(formula = Survived ~ Pclass, family = &quot;binomial&quot;, data = titanic_train)
+## 
+## Deviance Residuals: 
+##     Min       1Q   Median       3Q      Max  
+## -1.4390  -0.7569  -0.7569   0.9367   1.6673  
+## 
+## Coefficients:
+##             Estimate Std. Error z value Pr(&gt;|z|)    
+## (Intercept)  1.44679    0.20743   6.975 3.06e-12 ***
+## Pclass      -0.85011    0.08715  -9.755  &lt; 2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## (Dispersion parameter for binomial family taken to be 1)
+## 
+##     Null deviance: 1186.7  on 890  degrees of freedom
+## Residual deviance: 1084.4  on 889  degrees of freedom
+## AIC: 1088.4
+## 
+## Number of Fisher Scoring iterations: 4</code></pre>
+<p>Der Einfluss der Passagierklasse ist statistisch signifikant, das ist einfach zu sehen.</p>
+</div>
+<div id="uberlebenswahrscheinlichkeit-pro-klasse" class="section level1">
+<h1>Überlebenswahrscheinlichkeit pro Klasse</h1>
+<p>Aber wo sieht man jetzt die Überlebenswahrscheinlichkeit pro Klasse? Vielleicht ist es so am einfachsten:</p>
+<pre class="r"><code>predict(mein_glm1, 
+        newdata = data.frame(Pclass = c(1,2,3)),
+        type = &quot;response&quot;)</code></pre>
+<pre><code>##         1         2         3 
+## 0.6448970 0.4369809 0.2490789</code></pre>
+<p>Wir sagen R, dass sie auf Basis unseres Modells (<code>mein_glm1</code>) vorhersagen (<code>predict</code>) soll, wie die Überlebenswahrscheinlichkeit für eine Person der 1,2 und 3. Klasse ist. Mt <code>type = "response"</code> sagen wir R, dasss wir als Einheit die Skala der Response-Variablen (also <code>Survived</code>) haben wollen, das heißt, in Wahrscheinlichkeiten.</p>
+<p>Die Wahrscheinlichkeit sind ziemlich genau die Werte, die uns die einfache deskriptive Analyse auch gezeigt hat, das macht Sinn.</p>
+</div>
+<div id="einflussgewicht-des-pradiktors-verstehen" class="section level1">
+<h1>Einflussgewicht des Prädiktors verstehen</h1>
+<p>Möchte man die <em>Odds</em> des Überlebens wissen, so muss man den in der R-Ausgabe angegebenen Wert <em>delogarithmieren</em>, also <span class="math inline">\(e^x\)</span> rechnen, wobei <span class="math inline">\(x\)</span> der Wert in der Ausgabe ist.</p>
+<pre class="r"><code>exp(-0.85)</code></pre>
+<pre><code>## [1] 0.4274149</code></pre>
+<p>Die Einflussstärke des Prädiktors liegt also bei -.42 Odds. Von Passagierklasse 1 auf 2 (bzw. 2 auf 3) <em>sinkt</em> die <em>Chance</em> zu Überleben um 0.42. Grob gesagt sind das 0,5 oder 1/2. Liegt die Chance zu Überleben bei 1/2 bzw. 1:2, so heißt das, das 1 Person überlebt, und zwei sterben.</p>
+<p>In Passagierklasse “Null” beträgt die Odds (die Chance) zu Überlgen:</p>
+<pre class="r"><code>exp(1.44679)</code></pre>
+<pre><code>## [1] 4.249452</code></pre>
+<p>Also etwa 4:1, 4 überleben, 1 stirbt. Das ist hypothetisch, weil es gibt keine Passagierklasse Null. Schauen wir uns also die Chance für Klasse 1 an:</p>
+<pre class="r"><code>exp(1.45 - 0.42)</code></pre>
+<pre><code>## [1] 2.801066</code></pre>
+<p>Etwa 2.8, grob gesagt: 3 überleben, 1 stirbt. Mit anderen Worten die Überlebenschance ist (etwas weniger als) 75%, wenn <code>pclass = 1</code>.</p>
+</div>
+<div id="visualisierung" class="section level1">
+<h1>Visualisierung</h1>
+<pre class="r"><code>plotModel(mein_glm1)</code></pre>
+<p><img src="/post/2019-03-20-beispiel-f%C3%BCr-eine-logistische-regression_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p>Hm, sieht man nicht so viel. Vielleicht nur den Scatterplot:</p>
+<pre class="r"><code>gf_jitter(Survived ~ Pclass, data = titanic_train, 
+          width = .1, alpha = .3)</code></pre>
+<p><img src="/post/2019-03-20-beispiel-f%C3%BCr-eine-logistische-regression_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<p>Oder mit Balkendiagrammen:</p>
+<p>Zuerst die Häufigkeit in braver ("tidy), d.h. zum Visualisieren geeigneter Form:</p>
+<pre class="r"><code>tally(Survived ~ Pclass, format = &quot;data.frame&quot;,
+      data = titanic_train)</code></pre>
+<pre><code>##   Survived Pclass Freq
+## 1        0      1   80
+## 2        1      1  136
+## 3        0      2   97
+## 4        1      2   87
+## 5        0      3  372
+## 6        1      3  119</code></pre>
+<p>Diese kleine Häufigkeitstabelle geben wir an <code>gf_col</code> (<code>col</code> wie Column) weiter.</p>
+<pre class="r"><code>tally(Survived ~ Pclass, 
+      format = &quot;data.frame&quot;,
+      data = titanic_train) %&gt;% 
+  gf_col(Freq ~ Pclass, fill = ~ Survived,
+         position = &quot;fill&quot;)</code></pre>
+<p><img src="/post/2019-03-20-beispiel-f%C3%BCr-eine-logistische-regression_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+</div>
+<div id="klassifikationsgute" class="section level1">
+<h1>Klassifikationsgüte</h1>
+<p>Das Modell gibt uns für jeden Passagier die Überlebenswahrscheinlichkeit <span class="math inline">\(p\)</span> zurück. Jetzt müssen wir uns noch entscheiden, welches Ereignis <span class="math inline">\(E\)</span> wir der Wahrscheinlichkeit zuordnen. Die Ergebnismenge <span class="math inline">\(\Omaga\)</span> beinhaltet zwei Elemente: Überleben <span class="math inline">\(ü\)</span> und sterben <span class="math inline">\(s\)</span>, <span class="math inline">\(\Omaga = {ü, s}\)</span> (oder wir könnten schreiben: <span class="math inline">\(\Omaga = {1, 0}\)</span>. Die Frage ist also, bei welcher Wahrscheinlichkeit wir “überleben” und bei welcher “sterben” vorhersagen. Sagen wir, dass wir von “überleben” ausgehen, wenn das Modell eine Wahrscheinlichkeit größer 50% vorhersagt, andernfalls gehen wir von “sterben” aus:</p>
+<p><span class="math display">\[
+E=  
+ \begin{cases}
+ {ü,} \mbox{  wenn } p &gt; .5 \\
+ {s,} \mbox{  ansonsten }
+ \end{cases}
+\]</span></p>
+<p>Fügen wir als erstes die vorhergesagten Wahrscheinlichkeiten und das zugehörige Ereignis (ü, s) zum Datensatz hinzu. Es bietet sich an, überleben wird mit 1 und sterben mit 0 zu klassizieren.</p>
+<pre class="r"><code>titanic2 &lt;- titanic_train %&gt;% 
+  mutate(Survived_p_est = predict(mein_glm1, 
+                                  type = &quot;response&quot;),
+         Survived_est = case_when(
+           Survived_p_est &gt; .5 ~ 1,
+           Survived_p_est &lt;= .5 ~ 0))
+
+titanic2 %&gt;% 
+  select(Survived, 
+         Pclass, 
+         Survived_p_est, 
+         Survived_est) %&gt;% 
+  head()</code></pre>
+<pre><code>##   Survived Pclass Survived_p_est Survived_est
+## 1        0      3      0.2490789            0
+## 2        1      1      0.6448970            1
+## 3        1      3      0.2490789            0
+## 4        1      1      0.6448970            1
+## 5        0      3      0.2490789            0
+## 6        0      3      0.2490789            0</code></pre>
+<p>Das Suffix <code>est</code> steht für “estimated”, also für “vom Modell geschätzt”.</p>
+<p>Jetzt vergleichen wir mal die tatsächlichen Ereignisse (ü,s) mit den Klassifikationen des Modells:</p>
+<pre class="r"><code>tally(~Survived | Survived_est, 
+      data = titanic2)</code></pre>
+<pre><code>##         Survived_est
+## Survived   0   1
+##        0 469  80
+##        1 206 136</code></pre>
+<p>Die Gegenüberstellung von tatsächlichen und vom Modell vorhergesagten (klassifizierten) Ereignissen bezeichnet man auch als <em>Konfusionsmatrix.</em> Daraus lassen sich Gütekennzahlen ableiten. Einige wichitge sind:</p>
+<ul>
+<li>Wie viele Personen (Fälle) wurden insgesamt korrekt klassifiziert? <em>Gesamtgenauigkeit</em></li>
+<li>Wie viele ü-Fälle wurden richtig (also als ü) klassifiziert? <em>Sensitivität</em></li>
+<li>Wie viele s-Fälle (Nicht-ü-Fälle) wurden richtig (also als s) klassifiziert? <em>Spezifität</em></li>
+</ul>
+<p>In diesem Fall gilt:</p>
+<ul>
+<li><em>Gesamtgenauigkeit</em> (accuracy)</li>
+</ul>
+<pre class="r"><code>a &lt;- (469 + 136) / (469+80+206+136) 
+a</code></pre>
+<pre><code>## [1] 0.6790123</code></pre>
+<p>Komfortabler geht es mit einem mundgerechten Befehl, z.B. dem:</p>
+<pre class="r"><code>library(caret)</code></pre>
+<pre><code>## 
+## Attaching package: &#39;caret&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:mosaic&#39;:
+## 
+##     dotPlot</code></pre>
+<pre class="r"><code>confusionMatrix(data = factor(titanic2$Survived_est), 
+                reference = factor(titanic2$Survived))</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction   0   1
+##          0 469 206
+##          1  80 136
+##                                           
+##                Accuracy : 0.679           
+##                  95% CI : (0.6472, 0.7096)
+##     No Information Rate : 0.6162          
+##     P-Value [Acc &gt; NIR] : 5.536e-05       
+##                                           
+##                   Kappa : 0.2707          
+##  Mcnemar&#39;s Test P-Value : 1.453e-13       
+##                                           
+##             Sensitivity : 0.8543          
+##             Specificity : 0.3977          
+##          Pos Pred Value : 0.6948          
+##          Neg Pred Value : 0.6296          
+##              Prevalence : 0.6162          
+##          Detection Rate : 0.5264          
+##    Detection Prevalence : 0.7576          
+##       Balanced Accuracy : 0.6260          
+##                                           
+##        &#39;Positive&#39; Class : 0               
+## </code></pre>
+</div>

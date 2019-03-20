@@ -1,0 +1,246 @@
+---
+title: Beispiel für eine logistische Regression
+author: Sebastian Sauer
+date: '2019-03-20'
+slug: beispiel-für-eine-logistische-regression
+categories:
+  - rstats
+tags:
+  - tutorial
+editor_options: 
+  chunk_output_type: console
+---
+
+
+# Wozu ist das gut?
+
+Kurz gesagt ist die *logistische Regression* ein Werkzeug, um *dichotome* (zweiwertige) Ereignisse vorherzusagen (auf Basis eines Datensatzes mit einigen Prädiktoren). 
+
+
+# Was sagt uns die logistische Regression?
+
+
+ Möchte man z.B. vorhersagen, ob eine E-Mail Spam ist oder nicht, so ist es nützlich, für jede zu prüfende Mail eine Wahrscheinlichkeit zu bekommen. So könnte uns die logistische Regression sagen: "Eine Mail mit diesen Ausprägungen in den Prädiktoren hat eine Wahrschenlichkeit von X Prozent, dass es sich um Spam handelt".
+
+# Warum nicht die "normale" Regression?
+
+Die "normale" Regression ist für so eine Situation nicht (gut) geeignet, da die normale Regression sowohl negative Werte als auch Werte über 1 (100%) vorhersagen kann - was für Wahrscheinlichkeiten keinen Sinn machen würde.
+
+
+# Beispiel bitte!
+
+Nehmen wir den Datensatz `Titanic` als Beispiel-Datensatz. Die Forschungsfrage lautet:
+
+>    Hat die Passagierklasse einen Einfluss auf die Überlebenswahrscheinlichkeit?
+
+
+
+
+# Vorbereitung: Daten und Pakete laden
+```{r message=FALSE}
+library("titanic")
+data("titanic_train")
+library(mosaic)
+```
+
+
+# Datensatz anschauen
+
+```{r}
+inspect(titanic_train)
+```
+
+Aha! Etwa 38% der Menschen an Board haben überlebt.
+
+
+# Deskriptive Analyse
+Ob die Überlebensrate (Wahrscheinlichkeit) von der Passagierklasse (`pclass`) abhängt? Schauen wir uns die Häufigkeitsunterschied an:
+
+```{r}
+tally(~ Survived | Pclass, 
+      data = titanic_train)
+```
+
+Besser in Anteilen:
+
+
+```{r}
+tally(~ Survived | Pclass, 
+      data = titanic_train,
+      format = "proportion")
+```
+
+In der ersten Klasse lag die Überlebensrate bi ca. 63%, in der dritten nur noch bei 24%. Das ist ein großer Unterschied. Rein deskriptiv können wir unsere Forschungsfrage also bejaen, oder genauer, festhalten, dass die Daten diesen Schluss nahe legen.
+
+# Regressionsmodell spezifizieren
+
+
+```{r}
+mein_glm1 <- glm(Survived ~ Pclass, 
+                 data = titanic_train,
+                 family = "binomial")
+```
+
+
+# Ergebnisse betrachten
+
+```{r}
+summary(mein_glm1)
+```
+
+
+Der Einfluss der Passagierklasse ist statistisch signifikant, das ist einfach zu sehen.
+
+# Überlebenswahrscheinlichkeit pro Klasse
+
+Aber wo sieht man jetzt die Überlebenswahrscheinlichkeit pro Klasse? Vielleicht ist es so am einfachsten:
+
+```{r}
+predict(mein_glm1, 
+        newdata = data.frame(Pclass = c(1,2,3)),
+        type = "response")
+```
+
+Wir sagen R, dass sie auf Basis unseres Modells (`mein_glm1`) vorhersagen (`predict`) soll, wie die Überlebenswahrscheinlichkeit für eine Person der 1,2 und 3. Klasse ist. Mt `type = "response"` sagen wir R, dasss wir als Einheit die Skala der Response-Variablen (also `Survived`) haben wollen, das heißt, in Wahrscheinlichkeiten.
+
+Die Wahrscheinlichkeit sind ziemlich genau die Werte, die uns die einfache deskriptive Analyse auch gezeigt hat, das macht Sinn.
+
+
+# Einflussgewicht des Prädiktors verstehen
+
+Möchte man die *Odds* des Überlebens wissen, so muss man den in der R-Ausgabe angegebenen Wert *delogarithmieren*, also $e^x$ rechnen, wobei $x$ der Wert in der Ausgabe ist.
+
+```{r}
+exp(-0.85)
+```
+
+
+Die Einflussstärke des Prädiktors liegt also bei -.42 Odds. Von Passagierklasse 1 auf 2 (bzw. 2 auf 3) *sinkt* die *Chance* zu Überleben um 0.42. Grob gesagt sind das 0,5 oder 1/2. Liegt die Chance zu Überleben bei 1/2 bzw. 1:2, so heißt das, das 1 Person überlebt, und zwei sterben.
+
+In Passagierklasse "Null" beträgt die Odds (die Chance) zu Überlgen:
+
+```{r}
+exp(1.44679)
+```
+
+Also etwa 4:1, 4 überleben, 1 stirbt. Das ist hypothetisch, weil es gibt keine Passagierklasse Null. Schauen wir uns also die Chance für Klasse 1 an:
+
+```{r}
+exp(1.45 - 0.42)
+```
+
+Etwa 2.8, grob gesagt: 3 überleben, 1 stirbt. Mit anderen Worten die Überlebenschance ist (etwas weniger als) 75%, wenn `pclass = 1`. 
+
+# Visualisierung
+
+
+```{r}
+plotModel(mein_glm1)
+```
+
+
+Hm, sieht man nicht so viel. Vielleicht nur den Scatterplot:
+
+
+```{r}
+gf_jitter(Survived ~ Pclass, data = titanic_train, 
+          width = .1, alpha = .3)
+```
+
+
+Oder mit Balkendiagrammen:
+
+
+Zuerst die Häufigkeit in braver ("tidy), d.h. zum Visualisieren geeigneter Form:
+```{r}
+tally(Survived ~ Pclass, format = "data.frame",
+      data = titanic_train)
+```
+
+
+Diese kleine Häufigkeitstabelle geben wir an `gf_col` (`col` wie Column) weiter.
+
+```{r}
+tally(Survived ~ Pclass, 
+      format = "data.frame",
+      data = titanic_train) %>% 
+  gf_col(Freq ~ Pclass, fill = ~ Survived,
+         position = "fill")
+```
+
+
+
+# Klassifikationsgüte
+
+Das Modell gibt uns für jeden Passagier die Überlebenswahrscheinlichkeit $p$ zurück. Jetzt müssen wir uns noch entscheiden, welches Ereignis $E$ wir der Wahrscheinlichkeit zuordnen. Die Ergebnismenge $\Omaga$ beinhaltet zwei Elemente: Überleben $ü$ und sterben $s$, $\Omaga = {ü, s}$ (oder wir könnten schreiben: $\Omaga = {1, 0}$. Die Frage ist also, bei welcher Wahrscheinlichkeit wir "überleben" und bei welcher "sterben" vorhersagen. Sagen wir, dass wir von "überleben" ausgehen, wenn das Modell eine Wahrscheinlichkeit größer 50% vorhersagt, andernfalls gehen wir von "sterben" aus:
+
+$$
+E=  
+ \begin{cases}
+ {ü,} \mbox{  wenn } p > .5 \\
+ {s,} \mbox{  ansonsten }
+ \end{cases}
+$$
+
+
+
+Fügen wir als erstes die vorhergesagten Wahrscheinlichkeiten und das zugehörige Ereignis (ü, s) zum Datensatz hinzu. Es bietet sich an, überleben wird mit 1 und sterben mit 0 zu klassizieren.
+
+
+```{r}
+titanic2 <- titanic_train %>% 
+  mutate(Survived_p_est = predict(mein_glm1, 
+                                  type = "response"),
+         Survived_est = case_when(
+           Survived_p_est > .5 ~ 1,
+           Survived_p_est <= .5 ~ 0))
+
+titanic2 %>% 
+  select(Survived, 
+         Pclass, 
+         Survived_p_est, 
+         Survived_est) %>% 
+  head()
+```
+
+
+Das Suffix `est` steht für "estimated", also für "vom Modell geschätzt".
+
+
+
+Jetzt vergleichen wir mal die tatsächlichen Ereignisse (ü,s) mit den Klassifikationen des Modells:
+
+
+```{r}
+tally(~Survived | Survived_est, 
+      data = titanic2)
+```
+
+
+Die Gegenüberstellung von tatsächlichen und vom Modell vorhergesagten (klassifizierten) Ereignissen bezeichnet man auch als *Konfusionsmatrix.* Daraus lassen sich Gütekennzahlen ableiten. Einige wichitge sind:
+
+- Wie viele Personen (Fälle) wurden insgesamt korrekt klassifiziert? *Gesamtgenauigkeit*
+- Wie viele ü-Fälle wurden richtig (also als ü) klassifiziert? *Sensitivität*
+- Wie viele s-Fälle (Nicht-ü-Fälle) wurden richtig (also als s) klassifiziert? *Spezifität* 
+
+
+In diesem Fall gilt:
+
+- *Gesamtgenauigkeit* (accuracy)
+
+```{r}
+a <- (469 + 136) / (469+80+206+136) 
+a
+```
+
+
+Komfortabler geht es mit einem mundgerechten Befehl, z.B. dem:
+
+```{r}
+library(caret)
+
+confusionMatrix(data = factor(titanic2$Survived_est), 
+                reference = factor(titanic2$Survived))
+```
+
+
