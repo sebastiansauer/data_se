@@ -1,0 +1,109 @@
+---
+title: Reducing residual variance in modeling
+author: Sebastian Sauer
+date: '2019-03-26'
+slug: reducing-residual-variance-in-modeling
+categories:
+  - rstats
+tags:
+  - tutorial
+---
+
+
+Modeling is a central part not only of statistical inquiry, but also of everyday human sense-making. We use models as metaphors for the world, in a broader sense. Of course, a model that explains the world better (than some other model) is to be preferred, all other things being equal. In this post, we demonstrate that a more "clever" statistical model reduces the residual variance. It should be noted that this "noise reduction" comes at a cost, however: The model gets more complex; there a more parameters in the model.
+
+
+First, let's load some data and usual packages:
+
+```{r message = FALSE, warning=FALSE}
+library(tidyverse)
+library(mosaic)
+library(gridExtra)
+
+data(tips, package = "reshape2")
+```
+
+
+We filter only the extreme groups in order to carve out the effect more lucidly. In addition, let's compute the residuals and the square residuals:
+
+
+```{r}
+tips2 <- filter(tips, size %in% c(1, 6)) %>% 
+  mutate(ID = 1:nrow(.),
+         tip_resid = tip - mean(tip),
+         tips_resid_quad =tip_resid^2) %>% 
+  group_by(size) %>% 
+  mutate(tip_mean_group = mean(tip))
+
+glimpse(tips2)
+```
+
+
+
+`tip_mean_group` refers to the mean value of the response variable `tip` for each conditioned group.
+
+
+
+Next, we compute a helper data frame that stores the group means only:
+
+```{r}
+tips_sum <- tips2 %>% 
+  group_by(size) %>% 
+  summarise(tip = mean(tip))
+```
+
+
+
+
+
+Now, let's plot:
+
+That's the plot for the *simpler* model without consideration of subgroups. We model the target variable `tip` as the grand mean (of the whole data set). 
+
+```{r}
+
+p2 <- ggplot(tips2) +
+  geom_hline(aes(yintercept = mean(tip))) +
+  geom_segment(aes(x = ID,
+                   xend = ID,
+                   y = tip,
+                   yend = mean(tip)),
+               color = "grey80") +
+  geom_point(aes(x = ID, y = tip)) +
+  labs(title = "tip ~ 1")
+p2
+```
+
+
+In contrast, consider the residuals when conditioned on the subgroup means:
+
+```{r}
+p1 <- ggplot(tips2) +
+  geom_hline(data = tips_sum,
+            aes(yintercept = tip,
+                color = factor(size))) +
+  geom_segment(aes(x = ID,
+                   xend = ID,
+                   y = tip,
+                   yend = tip_mean_group),
+               color = "grey80") +
+  geom_point(aes(x = ID, y = tip,
+                 color = factor(size))) +
+  theme(legend.position = "none") +
+  labs(title = "tip ~ size")
+p1
+```
+
+
+
+As can be seen, the residuals become *smaller* in this model: The more complex model, where the target variable is modeled as the subgroup average, explains the data better. This models shows a better fit to the data.
+
+```{r out.width="100%"}
+
+
+grid.arrange(p2, p1, nrow = 1)
+```
+
+
+
+
