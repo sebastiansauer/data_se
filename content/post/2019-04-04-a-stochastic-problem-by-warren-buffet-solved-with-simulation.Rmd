@@ -1,0 +1,87 @@
+---
+title: A stochastic problem by Warren Buffet solved with simulation
+author: Sebastian Sauer
+date: '2019-04-04'
+slug: a-stochastic-problem-by-warren-buffet-solved-with-simulation
+categories:
+  - rstats
+tags:
+  - simulation
+  - rstats
+editor_options: 
+  chunk_output_type: console
+---
+
+
+A stochastic problem, with application to financial theory. Some say it goes back to Warren Buffett. I relied to my colleague Norman Markgraf, who pointed it out to me.
+
+Assume there are two coins. One is fair, one is loaded. The loaded coin has a bias of 60-40. Now, the question is: How many coin flips do you need to be "sure enough" (say, 95%) that you found the loaded coin?
+
+
+Let's simulate la chose.
+
+```{r message = FALSE}
+library(mosaic)
+library(tidyverse)
+library(tictoc)
+```
+
+
+Here's the proportion of successes from a coin flip:
+
+
+```{r}
+{do(10) * rflip(n = 10)}[["prop"]]
+```
+
+
+
+Let's define a function that does the flipping say a 1000 times with a prespecified (`c_coins`) number of coins with a given bias.
+
+```{r}
+flip_loaded_coin <- function(n_coins, repeats = 1000, prob = .6) {
+  
+  distrib <- {mosaic::do(repeats) * mosaic::rflip(n = n_coins, prob = prob)}[["prop"]]
+
+}
+```
+
+
+Now let's flip 1 coin, then 2 coins, ..., then 200 coins, reporting the proportion of success each time.
+
+```{r}
+tic()
+distrib <- 1:200 %>% 
+  map_dfc(~ flip_loaded_coin(.x))
+toc()
+```
+
+Extract the confidence interval for each sample size (1 to 200 in our simulation).
+
+```{r}
+distrib_ci <- distrib %>% 
+  map_dfr(~ confint(.x)) %>% 
+  add_column(ID = 1:nrow(.)) %>% 
+  mutate(bias = ifelse(`2.5%` > .5, TRUE, FALSE))
+```
+
+
+
+Plot it:
+
+
+```{r}
+distrib_ci %>% 
+  ggplot(aes(x = ID)) +
+  geom_hline(yintercept = .5, 
+             linetype = "dashed", 
+             color = "grey60") +
+  geom_errorbar(aes(ymin = `2.5%`,
+                    ymax = `97.5%`,
+                    color = bias))
+```
+
+
+It appears that approx 100 coin flips are needed to quity confidently (for whatever that means) distinguish a baised coin (with a bias of .6) from a fair coin.
+
+

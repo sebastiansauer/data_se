@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.54.0" />
+
+
+<title>A stochastic problem by Warren Buffet solved with simulation - Data Se</title>
+<meta property="og:title" content="A stochastic problem by Warren Buffet solved with simulation - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">9 min read</span>
+    
+
+    <h1 class="article-title">A stochastic problem by Warren Buffet solved with simulation</h1>
+
+    
+    <span class="article-date">2019/04/04</span>
+    
+
+    <div class="article-content">
+      
+
+
+<p>A stochastic problem, with application to financial theory. Some say it goes back to Warren Buffett. I relied to my colleague Norman Markgraf, who pointed it out to me.</p>
+<p>Assume there are two coins. One is fair, one is loaded. The loaded coin has a bias of 60-40. Now, the question is: How many coin flips do you need to be “sure enough” (say, 95%) that you found the loaded coin?</p>
+<p>Let’s simulate la chose.</p>
+<pre class="r"><code>library(mosaic)
+library(tidyverse)
+library(tictoc)</code></pre>
+<p>Here’s the proportion of successes from a coin flip:</p>
+<pre class="r"><code>{do(10) * rflip(n = 10)}[[&quot;prop&quot;]]</code></pre>
+<pre><code>##  [1] 0.5 0.3 0.6 0.8 0.6 0.5 0.6 0.5 0.5 0.5</code></pre>
+<p>Let’s define a function that does the flipping say a 1000 times with a prespecified (<code>c_coins</code>) number of coins with a given bias.</p>
+<pre class="r"><code>flip_loaded_coin &lt;- function(n_coins, repeats = 1000, prob = .6) {
+  
+  distrib &lt;- {mosaic::do(repeats) * mosaic::rflip(n = n_coins, prob = prob)}[[&quot;prop&quot;]]
+
+}</code></pre>
+<p>Now let’s flip 1 coin, then 2 coins, …, then 200 coins, reporting the proportion of success each time.</p>
+<pre class="r"><code>tic()
+distrib &lt;- 1:200 %&gt;% 
+  map_dfc(~ flip_loaded_coin(.x))
+toc()</code></pre>
+<pre><code>## 38.625 sec elapsed</code></pre>
+<p>Extract the confidence interval for each sample size (1 to 200 in our simulation).</p>
+<pre class="r"><code>distrib_ci &lt;- distrib %&gt;% 
+  map_dfr(~ confint(.x)) %&gt;% 
+  add_column(ID = 1:nrow(.)) %&gt;% 
+  mutate(bias = ifelse(`2.5%` &gt; .5, TRUE, FALSE))</code></pre>
+<pre><code>## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)
+## Confidence Interval from Bootstrap Distribution (1000 replicates)</code></pre>
+<p>Plot it:</p>
+<pre class="r"><code>distrib_ci %&gt;% 
+  ggplot(aes(x = ID)) +
+  geom_hline(yintercept = .5, 
+             linetype = &quot;dashed&quot;, 
+             color = &quot;grey60&quot;) +
+  geom_errorbar(aes(ymin = `2.5%`,
+                    ymax = `97.5%`,
+                    color = bias))</code></pre>
+<p><img src="/post/2019-04-04-a-stochastic-problem-by-warren-buffet-solved-with-simulation_files/figure-html/unnamed-chunk-6-1.png" width="672" /></p>
+<p>It appears that approx 100 coin flips are needed to quity confidently (for whatever that means) distinguish a baised coin (with a bias of .6) from a fair coin.</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+  </body>
+</html>
+
