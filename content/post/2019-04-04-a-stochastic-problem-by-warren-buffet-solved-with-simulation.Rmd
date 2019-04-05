@@ -106,3 +106,38 @@ distrib_ci %>%
 It appears that approx 100 coin flips are needed to quity confidently (for whatever that means) distinguish a baised coin (with a bias of .6) from a fair coin.
 
 
+For comparison, let's look at the interval sizes for the unbiased coin.
+
+
+```{r}
+tic()
+distrib_unbiased <- 1:200 %>% 
+  map_dfc(~ flip_loaded_coin(.x, prob = .5))
+toc()
+```
+
+Extract the confidence interval for each sample size (1 to 200 in our simulation).
+
+```{r results = "hide"}
+distrib_unbiased_ci <- distrib_unbiased %>% 
+  map_dfr(~ confint(.x)) %>% 
+  add_column(ID = 1:nrow(.)) %>% 
+  mutate(bias = ifelse(`2.5%` > .5, TRUE, FALSE))
+```
+
+
+
+Plot the CIs for the unbiased coin:
+
+
+```{r out.width="100%"}
+distrib_unbiased_ci %>% 
+  ggplot(aes(x = ID)) +
+  geom_hline(yintercept = .5, 
+             linetype = "dashed", 
+             color = "grey60") +
+  geom_errorbar(aes(ymin = `2.5%`,
+                    ymax = `97.5%`,
+                    color = bias)) +
+  theme(legend.position = c(.9, .1))
+```

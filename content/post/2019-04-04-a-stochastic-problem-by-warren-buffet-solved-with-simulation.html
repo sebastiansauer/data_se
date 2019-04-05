@@ -55,3 +55,25 @@ toc()
   theme(legend.position = c(.9, .1))</code></pre>
 <p><img src="/post/2019-04-04-a-stochastic-problem-by-warren-buffet-solved-with-simulation_files/figure-html/unnamed-chunk-6-1.png" width="100%" style="display: block; margin: auto;" /></p>
 <p>It appears that approx 100 coin flips are needed to quity confidently (for whatever that means) distinguish a baised coin (with a bias of .6) from a fair coin.</p>
+<p>For comparison, let’s look at the interval sizes for the unbiased coin.</p>
+<pre class="r"><code>tic()
+distrib_unbiased &lt;- 1:200 %&gt;% 
+  map_dfc(~ flip_loaded_coin(.x, prob = .5))
+toc()
+#&gt; 39.814 sec elapsed</code></pre>
+<p>Extract the confidence interval for each sample size (1 to 200 in our simulation).</p>
+<pre class="r"><code>distrib_unbiased_ci &lt;- distrib_unbiased %&gt;% 
+  map_dfr(~ confint(.x)) %&gt;% 
+  add_column(ID = 1:nrow(.)) %&gt;% 
+  mutate(bias = ifelse(`2.5%` &gt; .5, TRUE, FALSE))</code></pre>
+<p>Plot the CIs for the unbiased coin:</p>
+<pre class="r"><code>distrib_unbiased_ci %&gt;% 
+  ggplot(aes(x = ID)) +
+  geom_hline(yintercept = .5, 
+             linetype = &quot;dashed&quot;, 
+             color = &quot;grey60&quot;) +
+  geom_errorbar(aes(ymin = `2.5%`,
+                    ymax = `97.5%`,
+                    color = bias)) +
+  theme(legend.position = c(.9, .1))</code></pre>
+<p><img src="/post/2019-04-04-a-stochastic-problem-by-warren-buffet-solved-with-simulation_files/figure-html/unnamed-chunk-9-1.png" width="100%" style="display: block; margin: auto;" /></p>
