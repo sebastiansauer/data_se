@@ -1,0 +1,147 @@
+---
+title: How to convert raw scores to different types of standardized scores
+author: Sebastian Sauer
+date: '2019-04-11'
+slug: how-to-convert-raw-scores-to-different-types-of-standardized-scores
+categories:
+  - rstats
+tags:
+  - psychology
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+A common undertaking in applied research settings such as in some areas of psychology is to convert a raw score into some type of standardized score such as z-scores.
+
+This post shows a way how to accomplish that.
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(umittr)
+```
+
+
+# Load some psychometric data
+
+
+```{r}
+data("extra", package = "pradadata")
+```
+
+
+The data can be downloaded [here](https://github.com/sebastiansauer/pradadata).
+
+The dataset shows some data on extraversion (the personality trait) items along with some correlates of extraversion.
+
+Let's have a look.
+
+```{r}
+glimpse(extra)
+```
+
+
+Ah, `extra_mean` is our man. That's the raw score. 
+
+# Convert to z-score with some given mean and sd
+
+Say, the manual or some authority holds the view that the mean equals 3 and the sd equals 1. OK, let's get a z-value using these parameters.
+
+Here's the formula for z-values:
+
+
+$$ z = \frac{x - \mu}{sd}$$
+
+Where x is the vector of scores and $\mu$ is the mean.
+
+```{r}
+extra <-
+  extra %>% 
+  mutate(extra_z = (extra_mean - 3)/1)
+```
+
+
+# Convert to Stanine
+
+The z-scores can be convertes using this scheme to Stanine:
+
+- Stanine 1: -1.75
+- stanine 2:  -1.75 to -1.25 
+- stanine 3:  -1.25 to -0.75
+- stanine 4: -0.75 to -0.25
+- stanine 5: -0.25 to 0.25
+- stanine 6:  0.25 to 0.7
+- stanine 7: 0.75 to 1.25
+- stanine 8: 1.25 to 1.5
+- stanine 9: above 1.75
+
+
+Now let's compare the z-score to the ranges of stanine scores. 
+
+
+```{r}
+extra <-
+  extra %>% 
+drop_na(extra_mean) %>%
+  mutate(extra_stanine = case_when(
+    extra_z < -1.75 ~ 1,
+    extra_z < -1.25 ~ 2,
+    extra_z < -0.75 ~ 3,
+    extra_z < -0.25 ~ 4,
+    extra_z < 0.25 ~ 5,
+    extra_z < 0.75 ~ 6,
+    extra_z < 1.25 ~ 7,
+    extra_z < 1.5 ~ 8,
+    TRUE ~ 9
+  ))
+```
+
+
+# Convert to percentiles
+
+
+Note that I here use the quantile of the empirical cumulative distribution of the data given.
+
+That's quite straightforward:
+
+```{r}
+extra <- 
+  extra %>% 
+    mutate(extra_p = percent_rank(extra_mean),
+           extra_p_theoretical = pnorm(extra_z))
+```
+
+Use `extra_z` to get the theoretically derived percentiles.
+
+
+
+# Check the results
+
+```{r}
+extra %>% 
+  select(extra_mean, extra_z, extra_stanine, extra_p, 
+         extra_p_theoretical) %>% 
+  head()
+```
+
