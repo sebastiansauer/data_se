@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Shading multiple areas under normal curve - A Hugo website</title>
+<meta property="og:title" content="Shading multiple areas under normal curve - A Hugo website">
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/%3cnil%3e"
+         width=""
+         height=""
+         alt="">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/blog/">Blog</a></li>
+    
+    <li><a href="/categories/">Categories</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">3 min read</span>
+    
+
+    <h1 class="article-title">Shading multiple areas under normal curve</h1>
+
+    
+    <span class="article-date">2016/08/30</span>
+    
+
+    <div class="article-content">
+      <p>When plotting a normal curve, it is often helpful to color (or shade) some segments. For example, often we might want to indicate whether an absolute value is greater than 2.</p>
+
+<p>How can we achieve this with <code>ggplot2</code>? Here is one way.</p>
+
+<p>First, load packages and define some constants. Specifically, we define mean, sd, and start/end (z-) value of the area we want to shade. And your favorite color is defined.</p>
+
+<pre><code class="language-r">library(ggplot2)
+library(dplyr)
+</code></pre>
+
+<pre><code>## 
+## Attaching package: 'dplyr'
+</code></pre>
+
+<pre><code>## The following objects are masked from 'package:stats':
+## 
+##     filter, lag
+</code></pre>
+
+<pre><code>## The following objects are masked from 'package:base':
+## 
+##     intersect, setdiff, setequal, union
+</code></pre>
+
+<pre><code class="language-r">mean.1 &lt;-0
+sd.1 &lt;- 1
+zstart &lt;- 2
+zend &lt;- 3
+zcritical &lt;- 1.65
+
+my_col &lt;- &quot;#00998a&quot;
+</code></pre>
+
+<p>Next, we build a sequence from 3sd left to 3sd right to the mean. Along this sequence (for each value) we will compute the density of the normal curve. The data will be used for plotting the curve and the shaded area(s).</p>
+
+<pre><code class="language-r">x &lt;- seq(from = mean.1 - 3*sd.1, to = mean.1 + 3*sd.1, by = .01)
+
+
+MyDF &lt;- data.frame(x = x, y = dnorm(x, mean = mean.1, sd = sd.1))
+</code></pre>
+
+<p>Then, we define a &ldquo;shading&rdquo; function which does the shading job.</p>
+
+<pre><code class="language-r">shade_curve &lt;- function(MyDF, zstart, zend, fill = &quot;red&quot;, alpha = .5){
+  geom_area(data = subset(MyDF, x &gt;= mean.1 + zstart*sd.1
+                          &amp; x &lt; mean.1 + zend*sd.1),
+            aes(y=y), fill = fill, color = NA, alpha = alpha)
+}
+</code></pre>
+
+<p>Now we plot it:</p>
+
+<pre><code class="language-r">p1a &lt;- ggplot(MyDF, aes(x = x, y = y)) + geom_line() +
+  shade_curve(MyDF = MyDF, zstart = -1, zend = 1, fill = my_col, alpha = .3) +
+  shade_curve(MyDF = MyDF, zstart = 1, zend = 2, fill = my_col, alpha = .5) +
+  shade_curve(MyDF = MyDF, zstart = -2, zend = -1, fill = my_col, alpha = .5) +
+  shade_curve(MyDF = MyDF, zstart = 2, zend = 6, fill = my_col, alpha = .7) +
+  shade_curve(MyDF = MyDF, zstart = -3, zend = -2, fill = my_col, alpha = .7) +
+  scale_x_continuous(breaks = -3:3) +
+  scale_y_continuous(breaks = NULL) +
+  theme_classic() +
+  ylab(&quot;&quot;) + xlab(&quot;&quot;)
+
+p1a
+</code></pre>
+
+<p><img src="{{ site.url }}/images/2016-08-30-03.png" alt="" /></p>
+
+<p>OK. Another nice feature would be have printed the cumulative percentages for each shaded segment.</p>
+
+<p>For that purpose, let&rsquo;s add a variable with the cumulative density.</p>
+
+<pre><code class="language-r">MyDF %&gt;%
+  mutate(y_cdf = cumsum(y)) -&gt; MyDF
+</code></pre>
+
+<p>But we are only interested in some quantiles. So let&rsquo;s filter these and kick out the rest.</p>
+
+<pre><code class="language-r">MyDF %&gt;%
+  filter(x %in% c(-3, -2.58, -2, -1.65, -1, -.5, 0, .5, 1, 1.65, 2, 2.58, 3)) -&gt; MyDF_filtered
+</code></pre>
+
+<p>Now, let&rsquo;s add the cumulative percentages for some quantiles of interest.</p>
+
+<pre><code class="language-r">p1a + geom_text(data = MyDF_filtered,
+                aes(x = x, y = y + .1, label = paste(round(y_cdf, 0),&quot;%&quot;)),
+                check_overlap = TRUE) +
+  geom_segment(data = MyDF_filtered,
+               aes(x = x, xend = x, y = 0, yend = y), linetype = &quot;dashed&quot;)
+</code></pre>
+
+<p><img src="{{ site.url }}/images/2016-08-30-04.png" alt="" /></p>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js//highlight.min.js"></script>
+
+
+
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+  </body>
+</html>
+

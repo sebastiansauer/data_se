@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Long vs. wide format, and gather() - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Long vs. wide format, and gather() - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">Long vs. wide format, and gather()</h1>
+
+    
+    <span class="article-date">0001/01/01</span>
+    
+
+    <div class="article-content">
+      <p><em>reading time: 10 min.</em></p>
+
+<p>A quite common task in data analysis is to change a dataset from wide to long format.</p>
+
+<p>For example, this is a dataset in wide format:</p>
+
+<p><img src="{{ site.url }}/images/gatherwide.png" alt="" /></p>
+
+<p>Is is called wide, as, well, it is wide – several columns side by side.</p>
+
+<p>For example, assume, we have measured a number of predictors (here: predictor_1, predictor_2, predictor_3), and an outcome measure (here: outcome). In this case, each variable is dichotomous (either yes or no).</p>
+
+<p>For plotting, eg. using <a href="http://ggplot2.org">ggplot2</a>, we have to convert this format to long format. Long datasets look like this:</p>
+
+<p><img src="{{ site.url }}/images/gather_long.png" alt="" /></p>
+
+<p>So, non really surprising, the dataset is now longer than in wide format. Hence the name…</p>
+
+<p>It was converted in a certain way. Look at the two figures (and the color scheme). The 4 columns are now 3: All of the predictors are now paired in two colums: key and value. In the key column we find the names of the former columns as entries; in the value column we find the entries of those columns as entries (check the colors).</p>
+
+<p>We easily see that the variable outcome was not paired. Before and after the convertion, it happily resides in its own, whole column. We often want a non-paired column, as we need it for eg., facetting.</p>
+
+<p>Let’s visualize this transformation. First, we look at the transformation of the values:</p>
+
+<p><img src="{{ site.url }}/images/gather_values.png" alt="" /></p>
+
+<p>Second, let’s look at the transformation of the keys (column headers), and the outcome variable, which will not be paires (remains in its own, complete, tidy column):</p>
+
+<p><img src="{{ site.url }}/images/gather_keys.png" alt="" /></p>
+
+<p>So let’s see the <code>tidyr</code> and <code>dplyr</code> code:</p>
+
+<pre><code class="language-r">library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+data(Wage, package = &quot;ISLR&quot;)
+
+Wage %&gt;%
+  mutate(wage_f = ntile(wage, 2)) %&gt;%  # bin it
+  mutate(wage_f = factor(wage_f, labels = c(&quot;low_wage&quot;,&quot;high_wage&quot;))) %&gt;%
+  select(health, race, wage_f) %&gt;%
+  gather(key = predictor, value = pred_value, -wage_f) %&gt;%
+  ggplot(aes(x = pred_value, fill = predictor)) + geom_bar() + facet_wrap(~wage_f) +
+  coord_flip()
+</code></pre>
+
+<pre><code>## Warning: attributes are not identical across measure variables; they will
+## be dropped
+</code></pre>
+
+<p><img src="{{ site.url }}/images/gather1.png" alt="" /></p>
+
+<p>The plot itself is not particular useful as it is, but at times you will want such a type of plot. And many R functions built on the long format.</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

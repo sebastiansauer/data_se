@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Some reflections on stochastic independence - A Hugo website</title>
+<meta property="og:title" content="Some reflections on stochastic independence - A Hugo website">
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/%3cnil%3e"
+         width=""
+         height=""
+         alt="">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/blog/">Blog</a></li>
+    
+    <li><a href="/categories/">Categories</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">7 min read</span>
+    
+
+    <h1 class="article-title">Some reflections on stochastic independence</h1>
+
+    
+    <span class="article-date">2016/11/08</span>
+    
+
+    <div class="article-content">
+      
+
+<script src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML" type="text/javascript"></script>
+
+<p>We are often interested in the question whether two variables are &ldquo;associated&rdquo;, &ldquo;correlated&rdquo; (I mean the normal English term) or &ldquo;dependent&rdquo;. What exactly, or rather in normal words, does that mean? Let&rsquo;s look at some easy case.</p>
+
+<p>NOTE: The example has been updated to reflect a more tangible and sensible scenario (find the old one in the previous commit at Github).</p>
+
+<h1 id="titanic-data">Titanic data</h1>
+
+<p>For example, let&rsquo;s look at survival rates of the Titanic disaster, to see whether the probability of survival (event A) depends on the whether you embarked for 1st class (event B).</p>
+
+<p>Let&rsquo;s load the data and have a look at them.</p>
+
+<pre><code class="language-r">data(titanic_train, package = &quot;titanic&quot;)
+
+library(tidyverse)  # plotting and data mungling
+library(pander)  # for markdown tables
+
+data &lt;- titanic_train
+</code></pre>
+
+<pre><code class="language-r">glimpse(data)
+</code></pre>
+
+<pre><code>## Observations: 891
+## Variables: 12
+## $ PassengerId &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,...
+## $ Survived    &lt;int&gt; 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0,...
+## $ Pclass      &lt;int&gt; 3, 1, 3, 1, 3, 3, 1, 3, 3, 2, 3, 1, 3, 3, 3, 2, 3,...
+## $ Name        &lt;chr&gt; &quot;Braund, Mr. Owen Harris&quot;, &quot;Cumings, Mrs. John Bra...
+## $ Sex         &lt;chr&gt; &quot;male&quot;, &quot;female&quot;, &quot;female&quot;, &quot;female&quot;, &quot;male&quot;, &quot;mal...
+## $ Age         &lt;dbl&gt; 22, 38, 26, 35, 35, NA, 54, 2, 27, 14, 4, 58, 20, ...
+## $ SibSp       &lt;int&gt; 1, 1, 0, 1, 0, 0, 0, 3, 0, 1, 1, 0, 0, 1, 0, 0, 4,...
+## $ Parch       &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 1, 0, 0, 5, 0, 0, 1,...
+## $ Ticket      &lt;chr&gt; &quot;A/5 21171&quot;, &quot;PC 17599&quot;, &quot;STON/O2. 3101282&quot;, &quot;1138...
+## $ Fare        &lt;dbl&gt; 7.2500, 71.2833, 7.9250, 53.1000, 8.0500, 8.4583, ...
+## $ Cabin       &lt;chr&gt; &quot;&quot;, &quot;C85&quot;, &quot;&quot;, &quot;C123&quot;, &quot;&quot;, &quot;&quot;, &quot;E46&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, ...
+## $ Embarked    &lt;chr&gt; &quot;S&quot;, &quot;C&quot;, &quot;S&quot;, &quot;S&quot;, &quot;S&quot;, &quot;Q&quot;, &quot;S&quot;, &quot;S&quot;, &quot;S&quot;, &quot;C&quot;, ...
+</code></pre>
+
+<p>Look at the package description for some details on the variables.</p>
+
+<p>Let&rsquo;s look at the survival rate in general, that is to say to probability of A - irrespective of the the class (1st class or not 1st class).</p>
+
+<pre><code class="language-r">data %&gt;% 
+  count(Survived) %&gt;% 
+  ggplot + 
+  aes(x = factor(Survived), y = n) +
+  geom_bar(stat = &quot;identity&quot;) +
+  ggtitle(&quot;Number of Survivals&quot;) +
+  theme(plot.title = element_text(hjust = .5))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-08/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3" /></p>
+
+<p>Maybe that&rsquo;s a better plot:</p>
+
+<pre><code class="language-r">data %&gt;% 
+  count(Survived) %&gt;% 
+  ggplot + 
+  aes(x = factor(1), fill = factor(Survived), y = n) +
+  geom_bar(stat = &quot;identity&quot;) +
+  ggtitle(&quot;Number of Survivals&quot;) +
+  theme(plot.title = element_text(hjust = .5)) +
+  xlab(&quot;&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-08/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
+
+<p>The exact figures are for the survivals are:</p>
+
+<pre><code class="language-r">data %&gt;% 
+  count(Survived)
+</code></pre>
+
+<pre><code>## # A tibble: 2 × 2
+##   Survived     n
+##      &lt;int&gt; &lt;int&gt;
+## 1        0   549
+## 2        1   342
+</code></pre>
+
+<p>The exact figures are for the classes (1st vs. other) are:</p>
+
+<pre><code class="language-r">data %&gt;% 
+  mutate(Pclass_bin = ifelse(Pclass == 1, &quot;1st&quot;, &quot;not_1st&quot;)) %&gt;% 
+  count(Pclass_bin)
+</code></pre>
+
+<pre><code>## # A tibble: 2 × 2
+##   Pclass_bin     n
+##        &lt;chr&gt; &lt;int&gt;
+## 1        1st   216
+## 2    not_1st   675
+</code></pre>
+
+<p>&hellip; and the number of passengers per class (1st class vs. other classes) is:</p>
+
+<pre><code class="language-r">data %&gt;% 
+  mutate(Pclass_bin = ifelse(Pclass == 1, &quot;1st&quot;, &quot;not_1st&quot;)) %&gt;% 
+  count(Survived, Pclass_bin)
+</code></pre>
+
+<pre><code>## Source: local data frame [4 x 3]
+## Groups: Survived [?]
+## 
+##   Survived Pclass_bin     n
+##      &lt;int&gt;      &lt;chr&gt; &lt;int&gt;
+## 1        0        1st    80
+## 2        0    not_1st   469
+## 3        1        1st   136
+## 4        1    not_1st   206
+</code></pre>
+
+<p>So, that was warming up. Let&rsquo;s see what the probability (percentage) of survival is for both 1st class and non-first class.</p>
+
+<pre><code class="language-r">data %&gt;% 
+  mutate(Pclass_bin = ifelse(Pclass == 1, &quot;1st&quot;, &quot;not_1st&quot;)) %&gt;% 
+  count(Pclass_bin, Survived) %&gt;% 
+  ggplot + 
+  aes(x = factor(Pclass_bin), fill = factor(Survived), y = n, labels = n) +
+  geom_bar(stat = &quot;identity&quot;) +
+  ggtitle(&quot;Probability of Survivals given Passenager class&quot;) +
+  theme(plot.title = element_text(hjust = .5))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-08/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8" /></p>
+
+<p>We easily conclude that the probability of survival <em>is</em> associated with passenger class. The probability of survival (event A) <em>given</em> 1st class (event B) is considerably higher than the probability of A given non-B (event B is &ldquo;not 1st class&rdquo;).</p>
+
+<p>The exact numbers are:</p>
+
+<pre><code class="language-r">data %&gt;% 
+  mutate(Pclass_bin = ifelse(Pclass == 1, &quot;1st&quot;, &quot;not_1st&quot;)) %&gt;% 
+  count(Pclass_bin, Survived) -&gt; data_2
+
+data_2
+</code></pre>
+
+<pre><code>## Source: local data frame [4 x 3]
+## Groups: Pclass_bin [?]
+## 
+##   Pclass_bin Survived     n
+##        &lt;chr&gt;    &lt;int&gt; &lt;int&gt;
+## 1        1st        0    80
+## 2        1st        1   136
+## 3    not_1st        0   469
+## 4    not_1st        1   206
+</code></pre>
+
+<pre><code class="language-r">pandoc.table(data_2, style = &quot;rmarkdown&quot;)
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="center">Pclass_bin</th>
+<th align="center">Survived</th>
+<th align="center">n</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="center">1st</td>
+<td align="center">0</td>
+<td align="center">80</td>
+</tr>
+
+<tr>
+<td align="center">1st</td>
+<td align="center">1</td>
+<td align="center">136</td>
+</tr>
+
+<tr>
+<td align="center">not_1st</td>
+<td align="center">0</td>
+<td align="center">469</td>
+</tr>
+
+<tr>
+<td align="center">not_1st</td>
+<td align="center">1</td>
+<td align="center">206</td>
+</tr>
+</tbody>
+</table>
+
+<h1 id="general-notion-of-stochastic-independence">General notion of stochastic independence</h1>
+
+<p>A typical definition of stochastic (or statistic) independence is this:</p>
+
+<p>$$p(A|B) = p(A)$$
+That means in plain English, that the probability of A (survival) <em>given</em> B (1st class) is equal to A <em>irrespective</em> of B, that means irrespective of B is the case or non-B is the case. In short, that would mean the survival probability is equal in both cases (B or non-B).</p>
+
+<p>In math-speak:</p>
+
+<p>$$p(A|B) = p(A) = p(A|nonB) = p(A|B \cup nonB)$$</p>
+
+<p>Here, the &ldquo;cup&rdquo; $$\cup$$ means &ldquo;OR&rdquo;.</p>
+
+<p>It than follows that if
+$$p(A|B) = p(A|nonB)$$
+we deduce</p>
+
+<p>$$p(A|B) - p(A|nonB) = 0$$</p>
+
+<p>Or more verbose in our Titanic example:</p>
+
+<p>$$p(Survival|1stClass) = p(Survival|1stclass) OR non1stCalss}) = p(Survial|non1stClass)$$.</p>
+
+<p>In words, whether someone survives is independent from the question of his or her passenger class: Survival probability is the the same in 1st class and in the other classes (&ldquo;non 1st class&rdquo;).</p>
+
+<p>Let&rsquo;s look at the data of our example:</p>
+
+<p>$$p(A) = 342 / (549+342) = 0.38 <br />
+p(nonA) = 549 / (549+342) = 0.62 \</p>
+
+<p>p(B) = 216 / (216 + 675) = 0.24 \</p>
+
+<p>p(nonB) =  675 / (216 + 675) = 0.76 \</p>
+
+<p>p(A|B) = 136 / (80+136) = 0.63 \</p>
+
+<p>p(nonA|B) = 80 / (80+136) = 0.37 \</p>
+
+<p>p(A|nonB) = 206 / (206+469) = 0.31 \</p>
+
+<p>p(nonA|nonB) = 469 / (206+469) = 0.69$$</p>
+
+<p>In R:</p>
+
+<pre><code class="language-r">p_A &lt;- 342 / (549+342)
+p_nonA &lt;- 549 / (549+342)
+
+p_B &lt;- 216 / (216 + 675)
+p_nonB &lt;- 549 / (549+342)
+
+
+p_B &lt;- 216 / (216 + 675)
+p_nonB &lt;- 675 / (216 + 675)
+p_A_given_B &lt;- 136 / (80+136)
+P_nonA_given_B &lt;- 80 / (80+136)
+
+p_A_given_nonB &lt;- 206 / (206+469)
+p_nonA_given_nonB &lt;- 469 / (206+469)
+
+
+
+p_diff &lt;- p_A_given_B - p_A_given_nonB
+p_diff
+</code></pre>
+
+<pre><code>## [1] 0.3244444
+</code></pre>
+
+<p>The difference <code>p(A|B) - p(A|nonB)</code> is not zero. Actually it is quite far away: If you are in 1st, your survival rate is 32% higher if you were not in 1st class. Quite strong. However, note that this last step is subjective, no job for statistics.</p>
+
+<p>Finally, let&rsquo;s look for two variable which are not associated. For example: Shoe size (of adults) and their bank account number.</p>
+
+<p>In our dataset, what about port of Embarkement: Southampton vs. not Southampton and Survival rate.</p>
+
+<pre><code class="language-r">data %&gt;% 
+  mutate(Embarked_bin = ifelse(Embarked == &quot;S&quot;, &quot;S&quot;, &quot;not_S&quot;)) %&gt;% 
+  select(Embarked_bin, Survived) %&gt;% 
+  count(Embarked_bin, Survived) %&gt;% 
+  ggplot +
+  aes(x = Embarked_bin, y = n, fill = factor(Survived)) +
+  geom_bar(stat = &quot;identity&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-08/unnamed-chunk-12-1.png" alt="plot of chunk unnamed-chunk-12" /></p>
+
+<p>Hm, appears to be related/associated/dependent/correlated.</p>
+
+<p>Maybe better plot like this:</p>
+
+<pre><code class="language-r">data %&gt;% 
+  mutate(Embarked_bin = ifelse(Embarked == &quot;S&quot;, &quot;S&quot;, &quot;not_S&quot;)) %&gt;% 
+  select(Embarked_bin, Survived) %&gt;% 
+  count(Embarked_bin, Survived) %&gt;% 
+  ggplot +
+  aes(x = Embarked_bin, y = n, fill = factor(Survived)) +
+  geom_bar(stat = &quot;identity&quot;, position = &quot;fill&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-08/unnamed-chunk-13-1.png" alt="plot of chunk unnamed-chunk-13" /></p>
+
+<p>Ah, yes, there is some dependence.</p>
+
+<p>Ok, last try, this is should be a save win: Whether fare is an odd number (eg., 7 Pound) and survival are related.</p>
+
+<pre><code class="language-r">data %&gt;% 
+  mutate(Fare_odd = ifelse(round(Fare) %% 2 == 0, &quot;even&quot;, &quot;odd&quot;)) %&gt;% 
+  select(Fare_odd, Survived) %&gt;% 
+  count(Fare_odd, Survived) %&gt;% 
+  ggplot +
+  aes(x = Fare_odd, y = n, fill = factor(Survived)) +
+  geom_bar(stat = &quot;identity&quot;, position = &quot;fill&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-08/unnamed-chunk-14-1.png" alt="plot of chunk unnamed-chunk-14" /></p>
+
+<p>Well, nearly equal, approximately independent, or independent enough for me (as said, that&rsquo;s subjective).</p>
+
+<h1 id="concluding-remarks">Concluding remarks</h1>
+
+<p>Of course there are numerous ways to &ldquo;measure&rdquo; the strength of assocation. Odds ratios, for example, a popular choice. The reason why I like or presented this version $$p(A|B)-p(A|nonB)$$ is that I find it intuitively appealing. In my teaching I found that the Odds Ratio was somewhat more difficult to grasp at first.</p>
+
+<p>Also note that we where looking at discrete events, not continuous.</p>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js//highlight.min.js"></script>
+
+
+
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

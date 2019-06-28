@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>How to plot a &#39;percentage plot&#39; with ggplot2 - A Hugo website</title>
+<meta property="og:title" content="How to plot a &#39;percentage plot&#39; with ggplot2 - A Hugo website">
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/%3cnil%3e"
+         width=""
+         height=""
+         alt="">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/blog/">Blog</a></li>
+    
+    <li><a href="/categories/">Categories</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">1 min read</span>
+    
+
+    <h1 class="article-title">How to plot a &#39;percentage plot&#39; with ggplot2</h1>
+
+    
+    <span class="article-date">2016/11/03</span>
+    
+
+    <div class="article-content">
+      
+
+<p>At times it is convenient to draw a frequency bar plot; at times we prefer not the bare frequencies but the proportions or the percentages per category. There are lots of ways doing so; let&rsquo;s look at some <code>ggplot2</code> ways.</p>
+
+<p>First, let&rsquo;s load some data.</p>
+
+<pre><code class="language-r">data(tips, package = &quot;reshape2&quot;)
+</code></pre>
+
+<p>And the typical libraries.</p>
+
+<pre><code class="language-r">library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(scales)  # for percentage scales
+</code></pre>
+
+<h1 id="way-1">Way 1</h1>
+
+<pre><code class="language-r">tips %&gt;% 
+  count(day) %&gt;% 
+  mutate(perc = n / nrow(tips)) -&gt; tips2
+
+ggplot(tips2, aes(x = day, y = perc)) + geom_bar(stat = &quot;identity&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/plot1-1.png" alt="plot of chunk plot1" /></p>
+
+<h1 id="way-2">Way 2</h1>
+
+<pre><code class="language-r">ggplot(tips, aes(x = day)) +  
+  geom_bar(aes(y = (..count..)/sum(..count..)))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/unnamed-chunk-1-1.png" alt="plot of chunk unnamed-chunk-1" /></p>
+
+<h1 id="way-3">Way 3</h1>
+
+<pre><code class="language-r">myplot &lt;- ggplot(tips, aes(day)) + 
+          geom_bar(aes(y = (..count..)/sum(..count..))) + 
+          scale_y_continuous(labels=scales::percent) +
+  ylab(&quot;relative frequencies&quot;)
+
+myplot
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/unnamed-chunk-2-1.png" alt="plot of chunk unnamed-chunk-2" /></p>
+
+<h1 id="way-4">Way 4</h1>
+
+<pre><code class="language-r">myplot &lt;- ggplot(tips, aes(day, group = sex)) + 
+          geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat=&quot;count&quot;) + 
+          scale_y_continuous(labels=scales::percent) +
+          ylab(&quot;relative frequencies&quot;) +
+          facet_grid(~sex)
+
+myplot
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3" /></p>
+
+<h1 id="way-5">Way 5</h1>
+
+<pre><code class="language-r">ggplot(tips, aes(x= day,  group=sex)) + 
+    geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat=&quot;count&quot;) +
+    geom_text(aes( label = scales::percent(..prop..),
+                   y= ..prop.. ), stat= &quot;count&quot;, vjust = -.5) +
+    labs(y = &quot;Percent&quot;, fill=&quot;day&quot;) +
+    facet_grid(~sex) +
+    scale_y_continuous(labels = scales::percent)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js//highlight.min.js"></script>
+
+
+
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+  </body>
+</html>
+

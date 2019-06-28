@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>AfD Mining - basales Textmining zum AfD-Parteiprogramm - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="AfD Mining - basales Textmining zum AfD-Parteiprogramm - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">11 min read</span>
+    
+
+    <h1 class="article-title">AfD Mining - basales Textmining zum AfD-Parteiprogramm</h1>
+
+    
+    <span class="article-date">0001/01/01</span>
+    
+
+    <div class="article-content">
+      
+
+<p>Für diesen Post benötigte R-Pakete:</p>
+
+<pre><code class="language-r">library(stringr)  # Textverarbeitung
+library(tidytext)  # Textmining
+library(pdftools)  # PDF einlesen
+library(downloader)  # Daten herunterladen
+# library(knitr)  # HTML-Tabellen
+library(htmlTable)  # HTML-Tabellen
+library(lsa)  # Stopwörter 
+library(SnowballC)  # Wörter trunkieren
+library(wordcloud)  # Wordcloud anzeigen
+library(gridExtra)  # Kombinierte Plots
+library(dplyr)  # Datenjudo
+library(ggplot2)  # Visualisierung 
+</code></pre>
+
+<p>Ein einführendes Tutorial zu Textmining; analysiert wird das Parteiprogramm der Partei &ldquo;Alternative für Deutschland&rdquo; (AfD). Vor dem Hintergrund des gestiegenen Zuspruchs von Rechtspopulisten und der großen Gefahr, die von diesem Gedankengut ausdünstet, erscheint mir eine facettenreiche Analyse des Phänomens &ldquo;Rechtspopulismus&rdquo; nötig.</p>
+
+<p>Ein großer Teil der zur Verfügung stehenden Daten liegt nicht als braves Zahlenmaterial vor, sondern in &ldquo;unstrukturierter&rdquo; Form, z.B. in Form von Texten. Im Gegensatz zur Analyse von numerischen Daten ist die Analyse von Texten<sup class="footnote-ref" id="fnref:99"><a rel="footnote" href="#fn:99">1</a></sup> weniger verbreitet bisher. In Anbetracht der Menge und der Informationsreichhaltigkeit von Text erscheint die Analyse von Text als vielversprechend.</p>
+
+<p>In gewisser Weise ist das Textmining ein alternative zu klassischen qualitativen Verfahren der Sozialforschung. Geht es in der qualitativen Sozialforschung primär um das Verstehen eines Textes, so kann man für das Textmining ähnliche Ziele formulieren. Allerdings: Das Textmining ist wesentlich schwächer und beschränkter in der Tiefe des Verstehens. Der Computer ist einfach noch wesentlich <em>dümmer</em> als ein Mensch, in dieser Hinsicht. Allerdings ist er auch wesentlich <em>schneller</em> als ein Mensch, was das Lesen betrifft. Daher bietet sich das Textmining für das Lesen großer Textmengen an, in denen eine geringe Informationsdichte vermutet wird. Sozusagen maschinelles Sieben im großen Stil. Da fällt viel durch die Maschen, aber es werden Tonnen von Sand bewegt.</p>
+
+<h2 id="grundlegende-analyse">Grundlegende Analyse</h2>
+
+<h3 id="text-daten-einlesen">Text-Daten einlesen</h3>
+
+<p>Nun lesen wir Text-Daten ein; das können beliebige Daten sein. Eine gewisse Reichhaltigkeit ist von Vorteil. Nehmen wir das Parteiprogramm der Partei AfD<sup class="footnote-ref" id="fnref:2"><a rel="footnote" href="#fn:2">2</a></sup><sup class="footnote-ref" id="fnref:120"><a rel="footnote" href="#fn:120">3</a></sup>. Die AfD schätzt die liberal-freiheitliche Demokratie gering, befürchte ich. Damit stellt die AfD die Grundlage von Frieden und Menschenwürde in Frage. Grund genug, sich ihre Themen näher anzuschauen; hier mittels einiger grundlegender Textmining-Analysen.</p>
+
+<pre><code class="language-r">afd_url &lt;- &quot;https://www.alternativefuer.de/wp-content/uploads/sites/7/2016/05/2016-06-27_afd-grundsatzprogramm_web-version.pdf&quot;
+
+afd_pfad &lt;- &quot;afd_programm.pdf&quot;
+
+download(afd_url, afd_pfad)
+
+afd_raw &lt;- pdf_text(afd_pfad)
+
+str_sub(afd_raw[3], start = 1, end = 200)  # ersten 200 Zeichen der Seite 3 des Parteiprogramms
+#&gt; [1] &quot;3\t Programm für Deutschland | Inhalt\n   7 | Kultur, Sprache und Identität\t\t\t\t                                   45 9 | Einwanderung, Integration und Asyl\t\t\t                       57\n     7.1 \t\t Deutsc&quot;
+</code></pre>
+
+<p>Mit <code>download</code> haben wir die Datei mit der URL <code>afd_url</code> heruntergeladen und als <code>afd_pfad</code> gespeichert. Für uns ist <code>pdf_text</code> sehr praktisch, da diese Funktion Text aus einer beliebige PDF-Datei in einen Text-Vektor einliest.</p>
+
+<p>Der Vektor <code>afd_raw</code> hat 96 Elemente (entsprechend der Seitenzahl des Dokuments); zählen wir die Gesamtzahl an Wörtern. Dazu wandeln wir den Vektor in einen tidy text Dataframe um. Auch die Stopwörter entfernen wir wieder wie gehabt.</p>
+
+<pre><code class="language-r">
+afd_df &lt;- data_frame(Zeile = 1:96, 
+                     afd_raw = afd_raw)
+
+afd_df %&gt;% 
+  unnest_tokens(token, afd_raw) %&gt;% 
+  filter(str_detect(token, &quot;[a-z]&quot;)) -&gt; afd_df
+
+dplyr::count(afd_df) 
+#&gt; # A tibble: 1 × 1
+#&gt;       n
+#&gt;   &lt;int&gt;
+#&gt; 1 26396
+</code></pre>
+
+<p>Eine substanzielle Menge von Text. Was wohl die häufigsten Wörter sind?</p>
+
+<h3 id="worthäufigkeiten-auszählen">Worthäufigkeiten auszählen</h3>
+
+<pre><code class="language-r">afd_df %&gt;% 
+  na.omit() %&gt;%  # fehlende Werte löschen
+  dplyr::count(token, sort = TRUE)
+#&gt; # A tibble: 7,087 × 2
+#&gt;   token     n
+#&gt;   &lt;chr&gt; &lt;int&gt;
+#&gt; 1   die  1151
+#&gt; 2   und  1147
+#&gt; 3   der   870
+#&gt; # ... with 7,084 more rows
+</code></pre>
+
+<p>Die häufigsten Wörter sind inhaltsleere Partikel, Präpositionen, Artikel&hellip; Solche sogenannten &ldquo;Stopwörter&rdquo; sollten wir besser herausfischen, um zu den inhaltlich tragenden Wörtern zu kommen. Praktischerweise gibt es frei verfügbare Listen von Stopwörtern, z.B. im Paket <code>lsa</code>.</p>
+
+<pre><code class="language-r">data(stopwords_de)
+
+stopwords_de &lt;- data_frame(word = stopwords_de)
+
+stopwords_de &lt;- stopwords_de %&gt;% 
+  dplyr::rename(token = word)  # neu = alt
+
+afd_df %&gt;% 
+  anti_join(stopwords_de) -&gt; afd_df
+</code></pre>
+
+<p>Unser Datensatz hat jetzt viel weniger Zeilen; wir haben also durch <code>anti_join</code> Zeilen gelöscht (herausgefiltert). Das ist die Funktion von <code>anti_join</code>: Die Zeilen, die in beiden Dataframes vorkommen, werden herausgefiltert. Es verbleiben also nicht &ldquo;Nicht-Stopwörter&rdquo; in unserem Dataframe. Damit wird es schon interessanter, welche Wörter häufig sind.</p>
+
+<pre><code class="language-r">afd_df %&gt;% 
+  dplyr::count(token, sort = TRUE) -&gt; afd_count
+
+afd_count %&gt;% 
+  top_n(10) %&gt;% 
+  htmlTable()
+</code></pre>
+
+<p><!--html_preserve--><table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey;'> </th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>token</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>n</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>1</td>
+<td style='text-align: center;'>deutschland</td>
+<td style='text-align: center;'>190</td>
+</tr>
+<tr>
+<td style='text-align: left;'>2</td>
+<td style='text-align: center;'>afd</td>
+<td style='text-align: center;'>171</td>
+</tr>
+<tr>
+<td style='text-align: left;'>3</td>
+<td style='text-align: center;'>programm</td>
+<td style='text-align: center;'>80</td>
+</tr>
+<tr>
+<td style='text-align: left;'>4</td>
+<td style='text-align: center;'>wollen</td>
+<td style='text-align: center;'>67</td>
+</tr>
+<tr>
+<td style='text-align: left;'>5</td>
+<td style='text-align: center;'>bürger</td>
+<td style='text-align: center;'>57</td>
+</tr>
+<tr>
+<td style='text-align: left;'>6</td>
+<td style='text-align: center;'>euro</td>
+<td style='text-align: center;'>55</td>
+</tr>
+<tr>
+<td style='text-align: left;'>7</td>
+<td style='text-align: center;'>dafür</td>
+<td style='text-align: center;'>53</td>
+</tr>
+<tr>
+<td style='text-align: left;'>8</td>
+<td style='text-align: center;'>eu</td>
+<td style='text-align: center;'>53</td>
+</tr>
+<tr>
+<td style='text-align: left;'>9</td>
+<td style='text-align: center;'>deutsche</td>
+<td style='text-align: center;'>47</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>10</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>deutschen</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>47</td>
+</tr>
+</tbody>
+</table><!--/html_preserve--></p>
+
+<p>Ganz interessant; aber es gibt mehrere Varianten des Themas &ldquo;deutsch&rdquo;. Es ist wohl sinnvoller, diese auf den gemeinsamen Wortstamm zurückzuführen und diesen nur einmal zu zählen. Dieses Verfahren nennt man &ldquo;stemming&rdquo; oder trunkieren.</p>
+
+<pre><code class="language-r">afd_df %&gt;% 
+  mutate(token_stem = wordStem(.$token, language = &quot;german&quot;)) %&gt;% 
+  dplyr::count(token_stem, sort = TRUE) -&gt; afd_count
+
+afd_count %&gt;% 
+  top_n(10) %&gt;% 
+  htmlTable()
+</code></pre>
+
+<p><!--html_preserve--><table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey;'> </th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>token_stem</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>n</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>1</td>
+<td style='text-align: center;'>deutschland</td>
+<td style='text-align: center;'>219</td>
+</tr>
+<tr>
+<td style='text-align: left;'>2</td>
+<td style='text-align: center;'>afd</td>
+<td style='text-align: center;'>171</td>
+</tr>
+<tr>
+<td style='text-align: left;'>3</td>
+<td style='text-align: center;'>deutsch</td>
+<td style='text-align: center;'>119</td>
+</tr>
+<tr>
+<td style='text-align: left;'>4</td>
+<td style='text-align: center;'>polit</td>
+<td style='text-align: center;'>88</td>
+</tr>
+<tr>
+<td style='text-align: left;'>5</td>
+<td style='text-align: center;'>staat</td>
+<td style='text-align: center;'>85</td>
+</tr>
+<tr>
+<td style='text-align: left;'>6</td>
+<td style='text-align: center;'>programm</td>
+<td style='text-align: center;'>81</td>
+</tr>
+<tr>
+<td style='text-align: left;'>7</td>
+<td style='text-align: center;'>europa</td>
+<td style='text-align: center;'>80</td>
+</tr>
+<tr>
+<td style='text-align: left;'>8</td>
+<td style='text-align: center;'>woll</td>
+<td style='text-align: center;'>67</td>
+</tr>
+<tr>
+<td style='text-align: left;'>9</td>
+<td style='text-align: center;'>burg</td>
+<td style='text-align: center;'>66</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>10</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>soll</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>63</td>
+</tr>
+</tbody>
+</table><!--/html_preserve--></p>
+
+<p>Das ist schon informativer. Dem Befehl <code>wordStem</code> füttert man einen Vektor an Wörtern ein und gibt die Sprache an (Default ist Englisch<sup class="footnote-ref" id="fnref:3"><a rel="footnote" href="#fn:3">4</a></sup>). Das ist schon alles.</p>
+
+<h3 id="visualisierung-der-worthäufigkeiten">Visualisierung der Worthäufigkeiten</h3>
+
+<p>Zum Abschluss noch eine Visualisierung mit einer &ldquo;Wordcloud&rdquo; dazu.</p>
+
+<pre><code class="language-r">wordcloud(words = afd_count$token_stem, freq = afd_count$n, max.words = 100, scale = c(2,.5), colors=brewer.pal(6, &quot;Dark2&quot;))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-02-21/wordcloud_tokens_afd-1.png" title="plot of chunk wordcloud_tokens_afd" alt="plot of chunk wordcloud_tokens_afd" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Man kann die Anzahl der Wörter, Farben und einige weitere Formatierungen der Wortwolke beeinflussen<sup class="footnote-ref" id="fnref:4"><a rel="footnote" href="#fn:4">5</a></sup>.</p>
+
+<p>Weniger verspielt ist eine schlichte visualisierte Häufigkeitsauszählung dieser Art, z.B. mit Balkendiagrammen (gedreht).</p>
+
+<pre><code class="language-r">
+afd_count %&gt;% 
+  top_n(30) %&gt;% 
+  ggplot() +
+  aes(x = reorder(token_stem, n), y = n) +
+  geom_col() + 
+  labs(title = &quot;mit Trunkierung&quot;) +
+  coord_flip() -&gt; p1
+
+afd_df %&gt;% 
+  dplyr::count(token, sort = TRUE) %&gt;% 
+  top_n(30) %&gt;% 
+  ggplot() +
+  aes(x = reorder(token, n), y = n) +
+  geom_col() +
+  labs(title = &quot;ohne Trunkierung&quot;) +
+  coord_flip() -&gt; p2
+
+grid.arrange(p1, p2, ncol = 2)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-02-21/vis_freq_most_freq_tokens_bars-1.png" title="plot of chunk vis_freq_most_freq_tokens_bars" alt="plot of chunk vis_freq_most_freq_tokens_bars" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Die beiden Diagramme vergleichen die trunkierten Wörter mit den nicht trunkierten Wörtern. Mit <code>reorder</code> ordnen wir die Spalte <code>token</code> nach der Spalte <code>n</code>. <code>coord_flip</code> dreht die Abbildung um 90°, d.h. die Achsen sind vertauscht. <code>grid.arrange</code> packt beide Plots in eine Abbildung, welche 2 Spalten (<code>ncol</code>) hat.</p>
+
+<h2 id="sentiment-analyse">Sentiment-Analyse</h2>
+
+<p>Eine weitere interessante Analyse ist, die &ldquo;Stimmung&rdquo; oder &ldquo;Emotionen&rdquo; (Sentiments) eines Textes auszulesen. Die Anführungszeichen deuten an, dass hier ein Maß an Verständnis suggeriert wird, welches nicht (unbedingt) von der Analyse eingehalten wird. Jedenfalls ist das Prinzip der Sentiment-Analyse im einfachsten Fall so:</p>
+
+<blockquote>
+<p>Schau dir jeden Token aus dem Text an.<br />
+Prüfe, ob sich das Wort im Lexikon der Sentiments wiederfindet.<br />
+Wenn ja, dann addiere den Sentimentswert dieses Tokens zum bestehenden Sentiments-Wert.<br />
+Wenn nein, dann gehe weiter zum nächsten Wort.<br />
+Liefere zum Schluss die Summenwerte pro Sentiment zurück.</p>
+</blockquote>
+
+<p>Es gibt Sentiment-Lexika, die lediglich einen Punkt für &ldquo;positive Konnotation&rdquo; bzw. &ldquo;negative Konnotation&rdquo; geben; andere Lexika weisen differenzierte Gefühlskonnotationen auf. Wir nutzen hier <a href="http://asv.informatik.uni-leipzig.de/download/sentiws.html">dieses</a> Lexikon. Der Einfachheit halber gehen wir im Folgenden davon aus, dass das Lexikon schon aufbereitet vorliegt. Die Aufbereitung kann <a href="https://sebastiansauer.github.io/sentiment_dictionary/">hier</a> zur Vertiefung nachgelesen werden.</p>
+
+<pre><code class="language-r">
+neg_df &lt;- read_tsv(&quot;~/Downloads/SentiWS_v1.8c_Negative.txt&quot;, col_names = FALSE)
+names(neg_df) &lt;- c(&quot;Wort_POS&quot;, &quot;Wert&quot;, &quot;Inflektionen&quot;)
+
+neg_df %&gt;% 
+  mutate(Wort = str_sub(Wort_POS, 1, regexpr(&quot;\\|&quot;, .$Wort_POS)-1),
+         POS = str_sub(Wort_POS, start = regexpr(&quot;\\|&quot;, .$Wort_POS)+1)) -&gt; neg_df
+
+
+pos_df &lt;- read_tsv(&quot;~/Downloads/SentiWS_v1.8c_Positive.txt&quot;, col_names = FALSE)
+names(pos_df) &lt;- c(&quot;Wort_POS&quot;, &quot;Wert&quot;, &quot;Inflektionen&quot;)
+
+pos_df %&gt;% 
+  mutate(Wort = str_sub(Wort_POS, 1, regexpr(&quot;\\|&quot;, .$Wort_POS)-1),
+         POS = str_sub(Wort_POS, start = regexpr(&quot;\\|&quot;, .$Wort_POS)+1)) -&gt; pos_df
+
+bind_rows(&quot;neg&quot; = neg_df, &quot;pos&quot; = pos_df, .id = &quot;neg_pos&quot;) -&gt; sentiment_df
+sentiment_df %&gt;% select(neg_pos, Wort, Wert, Inflektionen, -Wort_POS) -&gt; sentiment_df
+</code></pre>
+
+<p>Unser Sentiment-Lexikon sieht so aus:</p>
+
+<pre><code class="language-r">htmlTable(head(sentiment_df))
+</code></pre>
+
+<p><!--html_preserve--><table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey;'> </th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>neg_pos</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Wort</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Wert</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Inflektionen</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>1</td>
+<td style='text-align: center;'>neg</td>
+<td style='text-align: center;'>Abbau</td>
+<td style='text-align: center;'>-0.058</td>
+<td style='text-align: center;'>Abbaus,Abbaues,Abbauen,Abbaue</td>
+</tr>
+<tr>
+<td style='text-align: left;'>2</td>
+<td style='text-align: center;'>neg</td>
+<td style='text-align: center;'>Abbruch</td>
+<td style='text-align: center;'>-0.0048</td>
+<td style='text-align: center;'>Abbruches,Abbrüche,Abbruchs,Abbrüchen</td>
+</tr>
+<tr>
+<td style='text-align: left;'>3</td>
+<td style='text-align: center;'>neg</td>
+<td style='text-align: center;'>Abdankung</td>
+<td style='text-align: center;'>-0.0048</td>
+<td style='text-align: center;'>Abdankungen</td>
+</tr>
+<tr>
+<td style='text-align: left;'>4</td>
+<td style='text-align: center;'>neg</td>
+<td style='text-align: center;'>Abdämpfung</td>
+<td style='text-align: center;'>-0.0048</td>
+<td style='text-align: center;'>Abdämpfungen</td>
+</tr>
+<tr>
+<td style='text-align: left;'>5</td>
+<td style='text-align: center;'>neg</td>
+<td style='text-align: center;'>Abfall</td>
+<td style='text-align: center;'>-0.0048</td>
+<td style='text-align: center;'>Abfalles,Abfälle,Abfalls,Abfällen</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>6</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>neg</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>Abfuhr</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>-0.3367</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>Abfuhren</td>
+</tr>
+</tbody>
+</table><!--/html_preserve--></p>
+
+<h3 id="ungewichtete-sentiment-analyse">Ungewichtete Sentiment-Analyse</h3>
+
+<p>Nun können wir jedes Token des Textes mit dem Sentiment-Lexikon abgleichen; dabei zählen wir die Treffer für positive bzw. negative Terme. Besser wäre noch: Wir könnten die Sentiment-Werte pro Treffer addieren (und nicht für jeden Term 1 addieren). Aber das heben wir uns für später auf.</p>
+
+<pre><code class="language-r">sentiment_neg &lt;- match(afd_df$token, filter(sentiment_df, neg_pos == &quot;neg&quot;)$Wort)
+neg_score &lt;- sum(!is.na(sentiment_neg))
+
+sentiment_pos &lt;- match(afd_df$token, filter(sentiment_df, neg_pos == &quot;pos&quot;)$Wort)
+pos_score &lt;- sum(!is.na(sentiment_pos))
+
+round(pos_score/neg_score, 1)
+#&gt; [1] 2.7
+</code></pre>
+
+<p>Hier schauen wir für jedes negative (positive) Token, ob es einen &ldquo;Match&rdquo; im Sentiment-Lexikon (<code>sentiment_df$Wort</code>) gibt; das geht mit <code>match</code>. <code>match</code> liefert <code>NA</code> zurück, wenn es keinen Match gibt (ansonsten die Nummer des Sentiment-Worts). Wir brauchen also nur die Anzahl der Nicht-NAs (<code>!is.na</code>) auszuzählen, um die Anzahl der Matches zu bekommen.</p>
+
+<p>Entgegen dem, was man vielleicht erwarten würde, ist der Text offenbar <em>positiv</em> geprägt. Der &ldquo;Positiv-Wert&rdquo; ist ca. 2.6 mal so groß wie der &ldquo;Negativ-Wert&rdquo;. Fragt sich, wie sich dieser Wert mit anderen vergleichbaren Texten (z.B. andere Parteien) misst. Hier sei noch einmal betont, dass die Sentiment-Analyse bestenfalls grobe Abschätzungen liefern kann und keinesfalls sich zu einem hermeneutischen Verständnis aufschwingt.</p>
+
+<p>Welche negativen Wörter und welche positiven Wörter wurden wohl verwendet? Schauen wir uns ein paar an.</p>
+
+<pre><code class="language-r">afd_df %&gt;% 
+  mutate(sentiment_neg = sentiment_neg,
+         sentiment_pos = sentiment_pos) -&gt; afd_df
+
+afd_df %&gt;% 
+  filter(!is.na(sentiment_neg)) %&gt;% 
+  dplyr::select(token) -&gt; negative_sentiments
+  
+head(negative_sentiments$token,50)
+#&gt;  [1] &quot;mindern&quot;       &quot;verbieten&quot;     &quot;unmöglich&quot;     &quot;töten&quot;        
+#&gt;  [5] &quot;träge&quot;         &quot;schädlich&quot;     &quot;unangemessen&quot;  &quot;unterlassen&quot;  
+#&gt;  [9] &quot;kalt&quot;          &quot;schwächen&quot;     &quot;ausfallen&quot;     &quot;verringern&quot;   
+#&gt; [13] &quot;verringern&quot;    &quot;verringern&quot;    &quot;verringern&quot;    &quot;belasten&quot;     
+#&gt; [17] &quot;belasten&quot;      &quot;fremd&quot;         &quot;schädigenden&quot;  &quot;klein&quot;        
+#&gt; [21] &quot;klein&quot;         &quot;klein&quot;         &quot;klein&quot;         &quot;eingeschränkt&quot;
+#&gt; [25] &quot;eingeschränkt&quot; &quot;entziehen&quot;     &quot;schwer&quot;        &quot;schwer&quot;       
+#&gt; [29] &quot;schwer&quot;        &quot;schwer&quot;        &quot;verharmlosen&quot;  &quot;unerwünscht&quot;  
+#&gt; [33] &quot;abgleiten&quot;     &quot;wirkungslos&quot;   &quot;schwach&quot;       &quot;verschleppen&quot; 
+#&gt; [37] &quot;vermindern&quot;    &quot;vermindern&quot;    &quot;ungleich&quot;      &quot;widersprechen&quot;
+#&gt; [41] &quot;zerstört&quot;      &quot;zerstört&quot;      &quot;erschweren&quot;    &quot;auffallen&quot;    
+#&gt; [45] &quot;unvereinbar&quot;   &quot;unvereinbar&quot;   &quot;unvereinbar&quot;   &quot;abhängig&quot;     
+#&gt; [49] &quot;abhängig&quot;      &quot;abhängig&quot;
+
+
+afd_df %&gt;% 
+  filter(!is.na(sentiment_pos)) %&gt;% 
+  select(token) -&gt; positive_sentiments
+
+head(positive_sentiments$token, 50)
+#&gt;  [1] &quot;optimal&quot;         &quot;aufstocken&quot;      &quot;locker&quot;         
+#&gt;  [4] &quot;zulässig&quot;        &quot;gleichwertig&quot;    &quot;wiederbeleben&quot;  
+#&gt;  [7] &quot;beauftragen&quot;     &quot;wertvoll&quot;        &quot;nah&quot;            
+#&gt; [10] &quot;nah&quot;             &quot;nah&quot;             &quot;überzeugt&quot;      
+#&gt; [13] &quot;genehmigen&quot;      &quot;genehmigen&quot;      &quot;überleben&quot;      
+#&gt; [16] &quot;überleben&quot;       &quot;genau&quot;           &quot;verständlich&quot;   
+#&gt; [19] &quot;erlauben&quot;        &quot;aufbereiten&quot;     &quot;zugänglich&quot;     
+#&gt; [22] &quot;messbar&quot;         &quot;erzeugen&quot;        &quot;erzeugen&quot;       
+#&gt; [25] &quot;ausgleichen&quot;     &quot;ausreichen&quot;      &quot;mögen&quot;          
+#&gt; [28] &quot;kostengünstig&quot;   &quot;gestiegen&quot;       &quot;gestiegen&quot;      
+#&gt; [31] &quot;bedeuten&quot;        &quot;massiv&quot;          &quot;massiv&quot;         
+#&gt; [34] &quot;massiv&quot;          &quot;massiv&quot;          &quot;einfach&quot;        
+#&gt; [37] &quot;finanzieren&quot;     &quot;vertraulich&quot;     &quot;steigen&quot;        
+#&gt; [40] &quot;erweitern&quot;       &quot;verstehen&quot;       &quot;schnell&quot;        
+#&gt; [43] &quot;zugreifen&quot;       &quot;tätig&quot;           &quot;unternehmerisch&quot;
+#&gt; [46] &quot;entlasten&quot;       &quot;entlasten&quot;       &quot;entlasten&quot;      
+#&gt; [49] &quot;entlasten&quot;       &quot;helfen&quot;
+</code></pre>
+
+<h3 id="anzahl-der-unterschiedlichen-negativen-bzw-positiven-wörter">Anzahl der unterschiedlichen negativen bzw. positiven Wörter</h3>
+
+<p>Allerdings müssen wir unterscheiden zwischen der <em>Anzahl</em> der negativen bzw. positiven Wörtern und der Anzahl der <em>unterschiedlichen</em> Wörter.</p>
+
+<p>Zählen wir noch die Anzahl der unterschiedlichen Wörter im negativen und positiven Fall.</p>
+
+<pre><code class="language-r">afd_df %&gt;% 
+  filter(!is.na(sentiment_neg)) %&gt;% 
+  summarise(n_distinct_neg = n_distinct(token))
+#&gt; # A tibble: 1 × 1
+#&gt;   n_distinct_neg
+#&gt;            &lt;int&gt;
+#&gt; 1             96
+
+
+afd_df %&gt;% 
+  filter(!is.na(sentiment_pos)) %&gt;% 
+  summarise(n_distinct_pos = n_distinct(token))
+#&gt; # A tibble: 1 × 1
+#&gt;   n_distinct_pos
+#&gt;            &lt;int&gt;
+#&gt; 1            187
+</code></pre>
+
+<p>Dieses Ergebnis passt zum vorherigen: Die Anzahl der positiven Wörter (187) ist ca. doppelt so groß wie die Anzahl der negativen Wörter (96).</p>
+
+<h3 id="gewichtete-sentiment-analyse">Gewichtete Sentiment-Analyse</h3>
+
+<p>Oben haben wir nur ausgezählt, <em>ob</em> ein Term der Sentiment-Liste im Corpus vorkam. Genauer ist es, diesen Term mit seinem Sentiment-Wert zu gewichten, also eine gewichtete Summe zu erstellen.</p>
+
+<pre><code class="language-r">sentiment_df %&gt;% 
+  rename(token = Wort) -&gt; sentiment_df
+
+afd_df %&gt;% 
+  left_join(sentiment_df, by = &quot;token&quot;) -&gt; afd_df 
+
+afd_df %&gt;% 
+  filter(!is.na(Wert)) %&gt;% 
+  summarise(Sentimentwert = sum(Wert, na.rm = TRUE)) -&gt; afd_sentiment_summe
+
+afd_sentiment_summe$Sentimentwert
+#&gt; [1] -23.9
+</code></pre>
+
+<pre><code class="language-r">afd_df %&gt;% 
+  group_by(neg_pos) %&gt;% 
+  filter(!is.na(Wert)) %&gt;% 
+  summarise(Sentimentwert = sum(Wert)) %&gt;% 
+  htmlTable()
+</code></pre>
+
+<p><!--html_preserve--><table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey;'> </th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>neg_pos</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Sentimentwert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>1</td>
+<td style='text-align: center;'>neg</td>
+<td style='text-align: center;'>-51.9793</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>2</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>pos</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>28.1159</td>
+</tr>
+</tbody>
+</table><!--/html_preserve--></p>
+
+<p>Zuerst benennen wir <code>Wort</code> in <code>token</code> um, damit es beiden Dataframes (<code>sentiment_df</code> und <code>afd_df</code>) eine Spalte mit gleichen Namen gibt. Diese Spalte können wir dann zum &ldquo;Verheiraten&rdquo; (<code>left_join</code>) der beiden Spalten nutzen. Dann summieren wir den Sentiment-Wert jeder nicht-leeren Zeile auf.</p>
+
+<p>Siehe da: Nun ist der Duktus deutlich negativer als positiver. Offenbar werden mehr positive Wörter als negative verwendet, <em>aber</em> die negativen sind viel intensiver.</p>
+
+<h3 id="tokens-mit-den-extremsten-sentimentwerten">Tokens mit den extremsten Sentimentwerten</h3>
+
+<p>Schauen wir uns die intensivsten Wörter mal an.</p>
+
+<pre><code class="language-r">afd_df %&gt;% 
+  filter(neg_pos == &quot;pos&quot;) %&gt;% 
+  distinct(token, .keep_all = TRUE) %&gt;% 
+  arrange(-Wert) %&gt;% 
+  filter(row_number() &lt; 11) %&gt;% 
+  dplyr::select(token, Wert) %&gt;% 
+  htmlTable()
+</code></pre>
+
+<p><!--html_preserve--><table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey;'> </th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>token</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Wert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>1</td>
+<td style='text-align: center;'>besonders</td>
+<td style='text-align: center;'>0.5391</td>
+</tr>
+<tr>
+<td style='text-align: left;'>2</td>
+<td style='text-align: center;'>genießen</td>
+<td style='text-align: center;'>0.4983</td>
+</tr>
+<tr>
+<td style='text-align: left;'>3</td>
+<td style='text-align: center;'>wichtig</td>
+<td style='text-align: center;'>0.3822</td>
+</tr>
+<tr>
+<td style='text-align: left;'>4</td>
+<td style='text-align: center;'>sicher</td>
+<td style='text-align: center;'>0.3733</td>
+</tr>
+<tr>
+<td style='text-align: left;'>5</td>
+<td style='text-align: center;'>helfen</td>
+<td style='text-align: center;'>0.373</td>
+</tr>
+<tr>
+<td style='text-align: left;'>6</td>
+<td style='text-align: center;'>miteinander</td>
+<td style='text-align: center;'>0.3697</td>
+</tr>
+<tr>
+<td style='text-align: left;'>7</td>
+<td style='text-align: center;'>groß</td>
+<td style='text-align: center;'>0.3694</td>
+</tr>
+<tr>
+<td style='text-align: left;'>8</td>
+<td style='text-align: center;'>wertvoll</td>
+<td style='text-align: center;'>0.357</td>
+</tr>
+<tr>
+<td style='text-align: left;'>9</td>
+<td style='text-align: center;'>motiviert</td>
+<td style='text-align: center;'>0.3541</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>10</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>gepflegt</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>0.3499</td>
+</tr>
+</tbody>
+</table><!--/html_preserve--></p>
+
+<pre><code class="language-r">
+afd_df %&gt;% 
+  filter(neg_pos == &quot;neg&quot;) %&gt;% 
+  distinct(token, .keep_all = TRUE) %&gt;% 
+  arrange(Wert) %&gt;% 
+  filter(row_number() &lt; 11) %&gt;% 
+  dplyr::select(token, Wert) %&gt;% 
+  htmlTable()
+</code></pre>
+
+<p><!--html_preserve--><table class='gmisc_table' style='border-collapse: collapse; margin-top: 1em; margin-bottom: 1em;' >
+<thead>
+<tr>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey;'> </th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>token</th>
+<th style='border-bottom: 1px solid grey; border-top: 2px solid grey; text-align: center;'>Wert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style='text-align: left;'>1</td>
+<td style='text-align: center;'>schädlich</td>
+<td style='text-align: center;'>-0.9269</td>
+</tr>
+<tr>
+<td style='text-align: left;'>2</td>
+<td style='text-align: center;'>schwach</td>
+<td style='text-align: center;'>-0.9206</td>
+</tr>
+<tr>
+<td style='text-align: left;'>3</td>
+<td style='text-align: center;'>brechen</td>
+<td style='text-align: center;'>-0.7991</td>
+</tr>
+<tr>
+<td style='text-align: left;'>4</td>
+<td style='text-align: center;'>ungerecht</td>
+<td style='text-align: center;'>-0.7844</td>
+</tr>
+<tr>
+<td style='text-align: left;'>5</td>
+<td style='text-align: center;'>behindern</td>
+<td style='text-align: center;'>-0.7748</td>
+</tr>
+<tr>
+<td style='text-align: left;'>6</td>
+<td style='text-align: center;'>falsch</td>
+<td style='text-align: center;'>-0.7618</td>
+</tr>
+<tr>
+<td style='text-align: left;'>7</td>
+<td style='text-align: center;'>gemein</td>
+<td style='text-align: center;'>-0.7203</td>
+</tr>
+<tr>
+<td style='text-align: left;'>8</td>
+<td style='text-align: center;'>gefährlich</td>
+<td style='text-align: center;'>-0.6366</td>
+</tr>
+<tr>
+<td style='text-align: left;'>9</td>
+<td style='text-align: center;'>verbieten</td>
+<td style='text-align: center;'>-0.629</td>
+</tr>
+<tr>
+<td style='border-bottom: 2px solid grey; text-align: left;'>10</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>vermeiden</td>
+<td style='border-bottom: 2px solid grey; text-align: center;'>-0.5265</td>
+</tr>
+</tbody>
+</table><!--/html_preserve--></p>
+
+<p>Tatsächlich erscheinen die negativen Wörter &ldquo;dampfender&rdquo; und &ldquo;fauchender&rdquo; als die positiven.</p>
+
+<p>Die Syntax kann hier so übersetzt werden:</p>
+
+<blockquote>
+<p>Nehmen den Dataframe adf_df UND DANN<br />
+     filtere die Token mit negativen Sentiment UND DANN<br />
+     lösche doppelte Zeilen UND DANN<br />
+     sortiere (absteigend) UND DANN<br />
+     filtere nur die Top 10 UND DANN<br />
+     zeige nur die Saplten token und Wert UND DANN<br />
+     zeige eine schöne Tabelle.</p>
+</blockquote>
+
+<h3 id="relativer-sentiments-wert">Relativer Sentiments-Wert</h3>
+
+<p>Nun könnte man noch den erzielten &ldquo;Netto-Sentiments wert&rdquo; des Corpus ins Verhältnis setzen Sentiments wert des Lexikons: Wenn es insgesamt im Sentiment-Lexikon sehr negativ zuginge, wäre ein negativer Sentimentwert in einem beliebigen Corpus nicht überraschend.</p>
+
+<pre><code class="language-r">
+sentiment_df %&gt;% 
+  filter(!is.na(Wert)) %&gt;% 
+  ggplot() +
+  aes(x = Wert) +
+  geom_histogram()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-02-21/sent_hist-1.png" title="plot of chunk sent_hist" alt="plot of chunk sent_hist" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Es scheint einen (leichten) Überhang an negativen Wörtern zu geben. Schauen wir auf die genauen Zahlen.</p>
+
+<pre><code class="language-r">sentiment_df %&gt;% 
+  filter(!is.na(Wert)) %&gt;% 
+  dplyr::count(neg_pos)
+#&gt; # A tibble: 2 × 2
+#&gt;   neg_pos     n
+#&gt;     &lt;chr&gt; &lt;int&gt;
+#&gt; 1     neg  1818
+#&gt; 2     pos  1650
+</code></pre>
+
+<p>Tatsächlich ist die Zahl negativ konnotierter Terme etwas größer als die Zahl der positiv konnotierten. Jetzt gewichten wir die Zahl mit dem Sentimentswert der Terme, in dem wir die Sentimentswerte (die ein negatives bzw. ein positives Vorzeichen aufweisen) aufaddieren.</p>
+
+<pre><code class="language-r">sentiment_df %&gt;% 
+  filter(!is.na(Wert)) %&gt;% 
+  summarise(sentiment_summe = sum(Wert)) -&gt; sentiment_lexikon_sum
+
+sentiment_lexikon_sum$sentiment_summe
+#&gt; [1] -187
+</code></pre>
+
+<p>Im Vergleich zum Sentiment der Lexikons ist unser Corpus deutlich negativer. Um genau zu sein, um diesen Faktor:</p>
+
+<pre><code class="language-r">sentiment_lexikon_sum$sentiment_summe / afd_sentiment_summe$Sentimentwert
+#&gt; [1] 7.83
+</code></pre>
+
+<p>Der <em>relative Sentimentswert</em> (relativ zum Sentiment-Lexikon) beträgt also <em>~7.8</em>.</p>
+
+<h2 id="verknüpfung-mit-anderen-variablen">Verknüpfung mit anderen Variablen</h2>
+
+<p>Kann man die Textdaten mit anderen Daten verknüpfen, so wird die Analyse reichhaltiger. So könnte man überprüfen, ob sich zwischen Sentiment-Gehalt und Zeit oder Autor ein Muster findet/bestätigt. Uns liegen in diesem Beispiel keine andere Daten vor, so dass wir dieses Beispiel nicht weiter verfolgen.</p>
+
+<h2 id="verweise">Verweise</h2>
+
+<ul>
+<li>Das Buch <a href="http://tidytextmining.com">Tidy Text Minig</a> ist eine hervorragende Quelle vertieftem Wissens zum Textmining mit R.</li>
+</ul>
+<div class="footnotes">
+
+<hr />
+
+<ol>
+<li id="fn:99">Dank an meinen Kollegen Karsten Lübke, dessen Fachkompetenz mir mindestens so geholfen hat wie seine Begeisterung an der Statistik ansteckend ist.
+ <a class="footnote-return" href="#fnref:99"><sup>[return]</sup></a></li>
+<li id="fn:2"><a href="https://www.alternativefuer.de/wp-content/uploads/sites/7/2016/05/2016-06-27_afd-grundsatzprogramm_web-version.pdf">https://www.alternativefuer.de/wp-content/uploads/sites/7/2016/05/2016-06-27_afd-grundsatzprogramm_web-version.pdf</a>
+ <a class="footnote-return" href="#fnref:2"><sup>[return]</sup></a></li>
+<li id="fn:120">Ggf. benötigen Sie Administrator-Rechte, um Dateien auf Ihre Festplatte zu speichern.
+ <a class="footnote-return" href="#fnref:120"><sup>[return]</sup></a></li>
+<li id="fn:3"><a href="http://www.omegahat.net/Rstem/stemming.pdf">http://www.omegahat.net/Rstem/stemming.pdf</a>
+ <a class="footnote-return" href="#fnref:3"><sup>[return]</sup></a></li>
+<li id="fn:4"><a href="https://cran.r-project.org/web/packages/wordcloud/index.html">https://cran.r-project.org/web/packages/wordcloud/index.html</a>
+ <a class="footnote-return" href="#fnref:4"><sup>[return]</sup></a></li>
+</ol>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

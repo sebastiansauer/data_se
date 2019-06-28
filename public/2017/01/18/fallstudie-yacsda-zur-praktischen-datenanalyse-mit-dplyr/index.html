@@ -1,0 +1,1893 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Fallstudie (YACSDA) zur praktischen Datenanalyse mit dplyr - A Hugo website</title>
+<meta property="og:title" content="Fallstudie (YACSDA) zur praktischen Datenanalyse mit dplyr - A Hugo website">
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/%3cnil%3e"
+         width=""
+         height=""
+         alt="">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/blog/">Blog</a></li>
+    
+    <li><a href="/categories/">Categories</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">15 min read</span>
+    
+
+    <h1 class="article-title">Fallstudie (YACSDA) zur praktischen Datenanalyse mit dplyr</h1>
+
+    
+    <span class="article-date">2017/01/18</span>
+    
+
+    <div class="article-content">
+      
+
+<hr />
+
+<p>Case study in data analysis using R package <code>dplyr</code> in German language.</p>
+
+<hr />
+
+<h1 id="praktische-datenanalyse-mit-dplyr">Praktische Datenanalyse mit <code>dplyr</code></h1>
+
+<p>Das R-Paket <code>dplyr</code> von <a href="https://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html">Hadley Wickham</a> ist ein Stargast auf der R-Showbühne; häufig diskutiert in einschlägigen Foren. Mit <code>dyplr</code> kann man Daten &ldquo;verhackstücken&rdquo; - umformen und aufbereiten (&ldquo;to wrangle&rdquo; auf Englisch); &ldquo;praktische Datenanalyse&rdquo; ist vielleicht eine gute Bezeichnung. Es finden sich online viele Einführungen, z.B. <a href="https://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html">hier</a> oder <a href="https://rpubs.com/justmarkham/dplyr-tutorial">hier</a>.</p>
+
+<p>Dieser Text ist <em>nicht</em> als Einführung oder Erläuterung gedacht, sondern als Übung, um (neu erworbenen Fähigkeiten) in der praktischen Datenanalyse im Rahmen einer Fallstudie auszuprobieren.</p>
+
+<hr />
+
+<p>Stellen Sie sich folgendes Szenario zur Fallstudie vor: Sie sind Unternehmensberäter bei einer (nach eigenen Angaben) namhaften Gesellschaft. Ihr erster Auftrag führt Sie direkt nach New York City (normal). Ihr Chef hat irgendwie den Eindruck, dass Sie Zahlen- und Computer-affin sind&hellip; &ldquo;Sag mal, schon mal von R gehört?&rdquo;, fragt er mal eines Abends (22h, noch voll bei der Arbeit). &ldquo;Eine Programmiersprache zur Datenanalyse und -visualisierung&rdquo;, antworten Sie wie aus der Pistole geschossen. Das gefällt Ihrem Chef. &ldquo;Pass mal auf. Bis morgen brauche ich eine Analyse aller Flüge von NYC, Anzahl, nach Origin, nach Destination.. Du weißt schon&hellip;&rdquo;. Natürlich wissen Sie.. &ldquo;Reicht bis morgen früh um acht&rdquo;, sagt er noch, bevor er das Büro verlässt.</p>
+
+<p>Ok, also dann sollten wir keine Zeit verlieren&hellip;</p>
+
+<hr />
+
+<h1 id="aufgaben-und-lösungen">Aufgaben (und Lösungen)</h1>
+
+<p>Laden wir zuerst die nötigen Pakete und Daten; denken Sie daran, dass R-Pakete zuerst installiert werden müssen (einmalig), bevor Sie sie laden können.</p>
+
+<pre><code class="language-r"># install.packages(&quot;nycflights13&quot;)
+library(dplyr)
+library(ggplot2) # Diagramme
+data(flights, package = &quot;nycflights13&quot;)
+</code></pre>
+
+<h2 id="wie-viele-flüge-starteten-in-den-nyc-flughäfen-in-2013">Wie viele Flüge starteten in den NYC-Flughäfen in 2013?</h2>
+
+<pre><code class="language-r">flights %&gt;%
+  summarise(n_flights = n())
+</code></pre>
+
+<pre><code>## # A tibble: 1 × 1
+##   n_flights
+##       &lt;int&gt;
+## 1    336776
+</code></pre>
+
+<p>Ah, eine Menge :-).</p>
+
+<h2 id="welche-flughäfen-gibt-es-in-nyc-wie-viele-flüge-starteten-von-dort-jeweils">Welche Flughäfen gibt es in NYC? Wie viele Flüge starteten von dort jeweils?</h2>
+
+<pre><code class="language-r">flights %&gt;%
+  group_by(origin) %&gt;% 
+  summarise(Anzahl = n()) 
+</code></pre>
+
+<pre><code>## # A tibble: 3 × 2
+##   origin Anzahl
+##    &lt;chr&gt;  &lt;int&gt;
+## 1    EWR 120835
+## 2    JFK 111279
+## 3    LGA 104662
+</code></pre>
+
+<p>Das könnten wir auch plotten. Allerdings&hellip; 3 Zahlen, das kann man auch ohne Diagramm gut erkennen&hellip;</p>
+
+<p>Die internationalen Codes von Flughäfen können z.B. <a href="https://de.wikipedia.org/wiki/Liste_der_IATA-Codes/A">hier</a> nachgelesen werden.</p>
+
+<h2 id="wie-viele-flughäfen-starteten-pro-monat-aus-nyc">Wie viele Flughäfen starteten pro Monat aus NYC?</h2>
+
+<p>Das ist praktische die gleiche Frage in grün&hellip;</p>
+
+<pre><code class="language-r">flights %&gt;%
+  group_by(month) %&gt;% 
+  summarise(Anzahl = n()) 
+</code></pre>
+
+<pre><code>## # A tibble: 12 × 2
+##    month Anzahl
+##    &lt;int&gt;  &lt;int&gt;
+## 1      1  27004
+## 2      2  24951
+## 3      3  28834
+## 4      4  28330
+## 5      5  28796
+## 6      6  28243
+## 7      7  29425
+## 8      8  29327
+## 9      9  27574
+## 10    10  28889
+## 11    11  27268
+## 12    12  28135
+</code></pre>
+
+<p>Das lohnt sich schon eher als Diagramm:</p>
+
+<pre><code class="language-r">flights %&gt;%
+  group_by(month) %&gt;% 
+  summarise(Anzahl = n()) %&gt;% 
+  ggplot(aes(x = month, y = Anzahl)) + geom_point(color = &quot;firebrick&quot;) +
+  geom_line()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-18/unnamed-chunk-5-1.png" alt="plot of chunk unnamed-chunk-5" /></p>
+
+<h2 id="welche-ziele-wurden-angeflogen-wurden-muc-und-fra-angeflogen">Welche Ziele wurden angeflogen? Wurden MUC und FRA angeflogen?</h2>
+
+<pre><code class="language-r">flights %&gt;%
+  group_by(dest) %&gt;% 
+  summarise(Anzahl = n()) %&gt;% 
+  select(dest) %&gt;% print(n = 200)
+</code></pre>
+
+<pre><code>## # A tibble: 105 × 1
+##      dest
+##     &lt;chr&gt;
+## 1     ABQ
+## 2     ACK
+## 3     ALB
+## 4     ANC
+## 5     ATL
+## 6     AUS
+## 7     AVL
+## 8     BDL
+## 9     BGR
+## 10    BHM
+## 11    BNA
+## 12    BOS
+## 13    BQN
+## 14    BTV
+## 15    BUF
+## 16    BUR
+## 17    BWI
+## 18    BZN
+## 19    CAE
+## 20    CAK
+## 21    CHO
+## 22    CHS
+## 23    CLE
+## 24    CLT
+## 25    CMH
+## 26    CRW
+## 27    CVG
+## 28    DAY
+## 29    DCA
+## 30    DEN
+## 31    DFW
+## 32    DSM
+## 33    DTW
+## 34    EGE
+## 35    EYW
+## 36    FLL
+## 37    GRR
+## 38    GSO
+## 39    GSP
+## 40    HDN
+## 41    HNL
+## 42    HOU
+## 43    IAD
+## 44    IAH
+## 45    ILM
+## 46    IND
+## 47    JAC
+## 48    JAX
+## 49    LAS
+## 50    LAX
+## 51    LEX
+## 52    LGA
+## 53    LGB
+## 54    MCI
+## 55    MCO
+## 56    MDW
+## 57    MEM
+## 58    MHT
+## 59    MIA
+## 60    MKE
+## 61    MSN
+## 62    MSP
+## 63    MSY
+## 64    MTJ
+## 65    MVY
+## 66    MYR
+## 67    OAK
+## 68    OKC
+## 69    OMA
+## 70    ORD
+## 71    ORF
+## 72    PBI
+## 73    PDX
+## 74    PHL
+## 75    PHX
+## 76    PIT
+## 77    PSE
+## 78    PSP
+## 79    PVD
+## 80    PWM
+## 81    RDU
+## 82    RIC
+## 83    ROC
+## 84    RSW
+## 85    SAN
+## 86    SAT
+## 87    SAV
+## 88    SBN
+## 89    SDF
+## 90    SEA
+## 91    SFO
+## 92    SJC
+## 93    SJU
+## 94    SLC
+## 95    SMF
+## 96    SNA
+## 97    SRQ
+## 98    STL
+## 99    STT
+## 100   SYR
+## 101   TPA
+## 102   TUL
+## 103   TVC
+## 104   TYS
+## 105   XNA
+</code></pre>
+
+<p>Eine lange Liste&hellip; wäre vielleicht übersichtlicher, die <em>nicht</em> abzubilden ;)</p>
+
+<p>Schauen wir mal, ob MUC (München) <em>oder</em> FRA (Frankfurt) dabei waren.</p>
+
+<pre><code class="language-r">flights %&gt;%
+  filter(dest == &quot;MUC&quot; | dest == &quot;FRA&quot;)
+</code></pre>
+
+<pre><code>## # A tibble: 0 × 19
+## # ... with 19 variables: year &lt;int&gt;, month &lt;int&gt;, day &lt;int&gt;,
+## #   dep_time &lt;int&gt;, sched_dep_time &lt;int&gt;, dep_delay &lt;dbl&gt;, arr_time &lt;int&gt;,
+## #   sched_arr_time &lt;int&gt;, arr_delay &lt;dbl&gt;, carrier &lt;chr&gt;, flight &lt;int&gt;,
+## #   tailnum &lt;chr&gt;, origin &lt;chr&gt;, dest &lt;chr&gt;, air_time &lt;dbl&gt;,
+## #   distance &lt;dbl&gt;, hour &lt;dbl&gt;, minute &lt;dbl&gt;, time_hour &lt;dttm&gt;
+</code></pre>
+
+<p>Die resultierende Tabelle (&ldquo;tibble&rdquo;) hat 0 Zeilen. Diese Ziele wurden also nicht angeflogen.</p>
+
+<p>Das Zeichen &ldquo;|&rdquo; bedeutet &ldquo;oder&rdquo; (im logischen Sinne). Demnach kann man die die ganze &ldquo;Pfeife&rdquo; so lesen:
+<code>Nimm flights</code>
+<code>Filter Zeilen mit Ziel gleich MUC oder Zeilen mit Ziel gleich FRA</code>.</p>
+
+<h2 id="welche-ziele-am-häufigsten-angeflogen">Welche Ziele am häufigsten angeflogen?</h2>
+
+<pre><code class="language-r">flights %&gt;%
+  group_by(dest) %&gt;%
+  summarise(n_per_dest = n()) %&gt;%
+  arrange(desc(n_per_dest))
+</code></pre>
+
+<pre><code>## # A tibble: 105 × 2
+##     dest n_per_dest
+##    &lt;chr&gt;      &lt;int&gt;
+## 1    ORD      17283
+## 2    ATL      17215
+## 3    LAX      16174
+## 4    BOS      15508
+## 5    MCO      14082
+## 6    CLT      14064
+## 7    SFO      13331
+## 8    FLL      12055
+## 9    MIA      11728
+## 10   DCA       9705
+## # ... with 95 more rows
+</code></pre>
+
+<p>Das könnte man auch wieder &ldquo;plotten&rdquo;, aber lieber nur die Top-10.</p>
+
+<pre><code class="language-r">flights %&gt;%
+  group_by(dest) %&gt;%
+  summarise(n_per_dest = n()) %&gt;%
+  arrange(desc(n_per_dest)) %&gt;% 
+  filter(min_rank(n_per_dest) &lt; 11) %&gt;% 
+  ggplot(aes(x = dest, y = n_per_dest)) + geom_bar(stat = &quot;identity&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-18/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9" /></p>
+
+<p>Der Befehl <code>min_rank(n_per_dest) &lt; 11</code> liefert die 10 kleinsten Rangplätze der Variablen <code>n_per_dest</code> zurück.</p>
+
+<p>Beim Plotten brauchen wir beim Geom <code>bar</code> (Balken) den Zusatz <code>stat = &quot;identity&quot;</code>, weil das Geom <code>bar</code> standardgemäß zählen möchte, wie viele Zeilen z.B. &ldquo;LGA&rdquo; enthalten. Wir haben aber das Zählen der Zeilen schon vorher mit <code>n()</code> gemacht, so dass der Befehl einfach den Wert, so wie er in unserem Dataframe steht (daher <code>identity</code>) nehmen soll.</p>
+
+<h2 id="welche-ziele-werden-mehr-als-10000-mal-pro-jahr-angeflogen">Welche Ziele werden mehr als 10000 Mal pro Jahr angeflogen?</h2>
+
+<pre><code class="language-r">flights %&gt;%
+  group_by(dest) %&gt;%
+  summarise(n_dest = n()) %&gt;%
+  filter(n_dest &gt; 10000)
+</code></pre>
+
+<pre><code>## # A tibble: 9 × 2
+##    dest n_dest
+##   &lt;chr&gt;  &lt;int&gt;
+## 1   ATL  17215
+## 2   BOS  15508
+## 3   CLT  14064
+## 4   FLL  12055
+## 5   LAX  16174
+## 6   MCO  14082
+## 7   MIA  11728
+## 8   ORD  17283
+## 9   SFO  13331
+</code></pre>
+
+<h2 id="welche-flüge-gingen-von-jfk-nach-pwm-portland-im-januar-zwischen-mitternach-und-5-uhr">Welche Flüge gingen von JFK nach PWM (Portland) im Januar zwischen Mitternach und 5 Uhr?</h2>
+
+<pre><code class="language-r">library(knitr)
+filter(flights, origin == &quot;JFK&quot; &amp; month == 1, dest == &quot;PWM&quot;, dep_time &lt; 500) %&gt;% 
+  kable
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="right">year</th>
+<th align="right">month</th>
+<th align="right">day</th>
+<th align="right">dep_time</th>
+<th align="right">sched_dep_time</th>
+<th align="right">dep_delay</th>
+<th align="right">arr_time</th>
+<th align="right">sched_arr_time</th>
+<th align="right">arr_delay</th>
+<th align="left">carrier</th>
+<th align="right">flight</th>
+<th align="left">tailnum</th>
+<th align="left">origin</th>
+<th align="left">dest</th>
+<th align="right">air_time</th>
+<th align="right">distance</th>
+<th align="right">hour</th>
+<th align="right">minute</th>
+<th align="left">time_hour</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">106</td>
+<td align="right">2245</td>
+<td align="right">141</td>
+<td align="right">201</td>
+<td align="right">2356</td>
+<td align="right">125</td>
+<td align="left">B6</td>
+<td align="right">608</td>
+<td align="left">N192JB</td>
+<td align="left">JFK</td>
+<td align="left">PWM</td>
+<td align="right">44</td>
+<td align="right">273</td>
+<td align="right">22</td>
+<td align="right">45</td>
+<td align="left">2013-01-04 22:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">31</td>
+<td align="right">54</td>
+<td align="right">2250</td>
+<td align="right">124</td>
+<td align="right">152</td>
+<td align="right">2359</td>
+<td align="right">113</td>
+<td align="left">B6</td>
+<td align="right">608</td>
+<td align="left">N281JB</td>
+<td align="left">JFK</td>
+<td align="left">PWM</td>
+<td align="right">41</td>
+<td align="right">273</td>
+<td align="right">22</td>
+<td align="right">50</td>
+<td align="left">2013-01-31 22:00:00</td>
+</tr>
+</tbody>
+</table>
+
+<p>Der Befehl <code>knitr::kable</code> erstellt eine (einigermaßen) schöne Tabelle (man muss aber das Paket <code>knitr</code> vorher geladen haben.)</p>
+
+<p>Warum Ihr Chef <em>das</em> wissen will, weiß er nur allein&hellip;</p>
+
+<h2 id="welche-flüge-starteten-von-jfk-dieeine-ankunftsverspätung-hatten-doppelt-so-groß-wie-die-abflugverspätung-und-die-nach-atlanta-geflogen-sind">Welche Flüge starteten von JFK, dieeine Ankunftsverspätung hatten doppelt so groß wie die Abflugverspätung, und die nach Atlanta geflogen sind?</h2>
+
+<p>Selten eine Aufgabe gelesen, die aus so einem langen Satz bestand &hellip;</p>
+
+<pre><code class="language-r">filter(flights, origin == &quot;JFK&quot;, arr_delay &gt; 2 * dep_delay, month == 1, dest == &quot;ATL&quot;) %&gt;% 
+  kable
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="right">year</th>
+<th align="right">month</th>
+<th align="right">day</th>
+<th align="right">dep_time</th>
+<th align="right">sched_dep_time</th>
+<th align="right">dep_delay</th>
+<th align="right">arr_time</th>
+<th align="right">sched_arr_time</th>
+<th align="right">arr_delay</th>
+<th align="left">carrier</th>
+<th align="right">flight</th>
+<th align="left">tailnum</th>
+<th align="left">origin</th>
+<th align="left">dest</th>
+<th align="right">air_time</th>
+<th align="right">distance</th>
+<th align="right">hour</th>
+<th align="right">minute</th>
+<th align="left">time_hour</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">807</td>
+<td align="right">810</td>
+<td align="right">-3</td>
+<td align="right">1043</td>
+<td align="right">1043</td>
+<td align="right">0</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N308DE</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">126</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-01 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">1325</td>
+<td align="right">1330</td>
+<td align="right">-5</td>
+<td align="right">1606</td>
+<td align="right">1605</td>
+<td align="right">1</td>
+<td align="left">DL</td>
+<td align="right">2043</td>
+<td align="left">N318US</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">131</td>
+<td align="right">760</td>
+<td align="right">13</td>
+<td align="right">30</td>
+<td align="left">2013-01-01 13:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">606</td>
+<td align="right">610</td>
+<td align="right">-4</td>
+<td align="right">846</td>
+<td align="right">845</td>
+<td align="right">1</td>
+<td align="left">DL</td>
+<td align="right">1743</td>
+<td align="left">N387DA</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">129</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">10</td>
+<td align="left">2013-01-02 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">808</td>
+<td align="right">810</td>
+<td align="right">-2</td>
+<td align="right">1049</td>
+<td align="right">1045</td>
+<td align="right">4</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N971DL</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">124</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-02 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">1551</td>
+<td align="right">1548</td>
+<td align="right">3</td>
+<td align="right">1838</td>
+<td align="right">1830</td>
+<td align="right">8</td>
+<td align="left">DL</td>
+<td align="right">95</td>
+<td align="left">N702TW</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">119</td>
+<td align="right">760</td>
+<td align="right">15</td>
+<td align="right">48</td>
+<td align="left">2013-01-02 15:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">2027</td>
+<td align="right">2030</td>
+<td align="right">-3</td>
+<td align="right">2309</td>
+<td align="right">2314</td>
+<td align="right">-5</td>
+<td align="left">DL</td>
+<td align="right">1447</td>
+<td align="left">N947DL</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">127</td>
+<td align="right">760</td>
+<td align="right">20</td>
+<td align="right">30</td>
+<td align="left">2013-01-02 20:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">612</td>
+<td align="right">615</td>
+<td align="right">-3</td>
+<td align="right">912</td>
+<td align="right">850</td>
+<td align="right">22</td>
+<td align="left">DL</td>
+<td align="right">2057</td>
+<td align="left">N707TW</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">135</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">15</td>
+<td align="left">2013-01-03 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">811</td>
+<td align="right">810</td>
+<td align="right">1</td>
+<td align="right">1053</td>
+<td align="right">1042</td>
+<td align="right">11</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N319NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">134</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-03 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">1847</td>
+<td align="right">1855</td>
+<td align="right">-8</td>
+<td align="right">2130</td>
+<td align="right">2142</td>
+<td align="right">-12</td>
+<td align="left">DL</td>
+<td align="right">951</td>
+<td align="left">N181DN</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">129</td>
+<td align="right">760</td>
+<td align="right">18</td>
+<td align="right">55</td>
+<td align="left">2013-01-03 18:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">805</td>
+<td align="right">810</td>
+<td align="right">-5</td>
+<td align="right">1039</td>
+<td align="right">1041</td>
+<td align="right">-2</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N339NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">116</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-05 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">5</td>
+<td align="right">1540</td>
+<td align="right">1548</td>
+<td align="right">-8</td>
+<td align="right">1820</td>
+<td align="right">1829</td>
+<td align="right">-9</td>
+<td align="left">DL</td>
+<td align="right">95</td>
+<td align="left">N710TW</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">119</td>
+<td align="right">760</td>
+<td align="right">15</td>
+<td align="right">48</td>
+<td align="left">2013-01-05 15:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">6</td>
+<td align="right">612</td>
+<td align="right">615</td>
+<td align="right">-3</td>
+<td align="right">846</td>
+<td align="right">848</td>
+<td align="right">-2</td>
+<td align="left">DL</td>
+<td align="right">2057</td>
+<td align="left">N397DA</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">126</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">15</td>
+<td align="left">2013-01-06 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">6</td>
+<td align="right">809</td>
+<td align="right">810</td>
+<td align="right">-1</td>
+<td align="right">1044</td>
+<td align="right">1042</td>
+<td align="right">2</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N316NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">125</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-06 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">6</td>
+<td align="right">1326</td>
+<td align="right">1330</td>
+<td align="right">-4</td>
+<td align="right">1605</td>
+<td align="right">1605</td>
+<td align="right">0</td>
+<td align="left">DL</td>
+<td align="right">2043</td>
+<td align="left">N3734B</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">126</td>
+<td align="right">760</td>
+<td align="right">13</td>
+<td align="right">30</td>
+<td align="left">2013-01-06 13:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">6</td>
+<td align="right">1545</td>
+<td align="right">1548</td>
+<td align="right">-3</td>
+<td align="right">1842</td>
+<td align="right">1830</td>
+<td align="right">12</td>
+<td align="left">DL</td>
+<td align="right">95</td>
+<td align="left">N387DA</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">139</td>
+<td align="right">760</td>
+<td align="right">15</td>
+<td align="right">48</td>
+<td align="left">2013-01-06 15:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">7</td>
+<td align="right">803</td>
+<td align="right">810</td>
+<td align="right">-7</td>
+<td align="right">1029</td>
+<td align="right">1042</td>
+<td align="right">-13</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N344NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">105</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-07 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">8</td>
+<td align="right">612</td>
+<td align="right">615</td>
+<td align="right">-3</td>
+<td align="right">901</td>
+<td align="right">855</td>
+<td align="right">6</td>
+<td align="left">9E</td>
+<td align="right">3856</td>
+<td align="left">N153PQ</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">124</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">15</td>
+<td align="left">2013-01-08 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">8</td>
+<td align="right">823</td>
+<td align="right">810</td>
+<td align="right">13</td>
+<td align="right">1112</td>
+<td align="right">1043</td>
+<td align="right">29</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N377NW</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">126</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-08 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">8</td>
+<td align="right">1549</td>
+<td align="right">1548</td>
+<td align="right">1</td>
+<td align="right">1846</td>
+<td align="right">1830</td>
+<td align="right">16</td>
+<td align="left">DL</td>
+<td align="right">95</td>
+<td align="left">N376DA</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">117</td>
+<td align="right">760</td>
+<td align="right">15</td>
+<td align="right">48</td>
+<td align="left">2013-01-08 15:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">8</td>
+<td align="right">1843</td>
+<td align="right">1855</td>
+<td align="right">-12</td>
+<td align="right">2142</td>
+<td align="right">2142</td>
+<td align="right">0</td>
+<td align="left">DL</td>
+<td align="right">951</td>
+<td align="left">N1611B</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">126</td>
+<td align="right">760</td>
+<td align="right">18</td>
+<td align="right">55</td>
+<td align="left">2013-01-08 18:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">9</td>
+<td align="right">807</td>
+<td align="right">810</td>
+<td align="right">-3</td>
+<td align="right">1045</td>
+<td align="right">1042</td>
+<td align="right">3</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N316NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">124</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-09 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">9</td>
+<td align="right">1857</td>
+<td align="right">1855</td>
+<td align="right">2</td>
+<td align="right">2151</td>
+<td align="right">2142</td>
+<td align="right">9</td>
+<td align="left">DL</td>
+<td align="right">951</td>
+<td align="left">N173DZ</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">120</td>
+<td align="right">760</td>
+<td align="right">18</td>
+<td align="right">55</td>
+<td align="left">2013-01-09 18:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">10</td>
+<td align="right">809</td>
+<td align="right">810</td>
+<td align="right">-1</td>
+<td align="right">1041</td>
+<td align="right">1042</td>
+<td align="right">-1</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N361NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">111</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-10 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">11</td>
+<td align="right">807</td>
+<td align="right">810</td>
+<td align="right">-3</td>
+<td align="right">1056</td>
+<td align="right">1042</td>
+<td align="right">14</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N345NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">117</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-11 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">13</td>
+<td align="right">612</td>
+<td align="right">615</td>
+<td align="right">-3</td>
+<td align="right">853</td>
+<td align="right">855</td>
+<td align="right">-2</td>
+<td align="left">9E</td>
+<td align="right">3856</td>
+<td align="left">N146PQ</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">118</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">15</td>
+<td align="left">2013-01-13 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">13</td>
+<td align="right">1848</td>
+<td align="right">1855</td>
+<td align="right">-7</td>
+<td align="right">2204</td>
+<td align="right">2142</td>
+<td align="right">22</td>
+<td align="left">DL</td>
+<td align="right">951</td>
+<td align="left">N1609</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">116</td>
+<td align="right">760</td>
+<td align="right">18</td>
+<td align="right">55</td>
+<td align="left">2013-01-13 18:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">15</td>
+<td align="right">612</td>
+<td align="right">615</td>
+<td align="right">-3</td>
+<td align="right">927</td>
+<td align="right">855</td>
+<td align="right">32</td>
+<td align="left">9E</td>
+<td align="right">3856</td>
+<td align="left">N181PQ</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">134</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">15</td>
+<td align="left">2013-01-15 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">15</td>
+<td align="right">1324</td>
+<td align="right">1330</td>
+<td align="right">-6</td>
+<td align="right">1605</td>
+<td align="right">1605</td>
+<td align="right">0</td>
+<td align="left">DL</td>
+<td align="right">2043</td>
+<td align="left">N704X</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">133</td>
+<td align="right">760</td>
+<td align="right">13</td>
+<td align="right">30</td>
+<td align="left">2013-01-15 13:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">16</td>
+<td align="right">615</td>
+<td align="right">615</td>
+<td align="right">0</td>
+<td align="right">905</td>
+<td align="right">855</td>
+<td align="right">10</td>
+<td align="left">9E</td>
+<td align="right">3856</td>
+<td align="left">N232PQ</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">131</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">15</td>
+<td align="left">2013-01-16 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">16</td>
+<td align="right">1324</td>
+<td align="right">1330</td>
+<td align="right">-6</td>
+<td align="right">1603</td>
+<td align="right">1605</td>
+<td align="right">-2</td>
+<td align="left">DL</td>
+<td align="right">2043</td>
+<td align="left">N3763D</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">129</td>
+<td align="right">760</td>
+<td align="right">13</td>
+<td align="right">30</td>
+<td align="left">2013-01-16 13:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">17</td>
+<td align="right">612</td>
+<td align="right">615</td>
+<td align="right">-3</td>
+<td align="right">906</td>
+<td align="right">855</td>
+<td align="right">11</td>
+<td align="left">9E</td>
+<td align="right">3856</td>
+<td align="left">N176PQ</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">129</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">15</td>
+<td align="left">2013-01-17 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">17</td>
+<td align="right">810</td>
+<td align="right">810</td>
+<td align="right">0</td>
+<td align="right">1048</td>
+<td align="right">1042</td>
+<td align="right">6</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N340NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">127</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-17 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">17</td>
+<td align="right">1325</td>
+<td align="right">1330</td>
+<td align="right">-5</td>
+<td align="right">1600</td>
+<td align="right">1605</td>
+<td align="right">-5</td>
+<td align="left">DL</td>
+<td align="right">2043</td>
+<td align="left">N3756</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">127</td>
+<td align="right">760</td>
+<td align="right">13</td>
+<td align="right">30</td>
+<td align="left">2013-01-17 13:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">19</td>
+<td align="right">614</td>
+<td align="right">615</td>
+<td align="right">-1</td>
+<td align="right">857</td>
+<td align="right">855</td>
+<td align="right">2</td>
+<td align="left">9E</td>
+<td align="right">3856</td>
+<td align="left">N187PQ</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">127</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">15</td>
+<td align="left">2013-01-19 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">19</td>
+<td align="right">803</td>
+<td align="right">810</td>
+<td align="right">-7</td>
+<td align="right">1031</td>
+<td align="right">1041</td>
+<td align="right">-10</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N320NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">115</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-19 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">20</td>
+<td align="right">1851</td>
+<td align="right">1855</td>
+<td align="right">-4</td>
+<td align="right">2135</td>
+<td align="right">2142</td>
+<td align="right">-7</td>
+<td align="left">DL</td>
+<td align="right">951</td>
+<td align="left">N1605</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">114</td>
+<td align="right">760</td>
+<td align="right">18</td>
+<td align="right">55</td>
+<td align="left">2013-01-20 18:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">21</td>
+<td align="right">1723</td>
+<td align="right">1730</td>
+<td align="right">-7</td>
+<td align="right">2010</td>
+<td align="right">2017</td>
+<td align="right">-7</td>
+<td align="left">DL</td>
+<td align="right">951</td>
+<td align="left">N175DN</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">131</td>
+<td align="right">760</td>
+<td align="right">17</td>
+<td align="right">30</td>
+<td align="left">2013-01-21 17:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">22</td>
+<td align="right">614</td>
+<td align="right">615</td>
+<td align="right">-1</td>
+<td align="right">857</td>
+<td align="right">855</td>
+<td align="right">2</td>
+<td align="left">9E</td>
+<td align="right">3856</td>
+<td align="left">N153PQ</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">132</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">15</td>
+<td align="left">2013-01-22 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">22</td>
+<td align="right">820</td>
+<td align="right">810</td>
+<td align="right">10</td>
+<td align="right">1107</td>
+<td align="right">1042</td>
+<td align="right">25</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N359NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">130</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-22 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">24</td>
+<td align="right">612</td>
+<td align="right">615</td>
+<td align="right">-3</td>
+<td align="right">855</td>
+<td align="right">855</td>
+<td align="right">0</td>
+<td align="left">9E</td>
+<td align="right">3856</td>
+<td align="left">N197PQ</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">117</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">15</td>
+<td align="left">2013-01-24 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">25</td>
+<td align="right">810</td>
+<td align="right">810</td>
+<td align="right">0</td>
+<td align="right">1056</td>
+<td align="right">1042</td>
+<td align="right">14</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N366NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">123</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-25 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">25</td>
+<td align="right">1850</td>
+<td align="right">1855</td>
+<td align="right">-5</td>
+<td align="right">2151</td>
+<td align="right">2142</td>
+<td align="right">9</td>
+<td align="left">DL</td>
+<td align="right">951</td>
+<td align="left">N646DL</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">150</td>
+<td align="right">760</td>
+<td align="right">18</td>
+<td align="right">55</td>
+<td align="left">2013-01-25 18:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">26</td>
+<td align="right">1543</td>
+<td align="right">1548</td>
+<td align="right">-5</td>
+<td align="right">1821</td>
+<td align="right">1829</td>
+<td align="right">-8</td>
+<td align="left">DL</td>
+<td align="right">95</td>
+<td align="left">N723TW</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">107</td>
+<td align="right">760</td>
+<td align="right">15</td>
+<td align="right">48</td>
+<td align="left">2013-01-26 15:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">28</td>
+<td align="right">610</td>
+<td align="right">615</td>
+<td align="right">-5</td>
+<td align="right">856</td>
+<td align="right">855</td>
+<td align="right">1</td>
+<td align="left">9E</td>
+<td align="right">3856</td>
+<td align="left">N187PQ</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">126</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">15</td>
+<td align="left">2013-01-28 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">28</td>
+<td align="right">808</td>
+<td align="right">810</td>
+<td align="right">-2</td>
+<td align="right">1041</td>
+<td align="right">1042</td>
+<td align="right">-1</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N327NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">120</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-28 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">28</td>
+<td align="right">1320</td>
+<td align="right">1330</td>
+<td align="right">-10</td>
+<td align="right">1547</td>
+<td align="right">1605</td>
+<td align="right">-18</td>
+<td align="left">DL</td>
+<td align="right">2043</td>
+<td align="left">N3748Y</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">117</td>
+<td align="right">760</td>
+<td align="right">13</td>
+<td align="right">30</td>
+<td align="left">2013-01-28 13:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">28</td>
+<td align="right">1546</td>
+<td align="right">1548</td>
+<td align="right">-2</td>
+<td align="right">1835</td>
+<td align="right">1830</td>
+<td align="right">5</td>
+<td align="left">DL</td>
+<td align="right">95</td>
+<td align="left">N3745B</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">160</td>
+<td align="right">760</td>
+<td align="right">15</td>
+<td align="right">48</td>
+<td align="left">2013-01-28 15:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">29</td>
+<td align="right">1325</td>
+<td align="right">1330</td>
+<td align="right">-5</td>
+<td align="right">1559</td>
+<td align="right">1605</td>
+<td align="right">-6</td>
+<td align="left">DL</td>
+<td align="right">2043</td>
+<td align="left">N712TW</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">119</td>
+<td align="right">760</td>
+<td align="right">13</td>
+<td align="right">30</td>
+<td align="left">2013-01-29 13:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">30</td>
+<td align="right">807</td>
+<td align="right">810</td>
+<td align="right">-3</td>
+<td align="right">1105</td>
+<td align="right">1042</td>
+<td align="right">23</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N361NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">128</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-30 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">30</td>
+<td align="right">1853</td>
+<td align="right">1855</td>
+<td align="right">-2</td>
+<td align="right">2152</td>
+<td align="right">2142</td>
+<td align="right">10</td>
+<td align="left">DL</td>
+<td align="right">951</td>
+<td align="left">N686DA</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">131</td>
+<td align="right">760</td>
+<td align="right">18</td>
+<td align="right">55</td>
+<td align="left">2013-01-30 18:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">31</td>
+<td align="right">616</td>
+<td align="right">615</td>
+<td align="right">1</td>
+<td align="right">905</td>
+<td align="right">855</td>
+<td align="right">10</td>
+<td align="left">9E</td>
+<td align="right">3856</td>
+<td align="left">N181PQ</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">126</td>
+<td align="right">760</td>
+<td align="right">6</td>
+<td align="right">15</td>
+<td align="left">2013-01-31 06:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">31</td>
+<td align="right">810</td>
+<td align="right">810</td>
+<td align="right">0</td>
+<td align="right">1054</td>
+<td align="right">1042</td>
+<td align="right">12</td>
+<td align="left">DL</td>
+<td align="right">269</td>
+<td align="left">N355NB</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">127</td>
+<td align="right">760</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="left">2013-01-31 08:00:00</td>
+</tr>
+
+<tr>
+<td align="right">2013</td>
+<td align="right">1</td>
+<td align="right">31</td>
+<td align="right">1853</td>
+<td align="right">1855</td>
+<td align="right">-2</td>
+<td align="right">2149</td>
+<td align="right">2142</td>
+<td align="right">7</td>
+<td align="left">DL</td>
+<td align="right">951</td>
+<td align="left">N175DZ</td>
+<td align="left">JFK</td>
+<td align="left">ATL</td>
+<td align="right">129</td>
+<td align="right">760</td>
+<td align="right">18</td>
+<td align="right">55</td>
+<td align="left">2013-01-31 18:00:00</td>
+</tr>
+</tbody>
+</table>
+
+<p>Auch diese Tabelle ist recht lang. Aber sei&rsquo;s drum :)</p>
+
+<h2 id="welche-airlines-hatten-die-meiste-netto-verspätung">Welche Airlines hatten die meiste &ldquo;Netto-Verspätung&rdquo;?</h2>
+
+<pre><code class="language-r">f_2 &lt;- group_by(flights, carrier)
+f_3 &lt;- mutate(f_2, delay = dep_delay - arr_delay)
+f_4 &lt;- filter(f_3, !is.na(delay))
+f_5 &lt;- summarise(f_4, delay_mean = mean(delay))
+arrange(f_5, delay_mean) 
+</code></pre>
+
+<pre><code>## # A tibble: 16 × 2
+##    carrier delay_mean
+##      &lt;chr&gt;      &lt;dbl&gt;
+## 1       F9 -1.7195301
+## 2       FL -1.5099213
+## 3       MQ -0.3293526
+## 4       OO  0.6551724
+## 5       US  1.6150976
+## 6       YV  3.3419118
+## 7       B6  3.5095746
+## 8       EV  4.0424982
+## 9       DL  7.5796089
+## 10      WN  8.0125374
+## 11      AA  8.2048393
+## 12      UA  8.4588972
+## 13      9E  9.0599052
+## 14      VX 10.9921814
+## 15      HA 11.8157895
+## 16      AS 15.7616361
+</code></pre>
+
+<p>Etwas umständlich mit den ganzen Zwischenspeichern&hellip; Vielleicht besser so:</p>
+
+<pre><code class="language-r">flights %&gt;% 
+  group_by(carrier) %&gt;% 
+  mutate(delay = dep_delay - arr_delay) %&gt;% 
+  filter(!is.na(delay)) %&gt;% 
+  summarise(delay_mean = mean(delay)) %&gt;% 
+  arrange(-delay_mean)
+</code></pre>
+
+<pre><code>## # A tibble: 16 × 2
+##    carrier delay_mean
+##      &lt;chr&gt;      &lt;dbl&gt;
+## 1       AS 15.7616361
+## 2       HA 11.8157895
+## 3       VX 10.9921814
+## 4       9E  9.0599052
+## 5       UA  8.4588972
+## 6       AA  8.2048393
+## 7       WN  8.0125374
+## 8       DL  7.5796089
+## 9       EV  4.0424982
+## 10      B6  3.5095746
+## 11      YV  3.3419118
+## 12      US  1.6150976
+## 13      OO  0.6551724
+## 14      MQ -0.3293526
+## 15      FL -1.5099213
+## 16      F9 -1.7195301
+</code></pre>
+
+<p>Das könnten wir mal wieder visualisieren:</p>
+
+<pre><code class="language-r">flights %&gt;% 
+  group_by(carrier) %&gt;% 
+  mutate(delay = dep_delay - arr_delay) %&gt;% 
+  filter(!is.na(delay)) %&gt;% 
+  summarise(delay_mean = mean(delay)) %&gt;% 
+  arrange(-delay_mean) -&gt; f_summarised
+
+  ggplot(f_summarised, aes(x = carrier, y = delay_mean)) + geom_point(color = &quot;firebrick&quot;) 
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-18/unnamed-chunk-15-1.png" alt="plot of chunk unnamed-chunk-15" /></p>
+
+<p><code>ggplot2</code> ordnet die X-Achse hier automatisch alphanumerisch. Wenn wir wollen, dass die Achse nach den Werten der Y-Achse (<code>delay_mean</code>) geordnet wird (was sinnvoll ist), können wir das so erreichen:</p>
+
+<pre><code class="language-r">  ggplot(f_summarised, aes(x = reorder(carrier, delay_mean), y = delay_mean)) + 
+    geom_point(color = &quot;firebrick&quot;) 
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-18/unnamed-chunk-16-1.png" alt="plot of chunk unnamed-chunk-16" /></p>
+
+<p>Der Befehl <code>reorder(carrier, delay_mean)</code> ordnet die Werte der Varialbne <code>carrier</code> anhand der Werte der Variablen <code>delay_mean</code>.</p>
+
+<h2 id="berechnen-sie-die-mittlere-verspätung-aller-flüge-mit-deutlicher-verspätung-1-stunde">Berechnen Sie die mittlere Verspätung aller Flüge mit deutlicher Verspätung (&gt; 1 Stunde)!</h2>
+
+<pre><code class="language-r">flights %&gt;%
+  mutate(delay = dep_delay - arr_delay) %&gt;% 
+  filter(delay &gt; 60) %&gt;%
+  summarise(delay_mean = mean(delay),
+            n = n()) %&gt;%  # Anzahl
+  arrange(delay_mean)
+</code></pre>
+
+<pre><code>## # A tibble: 1 × 2
+##   delay_mean     n
+##        &lt;dbl&gt; &lt;int&gt;
+## 1   65.18182   154
+</code></pre>
+
+<h2 id="wie-sind-die-verspätungen-verteilt">Wie sind die Verspätungen verteilt?</h2>
+
+<pre><code class="language-r">ggplot(f_summarised, aes(x = delay_mean)) + geom_histogram()
+</code></pre>
+
+<pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-18/unnamed-chunk-18-1.png" alt="plot of chunk unnamed-chunk-18" /></p>
+
+<h2 id="hängen-flugzeit-und-verspätung-zusammen">Hängen Flugzeit und Verspätung zusammen?</h2>
+
+<pre><code class="language-r">flights %&gt;%
+  mutate(delay = dep_delay - arr_delay) %&gt;% 
+  na.omit() %&gt;% 
+  ggplot(aes(x = distance, y = delay)) + 
+  geom_point(alpha = .1) +
+  geom_smooth()
+</code></pre>
+
+<pre><code>## `geom_smooth()` using method = 'gam'
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-18/unnamed-chunk-19-1.png" alt="plot of chunk unnamed-chunk-19" /></p>
+
+<p>Sag mal, plotten wir gerade wirklich 300.000 Punkte??? Das kann dauern&hellip;</p>
+
+<p>Das <code>alpha = .1</code> macht die Punkte blässlich, fast durchsichtig. Ganz praktisch, wenn viele Punkte aufeinander liegen.</p>
+
+<h2 id="hängen-verspätung-und-jahreszeit-zusammen">Hängen Verspätung und Jahreszeit zusammen?</h2>
+
+<p>Auch eine ganz interessante Frage. Schauen wir mal:</p>
+
+<pre><code class="language-r">cor(flights$month, flights$dep_delay, use = &quot;complete&quot;) 
+</code></pre>
+
+<pre><code>## [1] -0.02005702
+</code></pre>
+
+<p>Das <code>use = complete</code> sagt, dass wir Zeilen mit fehlenden Werten ignorieren.</p>
+
+<p>Sieht also nicht nach einem Zusammenhang aus. Das sollte uns ein Diagramm auch bestätigen:</p>
+
+<pre><code class="language-r">flights %&gt;% 
+  group_by(month) %&gt;% 
+  na.omit() %&gt;%  # alle Zeilen mit fehlenden Werten löschen
+  mutate(delay = dep_delay - arr_delay) %&gt;% 
+  ggplot(aes(x = month, y = delay)) + geom_boxplot()
+</code></pre>
+
+<pre><code>## Warning: Continuous x aesthetic -- did you forget aes(group=...)?
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-18/unnamed-chunk-21-1.png" alt="plot of chunk unnamed-chunk-21" /></p>
+
+<p>Upps, das sieht ja komisch aus&hellip; Hm..ggplot schlägt vor, wir sollen irgendwie <code>group</code> mit reinwursten&hellip; Naja, unsere Gruppen könnten die Monate sein. Also probieren wir&rsquo;s mal&hellip;</p>
+
+<pre><code class="language-r">flights %&gt;% 
+  group_by(month) %&gt;% 
+  na.omit() %&gt;%  # alle Zeilen mit fehlenden Werten löschen
+  mutate(delay = dep_delay - arr_delay) %&gt;% 
+  ggplot(aes(x = month, y = delay, group = month)) + geom_boxplot()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-18/unnamed-chunk-22-1.png" alt="plot of chunk unnamed-chunk-22" /></p>
+
+<p>Die X-Achse sieht noch nicht so toll aus (mit den Nachkommastellen), aber das heben wir uns für eine andere Gelegenheit auf :-)</p>
+
+<p>Noch ein kleiner Bonus zum Abschluss: Interaktive Diagramme!</p>
+
+<p>Dazu müssen wir erstmal ein neues Paket laden: <code>plotly</code> (und ggf. vorher installieren).</p>
+
+<pre><code class="language-r"># install.packages(&quot;plotly&quot;)
+library(plotly)
+</code></pre>
+
+<p><code>plotly</code> kann man ein ggplot-Objekt übergeben, welches dann automatisch in ein interaktives Diagramm übersetzt wird. Macht natürlich nur Sinn, wenn man das am Computer anschaut; ausgedruckt ist es dann nicht interaktiv&hellip;</p>
+
+<pre><code class="language-r">flights %&gt;% 
+  group_by(month) %&gt;% 
+  na.omit() %&gt;%  # alle Zeilen mit fehlenden Werten löschen
+  mutate(delay = dep_delay - arr_delay) %&gt;% 
+  ggplot(aes(x = month, y = delay, group = month, color = month)) + geom_boxplot() -&gt; flights_plot
+
+ggplotly(flights_plot)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-01-18/unnamed-chunk-24-1.png" alt="plot of chunk unnamed-chunk-24" /></p>
+
+<p>Für heute reicht&rsquo;s!</p>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js//highlight.min.js"></script>
+
+
+
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

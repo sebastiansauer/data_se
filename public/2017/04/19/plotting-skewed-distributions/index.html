@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Plotting skewed distributions - A Hugo website</title>
+<meta property="og:title" content="Plotting skewed distributions - A Hugo website">
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/%3cnil%3e"
+         width=""
+         height=""
+         alt="">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/blog/">Blog</a></li>
+    
+    <li><a href="/categories/">Categories</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">Plotting skewed distributions</h1>
+
+    
+    <span class="article-date">2017/04/19</span>
+    
+
+    <div class="article-content">
+      <p>Let&rsquo;s plot some skewed stuff, aehm, distributions!</p>
+
+<p>Actually, the point I - initially - wanted to make is that in skewed distribution, don&rsquo;t use means. Or at least, be very aware that (arithmetic) means can be grossly misleading. But for today, let&rsquo;s focus on drawing skewed distributions.</p>
+
+<p>Some packages:</p>
+
+<pre><code class="language-r">library(tidyverse)
+library(fGarch) # for snorm
+</code></pre>
+
+<p>Some skewed distribution include:</p>
+
+<ul>
+<li>&ldquo;polluted&rdquo; normal distributions, ie., mixtures of two normals</li>
+<li>Exponential distributions</li>
+<li>Gamma distributions</li>
+<li>Beta distributions</li>
+</ul>
+
+<p>One way to visualize them is to draw their curve, ie., their functional (analytical) form:</p>
+
+<pre><code class="language-r">data_frame(
+  x = seq(-10, 10, .05)
+) %&gt;% 
+  ggplot +
+  aes(x) +
+  stat_function(fun = dbeta, args = list(shape1 = 4, shape2 = 4), color = &quot;red&quot;) +
+  stat_function(fun = dexp, args = list(rate = .10), color = &quot;green&quot;) +
+  stat_function(fun = dsnorm, args = list(mean = 0, sd = 3, xi = 7.5), color = &quot;blue&quot;) +
+  stat_function(fun = dgamma, args = list(shape = 2, scale = 2), color = &quot;orange&quot;) +
+  coord_cartesian(ylim = c(0,.5))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-19/figure/unnamed-chunk-2-1.png" alt="plot of chunk unnamed-chunk-2" /></p>
+
+<p>Second, we could draw some random instances from the respective distribution; we will get then not &ldquo;smooth&rdquo; curves but more &ldquo;realistic&rdquo; or &ldquo;zigzag&rdquo; histogram (or density diagrams).</p>
+
+<pre><code class="language-r">df &lt;- data_frame(
+  skewed_normal = rsnorm(n = 1000, mean = 0, sd = 18, xi = 130),
+  exp_distrib = rexp(n = 1000, rate = .1),
+  gamma_distrib = rgamma(n = 1000, shape = 2, scale = 2),
+  beta_distrib = rbeta(n = 1000, shape1 = 4, shape2 = 2)
+  
+)
+</code></pre>
+
+<pre><code class="language-r">mypal &lt;- 
+
+df %&gt;% 
+  gather(key = distribution, value = value) %&gt;% 
+  ggplot +
+  aes(x = value) +
+  geom_histogram(aes(fill = distribution)) +
+  facet_wrap(~distribution) +
+  scale_fill_manual(values = c(&quot;red&quot;, &quot;green&quot;, &quot;blue&quot;, &quot;orange&quot;)) +
+  scale_color_manual(values = c(&quot;red&quot;, &quot;green&quot;, &quot;blue&quot;, &quot;orange&quot;)) +
+  labs(title = &quot;Histogram of random draws from different distributions&quot;,
+       subtitle = &quot;test&quot;)
+</code></pre>
+
+<p>Note that the domain of the beta distribution is [0,1], that&rsquo;s why a narrow red bar pops out as histogram (the other distribution spread out much more explicitly). See:</p>
+
+<pre><code class="language-r">df %&gt;% 
+  gather(key = distribution, value = value) %&gt;% 
+  dplyr::filter(distribution == &quot;beta_distrib&quot;) %&gt;% 
+  ggplot +
+  aes(x = value) +
+  geom_histogram(aes(fill = distribution)) +
+  #facet_wrap(~distribution) +
+  scale_fill_manual(values = c(&quot;red&quot;, &quot;green&quot;, &quot;blue&quot;, &quot;orange&quot;)) +
+  scale_color_manual(values = c(&quot;red&quot;, &quot;green&quot;, &quot;blue&quot;, &quot;orange&quot;)) +
+  labs(title = &quot;Histogram of random draws from a Beta distribution&quot;)
+</code></pre>
+
+<pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-19/figure/unnamed-chunk-5-1.png" alt="plot of chunk unnamed-chunk-5" /></p>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js//highlight.min.js"></script>
+
+
+
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+  </body>
+</html>
+

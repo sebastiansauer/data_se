@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Simulation of p-values - A Hugo website</title>
+<meta property="og:title" content="Simulation of p-values - A Hugo website">
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/%3cnil%3e"
+         width=""
+         height=""
+         alt="">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/blog/">Blog</a></li>
+    
+    <li><a href="/categories/">Categories</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">4 min read</span>
+    
+
+    <h1 class="article-title">Simulation of p-values</h1>
+
+    
+    <span class="article-date">2016/12/01</span>
+    
+
+    <div class="article-content">
+      <p>Teaching or learning stats can be a challenging endeavor. In my experience, starting with concrete (as opposed to abstract) examples helps many a learner. What also helps (for me) is visualizing.</p>
+
+<p>As p-values are still part and parcel of probably any given stats curriculum, here is a convenient function to simulate p-values and to plot them.</p>
+
+<p>&ldquo;Simulating p-values&rdquo; amounts to drawing many samples from a given, specified population (eg., µ=100, s=15, normally distributed). We could ourselves go out and draw samples (eg., testing IQ of strangers). As the computer can do that too and does not mourn about repetitive tasks, let&rsquo;s leave that task to the machine.</p>
+
+<p>Simulation can be easier to comprehend than working with theoretical distributions. It is more tangible to say &ldquo;we are drawing many samples&rdquo; then to speak about some theoretical distribution. That&rsquo;s why simulation can be of didactic value.</p>
+
+<p>So, here you can <code>source</code> an R function which will do the simulation plus plotting job for you.</p>
+
+<pre><code class="language-r">source(&quot;https://sebastiansauer.github.io/Rcode/clt_1.R&quot;)
+</code></pre>
+
+<p>Note that <code>dplyr</code> and <code>ggplot</code> need to installed.</p>
+
+<p>Use the function <code>simu_p()</code>. It can be run without parameters:</p>
+
+<pre><code class="language-r">s1 &lt;- simu_p()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-12-01/unnamed-chunk-2-1.png" alt="plot of chunk unnamed-chunk-2" /></p>
+
+<p>The plot shows the sampling distribution, the 5% sample means with highest values, the p-value, and the mean of the sample actual drawn (dashed line)</p>
+
+<p>However, one is free to adapt the parameters, eg., experimenting with smaller or larger samples sizes, or a different sample mean:</p>
+
+<pre><code class="language-r">s2 &lt;- simu_p(n_samples = 1000, mean = 100, sd = 15, n = 5, distribution = &quot;normal&quot;, sample_mean = 104)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-12-01/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3" /></p>
+
+<p>Note that two types of distribution to draw from are implemented: <code>normal</code> and <code>uniform</code>:</p>
+
+<pre><code class="language-r">s3 &lt;- simu_p(distribution = &quot;uniform&quot;, sample_mean = .6)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2016-12-01/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
+
+<p>Initially, I wrote the function to demonstrate the central limit theorem. That&rsquo;s why two different distributions (normal and uniform) are implemented.</p>
+
+<p>Note that the p-value presented here is of type <code>greater than</code> only, for didactic reasons.</p>
+
+<p>The object returned, eg. <code>s2</code> contains the values, a cumulative percentage, and an indication whether a certain sample mean was smaller or larger than the significance level, or the sample mean, respectively:</p>
+
+<pre><code class="language-r">head(s1)
+</code></pre>
+
+<pre><code>##     samples   perc_num max_5perc greater_than_sample
+## 1 101.73581 0.74374374         0                   0
+## 2 102.74671 0.84484484         0                   0
+## 3  93.98155 0.01501502         0                   0
+## 4  98.10223 0.25825826         0                   0
+## 5 100.50964 0.56456456         0                   0
+## 6 100.17396 0.52152152         0                   0
+</code></pre>
+
+<p>Here is the source code of the function <code>simu_p()</code>:</p>
+
+<pre><code class="language-r">simu_p &lt;- function(n_samples = 1000, mean = 100, sd = 15, n = 30, distribution = &quot;normal&quot;, sample_mean = 107){
+
+  library(ggplot2)
+  library(dplyr)
+
+
+
+  if (distribution == &quot;normal&quot;) {
+    samples &lt;- replicate(n_samples, mean(rnorm(n = n, mean = mean, sd = sd)))
+
+    df &lt;- data.frame(samples = samples)
+
+    df %&gt;%
+      mutate(perc_num = percent_rank(samples),
+             max_5perc = ifelse(perc_num &gt; 950, 1, 0),
+             greater_than_sample = ifelse(samples &gt; sample_mean, 1, 0)) -&gt; df
+
+    p_value &lt;- round(mean(df$greater_than_sample), 3)
+
+    p &lt;- ggplot(df) +
+      aes(x = samples) +
+      geom_histogram() +
+      labs(title = paste(&quot;Histogram of &quot;, n_samples, &quot; samples&quot;, &quot;\n from a normal distribution&quot;, sep = &quot;&quot;),
+           caption = paste(&quot;mean-pop=&quot;, mean, &quot;, sd-pop=&quot;,sd, sep = &quot;&quot;, &quot;, mean in sample=&quot;, sample_mean),
+           x = &quot;sample means&quot;) +
+      geom_histogram(data = dplyr::filter(df, perc_num &gt; .95), fill = &quot;red&quot;) +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      geom_vline(xintercept = sample_mean, linetype = &quot;dashed&quot;, color = &quot;grey40&quot;) +
+      ggplot2::annotate(&quot;text&quot;, x = Inf, y = Inf, label = paste(&quot;p =&quot;,p_value), hjust = 1, vjust = 1)
+    print(p)
+  }
+
+
+  if (distribution == &quot;uniform&quot;) {
+    samples &lt;- replicate(n_samples, mean(runif(n = n, min=0, max=1)))
+    df &lt;- data.frame(samples = samples)
+
+    if (sample_mean &gt; 1) sample_mean &lt;- .99
+
+    df %&gt;%
+      mutate(perc_num = percent_rank(samples),
+             max_5perc = ifelse(perc_num &gt; 950, 1, 0),
+             greater_than_sample = ifelse(samples &gt; sample_mean, 1, 0)) -&gt; df
+
+    p_value &lt;- round(mean(df$greater_than_sample), 3)
+
+    p &lt;- ggplot(df) +
+      aes(x = samples) +
+      geom_histogram() +
+      labs(title = paste(&quot;Histogram of &quot;, n_samples, &quot; samples&quot;, &quot;\n from a uniform distribution&quot;, sep = &quot;&quot;),
+           caption = paste(&quot;sample mean =&quot;, sample_mean, &quot;, min-pop = 0, max-pop = 1&quot;),
+           x = &quot;sample means&quot;) +
+      geom_histogram(data = dplyr::filter(df, perc_num &gt; .95), fill = &quot;red&quot;) +
+      theme(plot.title = element_text(hjust = 0.5)) +
+      geom_vline(xintercept = sample_mean, linetype = &quot;dashed&quot;, color = &quot;grey40&quot;) +
+      ggplot2::annotate(&quot;text&quot;, x = Inf, y = Inf, label = paste(&quot;p =&quot;,p_value), hjust = 1, vjust = 1)
+    print(p)
+
+  }
+return(df)
+
+}
+</code></pre>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js//highlight.min.js"></script>
+
+
+
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

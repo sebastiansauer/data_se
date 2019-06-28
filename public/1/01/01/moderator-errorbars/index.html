@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Error bars for interaction effects with nominal variables - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Error bars for interaction effects with nominal variables - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">Error bars for interaction effects with nominal variables</h1>
+
+    
+    <span class="article-date">0001/01/01</span>
+    
+
+    <div class="article-content">
+      <p>Moderator effects (ie., interaction or synergy effects) are a topic of frequent interest in many sciences braches. A lot ink has been spilled over this topic (so did I, eg., <a href="https://sebastiansauer.github.io/vis_interaction_effects/">here</a>).</p>
+
+<p>However, in that post I did now show how to visualize error in case of nominal (categorical) independent variable, and categorical moderator.</p>
+
+<p>Luckily, visualization of this case is quite straight forward with ggplot2.</p>
+
+<p>First, some data and packages to be loaded:</p>
+
+<pre><code class="language-r">library(tidyverse)
+data(tips, package = &quot;reshape2&quot;)
+</code></pre>
+
+<p>Then, we summarise the data:</p>
+
+<pre><code class="language-r">tips %&gt;% 
+  group_by(sex, smoker) %&gt;% 
+  summarise(tip_groups = mean(tip),
+            tip_sem = (sd(tip)/sqrt(length(tip)))) -&gt; tips2
+tips2
+</code></pre>
+
+<pre><code>## Source: local data frame [4 x 4]
+## Groups: sex [?]
+## 
+##      sex smoker tip_groups tip_sem
+##   &lt;fctr&gt; &lt;fctr&gt;      &lt;dbl&gt;   &lt;dbl&gt;
+## 1 Female     No       2.77   0.154
+## 2 Female    Yes       2.93   0.212
+## 3   Male     No       3.11   0.151
+## 4   Male    Yes       3.05   0.194
+</code></pre>
+
+<p>Remember that the standard error of the mean is computed as</p>
+
+<p>$$sem = \frac{sd(x)}{\sqrt{n}}$$
+Now we take this summarised data and plot it:</p>
+
+<pre><code class="language-r">tips2 %&gt;% 
+  ggplot() +
+  aes(x = sex, y = tip_groups, color = smoker) +
+  geom_line(aes(group = smoker)) +
+  geom_point() +
+  geom_linerange(aes(x = sex, ymin = tip_groups - tip_sem, ymax = tip_groups + tip_sem), size = .3) +
+  labs(title = &quot;Moderating role of smoking status on the effect of sex on tip&quot;,
+       subtitle = &quot;Error bars indicate standard error of the mean&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-18/figure/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3" /></p>
+
+<p>Maybe better changing the domain of the y-axis to put the effects in a (different) perspective:</p>
+
+<pre><code class="language-r">tips2 %&gt;% 
+  ggplot() +
+  aes(x = sex, y = tip_groups, color = smoker) +
+  geom_line(aes(group = smoker)) +
+  geom_point() +
+  geom_linerange(aes(x = sex, ymin = tip_groups - tip_sem, ymax = tip_groups + tip_sem), size = .3) +
+  labs(title = &quot;Moderating role of smoking status on the effect of sex on tip&quot;,
+       subtitle = &quot;Error bars indicate standard error of the mean&quot;) +
+  scale_y_continuous(limits = c(0,5))
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-04-18/figure/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

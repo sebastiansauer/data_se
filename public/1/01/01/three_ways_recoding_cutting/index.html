@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Three ways to dichotomize a variable - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Three ways to dichotomize a variable - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">Three ways to dichotomize a variable</h1>
+
+    
+    <span class="article-date">0001/01/01</span>
+    
+
+    <div class="article-content">
+      
+
+<p>Dichotomizing is also called dummy coding. It means: Take a variable with multiple different values (&gt;2), and transform it so that the output variable has 2 different values.</p>
+
+<p>Note that this &ldquo;thing&rdquo; can be understood as consisting of two different aspects: Recoding and cutting. Recoding means that value &ldquo;a&rdquo; becomes values &ldquo;b&rdquo; etc. Cutting means that a &ldquo;rope&rdquo; of numbers is cut into several shorter &ldquo;ropes&rdquo; (that&rsquo;s why it is called cutting).</p>
+
+<p>Several ways of achieving this exist in R. Here we discuss three.</p>
+
+<p>First, let&rsquo;s load some data.</p>
+
+<pre><code class="language-r">library(AER)
+data(Affairs)
+</code></pre>
+
+<p>We will define a new variable, called &ldquo;halodrie&rdquo;. A &ldquo;halodrie&rdquo; is someone who likes having affairs (German parlance). The variable should have 2 values, ie., &ldquo;yes&rdquo; and &ldquo;no&rdquo;.</p>
+
+<h1 id="using-car">Using {car}</h1>
+
+<pre><code class="language-r">library(car)
+
+Affairs$halodrie &lt;- car::recode(Affairs$affairs, &quot;0 = 'no'; 1:12 = 'yes'&quot;)
+
+head(Affairs$halodrie)
+</code></pre>
+
+<pre><code>## [1] &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot;
+</code></pre>
+
+<pre><code class="language-r">table(Affairs$halodrie)
+</code></pre>
+
+<pre><code>## 
+##  no yes 
+## 451 150
+</code></pre>
+
+<p>A comfortable feature of this function is that it allows using the colon operator. Note that the whole recode-thing (all values to be recoded) is to be put into quotation marks.</p>
+
+<h1 id="using-dplyr">Using {dplyr}</h1>
+
+<pre><code class="language-r">library(dplyr)
+
+Affairs$halodrie &lt;- 
+  dplyr::recode(Affairs$affairs, `0` = &quot;no&quot;, .default = &quot;yes&quot;)
+
+Affairs$halodrie %&gt;% head
+</code></pre>
+
+<pre><code>## [1] &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot;
+</code></pre>
+
+<pre><code class="language-r">table(Affairs$halodrie)
+</code></pre>
+
+<pre><code>## 
+##  no yes 
+## 451 150
+</code></pre>
+
+<p>This function does not allow the colon operator. I assume the reason that the author (Hadley Wickham) argues that a given function should only be capable of one thing. Here, the function reassigns a value of a variable, not (much) more, not less.</p>
+
+<h1 id="using-base-cut">Using <code>base::cut</code></h1>
+
+<pre><code class="language-r">Affairs$halodrie &lt;- cut(Affairs$affairs, breaks = c(-Inf, 0, +Inf), labels = c(&quot;no&quot;, &quot;yes&quot;))
+
+table(Affairs$halodrie)
+</code></pre>
+
+<pre><code>## 
+##  no yes 
+## 451 150
+</code></pre>
+
+<p>Of note, when a continuous variable is &ldquo;cut&rdquo;, one must specify the minimum and the maximum value (or arbitrarly small or large values) as cutting points. So cutting in two halfs, is <em>not one</em> cutting point for <code>cut</code>, but three (always add two cutting points: one being the smallest value in the sample [or smaller, even <code>-Inf</code>, the other one being the largest value in the sample [or even <code>Inf</code>]).</p>
+
+<h1 id="summary">Summary</h1>
+
+<p>For beginners, I would recommend <code>car::recode</code>. It provides both recoding and cutting in one function, and hence may be easier to apply at start. It also offers quite some flexibility. Assume you are interested in marriages ranging from 5 to 15 years:</p>
+
+<pre><code class="language-r">Affairs$years5_15 &lt;- car::recode(Affairs$yearsmarried, &quot;0:4 =  'no'; 5:15 = 'yes'; else = 'no'&quot;)
+
+head(Affairs$years5_15)
+</code></pre>
+
+<pre><code>## [1] &quot;yes&quot; &quot;no&quot;  &quot;yes&quot; &quot;yes&quot; &quot;no&quot;  &quot;no&quot;
+</code></pre>
+
+<pre><code class="language-r">table(Affairs$years5_15)
+</code></pre>
+
+<pre><code>## 
+##  no yes 
+## 245 356
+</code></pre>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Checklist for Data Cleansing - A Hugo website</title>
+<meta property="og:title" content="Checklist for Data Cleansing - A Hugo website">
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/%3cnil%3e"
+         width=""
+         height=""
+         alt="">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/blog/">Blog</a></li>
+    
+    <li><a href="/categories/">Categories</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">15 min read</span>
+    
+
+    <h1 class="article-title">Checklist for Data Cleansing</h1>
+
+    
+    <span class="article-date">2017/02/13</span>
+    
+
+    <div class="article-content">
+      
+
+<h1 id="what-this-post-is-about-data-cleansing-in-practice-with-r">What this post is about: Data cleansing in practice with R</h1>
+
+<p>Data analysis, in practice, consists typically of some different steps which can be subsumed as &ldquo;preparing data&rdquo; and &ldquo;model data&rdquo; (not considering communication here):</p>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-02-13/data_science_process.png" alt="" /></p>
+
+<p>(Inspired by <a href="http://r4ds.had.co.nz/introduction-1.html">this</a>)</p>
+
+<p>Often, the first major part &ndash; &ldquo;prepare&rdquo; &ndash; is the most time consuming. This can be lamented since many analysts prefer the cool modeling aspects (since I want to show my math!). In practice, one rather has to get his (her) hands dirt&hellip;</p>
+
+<p>In this post, I want to put together some kind of checklist of frequent steps in data preparation. More precisely, I would like to detail some typical steps in &ldquo;cleansing&rdquo; your data. Such steps include:</p>
+
+<hr />
+
+<ul class="task-list">
+<li><input type="checkbox" checked disabled class="task-list-item"> identify missings</li>
+<li><input type="checkbox" checked disabled class="task-list-item"> identify outliers</li>
+<li><input type="checkbox" checked disabled class="task-list-item"> check for overall plausibility and errors (e.g, typos)</li>
+<li><input type="checkbox" checked disabled class="task-list-item"> identify highly correlated variables</li>
+<li><input type="checkbox" checked disabled class="task-list-item"> identify variables with (nearly) no variance</li>
+<li><input type="checkbox" checked disabled class="task-list-item"> identify variables with strange names or values</li>
+<li><input type="checkbox" checked disabled class="task-list-item"> check variable classes (eg. characters vs factors)</li>
+<li><input type="checkbox" checked disabled class="task-list-item"> remove/transform some variables (maybe your model does not like categorial variables)</li>
+<li><input type="checkbox" checked disabled class="task-list-item"> rename some variables or values (especially interesting if large number)</li>
+<li><input type="checkbox" checked disabled class="task-list-item"> check some overall pattern (statistical/ numerical summaries)</li>
+<li><input type="checkbox" checked disabled class="task-list-item"> center/scale variables</li>
+</ul>
+
+<hr />
+
+<h1 id="don-t-get-lost-in-big-projects">Don&rsquo;t get lost in big projects</h1>
+
+<p>Before we get in some details, let&rsquo;s consider some overall guidelines. I have noticed that some projects keep growing like weed, and I find myself bewildered in some jungle&hellip; The difficulties then arise not because data or models are difficult, but due to the sheer volume of the analysis.</p>
+
+<h2 id="all-in-a-function">All in a function</h2>
+
+<p>Put analytical steps which belong together in one function. For example, build one function for data cleansing, give as input the raw data frame and let it spit out the processed data frame after all your cleansing steps:</p>
+
+<pre><code class="language-r">cleansed_data &lt;- cleanse_data(raw_dirty_data,
+                              step_01 = TRUE,
+                              step_02 = TRUE,
+                              step_03 = TRUE)
+</code></pre>
+
+<p>Although functions are a bit more difficult to debug, at the end of the day it is much easier. Normally or often the steps will be run many times (for different reasons), so it is much easier if all is under one roof.</p>
+
+<p>That said, <a href="http://blog.sukria.net/2012/01/06/the-10-rules-of-the-pragmatic-programmer/">pragmtic programming</a> suggests to start easy, and to refactor frequently. So better start with a simple solution that works than to have a enormous code that chokes. Get the code running, then improve on it.</p>
+
+<h1 id="data-set-for-practice">Data set for practice</h1>
+
+<p>The <strong>OKCupid</strong> Data set (sanitized version, no names!) is quite nice. You can download it <a href="https://github.com/rudeboybert/JSE_OkCupid">here</a>.</p>
+
+<p>In the following, I will assume that these data are available.</p>
+
+<pre><code class="language-r">data(profiles, package = &quot;okcupiddata&quot;)
+data &lt;- profiles
+</code></pre>
+
+<p>So, the data set is quite huge: 59946, 22 (rows/cols)</p>
+
+<p>Let&rsquo;s have a brief look at the data.</p>
+
+<pre><code class="language-r">library(dplyr)
+glimpse(data)
+</code></pre>
+
+<pre><code>## Observations: 59,946
+## Variables: 22
+## $ age         &lt;int&gt; 22, 35, 38, 23, 29, 29, 32, 31, 24, 37, 35, 28, 24...
+## $ body_type   &lt;chr&gt; &quot;a little extra&quot;, &quot;average&quot;, &quot;thin&quot;, &quot;thin&quot;, &quot;athl...
+## $ diet        &lt;chr&gt; &quot;strictly anything&quot;, &quot;mostly other&quot;, &quot;anything&quot;, &quot;...
+## $ drinks      &lt;chr&gt; &quot;socially&quot;, &quot;often&quot;, &quot;socially&quot;, &quot;socially&quot;, &quot;soci...
+## $ drugs       &lt;chr&gt; &quot;never&quot;, &quot;sometimes&quot;, NA, NA, &quot;never&quot;, NA, &quot;never&quot;...
+## $ education   &lt;chr&gt; &quot;working on college/university&quot;, &quot;working on space...
+## $ ethnicity   &lt;chr&gt; &quot;asian, white&quot;, &quot;white&quot;, NA, &quot;white&quot;, &quot;asian, blac...
+## $ height      &lt;int&gt; 75, 70, 68, 71, 66, 67, 65, 65, 67, 65, 70, 72, 72...
+## $ income      &lt;int&gt; NA, 80000, NA, 20000, NA, NA, NA, NA, NA, NA, NA, ...
+## $ job         &lt;chr&gt; &quot;transportation&quot;, &quot;hospitality / travel&quot;, NA, &quot;stu...
+## $ last_online &lt;dttm&gt; 2012-06-28 20:30:00, 2012-06-29 21:41:00, 2012-06...
+## $ location    &lt;chr&gt; &quot;south san francisco, california&quot;, &quot;oakland, calif...
+## $ offspring   &lt;chr&gt; &quot;doesn't have kids, but might want them&quot;, &quot;doesn't...
+## $ orientation &lt;chr&gt; &quot;straight&quot;, &quot;straight&quot;, &quot;straight&quot;, &quot;straight&quot;, &quot;s...
+## $ pets        &lt;chr&gt; &quot;likes dogs and likes cats&quot;, &quot;likes dogs and likes...
+## $ religion    &lt;chr&gt; &quot;agnosticism and very serious about it&quot;, &quot;agnostic...
+## $ sex         &lt;chr&gt; &quot;m&quot;, &quot;m&quot;, &quot;m&quot;, &quot;m&quot;, &quot;m&quot;, &quot;m&quot;, &quot;f&quot;, &quot;f&quot;, &quot;f&quot;, &quot;m&quot;, ...
+## $ sign        &lt;chr&gt; &quot;gemini&quot;, &quot;cancer&quot;, &quot;pisces but it doesn't matter&quot;...
+## $ smokes      &lt;chr&gt; &quot;sometimes&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, NA, &quot;no...
+## $ speaks      &lt;chr&gt; &quot;english&quot;, &quot;english (fluently), spanish (poorly), ...
+## $ status      &lt;chr&gt; &quot;single&quot;, &quot;single&quot;, &quot;available&quot;, &quot;single&quot;, &quot;single...
+## $ essay0      &lt;chr&gt; &quot;about me:    i would love to think that i was som...
+</code></pre>
+
+<h2 id="what-s-in-a-name">What&rsquo;s in a name?</h2>
+
+<p>With the code getting longer, it is easy to get confused about naming: <code>data_v2_no_missings_collapsed</code> is the right data matrix to proceed, wasn&rsquo;t it? Or rather <code>data_dat_edit_noNA_v3</code>? Probably a helpful (though partial) solution is to prevent typing a lot. &ldquo;Don&rsquo;t repeat yourself&rdquo; - if stuff is put inside a function, the objects will not clutter your environment, and you don&rsquo;t have to deal with them all the time. Also, you will reduce code, and the number of objects if stuff is put inside functions and loops.</p>
+
+<p>That raises the question who to name the data set? At least two points are worth thinking. First, the &ldquo;root&rdquo; name should it be the name of the project such as &ldquo;OKCupid&rdquo; or &ldquo;nycflights13&rdquo;? Or just something like &ldquo;data&rdquo;? Personally, I prefer &ldquo;data&rdquo; as it is short and everybody will know what&rsquo;s going on. Second question: Should some data manipulations should be visible in the name of the object? I, personally, like this and do that frequently, eg., <code>carat_mean</code>, so I will remember that the mean is in there. However, for bigger projects I have made the experience that I lose track on which is the most recent version. So better do <em>not</em> put data manipulations in the name of the data frame. However, what one can do is use attributes, eg.:</p>
+
+<pre><code class="language-r">data_backup &lt;- removing_missings_somehow(data)  # pseudo funtion here for illustration
+data &lt;- data_backup
+
+attr(data, &quot;NA_status&quot;) &lt;- &quot;no_NA&quot;
+</code></pre>
+
+<h1 id="checklist">Checklist</h1>
+
+<p>Clearly, there are different ways to get to Rome; I present just one, which has proved helpful for me.</p>
+
+<h2 id="identify-missings">Identify missings</h2>
+
+<p>A key point is here to address many columns in one go, otherwise it gets laborious with large data sets. Here&rsquo;s one way:</p>
+
+<pre><code class="language-r">library(knitr)
+
+data %&gt;% 
+  summarise_all(funs(sum(is.na(.)))) %&gt;% kable
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="right">age</th>
+<th align="right">body_type</th>
+<th align="right">diet</th>
+<th align="right">drinks</th>
+<th align="right">drugs</th>
+<th align="right">education</th>
+<th align="right">ethnicity</th>
+<th align="right">height</th>
+<th align="right">income</th>
+<th align="right">job</th>
+<th align="right">last_online</th>
+<th align="right">location</th>
+<th align="right">offspring</th>
+<th align="right">orientation</th>
+<th align="right">pets</th>
+<th align="right">religion</th>
+<th align="right">sex</th>
+<th align="right">sign</th>
+<th align="right">smokes</th>
+<th align="right">speaks</th>
+<th align="right">status</th>
+<th align="right">essay0</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="right">0</td>
+<td align="right">5296</td>
+<td align="right">24395</td>
+<td align="right">2985</td>
+<td align="right">14080</td>
+<td align="right">6628</td>
+<td align="right">5680</td>
+<td align="right">3</td>
+<td align="right">48442</td>
+<td align="right">8198</td>
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">35561</td>
+<td align="right">0</td>
+<td align="right">19921</td>
+<td align="right">20226</td>
+<td align="right">0</td>
+<td align="right">11056</td>
+<td align="right">5512</td>
+<td align="right">50</td>
+<td align="right">0</td>
+<td align="right">5485</td>
+</tr>
+</tbody>
+</table>
+
+<p>The function <code>kable</code> prints a html table (package <code>knitr</code>).</p>
+
+<p>There seem to be quite a bit missings. Maybe better plot it.</p>
+
+<pre><code class="language-r">library(ggplot2)
+library(tidyr)
+
+data %&gt;% 
+  summarise_all(funs(sum(is.na(.)))) %&gt;% 
+  gather %&gt;% 
+  ggplot(aes(x = reorder(key, value), y = value)) + geom_bar(stat = &quot;identity&quot;) +
+  coord_flip() +
+  xlab(&quot;variable&quot;) +
+  ylab(&quot;Absolute number of missings&quot;)
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-02-13/plot_missings-1.png" alt="plot of chunk plot_missings" /></p>
+
+<p>With this large number of missings, we probably will not find an easy solution. Skipping cases will hurt, but imputating may also not be appropriate. Ah, now I know: Let&rsquo;s just leave it as it is for the moment :-)</p>
+
+<p>Or, at least let&rsquo;s remember which columns have more than, say, 10%, missings:</p>
+
+<pre><code class="language-r">cols_with_some_NA &lt;- round(colMeans(is.na(data)),2)
+cols_with_too_many_NA &lt;- cols_with_some_NA[cols_with_some_NA &gt; .1]
+
+# alterntively:
+data %&gt;% 
+  select_if(function(col) mean(is.na(col)) &lt; .1) %&gt;% 
+  head
+</code></pre>
+
+<pre><code>##   age      body_type   drinks           ethnicity height
+## 1  22 a little extra socially        asian, white     75
+## 2  35        average    often               white     70
+## 3  38           thin socially                &lt;NA&gt;     68
+## 4  23           thin socially               white     71
+## 5  29       athletic socially asian, black, other     66
+## 6  29        average socially               white     67
+##           last_online                        location orientation sex
+## 1 2012-06-28 20:30:00 south san francisco, california    straight   m
+## 2 2012-06-29 21:41:00             oakland, california    straight   m
+## 3 2012-06-27 09:10:00       san francisco, california    straight   m
+## 4 2012-06-28 14:22:00            berkeley, california    straight   m
+## 5 2012-06-27 21:26:00       san francisco, california    straight   m
+## 6 2012-06-29 19:18:00       san francisco, california    straight   m
+##      smokes                                                speaks
+## 1 sometimes                                               english
+## 2        no english (fluently), spanish (poorly), french (poorly)
+## 3        no                                  english, french, c++
+## 4        no                              english, german (poorly)
+## 5        no                                               english
+## 6        no                    english (fluently), chinese (okay)
+##      status
+## 1    single
+## 2    single
+## 3 available
+## 4    single
+## 5    single
+## 6    single
+##                                                                                                                                         essay0
+## 1 about me:    i would love to think that i was some some kind of intellectual: either the dumbest smart guy, or the smartest dumb guy. can't 
+## 2 i am a chef: this is what that means.  1. i am a workaholic.  2. i love to cook regardless of whether i am at work.  3. i love to drink and 
+## 3 i'm not ashamed of much, but writing public text on an online dating site makes me pleasantly uncomfortable. i'll try to be as earnest as po
+## 4                                                                                                    i work in a library and go to school. . .
+## 5 hey how's it going? currently vague on the profile i know, more to come soon. looking to meet new folks outside of my circle of friends. i'm
+## 6 i'm an australian living in san francisco, but don't hold that against me. i spend most of my days trying to build cool stuff for my company
+</code></pre>
+
+<p>OK, that are <code>length(cols_with_too_many_NA)</code> columns. We would not want to exclude them because they are too many.</p>
+
+<h2 id="identify-outliers">Identify outliers</h2>
+
+<p>Obviously, that&rsquo;s a story for numeric variable only. So let&rsquo;s have a look at them first.</p>
+
+<pre><code class="language-r">data %&gt;% 
+  select_if(is.numeric) %&gt;% names
+</code></pre>
+
+<pre><code>## [1] &quot;age&quot;    &quot;height&quot; &quot;income&quot;
+</code></pre>
+
+<p>Histograms are a natural and easy way to spot them and to learn something about the distribution.</p>
+
+<pre><code class="language-r">data %&gt;% 
+  select_if(is.numeric) %&gt;% 
+  gather %&gt;% 
+  ggplot(aes(x = value)) + facet_wrap(~ key, scales = &quot;free&quot;, nrow = 3) +
+  geom_histogram()
+</code></pre>
+
+<pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
+</code></pre>
+
+<pre><code>## Warning: Removed 48445 rows containing non-finite values (stat_bin).
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-02-13/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7" /></p>
+
+<p>Especially <code>income</code> may be problematic.</p>
+
+<p>Find out more on <code>gather</code> eg., <a href="https://sebastiansauerblog.wordpress.com/2016/07/13/long-vs-wide-format-and-gather/">here</a>.</p>
+
+<p>Box plots (or violin plots/bean plots) may also be a way:</p>
+
+<pre><code class="language-r">data %&gt;% 
+  select_if(is.numeric) %&gt;% 
+  gather %&gt;% 
+  ggplot(aes(x = 1, y = value)) + facet_wrap(~ key, scales = &quot;free&quot;) + 
+  geom_violin() +
+  ylab(&quot;Value&quot;) +
+  xlab(&quot;Variable&quot;)
+</code></pre>
+
+<pre><code>## Warning: Removed 48445 rows containing non-finite values (stat_ydensity).
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-02-13/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8" /></p>
+
+<h2 id="identify-variables-with-unique-values">Identify variables with unique values</h2>
+
+<p>Similar to outliers, for categorical variable we can look whether some values are seldom, e.g, only 0.1% of the times. What &ldquo;often&rdquo; or &ldquo;barely&rdquo; is, depends on &hellip; you!</p>
+
+<pre><code class="language-r">library(purrr)
+
+data %&gt;% 
+  select_if(negate(is.numeric)) %&gt;% 
+  select(-matches(&quot;essay&quot;)) %&gt;% 
+  select(-last_online) %&gt;% 
+  gather %&gt;% 
+  ggplot(aes(x = value)) + geom_bar() + 
+  facet_wrap(~ key, scales = &quot;free&quot;, ncol = 3) 
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-02-13/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9" /></p>
+
+<p>Pooh, that takes ages to plot. And does not look too pretty. Maybe better don&rsquo;t plot, since we are not after exploration, but just want to know if something is going wrong.</p>
+
+<p>Maybe it is better if we do the following:
+&gt; for each non-numeric variable do
+&gt;     divide most frequent category by least frequent category</p>
+
+<p>This gives an indication whether some categories are quite frequent in relation to others.</p>
+
+<pre><code class="language-r">data %&gt;% 
+  select_if(is.character) %&gt;% 
+  summarise_each(funs(max(table(.)/(min(table(.)))))) %&gt;% 
+  arrange %&gt;% 
+  kable
+</code></pre>
+
+<table>
+<thead>
+<tr>
+<th align="right">body_type</th>
+<th align="right">diet</th>
+<th align="right">drinks</th>
+<th align="right">drugs</th>
+<th align="right">education</th>
+<th align="right">ethnicity</th>
+<th align="right">job</th>
+<th align="right">location</th>
+<th align="right">offspring</th>
+<th align="right">orientation</th>
+<th align="right">pets</th>
+<th align="right">religion</th>
+<th align="right">sex</th>
+<th align="right">sign</th>
+<th align="right">smokes</th>
+<th align="right">speaks</th>
+<th align="right">status</th>
+<th align="right">essay0</th>
+</tr>
+</thead>
+
+<tbody>
+<tr>
+<td align="right">74</td>
+<td align="right">1507.727</td>
+<td align="right">129.7516</td>
+<td align="right">92.00976</td>
+<td align="right">2178.091</td>
+<td align="right">32831</td>
+<td align="right">37.20098</td>
+<td align="right">31064</td>
+<td align="right">360</td>
+<td align="right">18.65052</td>
+<td align="right">336.6818</td>
+<td align="right">209.5385</td>
+<td align="right">1.485632</td>
+<td align="right">43.46341</td>
+<td align="right">29.65946</td>
+<td align="right">21828</td>
+<td align="right">5569.7</td>
+<td align="right">14</td>
+</tr>
+</tbody>
+</table>
+
+<h2 id="plausibility-check">Plausibility check</h2>
+
+<p>Plausibility check can includes checking orders of magnitude, looking for implausible values (negative body weight), among others. A good starter is to differentiate between numeric and non-numeric variables.</p>
+
+<h3 id="numeric">Numeric</h3>
+
+<pre><code class="language-r">data %&gt;% 
+  select_if(is.numeric) %&gt;% 
+  map(summary)
+</code></pre>
+
+<pre><code>## $age
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##   18.00   26.00   30.00   32.34   37.00  110.00 
+## 
+## $height
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+##     1.0    66.0    68.0    68.3    71.0    95.0       3 
+## 
+## $income
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+##   20000   20000   50000  104400  100000 1000000   48442
+</code></pre>
+
+<p>The function <code>map</code> comes from package <code>purrr</code>; it maps each selected column to the function <code>summary</code>.</p>
+
+<p>For instance, the max. age of 110 appears somewhat high&hellip; And the min. height of 1 should rather be excluded before further operations start. For <code>income</code> similar reasoning applies.</p>
+
+<h3 id="non-numeric">Non-numeric</h3>
+
+<p>Let&rsquo;s do not look at all these <code>essay</code> variables here, because &ldquo;strange&rdquo; values are not so straight forward to identify compared to more normal categorical variables (with less distinct values).</p>
+
+<pre><code class="language-r">data %&gt;% 
+  select(-matches(&quot;essay&quot;)) %&gt;% 
+  select_if(is.character) %&gt;% 
+  mutate_all(factor) %&gt;% 
+  map(summary)
+</code></pre>
+
+<p><em>Output truncated, TL;DR</em></p>
+
+<p>We need to convert to <code>factor</code> because for <code>character</code> variables, no nice <code>summary</code> is available of the shelf.</p>
+
+<h2 id="highly-correlated-variables">Highly correlated variables</h2>
+
+<pre><code class="language-r">data %&gt;% 
+  select_if(is.numeric) %&gt;% 
+  cor
+</code></pre>
+
+<pre><code>##        age height income
+## age      1     NA     NA
+## height  NA      1     NA
+## income  NA     NA      1
+</code></pre>
+
+<h2 id="constants-near-zero-variance-variables">Constants/ near zero variance variables</h2>
+
+<p>Applies to numeric variables obviously.</p>
+
+<pre><code class="language-r">data %&gt;% 
+  select_if(is.numeric) %&gt;% 
+  na.omit %&gt;% 
+  summarise_all(c(&quot;sd&quot;, &quot;IQR&quot;))
+</code></pre>
+
+<pre><code>##     age_sd height_sd income_sd age_IQR height_IQR income_IQR
+## 1 9.746844  4.003725  201433.5      12          5      80000
+</code></pre>
+
+<h2 id="rename-many-variables">Rename many variables</h2>
+
+<pre><code class="language-r">ncol_data &lt;- ncol(data) 
+names_data_new &lt;- paste(&quot;V&quot;,1:ncol_data, sep = &quot;&quot;)
+dummy &lt;- data
+names(dummy) &lt;- names_data_new
+</code></pre>
+
+<h2 id="recode-values">Recode values</h2>
+
+<p>A quite frequent use case is to get &ldquo;strange&rdquo; value or variables names in order, e.g., &ldquo;variable 2&rdquo; or &ldquo;I rather not say&rdquo; (including blanks or some other non-normal stuff).</p>
+
+<p>One approach is to use <code>dplyr::recode</code>.</p>
+
+<pre><code class="language-r">dplyr::distinct(data, body_type)
+</code></pre>
+
+<pre><code>##         body_type
+## 1  a little extra
+## 2         average
+## 3            thin
+## 4        athletic
+## 5             fit
+## 6            &lt;NA&gt;
+## 7          skinny
+## 8           curvy
+## 9    full https://sebastiansauer.github.io/images/2017-02-13d
+## 10         jacked
+## 11 rather not say
+## 12        used up
+## 13     overweight
+</code></pre>
+
+<pre><code class="language-r">dummy &lt;- dplyr::recode(data$body_type, `a little extra` = &quot;1&quot;)
+unique(dummy)
+</code></pre>
+
+<pre><code>##  [1] &quot;1&quot;              &quot;average&quot;        &quot;thin&quot;           &quot;athletic&quot;      
+##  [5] &quot;fit&quot;            NA               &quot;skinny&quot;         &quot;curvy&quot;         
+##  [9] &quot;full https://sebastiansauer.github.io/images/2017-02-13d&quot;   &quot;jacked&quot;         &quot;rather not say&quot; &quot;used up&quot;       
+## [13] &quot;overweight&quot;
+</code></pre>
+
+<p>A second approach is to use <code>base::levels</code> for factors.</p>
+
+<pre><code class="language-r">dummy &lt;- data$body_type 
+dummy &lt;- factor(dummy)
+levels(dummy)
+</code></pre>
+
+<pre><code>##  [1] &quot;a little extra&quot; &quot;athletic&quot;       &quot;average&quot;        &quot;curvy&quot;         
+##  [5] &quot;fit&quot;            &quot;full https://sebastiansauer.github.io/images/2017-02-13d&quot;   &quot;jacked&quot;         &quot;overweight&quot;    
+##  [9] &quot;rather not say&quot; &quot;skinny&quot;         &quot;thin&quot;           &quot;used up&quot;
+</code></pre>
+
+<pre><code class="language-r">levels(dummy) &lt;- 1:12
+levels(dummy)
+</code></pre>
+
+<pre><code>##  [1] &quot;1&quot;  &quot;2&quot;  &quot;3&quot;  &quot;4&quot;  &quot;5&quot;  &quot;6&quot;  &quot;7&quot;  &quot;8&quot;  &quot;9&quot;  &quot;10&quot; &quot;11&quot; &quot;12&quot;
+</code></pre>
+
+<p>I do not use <code>plyr:mapvalues</code> because <code>plyr</code> can interfere with <code>dplyr</code> (and <code>dplyr</code> seems more helpful to me).</p>
+
+<h2 id="center-scale-variables">Center/ scale variables</h2>
+
+<p>As often, several approaches. One is:</p>
+
+<pre><code class="language-r">data %&gt;% 
+  select_if(is.numeric) %&gt;% 
+  scale() %&gt;% 
+  head
+</code></pre>
+
+<pre><code>##             age      height     income
+## [1,] -1.0938888  1.67836042         NA
+## [2,]  0.2813681  0.42673429 -0.1211069
+## [3,]  0.5987351 -0.07391616         NA
+## [4,] -0.9880998  0.67705952 -0.4189719
+## [5,] -0.3533659 -0.57456662         NA
+## [6,] -0.3533659 -0.32424139         NA
+</code></pre>
+
+<p><code>base::scale</code> performs a z-transformation of the matrix (like object) given as input.</p>
+
+<p>But wait; one issue is that the data frame now consists of the numeric variables only. We have to manually knit it together with the rest of the party. Not so convenient. Rather, try this:</p>
+
+<pre><code class="language-r">data %&gt;% 
+  select(-matches(&quot;essay&quot;)) %&gt;% 
+  mutate_if(is.numeric, scale) %&gt;% 
+  glimpse
+</code></pre>
+
+<pre><code>## Observations: 59,946
+## Variables: 21
+## $ age         &lt;dbl&gt; -1.09388884, 0.28136809, 0.59873508, -0.98809985, ...
+## $ body_type   &lt;chr&gt; &quot;a little extra&quot;, &quot;average&quot;, &quot;thin&quot;, &quot;thin&quot;, &quot;athl...
+## $ diet        &lt;chr&gt; &quot;strictly anything&quot;, &quot;mostly other&quot;, &quot;anything&quot;, &quot;...
+## $ drinks      &lt;chr&gt; &quot;socially&quot;, &quot;often&quot;, &quot;socially&quot;, &quot;socially&quot;, &quot;soci...
+## $ drugs       &lt;chr&gt; &quot;never&quot;, &quot;sometimes&quot;, NA, NA, &quot;never&quot;, NA, &quot;never&quot;...
+## $ education   &lt;chr&gt; &quot;working on college/university&quot;, &quot;working on space...
+## $ ethnicity   &lt;chr&gt; &quot;asian, white&quot;, &quot;white&quot;, NA, &quot;white&quot;, &quot;asian, blac...
+## $ height      &lt;dbl&gt; 1.67836042, 0.42673429, -0.07391616, 0.67705952, -...
+## $ income      &lt;dbl&gt; NA, -0.1211069, NA, -0.4189719, NA, NA, NA, NA, NA...
+## $ job         &lt;chr&gt; &quot;transportation&quot;, &quot;hospitality / travel&quot;, NA, &quot;stu...
+## $ last_online &lt;dttm&gt; 2012-06-28 20:30:00, 2012-06-29 21:41:00, 2012-06...
+## $ location    &lt;chr&gt; &quot;south san francisco, california&quot;, &quot;oakland, calif...
+## $ offspring   &lt;chr&gt; &quot;doesn't have kids, but might want them&quot;, &quot;doesn't...
+## $ orientation &lt;chr&gt; &quot;straight&quot;, &quot;straight&quot;, &quot;straight&quot;, &quot;straight&quot;, &quot;s...
+## $ pets        &lt;chr&gt; &quot;likes dogs and likes cats&quot;, &quot;likes dogs and likes...
+## $ religion    &lt;chr&gt; &quot;agnosticism and very serious about it&quot;, &quot;agnostic...
+## $ sex         &lt;chr&gt; &quot;m&quot;, &quot;m&quot;, &quot;m&quot;, &quot;m&quot;, &quot;m&quot;, &quot;m&quot;, &quot;f&quot;, &quot;f&quot;, &quot;f&quot;, &quot;m&quot;, ...
+## $ sign        &lt;chr&gt; &quot;gemini&quot;, &quot;cancer&quot;, &quot;pisces but it doesn't matter&quot;...
+## $ smokes      &lt;chr&gt; &quot;sometimes&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, &quot;no&quot;, NA, &quot;no...
+## $ speaks      &lt;chr&gt; &quot;english&quot;, &quot;english (fluently), spanish (poorly), ...
+## $ status      &lt;chr&gt; &quot;single&quot;, &quot;single&quot;, &quot;available&quot;, &quot;single&quot;, &quot;single...
+</code></pre>
+
+<p>If we only want to center (or something similar), we could do</p>
+
+<pre><code class="language-r">data %&gt;% 
+  mutate_if(is.numeric, funs(. - mean(.))) %&gt;% 
+  head
+</code></pre>
+
+<pre><code>##         age      body_type              diet   drinks     drugs
+## 1 -10.34029 a little extra strictly anything socially     never
+## 2   2.65971        average      mostly other    often sometimes
+## 3   5.65971           thin          anything socially      &lt;NA&gt;
+## 4  -9.34029           thin        vegetarian socially      &lt;NA&gt;
+## 5  -3.34029       athletic              &lt;NA&gt; socially     never
+## 6  -3.34029        average   mostly anything socially      &lt;NA&gt;
+##                           education           ethnicity height income
+## 1     working on college/university        asian, white     NA     NA
+## 2             working on space camp               white     NA     NA
+## 3    graduated from masters program                &lt;NA&gt;     NA     NA
+## 4     working on college/university               white     NA     NA
+## 5 graduated from college/university asian, black, other     NA     NA
+## 6 graduated from college/university               white     NA     NA
+##                              job         last_online
+## 1                 transportation 2012-06-28 20:30:00
+## 2           hospitality / travel 2012-06-29 21:41:00
+## 3                           &lt;NA&gt; 2012-06-27 09:10:00
+## 4                        student 2012-06-28 14:22:00
+## 5    artistic / musical / writer 2012-06-27 21:26:00
+## 6 computer / hardware / software 2012-06-29 19:18:00
+##                          location                              offspring
+## 1 south san francisco, california doesn't have kids, but might want them
+## 2             oakland, california doesn't have kids, but might want them
+## 3       san francisco, california                                   &lt;NA&gt;
+## 4            berkeley, california                      doesn't want kids
+## 5       san francisco, california                                   &lt;NA&gt;
+## 6       san francisco, california doesn't have kids, but might want them
+##   orientation                      pets
+## 1    straight likes dogs and likes cats
+## 2    straight likes dogs and likes cats
+## 3    straight                  has cats
+## 4    straight                likes cats
+## 5    straight likes dogs and likes cats
+## 6    straight                likes cats
+##                                   religion sex
+## 1    agnosticism and very serious about it   m
+## 2 agnosticism but not too serious about it   m
+## 3                                     &lt;NA&gt;   m
+## 4                                     &lt;NA&gt;   m
+## 5                                     &lt;NA&gt;   m
+## 6                                  atheism   m
+##                           sign    smokes
+## 1                       gemini sometimes
+## 2                       cancer        no
+## 3 pisces but it doesn't matter        no
+## 4                       pisces        no
+## 5                     aquarius        no
+## 6                       taurus        no
+##                                                  speaks    status
+## 1                                               english    single
+## 2 english (fluently), spanish (poorly), french (poorly)    single
+## 3                                  english, french, c++ available
+## 4                              english, german (poorly)    single
+## 5                                               english    single
+## 6                    english (fluently), chinese (okay)    single
+##                                                                                                                                         essay0
+## 1 about me:    i would love to think that i was some some kind of intellectual: either the dumbest smart guy, or the smartest dumb guy. can't 
+## 2 i am a chef: this is what that means.  1. i am a workaholic.  2. i love to cook regardless of whether i am at work.  3. i love to drink and 
+## 3 i'm not ashamed of much, but writing public text on an online dating site makes me pleasantly uncomfortable. i'll try to be as earnest as po
+## 4                                                                                                    i work in a library and go to school. . .
+## 5 hey how's it going? currently vague on the profile i know, more to come soon. looking to meet new folks outside of my circle of friends. i'm
+## 6 i'm an australian living in san francisco, but don't hold that against me. i spend most of my days trying to build cool stuff for my company
+</code></pre>
+
+<p>That&rsquo;s it; happy analyzing!</p>
+
+    </div>
+  </article>
+
+  
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js//highlight.min.js"></script>
+
+
+
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

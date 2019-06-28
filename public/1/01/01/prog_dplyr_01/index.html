@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.21" />
+
+
+<title>Programming with dplyr: Part 01, introduction - Data Se - Data Science Blog of Sebastian Sauer</title>
+<meta property="og:title" content="Programming with dplyr: Part 01, introduction - Data Se - Data Science Blog of Sebastian Sauer">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="https://github.com/rstudio/blogdown">GitHub</a></li>
+    
+    <li><a href="https://twitter.com/sauer_sebastian">Twitter</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">3 min read</span>
+    
+
+    <h1 class="article-title">Programming with dplyr: Part 01, introduction</h1>
+
+    
+    <span class="article-date">0001/01/01</span>
+    
+
+    <div class="article-content">
+      <p>Like for [others], Hadley Wickham&rsquo;s <code>dplyr</code>, and more generally, the <code>tidyverse</code> approach has considerably changed the I do data analyses. Most notably, the pipe (coming from <code>magrittr</code> by Stefan Milton Bache, see <a href="https://cran.r-project.org/web/packages/magrittr/vignettes/magrittr.html">here</a>) has creeped into nearly every analyses I, do.</p>
+
+<p>That is, is every analyses <em>except for</em> functions, and other non-interactive stuff. In those programming contexts, the dplyr way does not work, due to its <a href="http://adv-r.had.co.nz/Computing-on-the-language.html">non standard evaluation</a> or NSE for short.</p>
+
+<p>So, this post is about <em>programming</em> with dplyr, or more precisely, using the recently introduced <a href="http://dplyr.tidyverse.org/articles/programming.html">tidyeval</a> approach (approached into widely used R libraries, that is).</p>
+
+<p>To understand the usecase, consider the following example. Say, we count the frequencies of some groups, and want to add the proportiong of these counts.</p>
+
+<pre><code class="language-r">library(tidyverse)
+</code></pre>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  group_by(cyl) %&gt;% 
+  summarise(n = n())
+</code></pre>
+
+<pre><code>## # A tibble: 3 x 2
+##     cyl     n
+##   &lt;dbl&gt; &lt;int&gt;
+## 1     4    11
+## 2     6     7
+## 3     8    14
+</code></pre>
+
+<p>Or, shorter <code>mtcars %&gt;% count(cyl)</code>.</p>
+
+<p>Now, let&rsquo;s add a column with the proporting of the count column (<code>n</code>).</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  count(cyl) %&gt;% 
+  mutate(prop = n / sum(n))
+</code></pre>
+
+<pre><code>## # A tibble: 3 x 3
+##     cyl     n    prop
+##   &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt;
+## 1     4    11 0.34375
+## 2     6     7 0.21875
+## 3     8    14 0.43750
+</code></pre>
+
+<p>For extending this game to more than one variable, see [this post]().</p>
+
+<p>Now, let&rsquo;s assume we would like to put the &lsquo;add a proportion column to my dataframe&rsquo; in a function. How to proceed?</p>
+
+<p>We might think this approach should work:</p>
+
+<pre><code class="language-r">add_prop &lt;- function(df, count_var, group_var){
+  df %&gt;% 
+    ungroup() %&gt;% 
+    group_by(group_var) %&gt;% 
+    mutate(prop =  count_var / sum(n()))
+}
+
+mtcars %&gt;% 
+  count(cyl) %&gt;% 
+  add_prop(count_var = n, group_var = cyl)
+</code></pre>
+
+<p>However, this does not work.</p>
+
+<p>The dplyr &lsquo;verbs&rsquo; expect <em>quoted</em> input variables. That means we must quote the parameters first, before we can hand over them to dplyr. <code>quo</code> basically means &ldquo;hey R, don&rsquo;t yet evaulate this expression. Just read it, understand the name of the expression, and wait until I tell you. And R, understand, that you got an expression, not a simple text string&rdquo;. The last sentence tells us (or R) that we do not want a text string, but the quotation (or &lsquo;citation&rsquo; of the expression if you like) of an expression to be evaluated in the futre.</p>
+
+<pre><code class="language-r">mtcars %&gt;% 
+  count(cyl) %&gt;% 
+  add_prop(count_var = quo(n), group_var = quo(cyl))
+</code></pre>
+
+<p>The important point is <code>quo</code>.</p>
+
+<pre><code class="language-r">quo(mtcars$cyl)
+</code></pre>
+
+<pre><code>## &lt;quosure: global&gt;
+## ~mtcars$cyl
+</code></pre>
+
+<p>But there&rsquo;s a second step we need to take. Now that <code>quo</code> has defined a quoted expression, the dplyr verbs do not need to quote their input variables, because they are already quoted. That is, we need to tell R now: &ldquo;Hey, do not quote, evaluate! We have taken care of the quoting before&rdquo;.</p>
+
+<pre><code class="language-r">add_prop &lt;- function(df, count_var, group_var){
+  df %&gt;% 
+    mutate(prop =  (!!count_var) / sum(!!count_var))
+}
+
+
+mtcars %&gt;% 
+  count(cyl) %&gt;% 
+  add_prop(count_var = quo(n), group_var = quo(cyl)) 
+</code></pre>
+
+<pre><code>## # A tibble: 3 x 3
+##     cyl     n    prop
+##   &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt;
+## 1     4    11 0.34375
+## 2     6     7 0.21875
+## 3     8    14 0.43750
+</code></pre>
+
+<p>Hizzah!</p>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-sebastiansauer-github-io.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+  </body>
+</html>
+

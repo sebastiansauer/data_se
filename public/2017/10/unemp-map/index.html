@@ -1,0 +1,1033 @@
+
+
+  
+    
+  
+
+
+  
+
+
+
+
+  
+
+
+  
+
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="generator" content="Hugo 0.21 with theme Tranquilpeak 0.4.3-BETA">
+    <title>Mapping unemployment rate to German district areas</title>
+    <meta name="author" content="Sebastian Sauer">
+    <meta name="keywords" content=", rstats, datascience">
+
+    <link rel="icon" href="/favicon.png">
+    
+
+    
+    <meta name="description" content="A chloropleth map is a geographic map where statistical information are mapped to certain areas. Let&rsquo;s plot such a chloropleth map in this post.
+Packages library(sf) library(stringr) library(tidyverse) library(readxl)  Geo data Best place to get German geo data is from the &ldquo;Bundesamt für Kartografie und Geodäsie (BKG)&rdquo;. One may basically use the data for a purposes unless it is against the law. I have downloaded the data 2017-10-09. More specifically, we are looking at the &ldquo;Verwaltungsgebiete&rdquo; (vg), that is, the administrative areas of the country, ie.">
+    <meta property="og:description" content="A chloropleth map is a geographic map where statistical information are mapped to certain areas. Let&rsquo;s plot such a chloropleth map in this post.
+Packages library(sf) library(stringr) library(tidyverse) library(readxl)  Geo data Best place to get German geo data is from the &ldquo;Bundesamt für Kartografie und Geodäsie (BKG)&rdquo;. One may basically use the data for a purposes unless it is against the law. I have downloaded the data 2017-10-09. More specifically, we are looking at the &ldquo;Verwaltungsgebiete&rdquo; (vg), that is, the administrative areas of the country, ie.">
+    <meta property="og:type" content="blog">
+    <meta property="og:title" content="Mapping unemployment rate to German district areas">
+    <meta property="og:url" content="/2017/10/unemp-map/">
+    <meta property="og:site_name" content="Data Se">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Data Se">
+    <meta name="twitter:description" content="A chloropleth map is a geographic map where statistical information are mapped to certain areas. Let&rsquo;s plot such a chloropleth map in this post.
+Packages library(sf) library(stringr) library(tidyverse) library(readxl)  Geo data Best place to get German geo data is from the &ldquo;Bundesamt für Kartografie und Geodäsie (BKG)&rdquo;. One may basically use the data for a purposes unless it is against the law. I have downloaded the data 2017-10-09. More specifically, we are looking at the &ldquo;Verwaltungsgebiete&rdquo; (vg), that is, the administrative areas of the country, ie.">
+    
+      <meta name="twitter:creator" content="@sauer_sebastian">
+    
+    
+
+    
+    
+
+    
+      <meta property="og:image" content="//www.gravatar.com/avatar/8851f7754d1792f008b8874cd258f5b7?s=640">
+    
+
+    
+    
+    
+
+    
+
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha256-eZrrJcwDc/3uDhsdt61sL2oOBY362qM3lon1gyExkL0=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.4/jquery.fancybox.min.css" integrity="sha256-vuXZ9LGmmwtjqFX1F+EKin1ThZMub58gKULUyf0qECk=" crossorigin="anonymous" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.4/helpers/jquery.fancybox-thumbs.min.css" integrity="sha256-SEa4XYAHihTcEP1f5gARTB2K26Uk8PsndQYHQC1f4jU=" crossorigin="anonymous" />
+    
+    
+    <link rel="stylesheet" href="/css/style-jsjn0006wyhpyzivf6yceb31gvpjatbcs3qzjvlumobfnugccvobqwxnnaj8.min.css" />
+    
+    
+
+    
+      
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-99297878-1', 'auto');
+ga('send', 'pageview');
+</script>
+
+    
+    
+  </head>
+
+  <body>
+    <div id="blog">
+      <header id="header" data-behavior="4">
+  <i id="btn-open-sidebar" class="fa fa-lg fa-bars"></i>
+  <div class="header-title">
+    <a class="header-title-link" href="/">Data Se</a>
+  </div>
+  
+    
+      <a class="header-right-picture "
+         href="/#about">
+    
+    
+    
+      
+        <img class="header-picture" src="//www.gravatar.com/avatar/8851f7754d1792f008b8874cd258f5b7?s=90" alt="Author&#39;s picture" />
+      
+    
+    </a>
+  
+</header>
+
+      <nav id="sidebar" data-behavior="4">
+  <div class="sidebar-container">
+    
+      <div class="sidebar-profile">
+        <a href="/#about">
+          <img class="sidebar-profile-picture" src="//www.gravatar.com/avatar/8851f7754d1792f008b8874cd258f5b7?s=110" alt="Author&#39;s picture" />
+        </a>
+        <h4 class="sidebar-profile-name">Sebastian Sauer</h4>
+        
+          <h5 class="sidebar-profile-bio"><strong>Data Scie</strong>nce blog of Sebastian Sauer</h5>
+        
+      </div>
+    
+    <ul class="sidebar-buttons">
+      
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="/">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-home"></i>
+      
+      <span class="sidebar-button-desc">Home</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="/categories">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-bookmark"></i>
+      
+      <span class="sidebar-button-desc">Categories</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="/tags">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-tags"></i>
+      
+      <span class="sidebar-button-desc">Tags</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="/archives">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-archive"></i>
+      
+      <span class="sidebar-button-desc">Archives</span>
+    </a>
+  </li>
+
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="/#about">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-question"></i>
+      
+      <span class="sidebar-button-desc">About</span>
+    </a>
+  </li>
+
+
+    </ul>
+    <ul class="sidebar-buttons">
+      
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="https://github.com/sebastiansauer">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-github"></i>
+      
+      <span class="sidebar-button-desc">GitHub</span>
+    </a>
+  </li>
+
+
+    </ul>
+    <ul class="sidebar-buttons">
+      
+  <li class="sidebar-button">
+    
+      <a class="sidebar-button-link " href="/index.xml">
+    
+      <i class="sidebar-button-icon fa fa-lg fa-rss"></i>
+      
+      <span class="sidebar-button-desc">RSS</span>
+    </a>
+  </li>
+
+
+    </ul>
+  </div>
+</nav>
+
+      
+
+      <div id="main" data-behavior="4"
+        class="
+               hasCoverMetaIn
+               ">
+        <article class="post" itemscope itemType="http://schema.org/BlogPosting">
+          
+          
+            <div class="post-header main-content-wrap text-left">
+  
+    <h1 class="post-title" itemprop="headline">
+      Mapping unemployment rate to German district areas
+    </h1>
+  
+  
+  <div class="postShorten-meta post-meta">
+    
+      <time itemprop="datePublished" datetime="2017-10-09T00:00:00Z">
+        
+  October 9, 2017
+
+      </time>
+    
+    
+  </div>
+
+</div>
+          
+          <div class="post-content markdown" itemprop="articleBody">
+            <div class="main-content-wrap">
+              
+
+<p>A <em>chloropleth</em> map is a geographic map where statistical information are mapped to certain areas. Let&rsquo;s plot such a chloropleth map in this post.</p>
+
+<h1 id="packages">Packages</h1>
+
+<pre><code class="language-r">library(sf)
+library(stringr)
+library(tidyverse)
+library(readxl)
+</code></pre>
+
+<h1 id="geo-data">Geo data</h1>
+
+<p>Best place to get German geo data is from the <a href="http://www.bkg.bund.de">&ldquo;Bundesamt für Kartografie und Geodäsie (BKG)&rdquo;</a>. One may basically use the data for a purposes unless it is against the law. I have downloaded the data 2017-10-09. More specifically, we are looking at the &ldquo;Verwaltungsgebiete&rdquo; (vg), that is, the administrative areas of the country, ie., counties, states etc.</p>
+
+<p>Look for the &ldquo;Verwaltungsgebiete&rdquo;. On <a href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=deu&amp;gdz_akt_zeile=5&amp;gdz_anz_zeile=1&amp;gdz_unt_zeile=19&amp;gdz_user_id=0">this page</a> you&rsquo;ll get the geo data scaled 1:2,500,000. This material includes area map of the whole state (hence <code>sta</code>, see below) of Germany.</p>
+
+<p>It&rsquo;s quite a bit of data. Download it, unzip it and adapt your path variables accordingly. The data is stores as shape files, a standard format for open geo data.</p>
+
+<pre><code class="language-r">my_path_vg2500_sta &lt;- &quot;~/Documents/datasets/geo_maps/vg2500/vg2500_sta.shp&quot;
+file.exists(my_path_vg2500_sta)
+#&gt; [1] TRUE
+vg2500_sta &lt;- st_read(my_path_vg2500_sta)
+#&gt; Reading layer `vg2500_sta' from data source `/Users/sebastiansauer/Documents/datasets/geo_maps/vg2500/vg2500_sta.shp' using driver `ESRI Shapefile'
+#&gt; Simple feature collection with 3 features and 4 fields
+#&gt; geometry type:  MULTIPOLYGON
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 280353.1 ymin: 5235878 xmax: 921021.2 ymax: 6104656
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
+</code></pre>
+
+<pre><code class="language-r">vg2500_sta %&gt;%
+  slice(2:3) %&gt;%  # line 1 are coastal &quot;water&quot; areas
+  ggplot() +
+  geom_sf()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-09/unnamed-chunk-3-1.png" title="plot of chunk unnamed-chunk-3" alt="plot of chunk unnamed-chunk-3" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>That was easy, right? The <code>sf</code> package fits nicely with the tidyverse. Hence not much to learn in that regard. I am not saying that geo data is simple, quite the contrary. But luckily the R functions fit in a well known schema.</p>
+
+<p>For instance, let&rsquo;s remove the axis labels and let&rsquo;s fill the country with some different color. Hm, what&rsquo;s the color of Germany? Grey? Black (color of the leading party)? Black-red-gold?</p>
+
+<pre><code class="language-r">vg2500_sta %&gt;%
+  slice(2:3) %&gt;%
+  ggplot() +
+  geom_sf(fill = &quot;grey40&quot;) +
+  theme_void()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-09/unnamed-chunk-4-1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Now, let&rsquo;s have a look to the more hi-res data. There a a number of files. We will first use the files with borders, or, geometrically, lines:</p>
+
+<pre><code class="language-r">my_path_vg250_L &lt;- &quot;~/Documents/datasets/geo_maps/vg250/vg250_kompakt/VG250_L.shp&quot;  # de for Germany (country code), and L as in lines
+vg_250_L &lt;- st_read(my_path_vg250_L)
+#&gt; Reading layer `VG250_L' from data source `/Users/sebastiansauer/Documents/datasets/geo_maps/vg250/vg250_kompakt/VG250_L.shp' using driver `ESRI Shapefile'
+#&gt; Simple feature collection with 36292 features and 3 fields
+#&gt; geometry type:  LINESTRING
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 280371.1 ymin: 5235856 xmax: 921292.4 ymax: 6106244
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
+head(vg_250_L)
+#&gt; Simple feature collection with 6 features and 3 fields
+#&gt; geometry type:  LINESTRING
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 312391.4 ymin: 5271478 xmax: 897074.9 ymax: 5657429
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
+#&gt;   AGZ RDG GM5                       geometry
+#&gt; 1   1   1   0 LINESTRING (439205.44865438...
+#&gt; 2   1   1   0 LINESTRING (316806.88365514...
+#&gt; 3   1   1   0 LINESTRING (390438.74675088...
+#&gt; 4   1   1   0 LINESTRING (392662.34014679...
+#&gt; 5   1   1   0 LINESTRING (826537.76462522...
+#&gt; 6   1   1   0 LINESTRING (896720.92151288...
+</code></pre>
+
+<p><code>st_read</code> comes as a friend, smooth and hasslefree. All geo data is stored in <em>one</em> column: <code>geometry</code>. The other columns provide district data. The most important one here for us at this point is <code>AGZ</code> meaning <em>type of border</em>. Value 1 is <em>national border</em>. All right then, let&rsquo;s draw the country borders.</p>
+
+<pre><code class="language-r">vg_250_L %&gt;%
+  filter(AGZ == 1) %&gt;%
+  ggplot +
+  geom_sf()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-09/unnamed-chunk-6-1.png" title="plot of chunk unnamed-chunk-6" alt="plot of chunk unnamed-chunk-6" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Note that this time, we have <em>lines</em>, no <em>areas</em>, hence we cannot fill the country with some color.</p>
+
+<p>Now, let&rsquo;s look at the larger Verwaltungsgebiete of Germany, they are:</p>
+
+<ul>
+<li>Land (state; <code>lan</code>)</li>
+<li>Regierungsbezirk (legislative area, <code>rbz</code>)</li>
+<li>Kreis (county, <code>krs</code>)</li>
+</ul>
+
+<p>Same principle as before:</p>
+
+<pre><code class="language-r">my_path_vg2500_lan &lt;- &quot;~/Documents/datasets/geo_maps/vg2500/vg2500_lan.shp&quot;
+file.exists(my_path_vg2500_sta)
+#&gt; [1] TRUE
+vg2500_lan &lt;- st_read(my_path_vg2500_lan)
+#&gt; Reading layer `vg2500_lan' from data source `/Users/sebastiansauer/Documents/datasets/geo_maps/vg2500/vg2500_lan.shp' using driver `ESRI Shapefile'
+#&gt; Simple feature collection with 16 features and 4 fields
+#&gt; geometry type:  MULTIPOLYGON
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 280353.1 ymin: 5235878 xmax: 921021.2 ymax: 6101335
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
+head(vg2500_lan)
+#&gt; Simple feature collection with 6 features and 4 fields
+#&gt; geometry type:  MULTIPOLYGON
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 280353.1 ymin: 5423990 xmax: 674168.3 ymax: 5979709
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
+#&gt;   ADE RS         RS_0                 GEN                       geometry
+#&gt; 1   2 02 020000000000             Hamburg MULTIPOLYGON (((578594.2157...
+#&gt; 2   2 03 030000000000       Niedersachsen MULTIPOLYGON (((354762.3478...
+#&gt; 3   2 04 040000000000              Bremen MULTIPOLYGON (((468599.9059...
+#&gt; 4   2 05 050000000000 Nordrhein-Westfalen MULTIPOLYGON (((477387.5570...
+#&gt; 5   2 06 060000000000              Hessen MULTIPOLYGON (((546606.7604...
+#&gt; 6   2 07 070000000000     Rheinland-Pfalz MULTIPOLYGON (((418854.5347...
+</code></pre>
+
+<pre><code class="language-r">vg2500_lan %&gt;%
+  ggplot() +
+  geom_sf()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-09/unnamed-chunk-8-1.png" title="plot of chunk unnamed-chunk-8" alt="plot of chunk unnamed-chunk-8" width="70%" style="display: block; margin: auto;" /></p>
+
+<pre><code class="language-r">my_path_vg2500_rbz &lt;- &quot;~/Documents/datasets/geo_maps/vg2500/vg2500_rbz.shp&quot;
+file.exists(my_path_vg2500_sta)
+#&gt; [1] TRUE
+vg2500_rbz &lt;- st_read(my_path_vg2500_rbz)
+#&gt; Reading layer `vg2500_rbz' from data source `/Users/sebastiansauer/Documents/datasets/geo_maps/vg2500/vg2500_rbz.shp' using driver `ESRI Shapefile'
+#&gt; Simple feature collection with 19 features and 4 fields
+#&gt; geometry type:  MULTIPOLYGON
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 280353.1 ymin: 5235878 xmax: 855553.1 ymax: 5820162
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
+head(vg2500_rbz)
+#&gt; Simple feature collection with 6 features and 4 fields
+#&gt; geometry type:  MULTIPOLYGON
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 280353.1 ymin: 5471359 xmax: 553250.7 ymax: 5820162
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
+#&gt;   ADE  RS         RS_0        GEN                       geometry
+#&gt; 1   3 051 051000000000 Düsseldorf MULTIPOLYGON (((308582.1649...
+#&gt; 2   3 053 053000000000       Köln MULTIPOLYGON (((384170.0176...
+#&gt; 3   3 055 055000000000    Münster MULTIPOLYGON (((415321.4839...
+#&gt; 4   3 057 057000000000    Detmold MULTIPOLYGON (((477387.5570...
+#&gt; 5   3 059 059000000000   Arnsberg MULTIPOLYGON (((397616.4384...
+#&gt; 6   3 064 064000000000  Darmstadt MULTIPOLYGON (((506866.1477...
+</code></pre>
+
+<pre><code class="language-r">vg2500_rbz %&gt;%
+  ggplot() +
+  geom_sf()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-09/unnamed-chunk-10-1.png" title="plot of chunk unnamed-chunk-10" alt="plot of chunk unnamed-chunk-10" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Hmm, this one looks weird; some areas appear to be lost in action.</p>
+
+<pre><code class="language-r">vg2500_rbz %&gt;% pull(GEN)
+#&gt;  [1] Düsseldorf    Köln          Münster       Detmold       Arnsberg     
+#&gt;  [6] Darmstadt     Gießen        Kassel        Stuttgart     Karlsruhe    
+#&gt; [11] Freiburg      Tübingen      Oberbayern    Niederbayern  Oberpfalz    
+#&gt; [16] Oberfranken   Mittelfranken Unterfranken  Schwaben     
+#&gt; 19 Levels: Arnsberg Darmstadt Detmold Düsseldorf Freiburg ... Unterfranken
+</code></pre>
+
+<p>Only 19 Kreises are reported, and no values from northern or eastern part of the country. Strange.</p>
+
+<pre><code class="language-r">my_path_vg2500_krs &lt;- &quot;~/Documents/datasets/geo_maps/vg2500/vg2500_krs.shp&quot;
+file.exists(my_path_vg2500_krs)
+#&gt; [1] TRUE
+vg2500_krs &lt;- st_read(my_path_vg2500_krs)
+#&gt; Reading layer `vg2500_krs' from data source `/Users/sebastiansauer/Documents/datasets/geo_maps/vg2500/vg2500_krs.shp' using driver `ESRI Shapefile'
+#&gt; Simple feature collection with 401 features and 4 fields
+#&gt; geometry type:  MULTIPOLYGON
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 280353.1 ymin: 5235878 xmax: 921021.2 ymax: 6101335
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
+head(vg2500_krs)
+#&gt; Simple feature collection with 6 features and 4 fields
+#&gt; geometry type:  MULTIPOLYGON
+#&gt; dimension:      XY
+#&gt; bbox:           xmin: 478836.8 ymin: 5913378 xmax: 629246.8 ymax: 6075267
+#&gt; epsg (SRID):    NA
+#&gt; proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
+#&gt;   ADE    RS         RS_0                 GEN
+#&gt; 1   4 01001 010010000000           Flensburg
+#&gt; 2   4 01002 010020000000                Kiel
+#&gt; 3   4 01003 010030000000              Lübeck
+#&gt; 4   4 01004 010040000000          Neumünster
+#&gt; 5   4 01051 010510000000        Dithmarschen
+#&gt; 6   4 01053 010530000000 Herzogtum Lauenburg
+#&gt;                         geometry
+#&gt; 1 MULTIPOLYGON (((531470.9568...
+#&gt; 2 MULTIPOLYGON (((577310.2796...
+#&gt; 3 MULTIPOLYGON (((624204.4378...
+#&gt; 4 MULTIPOLYGON (((567602.4930...
+#&gt; 5 MULTIPOLYGON (((479551.7420...
+#&gt; 6 MULTIPOLYGON (((616195.6437...
+</code></pre>
+
+<pre><code class="language-r">vg2500_krs %&gt;%
+  ggplot() +
+  geom_sf()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-09/unnamed-chunk-13-1.png" title="plot of chunk unnamed-chunk-13" alt="plot of chunk unnamed-chunk-13" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Ok, that&rsquo;s complete. How many of those &ldquo;Kreise&rdquo; do we have? Well, 401, that&rsquo;s the number of rows we have in the data frame.</p>
+
+<h1 id="unemployment-rates">unemployment rates</h1>
+
+<p>These data can as well be fetched from official sites, that&rsquo;s in this case the <a href="https://www.regionalstatistik.de/genesis/online/data;jsessionid=DD0F1F23A8F85AA60A700BD4596EABBF.reg2?operation=abruftabelleAbrufen&amp;selectionname=13211-01-03-4&amp;levelindex=1&amp;levelid=1507583743311&amp;index=1">&ldquo;Bundesämter für Statistik&rdquo;</a>. We consider here the unemployment rates of German counties for 2016 as provided by this agency.</p>
+
+<pre><code class="language-r">unemp_file &lt;- &quot;~/Documents/datasets/Strukturdaten_de/GUEST_9559782118415_Arbeitslosenquote_2016.csv&quot;
+file.exists(unemp_file)
+#&gt; [1] TRUE
+
+unemp_de_raw &lt;- read_csv2(unemp_file)
+unemp_de_raw %&gt;%
+  mutate(Wert = as.numeric(Wert)) %&gt;%
+  separate(Name, into = c(&quot;Name&quot;, &quot;vg_type&quot;), sep = &quot;,&quot;) -&gt; unemp_de
+
+unemp_de %&gt;%
+  filter(Name == &quot;Nürnberg&quot;)
+#&gt; # A tibble: 1 x 4
+#&gt;   Schluessel     Name vg_type  Wert
+#&gt;        &lt;chr&gt;    &lt;chr&gt;   &lt;chr&gt; &lt;dbl&gt;
+#&gt; 1      09564 Nürnberg    &lt;NA&gt;   6.6
+</code></pre>
+
+<h1 id="match-unemployment-to-geo-data">Match unemployment to geo data</h1>
+
+<p>Presumingly, we will not have a perfect match, but let&rsquo;s see how good or bad it will be out of the box.</p>
+
+<pre><code class="language-r">vg2500_krs %&gt;%
+  mutate(GEN = as.character(GEN)) %&gt;%
+  left_join(unemp_de, by = c(&quot;GEN&quot; = &quot;Name&quot;)) -&gt; vg2500_krs_unemp
+</code></pre>
+
+<p>Let&rsquo;s plot the unemployment rates per administrative area.</p>
+
+<pre><code class="language-r">vg2500_krs_unemp %&gt;%
+  ggplot() +
+  geom_sf(aes(fill = Wert)) +
+  labs(fill = &quot;unemployment\nrate&quot;) +
+  scale_fill_distiller(palette = &quot;RdYlGn&quot;) +
+  theme_void()
+</code></pre>
+
+<p><img src="https://sebastiansauer.github.io/images/2017-10-09/unnamed-chunk-16-1.png" title="plot of chunk unnamed-chunk-16" alt="plot of chunk unnamed-chunk-16" width="70%" style="display: block; margin: auto;" /></p>
+
+<p>Appeared to work pretty well; but I have not checked the details yet. For the top right state, Mecklenburg-Vorpommern, no data were made available by the agency.</p>
+
+              
+            </div>
+          </div>
+          <div id="post-footer" class="post-footer main-content-wrap">
+            
+              
+                
+                
+                  <div class="post-footer-tags">
+                    <span class="text-color-light text-small">TAGGED IN</span><br/>
+                    
+  <a class="tag tag--primary tag--small" href="/tags/rstats/">rstats</a>
+
+  <a class="tag tag--primary tag--small" href="/tags/plotting/">plotting</a>
+
+  <a class="tag tag--primary tag--small" href="/tags/politics/">politics</a>
+
+  <a class="tag tag--primary tag--small" href="/tags/populism/">populism</a>
+
+                  </div>
+                
+              
+            
+            
+  <div class="post-actions-wrap">
+      <nav >
+        <ul class="post-actions post-action-nav">
+          
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--default tooltip--top" href="/2017/10/afd-map/" data-tooltip="Mapping unemployment ratio to AfD election results in German Wahlkreise">
+              
+                  <i class="fa fa-angle-left"></i>
+                  <span class="hide-xs hide-sm text-small icon-ml">NEXT</span>
+                </a>
+            </li>
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--default tooltip--top" href="/2017/10/chloromap/" data-tooltip="Drawing a country map">
+              
+                  <span class="hide-xs hide-sm text-small icon-mr">PREVIOUS</span>
+                  <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+          
+        </ul>
+      </nav>
+    <ul class="post-actions post-action-share" >
+      
+        <li class="post-action hide-lg hide-md hide-sm">
+          <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions">
+            <i class="fa fa-share-alt"></i>
+          </a>
+        </li>
+        
+          <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/10/unemp-map/">
+              <i class="fa fa-facebook-official"></i>
+            </a>
+          </li>
+        
+          <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2017/10/unemp-map/">
+              <i class="fa fa-twitter"></i>
+            </a>
+          </li>
+        
+          <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2017/10/unemp-map/">
+              <i class="fa fa-google-plus"></i>
+            </a>
+          </li>
+        
+      
+      
+        <li class="post-action">
+          <a class="post-action-btn btn btn--default" href="#disqus_thread">
+            <i class="fa fa-comment-o"></i>
+          </a>
+        </li>
+      
+      <li class="post-action">
+        
+          <a class="post-action-btn btn btn--default" href="#">
+        
+          <i class="fa fa-list"></i>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+
+            
+              
+                <div id="disqus_thread">
+  <noscript>Please enable JavaScript to view the <a href="//disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+              
+            
+          </div>
+        </article>
+        <footer id="footer" class="main-content-wrap">
+  <span class="copyrights">
+    &copy; 2017 <a Sebastian Sauer CC-BY-SA 4.0 </a>. All Rights Reserved
+  </span>
+</footer>
+
+      </div>
+      <div id="bottom-bar" class="post-bottom-bar" data-behavior="4">
+        
+  <div class="post-actions-wrap">
+      <nav >
+        <ul class="post-actions post-action-nav">
+          
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--default tooltip--top" href="/2017/10/afd-map/" data-tooltip="Mapping unemployment ratio to AfD election results in German Wahlkreise">
+              
+                  <i class="fa fa-angle-left"></i>
+                  <span class="hide-xs hide-sm text-small icon-ml">NEXT</span>
+                </a>
+            </li>
+            <li class="post-action">
+              
+                <a class="post-action-btn btn btn--default tooltip--top" href="/2017/10/chloromap/" data-tooltip="Drawing a country map">
+              
+                  <span class="hide-xs hide-sm text-small icon-mr">PREVIOUS</span>
+                  <i class="fa fa-angle-right"></i>
+                </a>
+            </li>
+          
+        </ul>
+      </nav>
+    <ul class="post-actions post-action-share" >
+      
+        <li class="post-action hide-lg hide-md hide-sm">
+          <a class="post-action-btn btn btn--default btn-open-shareoptions" href="#btn-open-shareoptions">
+            <i class="fa fa-share-alt"></i>
+          </a>
+        </li>
+        
+          <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://www.facebook.com/sharer/sharer.php?u=/2017/10/unemp-map/">
+              <i class="fa fa-facebook-official"></i>
+            </a>
+          </li>
+        
+          <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://twitter.com/intent/tweet?text=/2017/10/unemp-map/">
+              <i class="fa fa-twitter"></i>
+            </a>
+          </li>
+        
+          <li class="post-action hide-xs">
+            <a class="post-action-btn btn btn--default" target="new" href="https://plus.google.com/share?url=/2017/10/unemp-map/">
+              <i class="fa fa-google-plus"></i>
+            </a>
+          </li>
+        
+      
+      
+        <li class="post-action">
+          <a class="post-action-btn btn btn--default" href="#disqus_thread">
+            <i class="fa fa-comment-o"></i>
+          </a>
+        </li>
+      
+      <li class="post-action">
+        
+          <a class="post-action-btn btn btn--default" href="#">
+        
+          <i class="fa fa-list"></i>
+        </a>
+      </li>
+    </ul>
+  </div>
+
+
+      </div>
+      <div id="share-options-bar" class="share-options-bar" data-behavior="4">
+  <i id="btn-close-shareoptions" class="fa fa-close"></i>
+  <ul class="share-options">
+    
+      <li class="share-option">
+        <a class="share-option-btn" target="new" href="https://www.facebook.com/sharer/sharer.php?u=%2F2017%2F10%2Funemp-map%2F">
+          <i class="fa fa-facebook-official"></i><span>Share on Facebook</span>
+        </a>
+      </li>
+    
+      <li class="share-option">
+        <a class="share-option-btn" target="new" href="https://twitter.com/intent/tweet?text=%2F2017%2F10%2Funemp-map%2F">
+          <i class="fa fa-twitter"></i><span>Share on Twitter</span>
+        </a>
+      </li>
+    
+      <li class="share-option">
+        <a class="share-option-btn" target="new" href="https://plus.google.com/share?url=%2F2017%2F10%2Funemp-map%2F">
+          <i class="fa fa-google-plus"></i><span>Share on Google&#43;</span>
+        </a>
+      </li>
+    
+  </ul>
+</div>
+<div id="share-options-mask" class="share-options-mask"></div>
+    </div>
+    
+    <div id="about">
+  <div id="about-card">
+    <div id="about-btn-close">
+      <i class="fa fa-remove"></i>
+    </div>
+    
+      <img id="about-card-picture" src="//www.gravatar.com/avatar/8851f7754d1792f008b8874cd258f5b7?s=110" alt="Author&#39;s picture" />
+    
+    <h4 id="about-card-name">Sebastian Sauer</h4>
+    
+      <div id="about-card-bio"><strong>Data Scie</strong>nce blog of Sebastian Sauer</div>
+    
+    
+      <div id="about-card-job">
+        <i class="fa fa-briefcase"></i>
+        <br/>
+        Data enthusiast
+      </div>
+    
+    
+      <div id="about-card-location">
+        <i class="fa fa-map-marker"></i>
+        <br/>
+        Nuremberg
+      </div>
+    
+  </div>
+</div>
+
+    <div id="algolia-search-modal" class="modal-container">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="close-button"><i class="fa fa-close"></i></span>
+      <a href="https://algolia.com" target="_blank" rel="noopener" class="searchby-algolia text-color-light link-unstyled">
+        <span class="searchby-algolia-text text-color-light text-small">by</span>
+        <img class="searchby-algolia-logo" src="https://www.algolia.com/static_assets/images/press/downloads/algolia-light.svg">
+      </a>
+      <i class="search-icon fa fa-search"></i>
+      <form id="algolia-search-form">
+        <input type="text" id="algolia-search-input" name="search"
+          class="form-control input--large search-input" placeholder="Search" />
+      </form>
+    </div>
+    <div class="modal-body">
+      <div class="no-result text-color-light text-center">no post found</div>
+      <div class="results">
+        
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="/2017/11/textmining-grundlagen/">
+                <h3 class="media-heading">Grundlagen des Textminings mit R</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Nov 11, 2017
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather">Lernziele:
+  - Sie kennen zentrale Ziele und Begriffe des Textminings. - Sie wissen, was ein &#39;tidy text dataframe&#39; ist. - Sie können Worthäufigkeiten auszählen. - Sie können Worthäufigkeiten anhand einer Wordcloud visualisieren. In dieser Übung benötigte R-Pakete:
+library(tidyverse) # Datenjudo library(stringr) # Textverarbeitung library(tidytext) # Textmining library(lsa) # Stopwörter library(SnowballC) # Wörter trunkieren library(wordcloud) # Wordcloud anzeigen  Bitte installieren Sie rechtzeitig alle Pakete, z.B. in RStudio über den Reiter Packages … Install.</div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="/2017/11/grundlagen-des-textminings-mit-r-teil-2/">
+                <h3 class="media-heading">Grundlagen des Textminings mit R - Teil 2</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Nov 11, 2017
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather">In dieser Übung benötigte R-Pakete:
+library(tidyverse) # Datenjudo library(stringr) # Textverarbeitung library(tidytext) # Textmining library(lsa) # Stopwörter library(SnowballC) # Wörter trunkieren library(wordcloud) # Wordcloud anzeigen library(skimr) # Überblicksstatistiken Aus dem letzten Post Daten einlesen:
+osf_link &lt;- paste0(&quot;https://osf.io/b35r7//?action=download&quot;) afd &lt;- read_csv(osf_link) Aus breit mach lang:
+afd %&gt;% unnest_tokens(output = token, input = content) %&gt;% dplyr::filter(str_detect(token, &quot;[a-z]&quot;)) -&gt; afd_long Stopwörter entfernen:
+data(stopwords_de, package = &quot;lsa&quot;) stopwords_de &lt;- data_frame(word = stopwords_de) # Für das Joinen werden gleiche Spaltennamen benötigt stopwords_de &lt;- stopwords_de %&gt;% rename(token = word) afd_long %&gt;% anti_join(stopwords_de) -&gt; afd_no_stop Wörter zählen:</div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="/2017/11/image-path-for-blogdown/">
+                <h3 class="media-heading">Image path for blogdown</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Nov 11, 2017
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather">How to include external images to a hugo post?
+Suppose we have a file img1.png in project1, ie., project1/img1.png. Do this:
+Copy your folder with images to static/. Use this path in your blogdown post: /project/img1.png.   Mind the leading slash!  Example time This code (on my machine) ![](/images/textmining/tidytext-crop.png){ width=&quot;20%&quot; }
+renders this:
+ Note the nice width option.
+ Knitr way The knitr way works similarly:
+knitr::include_graphics(&quot;/images/textmining/tidytext-crop.png&quot;)  </div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="/2017/11/test/">
+                <h3 class="media-heading">test</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Nov 11, 2017
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather"> knitr way
+knitr::include_graphics(&quot;/images/textmining/tidytext-crop.png&quot;) </div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="/2017/11/dummy-variables-and-regression/">
+                <h3 class="media-heading">Dummy variables and regression</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Nov 11, 2017
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather">For modeling cause-effect relationships, linear regression is among the most typically used methods.
+Take, for example, the idea that the Gross Domestic Product (GDP) drives religiosity. Of course, we should have a strong theory that defends this choice and this directionality. Without a convincing theory it may be argued that the cause-relationship is the other way round or complete different (ie., some third variable accounts for any association between GDP and religiosity).</div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="/2017/11/interactive-diagrams-in-lieu-of-shiny/">
+                <h3 class="media-heading">Interactive diagrams in lieu of shiny?</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Nov 11, 2017
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather">One frequent use of the Shiny server software is displaying interactive data diagrams. The pro of using Shiny is the great flexibility; much more than “just graphics” can be done.</div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="/2017/11/my-favorite-stats-text-book/">
+                <h3 class="media-heading">My favorite stats text book</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Nov 11, 2017
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather">Some thoughts how my favorite applied stats text book would look like. I am looking at eg., business fields such as MBA as consumers.
+My ideal applied stats text book is case study oriented (“Assume you would like to predict which movie will score highest next year based on some movie characteristics you know”)
+ makes use of recent data analytics techniques such as tree based methods (Random Forests) or Shrinkage models (Lasso)</div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="/2017/11/use-case-for-purrr-map/">
+                <h3 class="media-heading">Use case for purrr::map</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Nov 11, 2017
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather">library(tidyverse) d &lt;- data_frame( id = c(1,1,1,1,1,1,2,2,3,3,3,4,1,2,2) ) d$id %&gt;% map </div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="/2017/11/compute-effect-sizes-with-r-a-primer/">
+                <h3 class="media-heading">Compute effect sizes with R. A primer.</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Nov 11, 2017
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather">A typical “cook book recipe” for doing data analysis is an applied stats course is:
+report descriptive statistics plot some nice diagrams test hypothesis report effect sizes  Let’s have a quick glance at these steps. We will use the dataset flights of the package nycflights13.
+data(flights, package = &quot;nycflights13&quot;) This post will be tidyverse-driven.
+library(tidyverse) library(skimr) library(mosaic) Let’s compute some summaries:
+flights %&gt;% select(arr_delay) %&gt;% skim #&gt; Skim summary statistics #&gt; n obs: 336776 #&gt; n variables: 1 #&gt; #&gt; Variable type: numeric #&gt; var missing complete n mean sd min p25 median p75 max #&gt; 1 arr_delay 9430 327346 336776 6.</div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+          <div class="media">
+            
+            <div class="media-body">
+              <a class="link-unstyled" href="/2017/11/get-your-stats-result-in-a-table-easily/">
+                <h3 class="media-heading">Get your stats result in a table easily</h3>
+              </a>
+              <span class="media-meta">
+                <span class="media-date text-small">
+                  Nov 11, 2017
+                </span>
+              </span>
+              <div class="media-content hide-xs font-merryweather">Having computed some staticis, one would like to display them. Either in a figure, on in a table, that’s the two typical ways.
+Let’s explore some helper functions to get your stats to a table easily.
+A nice overview on packages can be found here.
+Let’s have a quick glance at these steps. We will use the dataset flights of the package nycflights13.
+data(flights, package = &quot;nycflights13&quot;) This post will be tidyverse-driven:</div>
+            </div>
+            <div style="clear:both;"></div>
+            <hr>
+          </div>
+        
+      </div>
+    </div>
+    <div class="modal-footer">
+      <p class="results-count text-medium"
+         data-message-zero="no post found"
+         data-message-one="1 post found"
+         data-message-other="{n} posts found">
+         144 posts found
+      </p>
+    </div>
+  </div>
+</div>
+    
+  
+    
+    <div id="cover" style="background-image:url('/images/wildblue.jpg');"></div>
+  
+
+
+    
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/2.2.4/jquery.min.js" integrity="sha256-BbhdlvQf/xTY9gja0Dq3HiwQF8LaCRTXxZKRutelT44=" crossorigin="anonymous"></script>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js" integrity="sha256-/BfiIkHlHoVihZdc6TFuj7MmJ0TWcWsMXkeDFwhi0zw=" crossorigin="anonymous"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/fancybox/2.1.7/js/jquery.fancybox.min.js" integrity="sha256-GEAnjcTqVP+vBp3SSc8bEDQqvWAZMiHyUSIorrWwH50=" crossorigin="anonymous"></script>
+
+
+<script src="/js/script-qi9wbxp2ya2j6p7wx1i6tgavftewndznf4v0hy2gvivk1rxgc3lm7njqb6bz.min.js"></script>
+
+
+
+<script>
+$(document).ready(function() {
+  hljs.configure({ classPrefix: '', useBR: false });
+  $('pre.code-highlight > code, pre > code').each(function(i, block) {
+    if (!$(this).hasClass('codeblock')) {
+      $(this).addClass('codeblock');
+    }
+    hljs.highlightBlock(block);
+  });
+});
+</script>
+
+
+  
+    
+      <script>
+        var disqus_config = function () {
+          this.page.url = '\/2017\/10\/unemp-map\/';
+          
+            this.page.identifier = '\/2017\/10\/unemp-map\/'
+          
+        };
+        (function() {
+          
+          
+          if (window.location.hostname == "localhost") {
+            return;
+          }
+          var d = document, s = d.createElement('script');
+          var disqus_shortname = 'https-sebastiansauer-github-io';
+          s.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+
+          s.setAttribute('data-timestamp', +new Date());
+          (d.head || d.body).appendChild(s);
+        })();
+      </script>
+    
+  
+
+
+
+    
+  </body>
+</html>
+
