@@ -1,0 +1,110 @@
+---
+title: Generalized rowwise operations using purrr::pmap
+author: Sebastian Sauer
+date: '2019-07-03'
+slug: generalized-rowwise-operations-using-purrr-pmap
+categories:
+  - rstats
+tags:
+  - rowwise
+  - purrr
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+```
+
+
+Rowwwise operations are a quite frequent operations in data analysis. The R language environment is particularly strong in *column* wise operations. This is due to technical reasons, as data frames are internally built as column-by-column structures, hence column wise operations are simple, rowwise more difficult.
+
+This post looks at some rather general way to comput rowwise statistics. Of course, numerous ways exist and there are quite a few tutorials around, notably by [Jenny Bryant](https://github.com/jennybc/row-oriented-workflows), and by [Emil Hvitfeldt](https://www.hvitfeldt.me/blog/purrr-tips-and-tricks/) to name a few.
+
+
+Let's work with these data:
+
+```{r}
+data(iris)
+```
+
+
+
+# Example 1
+
+Assume you'd like to compute a a row sum for each case. Let's neglect that there exist a function called `rowSums` which does this job nicely. However, there might be situations where the universe did not provide a ready-to-use function. Then a more general approach will be handy.
+
+
+```{r}
+iris2 <- iris %>% 
+  mutate(iris_sum = pmap(., sum))
+
+iris2 %>% 
+  select(iris_sum) %>% pull() %>% (head)
+```
+
+Hang on, what data type is this column of?
+
+```{r}
+class(iris2$iris_sum)
+```
+
+that's a list column. Let's unnest it.
+
+
+```{r}
+iris2 %>% 
+  unnest() %>% 
+  pull(iris_sum) %>% class()
+```
+
+OK.
+
+
+# Example 2
+
+Let's compute the `rowMeans` in a similar way. One compliation is that  `mean` does not take dots as input - as `sum` does - but takes vector input. Hence, we need to change the domain of the fucntion from vector to dots (list), that's what `lift_vd` does.
+
+
+
+```{r}
+iris2 <- iris %>% 
+  mutate(iris_mean = pmap(., lift_vd(mean))) %>% 
+  unnest()
+
+iris2 %>% 
+  select(iris_mean) %>% 
+  head()
+```
+
+
+# Bonus
+
+Instead of `pull` there's also `pluck` in `purrr`:
+
+
+```{r}
+iris2 %>% pluck("iris_mean")
+```
+
+
