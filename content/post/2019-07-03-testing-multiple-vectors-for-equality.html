@@ -1,0 +1,66 @@
+---
+title: Testing multiple vectors for equality
+author: Sebastian Sauer
+date: '2019-07-03'
+slug: testing-multiple-vectors-for-equality
+categories:
+  - rstats
+tags:
+  - datajudo
+---
+
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)</code></pre>
+</div>
+<div id="problem-statement" class="section level1">
+<h1>Problem statement</h1>
+<p>Assume we have some vectors (eg, 3), and we want to check if they are equal (the same elements in each vector). Assume further we do not in advance the number of vectors to check.</p>
+<p>Here’s some toy data.</p>
+<pre class="r"><code>a&lt;- c(1,2,3,4)
+b&lt;- c(1,2,3,5)
+c&lt;- c(1,3,4,5)</code></pre>
+</div>
+<div id="the-gist" class="section level1">
+<h1>The gist</h1>
+<p>This soluation is based on the code of <code>Akrun</code> from <a href="https://stackoverflow.com/questions/27470481/compare-multiple-vectors-at-the-same-time-in-r">this SO post</a> (slightly adapted).</p>
+<pre class="r"><code>sum(reduce(map2(list(a,b,c), list(a), `==`), `&amp;`))
+#&gt; [1] 1</code></pre>
+</div>
+<div id="explanation" class="section level1">
+<h1>Explanation</h1>
+<p>Let’s break that in handy pieces to get a grip on it.</p>
+<p>First, let’s take the three lists (a, b, c), and test if each elements is equal to the corresponding element from the first list (a):</p>
+<pre class="r"><code>list(a, b, c) %&gt;% 
+  map2(list(a), `==`)
+#&gt; [[1]]
+#&gt; [1] TRUE TRUE TRUE TRUE
+#&gt; 
+#&gt; [[2]]
+#&gt; [1]  TRUE  TRUE  TRUE FALSE
+#&gt; 
+#&gt; [[3]]
+#&gt; [1]  TRUE FALSE FALSE FALSE</code></pre>
+<p>The result tells us for each of the three lists (a, b, c) whether its <span class="math inline">\(i\)</span>th element is identical to the <span class="math inline">\(i\)</span>th element from the first list (a).</p>
+<p>Now we need to summarise (reduce) that. For example, the first of the <span class="math inline">\(i\)</span> (here, four) elements should be <code>T</code> if and only if all (three) are <code>T</code>. This is accomplished by the function <code>&amp;</code> in conjunction with <code>reduce</code>.</p>
+<pre class="r"><code>list(a, b, c) %&gt;% 
+  map2(list(a), `==`) %&gt;% 
+  reduce(`&amp;`)
+#&gt; [1]  TRUE FALSE FALSE FALSE</code></pre>
+<p>The above results tells us that none of the <code>i</code> (here, four) elements are identical across the (three) lists. That is, at least one of the elements of the list differs.</p>
+<p>Finally, we again have to summarise (reduce) this list to one element. Again, the result should only be true, if all are true.</p>
+<pre class="r"><code>list(a, b, c) %&gt;% 
+  map2(list(a), `==`) %&gt;% 
+  reduce(`&amp;`) %&gt;% 
+  reduce(`&amp;`)
+#&gt; [1] FALSE</code></pre>
+<p>Maybe more telling, we can exchange the second <code>reduce</code> by <code>mean</code>:</p>
+<pre class="r"><code>list(a, b, c) %&gt;% 
+  map2(list(a), `==`) %&gt;% 
+  reduce(`&amp;`) %&gt;% 
+  mean()
+#&gt; [1] 0.25</code></pre>
+<p>This coefficient is as a result scaled from 0 (no element is identical across all lists) to 1 (all elements at a given position are identical).</p>
+</div>
