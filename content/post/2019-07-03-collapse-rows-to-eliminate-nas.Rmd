@@ -1,0 +1,147 @@
+---
+title: Collapse rows to eliminate NAs
+author: Sebastian Sauer
+date: '2019-07-03'
+slug: collapse-rows-to-eliminate-nas
+categories:
+  - rstats
+tags:
+  - dplyr
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+```
+
+
+# Starters
+
+Assume you have this data frame:
+
+```{r}
+x <- tribble(
+  ~ colA, ~colB, ~colC,
+  NA, 1, NA,
+  1, NA, 1
+)
+
+x
+```
+
+
+But you want this one:
+
+```{r}
+y <- tribble(
+  ~ colA, ~colB, ~colC,
+  1, 1, 1
+)
+y
+```
+
+
+That is, you'd like to collapse rows so that if there's a NA in a column it is replaced by the value found in some other line. We assume there's only one value to be found, so no need to worry to decide which value to take.
+
+
+A simple, tidy way is to summarise each column using `sum`, where NAs are ignored. This amounts to nothing more than to collapse the rows, eliminating the NAs (assuming there's only one value, so there's nothing really to sum up).
+
+```{r}
+x %>% 
+  summarise_all(list(~ sum(., na.rm = TRUE)))
+
+```
+
+
+# More realistic example
+
+
+A typical use case would be that you have multiple rows per (say) observation with a lot of NAs, and you'd like to collapse rows per observation. Again, we assume that there will be only one value per observation per column (and the rest of elements are NAs).
+
+
+```{r}
+z <- tribble(
+  ~id, ~ colA, ~colB, ~colC,
+  1, NA, 1, NA,
+  1, 1, NA, 1,
+  2, NA, NA, 2,
+  2, NA, 2, NA
+)
+
+z
+```
+
+The Lego structure of the Tidyverse helps: All we need to add is ~~water~~ a grouping command, ie., `group_by()`.
+
+
+```{r}
+z %>% 
+  group_by(id) %>% 
+  summarise_all(list(~ sum(., na.rm = T)))
+```
+
+See what happened? For `colA` for `id` 2, there where only NAs. This fact has been documented by the zero value.
+
+Here's a way to get a NA for that case:
+
+
+
+```{r}
+z %>% 
+  group_by(id) %>% 
+  summarise_all(list(~ sum(., na.rm = T))) %>% 
+  transmute_all(list(~ na_if(., 0)))
+```
+
+# The Purrr(er) way
+
+As each column is a list, we can make use of list oriented functions from `purrr`:
+
+```{r}
+x %>% 
+  summarise_all(list(~ discard(., is.na)))
+```
+
+
+```{r}
+x2 <- tribble(
+  ~ colA, ~colB, ~colC,
+  NA, "A", NA,
+  "A", NA, "A"
+)
+
+x
+```
+
+
+The beauty is that `discard` is more general than `sum`. `discard` only discards some elements, and keeps others. `sum`  with `na.rm=T` is a special case where the elements are summed up and NA elements are dropped.
+
+```{r}
+x2 %>% 
+  summarise_all(list(~ discard(., is.na)))
+```
+
+Of course, grouping operations are possible too.
+
+

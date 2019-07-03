@@ -1,0 +1,208 @@
+---
+title: Testing for equality rowwise
+author: Sebastian Sauer
+date: '2019-07-03'
+slug: testing-for-equality-rowwise
+categories:
+  - rstats
+tags:
+  - rowwise
+  - purrr
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+```
+
+
+# Basic testing for equality
+
+Testing for equality in a kind of very basic function in computer (and data) science. There is a straightforward function in R to test for equality:
+
+
+```{r}
+identical(1, 1)
+identical("A", "A")
+identical(1, 2)
+identical(1, NA)
+```
+
+
+However this get more complicated if we want to compare more than two elements. One way to achieve this is to compute the number of the different items. If there's only one different item, then all ~~maybe~~ are the same. But, luckily we can at least say, if there are different numbers of different elements, the vectors are not the same.
+
+
+```{r}
+x <- c(1, 1, 1)
+y <- c(1, 1, 99)
+z <- c(1, 1, 1)
+
+length(unique(x))
+
+length(unique(y))
+
+
+```
+
+
+
+This approach generalizes to comparing two vector to see if they are identical.
+
+```{r}
+length(unique(x)) == length(unique(y))
+```
+
+The vectors `x` and `y` are not identical.
+
+
+# Be aware
+
+```{r}
+x2 <- c(99, 99, 99)
+
+length(unique(x)) == length(unique(x2))
+
+```
+
+Ths result delivers `TRUE` but the vectors are different.
+
+```{r}
+identical(x, x2)  # different vectors
+identical(x, z)  # identical vectors
+```
+
+
+# Testing columnwise in a data frame
+
+Let's take this method to a data frame.
+
+
+```{r}
+d <- tribble(
+  ~ colA, ~colB, ~colC,
+  1, 1, 1,
+  1, 1, 99,
+  1, NA, 1
+)
+```
+
+First, we compute the number of different values per column:
+
+```{r}
+d %>% summarise_all(list( ~ length(unique(.))))
+```
+
+Then we can check whether all are identical:
+
+```{r}
+d2 <- d %>% 
+  summarise_all(list( ~ length(unique(.)))) 
+```
+
+Often, when working with rowwise operations, it is helpful to transposte the data frame, as columnwise operations are easier. `gather` is a way to transpose a data frame.
+
+
+```{r}
+d2 %>% 
+  gather() %>% 
+  summarise(length(unique(value)))
+```
+
+The length of different values is greater than one (ie, 2), which tells us that not all values are identical.
+
+
+# Testing rowwise in a data frame
+
+
+Let's say we want to know whether row contains only identical elements, row 2 only identical elements, and so on. Put shortly, we test for equality rowwise in this data frame.
+
+```{r}
+d3 <- d %>% 
+  mutate(concatenated = pmap(., c)) %>% 
+  mutate(length_unique = map_int(concatenated, ~ length(unique(.))))
+d3
+```
+
+Let's deconstruct that to get a grip on it. The first `mutate` call simply constructs rowwise vectors of all columns. That is, for the first line, `1, 1, 1`, and `1, 1, 99` for the second line, and so on. 
+
+To access the list column `concatenated`, use list indexing:
+
+```{r}
+d3[["concatenated"]]
+```
+
+Each line is a simple (named) vector:
+
+```{r}
+d3[["concatenated"]] %>% str()
+```
+
+
+
+# Ignoring NAs rowwise
+
+There is a function called `discard` which discards elements of a list/vector if matching a condition such as `is.na`:
+
+```{r}
+d$colB %>% discard(is.na)
+```
+
+Let's apply that on our list column `concatenated`:
+
+
+```{r}
+d4 <- d3 %>% 
+  mutate(c_nona = map(concatenated, ~ discard(., is.na)))
+d4
+```
+
+In the third line of `d` there was one missing value, so the length of the vector in line 3 should be shorter:
+
+```{r}
+d4$c_nona[[3]]
+```
+
+
+```{r}
+d5 <- d4 %>% 
+  mutate(lu2 = map_int(c_nona, ~ length(unique(.))))
+d5
+```
+
+
+Note that the normal way of working with `mutate` in dplyr does not work with list columns, as they are no normal columns.
+
+```{r}
+d4 %>% 
+  mutate(lu2 = length(unique(c_nona)))
+```
+
+List columns consists of multiple elements, that's way we need `map` and friends.
+
+
+# Limitations
+
+Note that this approach only works for testing "one-equality", ie., if all values are the same. If you want to test, for example, of a target vector [1,2] is identical to the reference vector [3,4], testing the number of different items will not work. Obviously, in both cases there are 2 different values, but they are not identical. In other words, we can test for *inequality*  but not for *equality*.
+
+

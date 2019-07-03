@@ -1,0 +1,121 @@
+---
+title: Collapse rows to eliminate NAs
+author: Sebastian Sauer
+date: '2019-07-03'
+slug: collapse-rows-to-eliminate-nas
+categories:
+  - rstats
+tags:
+  - dplyr
+---
+
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)</code></pre>
+</div>
+<div id="starters" class="section level1">
+<h1>Starters</h1>
+<p>Assume you have this data frame:</p>
+<pre class="r"><code>x &lt;- tribble(
+  ~ colA, ~colB, ~colC,
+  NA, 1, NA,
+  1, NA, 1
+)
+
+x
+#&gt; # A tibble: 2 x 3
+#&gt;    colA  colB  colC
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1    NA     1    NA
+#&gt; 2     1    NA     1</code></pre>
+<p>But you want this one:</p>
+<pre class="r"><code>y &lt;- tribble(
+  ~ colA, ~colB, ~colC,
+  1, 1, 1
+)
+y
+#&gt; # A tibble: 1 x 3
+#&gt;    colA  colB  colC
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1     1     1</code></pre>
+<p>That is, you’d like to collapse rows so that if there’s a NA in a column it is replaced by the value found in some other line. We assume there’s only one value to be found, so no need to worry to decide which value to take.</p>
+<p>A simple, tidy way is to summarise each column using <code>sum</code>, where NAs are ignored. This amounts to nothing more than to collapse the rows, eliminating the NAs (assuming there’s only one value, so there’s nothing really to sum up).</p>
+<pre class="r"><code>x %&gt;% 
+  summarise_all(list(~ sum(., na.rm = TRUE)))
+#&gt; # A tibble: 1 x 3
+#&gt;    colA  colB  colC
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1     1     1</code></pre>
+</div>
+<div id="more-realistic-example" class="section level1">
+<h1>More realistic example</h1>
+<p>A typical use case would be that you have multiple rows per (say) observation with a lot of NAs, and you’d like to collapse rows per observation. Again, we assume that there will be only one value per observation per column (and the rest of elements are NAs).</p>
+<pre class="r"><code>z &lt;- tribble(
+  ~id, ~ colA, ~colB, ~colC,
+  1, NA, 1, NA,
+  1, 1, NA, 1,
+  2, NA, NA, 2,
+  2, NA, 2, NA
+)
+
+z
+#&gt; # A tibble: 4 x 4
+#&gt;      id  colA  colB  colC
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1    NA     1    NA
+#&gt; 2     1     1    NA     1
+#&gt; 3     2    NA    NA     2
+#&gt; 4     2    NA     2    NA</code></pre>
+<p>The Lego structure of the Tidyverse helps: All we need to add is <del>water</del> a grouping command, ie., <code>group_by()</code>.</p>
+<pre class="r"><code>z %&gt;% 
+  group_by(id) %&gt;% 
+  summarise_all(list(~ sum(., na.rm = T)))
+#&gt; # A tibble: 2 x 4
+#&gt;      id  colA  colB  colC
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1     1     1     1
+#&gt; 2     2     0     2     2</code></pre>
+<p>See what happened? For <code>colA</code> for <code>id</code> 2, there where only NAs. This fact has been documented by the zero value.</p>
+<p>Here’s a way to get a NA for that case:</p>
+<pre class="r"><code>z %&gt;% 
+  group_by(id) %&gt;% 
+  summarise_all(list(~ sum(., na.rm = T))) %&gt;% 
+  transmute_all(list(~ na_if(., 0)))
+#&gt; # A tibble: 2 x 4
+#&gt;      id  colA  colB  colC
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1     1     1     1
+#&gt; 2     2    NA     2     2</code></pre>
+</div>
+<div id="the-purrrer-way" class="section level1">
+<h1>The Purrr(er) way</h1>
+<p>As each column is a list, we can make use of list oriented functions from <code>purrr</code>:</p>
+<pre class="r"><code>x %&gt;% 
+  summarise_all(list(~ discard(., is.na)))
+#&gt; # A tibble: 1 x 3
+#&gt;    colA  colB  colC
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1     1     1</code></pre>
+<pre class="r"><code>x2 &lt;- tribble(
+  ~ colA, ~colB, ~colC,
+  NA, &quot;A&quot;, NA,
+  &quot;A&quot;, NA, &quot;A&quot;
+)
+
+x
+#&gt; # A tibble: 2 x 3
+#&gt;    colA  colB  colC
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1    NA     1    NA
+#&gt; 2     1    NA     1</code></pre>
+<p>The beauty is that <code>discard</code> is more general than <code>sum</code>. <code>discard</code> only discards some elements, and keeps others. <code>sum</code> with <code>na.rm=T</code> is a special case where the elements are summed up and NA elements are dropped.</p>
+<pre class="r"><code>x2 %&gt;% 
+  summarise_all(list(~ discard(., is.na)))
+#&gt; # A tibble: 1 x 3
+#&gt;   colA  colB  colC 
+#&gt;   &lt;chr&gt; &lt;chr&gt; &lt;chr&gt;
+#&gt; 1 A     A     A</code></pre>
+<p>Of course, grouping operations are possible too.</p>
+</div>
