@@ -1,0 +1,120 @@
+---
+title: Geoplotting - update to my MODAR-book
+author: Sebastian Sauer
+date: '2019-07-29'
+slug: geoplotting-update-to-my-modar-book
+categories:
+  - rstats
+tags:
+  - geoviz
+  - spatial
+  - plotting
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+In my [book](https://link.springer.com/book/10.1007%2F978-3-658-21587-3) on modern data analyisis using R, I show some basics of geoplotting. It seems that some software update for the package [simple features](https://github.com/r-spatial/sf) broke my code. So, here 's some update.
+
+
+# Load packages and data
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(viridis)
+library(sf)
+
+
+data(socec, package = "pradadata")
+data(wahlkreise_shp, package = "pradadata")
+
+```
+
+
+# Check data
+
+```{r}
+glimpse(socec)
+```
+
+```{r}
+glimpse(wahlkreise_shp)
+```
+
+
+Let's pick only a few columns to make life easier:
+
+```{r}
+socec_short <- socec %>%  # Spalten wählen und umbenennen
+  select(WKR_NAME = V03,
+         WKR_NR = V02,
+         wegzug = V11, # Wegzugssalde
+         migration = V19,  # Migrationsanteil
+         auslaender = V08,  # Auslaenderanteil
+         alq = V47,  # Arbeitslosenquote
+         migration = V19)  # Anteil mit Migrationshintergrund
+```
+
+
+
+# Join datasets
+
+There are two data sets: One for the socioeconomic indicators, one for the maps. Let's join them.
+
+
+```{r}
+socec_shape <- socec_short %>%  # Plotten (Arbeitslosigkeit)
+  left_join(wahlkreise_shp)
+```
+
+This step is not strictly needed (I did not do it the book), but it may save some typing.
+
+
+Now plot it:
+
+```{r}
+socec_shape %>% 
+  ggplot +
+   aes(fill = alq) +
+   theme_void() +
+   geom_sf(aes(geometry = geometry)) 
+
+socec_shape %>% 
+  ggplot +
+   aes(fill = migration) +
+   scale_fill_viridis() +
+   theme_void() +
+   geom_sf(aes(geometry = geometry)) 
+```
+
+
+
+# What went wrong in my book?
+
+- `geom_sf()` needs to be updated to `geom_sf(aes(geometry = geometry))`. Apparently, the data column with the geo data is not found automatically anymore. I'm unsure about the causes.
+- Typo on page 219: after `theme_void()` there was a `+` missing
+
+
+# sessionInfo
+
+```{r}
+sessionInfo()
+```
+
+
