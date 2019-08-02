@@ -1,0 +1,387 @@
+---
+title: Performance measures for `caret` and `lm()`
+author: Sebastian Sauer
+date: '2019-08-02'
+slug: performance-measures-for-caret-and-lm-r
+categories:
+  - rstats
+tags: []
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+Recently, I run into performance issue when fitting a linear model together with a resampling scheme and a tuning grid (via caret). The dataset was recently large - some 200k rows and approx. 20 columns (`nycflights13` train). Still, I was suprised that my machine got stuck during the computation. Now I wonder whether I ran into memory constraints (16BG on my machine), or whether some other stuff went wrong.
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(caret)
+library(stringr)
+```
+
+
+# Load data
+
+```{r}
+data("flights", package = "nycflights13")
+glimpse(flights)
+
+flights2 <- flights %>% 
+  select(-year) %>% 
+  drop_na()
+```
+
+
+
+Any NAs?
+```{r}
+anyNA(flights2)
+```
+
+
+# Define computation load
+
+
+
+Let's run with some different sample size to gauge the performance.
+
+
+Define the grid for the computation load, ie., sample size and number of predictors:
+
+```{r}
+sample_size <- c(100, 500, 1000, 5000, 1e04, 2*1e04, 1e05)
+
+k <- c(1, 2, 5, 10)
+```
+
+
+
+# Discard outcome vars
+
+We do not want to draw the outcome variabls as predictors, hence we exclude them:
+```{r}
+outcome_vars <- c("dep_delay", "arr_delay")
+
+pred_names <- names(flights2)[!(names(flights2) %in% outcome_vars)]
+pred_names
+
+str(pred_names)
+pred_names[outcome_vars]
+names(flights2)[outcome_vars]
+```
+
+
+Discarding using `purrr`:
+
+```{r}
+
+dummy <- str_detect(names(flights2), "_delay") %>% discard(.x = names(flights2), .p = .)
+dummy
+
+str(dummy)
+names(flights2)[outcome_vars]
+```
+
+
+Define index numbers of predictors:
+
+
+```{r}
+set.seed(42)
+pred_positions <- sample(x = 1:length(pred_names), size = 3)
+pred_positions
+
+pred_names <- pred_names[pred_positions]
+pred_names
+```
+
+
+
+And now we draw the desired number of preditors:
+
+```{r}
+flights_k <- select(flights, one_of(pred_names))
+```
+
+
+Put that into a function, and wait: some categorical columns are a pain. Consider `dest` with many levels. Let's put in a lever to include ony numerical columns.
+
+
+```{r}
+draw_preds_flights <- function(df = flights2, k, numeric_only = TRUE) {
+  
+  
+  if (numeric_only == TRUE) {
+    df <- df %>% select_if(is.numeric)
+  }
+
+  pred_names <- str_detect(names(df), "_delay") %>% discard(.x = names(df), .p = .)
+  
+  
+  pred_positions <- sample(x = 1:length(pred_names), size = k)
+  
+  pred_names_selected <- pred_names[pred_positions]
+
+  flights_k <- select(df, one_of(pred_names_selected))
+
+  return(flights_k)
+}
+```
+
+Test the function:
+
+
+```{r}
+draw_preds_flights(k = 7) %>% str()
+```
+
+Appears to work.
+
+
+Here's a cross val scheme:
+
+```{r}
+my_crossval <- trainControl(method = "cv",
+                            number = 5,
+                            allowParallel = TRUE)
+```
+
+Here's a scheme to turn it off:
+
+```{r}
+no_crossval <- trainControl(method = "none")
+```
+
+
+Now craft a function that performs a lm fit using caret given the compution load.
+
+```{r}
+
+lm_flights <- function(df = flights2, n, n_preds, crossval = my_crossval) {
+  
+  df <- draw_preds_flights(df = df, k = n_preds)
+  
+  # add outcome var:
+  df <- df %>% 
+    bind_cols(flights2 %>% select(arr_delay))
+  
+  df <- sample_n(df, size = n)
+  
+  lm_fit1 <- train(arr_delay ~ .,
+                 data = df,
+                 method = "lm",
+                 trControl = my_crossval) 
+  
+  return(lm_fit1)
+}
+```
+
+
+Test the function.
+
+
+
+```{r}
+start <- Sys.time()
+dummy <- lm_flights(n = 200, n_preds = 3)
+end <- Sys.time()
+
+time_taken <- end - start
+cat("Time taken: ", time_taken)
+```
+
+```{r}
+start <- Sys.time()
+dummy <- lm_flights(n = 1000, n_preds = 3)
+end <- Sys.time()
+
+time_taken <- end - start
+cat("Time taken: ", time_taken)
+```
+
+
+```{r}
+start <- Sys.time()
+dummy <- lm_flights(n = 1e5, n_preds = 3)
+end <- Sys.time()
+
+time_taken <- end - start
+cat("Time taken: ", time_taken)
+```
+
+
+Register cores:
+
+
+```{r}
+doMC::registerDoMC(cores = 2)
+```
+
+Now with more cores:
+
+```{r}
+start <- Sys.time()
+dummy <- lm_flights(n = 200, n_preds = 3)
+end <- Sys.time()
+
+time_taken <- end - start
+cat("Time taken: ", time_taken)
+```
+
+
+Half the time!
+
+
+```{r}
+start <- Sys.time()
+dummy <- lm_flights(n = 200, n_preds = 3, crossval = no_crossval)
+end <- Sys.time()
+
+time_taken <- end - start
+cat("Time taken: ", time_taken)
+
+summary(dummy)
+```
+
+Define function that just gives back the time taken:
+
+
+```{r}
+lm_flights_duration <- function(df = flights2, n, k, crossval = my_crossval) {
+  start <- Sys.time()
+  dummy <- lm_flights(df = df, n = n, n_preds = k, crossval = crossval)
+  end <- Sys.time()
+  
+  rm(dummy)
+
+  time_taken <- end - start
+  return(time_taken)
+}
+```
+
+
+Test it:
+
+
+```{r}
+lm_flights_duration(n = 200, k = 3)
+lm_flights_duration(n = 1000, k = 3)
+lm_flights_duration(n = 1e5, k = 3)
+```
+
+
+Low put that into a loop:
+
+
+```{r cache = TRUE}
+time_df <- tibble(n = NA,
+                  k = NA,
+                  time_taken = NA,
+                  trial = NA,
+                  run = NA)
+
+i <- 1
+j <- 1
+trial <- 1
+
+max_trial <- 10
+
+run <- 1
+
+
+for (i in seq_along(sample_size)) {  # loop for sample size
+  cat("n = ", sample_size[i], "\n")
+  
+  for (j in seq_along(k)) {  # loop for number of predictors (k)
+    cat("  k = ", k[j], "\n")
+    
+    for (trial in 1:max_trial) {
+      cat("    trial = ", trial, "\n")
+      cat("    run = ", run, "\n")
+      
+      lm_duration <- lm_flights_duration(n = sample_size[i], k = k[j])
+      cat("Time taken for present model computation: ", lm_duration, " s \n")
+    
+      time_df <- time_df %>% 
+        add_row(n = sample_size[i],
+                k = k[j],
+                trial = trial,
+                time_taken = lm_duration,
+                run = run)
+      
+      run <- run + 1
+    }
+  }
+}
+
+```
+
+
+# Show the results 
+
+Now let's put that together.
+
+```{r}
+time_df <- time_df %>% 
+  mutate(id = 1:nrow(time_df)) %>% 
+  group_by(k, n) %>% 
+  mutate(time_taken_avg = mean(time_taken, na.rm = TRUE)) %>% 
+  ungroup()
+
+time_df <- time_df %>% 
+  drop_na() 
+```
+
+
+```{r}
+time_df %>% 
+  ggplot(aes(x = n, y = time_taken, color = factor(k))) +
+  geom_point() +
+  scale_x_log10(breaks = sample_size) +
+  geom_line(aes(y = time_taken_avg, group = k)) +
+  labs(color = "k") +
+  scale_color_viridis_d()
+```
+
+
+For small samples, there's a large variance in computation time, with sample sizes augmenting, the computation time differences become more stable.
+
+
+
+```{r}
+time_df %>% 
+  drop_na() %>% 
+  ggplot(aes(x = n, y = time_taken, color = factor(k))) +
+  geom_point() +
+  scale_x_log10(breaks = c(1e1, 1e03, 1e04, 1e05)) +
+  geom_line(aes(y = time_taken_avg, group = k)) +
+  facet_wrap(~ k, labeller = label_context) +
+  labs(color = "k") +
+  scale_color_viridis_d()
+```
+
+
+# Debrief
+
+On average, the time for each model was acceptable. However, two things should be noted: First, non-numeric variables can consume much more time (if many levels are present). Second, parameter tuning and cross validation will soak up a lot of time. Assume there are 3 tuning parameters, and we test 5 values each (thus yielding 15 models). Assume further we will use a 10 times cross validation with 10 folds each, giving 100 repetitions. In sum, 15k repetitions will be needed. That will take ages, and possible a lot of memory can be exhausted.
+
