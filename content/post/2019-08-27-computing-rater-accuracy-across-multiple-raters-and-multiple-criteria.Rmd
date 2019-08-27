@@ -1,0 +1,286 @@
+---
+title: Computing rater accuracy across multiple raters and multiple criteria
+author: Sebastian Sauer
+date: '2019-08-27'
+slug: computing-rater-accuracy-across-multiple-raters-and-multiple-criteria
+categories:
+  - rstats
+tags:
+  - rstats
+  - tidyverse
+  - datawrangling
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+```
+
+
+
+# Background
+
+Computing inter-rater reliability is a well-known, albeit maybe not very frequent task in data analysis. If there's only one criteria and two raters, the proceeding is straigt forward; Cohen's Kappa is the most widely used coefficient for that purpose. It is more challenging to compare multiple raters on one criterion; Fleiss' Kappa is one way to get a coefficient. If there are multiple criteria, one way is to compute the mean of multiple Fleiss' coefficients. 
+
+However, a different way, and the way presented in this post, consists of checking of all raters agree on one given item (and repeating that for all items). If rater A assigns two tags/criteria (tag1, tag2) to item A, then the other raters may not assign different tags (eg tag3, tag4) to that item, if a match should be scored. Note that this proceeding allows for different numbers of tags/criteria for the items (eg., item 1 with only 1 tag, but item 2 with 3 tags etc.). However, our grading should give some points, if, say, rater1 assigns tag1 and tag2, but raters 2 and 3 only assign tag1.
+
+
+
+# Sample data
+
+Say, we would like to rate some tweets of policitians as to they express some form of populism, according to some widely accepted definition. Further assume, a number of raters (eg., 3) has hand-rated a number of tweets (eg., 250). Here are the results.
+
+Get the data from [here].
+
+```{r echo = FALSE}
+d <- read_csv(paste0(here::here(),"/static/download/d_rating.csv"))
+d
+```
+
+
+In this example, there were 5 criteria (or "tags" for that matter) that might be applied to a given tweet. The raters were free to assign several tags to a tweet. For example, `rater1` assigned tag `32` and tag `5` to tweet 7 (`32` means "criteria 3, subcriteria 2"), and so on. Hence, the column `selection` denotes the tags assigend to a tweet. Note that each row indicates one *assignment* (not one tweet).
+
+# Bundle tags into list column
+
+Of course, a number of different ways to transform the data are possible. Here, we transform the data into a wide format such that each rater is one column, and each line is a tweet. Each cell then indicates the selection of this rater for this this tweet. Importantly, this selection may encompass *more* than one tag, that's why things are a little bit hairy.
+
+
+First, we build a list column that holds the *selection* of a rater for one tweet. For example, the tags that rater1 gave to tweet 7 should now be encapsulated in one cell within the list column.
+
+
+```{r}
+d_l <- d %>% 
+  select(-text) %>%  # We don't neet it here, so we drop it
+  group_by(rater_name, tweet) %>% 
+  nest() %>% 
+  arrange(tweet, rater_name) %>% 
+  ungroup()
+
+d_l
+```
+
+
+As can be seen, there are data from three raters:
+
+```{r}
+d_l %>% 
+  count(rater_name)
+```
+
+
+However, rater 2 only rated a few items, compared to the other two raters.
+
+Each cell of `data` contains the tags for this rater-tweet pair, e.g.:
+
+```{r}
+d_l$data[[19]]
+```
+
+That is line 19:
+
+```{r}
+d_l %>% 
+  slice(19)
+```
+
+
+# Get into wide format
+
+
+Now we spread the data so that each rater has his/her column:
+
+
+
+```{r}
+d_spread <- d_l %>% 
+  spread(key = rater_name, value = data)
+
+d_spread
+```
+
+
+Now we have the data in a form where we can (quite) easily check something like "is the selection in line 1 the same for all rater-columns?", and so on for all lines. R preferes comparing rows instead of comparing lines, at least when it comes to comparing different variables. So, the data are now in a form that suits further comparison (ie., checking for equality).
+
+
+# Tidying 1: Vectors instead of tibbles
+
+Let's simplify the tibbles to vectors, for easier access:
+
+```{r}
+d_tidy1 <- d_spread %>% 
+  transmute_at(c("rater1", "rater2", "rater3"), list(~map(., "selection")))
+```
+
+Note that the column names must be quoted here. 
+
+So, what did we do? We said to R that the columns "at the names" rater1, rater2, rater3 should be transformed ("transmuted"). And how should they be tranformed? By pulling the column "selection" out of each selected column (ie., rater1, rater2, rater3). Why do we need `map`? Because we have many data frames to which we want to apply a function (in each row of `d_tidy1` there is one data frame in each of the selected columns!). `map` repeats (or maps) a function to each dataframe. The "pulling" of the vector is performed as standard operation of `map` if we do not further specify what `map` should do.
+
+```{r}
+d_tidy1
+```
+
+
+Some checks:
+
+
+```{r}
+d_tidy1$rater1[7]
+d_tidy1$rater2[1]
+d_tidy1$rater3[2]
+```
+
+
+
+# Tidying 2: Replace NULL values by NA
+
+If `map` does not find anything to pull out, it returns `NULL`, as is the case for rater2, see for example:
+
+```{r}
+d_tidy1 %>% 
+  slice(100:110)
+```
+
+That's why we might want to replace <NULL> by NA as some functions such as `==` cannot handle NULL, it seems (not quite sure why).
+
+
+
+```{r}
+d_tidy2 <- 
+  d_tidy1 %>% 
+  mutate(rater2 = map_if(rater2, is_empty, ~ NA))
+
+d_tidy2 %>%
+  slice(100:110)
+```
+
+Check:
+
+```{r}
+d_tidy2$rater2[110]
+```
+
+OK.
+
+# Check for equality for one tweet
+
+Now we are in the position to check if the values of one row are equal. If they are equal it means that the raters *agree* on their vote. This may well mean that they all asssigned multiple tags to this tweet under consideration. If so, it means that all of them assigned multiple tags. In each case, they must assign the same number of tags for (perfect) equality to hold (but we would want to give credit if say, they all assigned `tag1` but disagreed about other tags). 
+
+Also notice that not only a subset of the raters must have equal ratings, but all pairs of raters must have the same tag/value for equality to hold. In practice, we just lookup (for a given tweet) what the first rater assigned. Then we check if the next rater has the same assignment (and so on for rater3 etc.). 
+
+
+Say, `rater1` assigend `tag1`, and the other raters assigned `tag2`. Hence, we have a mismatch. We could check for that mismatch like this:
+
+```{r}
+rater1 <- ("tag1")
+assignments <- c("tag1", "tag2", "tag2")
+
+comps <- map2(rater1, assignments, `==`)
+comps
+```
+
+`map2` recyclyes the value(s) of `rater1` so that it has the same length as the second parameter, `assignments`, which decodes the ratings of all three raters. Now `map2` takes one element from `rater1` and one from `assignments` and checks for equality (`==`), and repeats that for each element.
+
+Finally, we can reduce that to one value:
+
+```{r}
+comps %>% 
+  reduce(`&`)
+```
+
+We reduce the vector by the logical "AND". Hence, we get a mismatch for this tweet (`FALSE`).
+
+
+For example, let's apply this idea to item 7:
+
+```{r}
+i <- 7
+map2(list(d_tidy2$rater1[[i]],
+          d_tidy2$rater2[[i]],
+          d_tidy2$rater3[[i]]), 
+     list(d_tidy2$rater1[[i]]), `==`) 
+```
+
+Note that rater 1 assigned two tags so that we have to check two times.
+
+Now we reduce these three vectors to one:
+
+
+```{r}
+map2(list(d_tidy2$rater1[[i]],
+          d_tidy2$rater2[[i]],
+          d_tidy2$rater3[[i]]), 
+     list(d_tidy2$rater1[[i]]), `==`) %>% 
+  reduce(`&`)
+```
+
+The three raters did not agree, neither for the first tag nor for the second.
+
+Let's double check that:
+
+```{r}
+d %>% 
+  filter(tweet == 7)
+```
+
+
+Correct, they did not agree about the first tag ("32"), because the other raters assigned "23". And they did not agree about "5" (as it was assigned only by rater 1).
+
+# Repeat that for all tweets
+
+
+There are 200 tweets, hence we repeat the above idea accordingly:
+
+```{r}
+accuracy <- NA
+
+for (i in 1:200){  # for each tweet
+   accuracy[[i]] <- map2(list(d_tidy2$rater1[[i]],
+                              d_tidy2$rater2[[i]],
+                              d_tidy2$rater3[[i]]), 
+                      list(d_tidy2$rater1[[i]]), `==`) %>%  
+     purrr::discard(function(x) all(is.na(x))) %>% 
+     reduce(`&`) %>%  # summarise over rater for this tweet
+     mean(na.rm = T)  # summarise over all responses for this tweet
+}
+
+accuracy
+```
+
+What we got back is the accuracy per tweet.
+
+
+We `discard`ed NAs, because `&` will handle `NA` as FALSE, thereby lowering the interreater reliability.
+
+
+# Overall accuracy
+
+To get the overall accuracy, just average over the accuracies per tweet:
+
+```{r}
+(mean_accuracy <- mean(accuracy, na.rm = T))
+```
+
+
+Not too high. Sigh.
+
