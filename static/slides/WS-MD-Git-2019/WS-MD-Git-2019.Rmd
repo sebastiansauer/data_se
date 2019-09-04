@@ -83,7 +83,7 @@ library(sessioninfo)
 library(plotly)
 library(here)
 library(DiagrammeR)
-
+library(DiagrammeRsvg)
 ```
 
 
@@ -91,7 +91,7 @@ library(DiagrammeR)
 ```{r paths-setup}
 proj_root <- here::here()
 base_url <- "/"
-fig_path <- "imgs/"
+fig_path <- "/imgs/"
 diagram_path <- "/Users/sebastiansaueruser/Documents/RRRing/Diagrams/"
 ```
 
@@ -112,14 +112,11 @@ myBib <- ReadBib("./bib.bib", check = FALSE)
 
 
 1. Worum geht es hier eigentlich?
+
 2. Markdown
-  1. Was ist Markdown?
-  2. Wozu ist es gut?
-  3. Wie funktioniert es?
+
 3. Git
-  1. Was ist Git?
-  2. Wozu ist es gut?
-  3. Wie funktioniert es?
+
 4. Fazit
 
 
@@ -178,8 +175,8 @@ Ein Forschungsbericht sollte wie ein *Kochrezept* sein: Alle Informationen sind 
 # Aber haben wir ein Problem mit geringer Reproduzierbarkeit?
 
 
-```{r out.height="50%"}
-knitr::include_graphics("https://www.nature.com/news/polopoly_fs/7.36716.1469695923!/image/reproducibility-graphic-online1.jpeg_gen/derivatives/landscape_630/reproducibility-graphic-online1.jpeg") 
+```{r out.height="40%"}
+knitr::include_graphics("https://www.nature.com/news/polopoly_fs/7.36716.1469695923!/image/reproducibility-graphic-online1.jpeg_gen/derivatives/landscape_630/reproducibility-graphic-online1.jpeg" ) 
 
 
 ```
@@ -410,7 +407,7 @@ Markdown ist eine sehr einfache Markup-Sprache (daher "Mark-Down").
 
 ---
 
-# Markdown is nicht Latex .footnote[zum Glück]
+# Markdown is nicht Latex 
 
 ```{tex, eval = FALSE, echo = TRUE}
 \makeatletter
@@ -426,14 +423,13 @@ Markdown ist eine sehr einfache Markup-Sprache (daher "Mark-Down").
  \colorbox{shadecolor}{##1}\hskip-\fboxsep
      % There is no \\@totalrightmargin, so:
      \hskip-\linewidth \hskip-\@totalleftmargin \hskip\columnwidth}%
- \MakeFramed {\advance\hsize-\width
-   \@totalleftmargin\z@ \linewidth\hsize
-   \@setminipage}}%
  {\par\unskip\endMakeFramed%
  \at@end@of@kframe}
 \makeatother
 ```
 
+
+Zum Glück.
 ---
 
 
@@ -450,8 +446,8 @@ Markdown ist eine sehr einfache Markup-Sprache (daher "Mark-Down").
 
 Mit dem Programm [Pandoc](http://pandoc.org/MANUAL.html) lassen sich Markup-Sprachen ineinander übersetzen.
 
-```{r results = "asis"}
-grViz("
+```{r pandoc-model, eval = FALSE, echo = FALSE, fig.align='center', fig.width = 8, fig.asp =  .81, out.width = "100%"}
+p_pandoc <- grViz("
 digraph pandoc {
 
   graph [overlap = true, fontsize = 10]
@@ -468,7 +464,19 @@ digraph pandoc {
 
 }
 ")
+
+
+p_svg <- export_svg(p_pandoc)
+
+write(p_svg, file = "imgs/p_pandoc.svg")
+#dput(p_svg, file = "img/p_pathmodel.svg")
 ```
+
+
+```{r}
+knitr::include_graphics("imgs/p_pandoc.svg")
+```
+
 
 ---
 
@@ -505,6 +513,7 @@ class: inverse
 4. Klicken Sie auf "Knit" (engl. für stricken) oder drücken Sie Strg-Shift-K
 
 
+[Erklärvideo](https://youtu.be/XWmOF1arO3I)
 
 ---
 
@@ -576,12 +585,13 @@ Metadaten sind Daten über Daten (hier: über ein Dokument), z.B.
 
 Metadaten werden in RMarkdown in einem Bereich, der mit `---` vorne und hinten abgegrenzt ist, definiert:
 
-```{yaml, eval = FALSE}
-\---
+```
+--- 
 title: "Das ist der Titel des Dokuments"
 author: "Hier steht der Name des Authors"
-date: `r Sys.Date()`
-\---
+date: `r Sys.Date()`  # Man kann auch R-Inline-Befehle einflechten
+--- 
+  
 ```
 
 
@@ -590,7 +600,7 @@ Das Format ist i.d.R. `Variable = Wert`.
 
 Genauer gesagt wird das ([YAML](https://en.wikipedia.org/wiki/YAML))-Format verwendet.
 
-Meist steht dieser Bereich zu Beginn des Dokuemnts (daher "YAML-Header").
+Meist steht dieser Bereich zu Beginn des Dokuments (daher "YAML-Header").
 
 
 ---
@@ -603,7 +613,8 @@ class: inverse
 
 
 ```{r echo = FALSE, comment = "", eval = TRUE}
-cat(htmltools::includeText("rmd2.txt"))
+cat(htmltools::includeText("rmd2.txt")) 
+
 ```
 
 
@@ -620,7 +631,7 @@ cat(htmltools::includeText("rmd2.txt"))
 ![](imgs/rmd_flow-crop.png)
 ]
 
-
+---
 
 
 class: center, middle, inverse
@@ -685,6 +696,38 @@ class: top, left
 ---
 
 
+
+# Animationen in HTML
+
+
+
+
+```{r leaflet, echo=FALSE, eval = TRUE}
+library(leaflet)
+library(widgetframe)
+
+
+df <- data.frame(
+  name = c("Frankfurt"),
+  lat = c(50.11092),
+  long = c(8.6832),
+  stringsAsFactors = FALSE)
+
+l <- leaflet(df) %>% 
+  addTiles() %>%
+  addCircleMarkers(~long, ~lat, 
+				   popup = ~name,
+				   stroke = FALSE,
+				   fillOpacity = 1)
+
+frameWidget(l)
+```
+
+---
+
+
+
+
 class: center, middle, inverse
 
 # Ja, aber - Sollte ich Markdown verwenden?
@@ -708,10 +751,10 @@ knitr::include_graphics("imgs/git-push-force.gif")
 
 
 
-# Ja, aber - ich liebe halt MS Word ...
+# Ja, aber - ich liebe MS Word ...
 
 
-Eine Seite, noch ein paar Seiten, und irgendwann ...
+Eine Seite mit Word, noch ein paar Seiten, und irgendwann ...
 
 
 
@@ -732,6 +775,285 @@ Markdown verkraftet auch große Dokumente.
 
 
 
+# Interactive diagrams
+
+```{r gganimate, eval = FALSE}
+library(gapminder)
+library(ggplot2)
+library(gganimate)
+
+ggplot(gapminder, aes(gdpPercap, lifeExp, size = pop, colour = country)) +
+  geom_point(alpha = 0.7, show.legend = FALSE) +
+  scale_colour_manual(values = country_colors) +
+  scale_size(range = c(2, 12)) +
+  scale_x_log10() +
+  facet_wrap(~continent) +
+  # Here comes the gganimate specific bits
+  labs(title = 'Year: {frame_time}', x = 'GDP per capita', y = 'life expectancy') +
+  transition_time(year) +
+  ease_aes('linear')
+```
+
+.center[
+![](imgs/gganimate.gif)
+]
+
+---
+
+
+
+
+
+
+
+
+# Buch "Moderne Datenanalyse mit R" (MODAR)
+
+- 500 Seiten
+- ~200 Abbildungen
+- ~200 R-Codes
+
+Relativ großes Doukument.
+
+Keine Schanppatmung beim Bearbeiten/Erstellen, aber relativ lange Kompilationsdauer (ca. 2 Minuten).
+
+
+```{r out.width = "50%"}
+knitr::include_graphics("imgs/modar.png")
+```
+
+
+---
+
+# Pro MODAR-Kapitel eine Datei
+
+
+```
+
+rmd_files: 
+[
+  "index.Rmd",
+  "01_Statistik_heute.Rmd",
+  "02_Hallo_R.Rmd",
+  "03_R_starten.Rmd",
+  "04_Erstkontakt.Rmd",
+  # "05_Datenstrukturen.Rmd",
+  "06_Datenimport_und_export.Rmd",
+
+  ...
+
+]
+```
+
+---
+
+# MODAR-Metadaten-Datei
+
+```
+title: "Moderne Datenanalyse mit R"
+subtitle: "Entwurf"
+author: "Sebastian Sauer"
+lang: de-De
+documentclass: book
+classoption: a4paper
+fontsize: 11pt
+fontfamily: mathpazo
+
+...
+
+```
+
+---
+
+# MODAR-Beispielseite
+
+```{r out.width="70%"}
+knitr::include_graphics("imgs/modar-sample1.png")
+```
+
+
+---
+
+
+#  `r emo::ji("weight_lifting_man")` Übung: HTML-Stylesheets 
+
+Vorab sind 13 HTML-Formatvorlagen (Stylesheets, Themes) installiert: “cerulean”, “cosmo”, “flatly”, “journal”, “lumen”, “paper”, “readable”, “sandstone”, “simplex”, “spacelab”, “united”, und “yeti”. [Hier](http://www.datadreaming.org/post/r-markdown-theme-gallery/) einige Beispiele.
+
+
+Probieren Sie verschiedene aus!
+
+```yaml
+---
+title: "test"
+output:
+  html_document:
+    theme: united
+---
+```
+
+---
+
+
+
+
+# Snytax-Highlighting
+
+Es gibt auch verschiedene Syntax-Highlight-Stile:
+
+>   highlight specifies the syntax highlighting style. Supported styles include  default, tango, pygments, kate, monochrome, espresso, zenburn, haddock, and textmate. Pass null to prevent syntax highlighting.
+
+[Überblick](https://www.garrickadenbuie.com/blog/pandoc-syntax-highlighting-examples/) 
+
+
+
+Passen Sie Ihren YAML-Header entsprechend an:
+
+```yaml
+---
+title: "test"
+output:
+  html_document:
+    # theme: united
+    highlight: tango
+---
+```
+
+
+
+
+
+
+---
+
+#  `r emo::ji("weight_lifting_man")` Übung: Prettydoc-Stylesheets (für HTML)
+
+
+1. Installieren Sie das R-Paket `prettydoc` mit `install.packages("prettydoc")`.
+2. Öffnen Sie eine neue Rmd-Datei "from Template"
+3. Wählen Sie die `prettydoc`-Vorlage
+4. Basteln Sie nach Herzenslust daran herum.
+5. Wählen Sie weitere Vorlagen etc.
+
+[Projektseite](https://github.com/yixuan/prettydoc)
+
+
+---
+
+
+#  `r emo::ji("weight_lifting_man")` Übung: Chunk-Options
+
+R-Chunks kann man mit Optionen versehen, um die Ausgabe zu steuern.
+
+Entschlüsseln Sie die Bedeutung der Chunk-Optionen!
+
+```{r echo = FALSE, comment = "", eval = TRUE}
+cat(htmltools::includeText("rmd3.txt")) 
+
+```
+
+Lesen Sie [hier](https://yihui.name/knitr/options/) mehr über Chunk-Optionen!
+
+
+
+---
+
+# Grundlagen des Zitierens
+
+.pull-left[
+- Zitations-Infos sollten im Bib-Format in einer Datei abgelegt sein (s. rechte Seite).
+- Im YAML-Header wird der Dateiname mit den Zitationsinfos festgelegt.
+- Außerdem wird im YAML-Header etwaige Zitationsstile (z.B. APA6) definiert. 
+]
+
+
+.pull-right[
+```
+@article{baker_1500_2016,
+  title = {1,500 Scientists Lift ...},
+  volume = {533},
+  issn = {0028-0836, 1476-4687},
+  language = {en},
+  number = {7604},
+  journal = {Nature},
+  doi = {10.1038/533452a},
+  author = {Baker, Monya},
+  month = may,
+  year = {2016},
+  pages = {452-454}
+}
+```
+]
+
+
+
+---
+
+
+#  `r emo::ji("weight_lifting_man")` Übung: Zitieren
+
+
+
+1. Erstellen Sie eine Datei namens  `Literatur.bib` im Verzeichnis Ihrer Rmd-Datei.
+2. Kopieren Sie einen Zitationseintrag im Bib-Format
+
+
+
+
+---
+
+class: middle, center, inverse
+
+
+# Fazit
+
+---
+
+# [Buch](https://bookdown.org/yihui/rmarkdown/) zum Einstieg
+
+```{r out.width="30%"}
+knitr::include_graphics("imgs/rmd-def-cover.jpg")
+```
+
+---
+
+# [Dieses](https://bookdown.org/yihui/bookdown/) ist auch gut
+
+```{r out.width="30%"}
+knitr::include_graphics("imgs/bookdown-cover.jpg")
+```
+
+---
+
+
+# OK, es kann auch Probleme geben
+
+```{r}
+knitr::include_graphics("imgs/overhead-bin.gif")
+```
+
+`r icon::fa("stack-overflow", size = 1)` [StackOverflow](https://stackoverflow.com/) ist der Retter in Not.
+
+
+---
+
+class: center, inverse
+
+# Danke für die Aufmerksamkeit
+
+Sebastian Sauer
+#### `r icon::fa("github", size = 1)` [sebastiansauer](https://github.com/sebastiansauer)
+#### `r icon::fa("link", size = 1)` <https://data-se.netlify.com/>
+#### `r icon::fa("envelope", size = 1)` ssauer@posteo.de
+#### `r icon::fa("linkedin-in", size = 1)` [Sebastian Sauer](https://www.linkedin.com/in/dr-sebastian-sauer-4791762)
+
+#### `r icon::fa("file", size = 1)` Get slides here: 
+
+<http://data-se.netlify.com/slides/rmd-writing/rmd-writing_dgps2018.html#1>
+
+CC-BY
+
+
+.footnote[Built using R, RMarkdown, Xaringan. Inspiration from and thanks to [Yihui Xie](https://slides.yihui.name/2017-rmarkdown-UNL-Yihui-Xie.htm) and [Antoine Bichat](https://abichat.github.io/Slides/ScienceCommunicationSOTR/ScienceCommunicationSOTR.html), among others]
 
 ---
 
