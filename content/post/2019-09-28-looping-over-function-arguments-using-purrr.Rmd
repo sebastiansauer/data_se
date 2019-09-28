@@ -1,0 +1,96 @@
+---
+title: Looping over function arguments using purrr
+author: Sebastian Sauer
+date: '2019-09-28'
+slug: looping-over-function-arguments-using-purrr
+categories:
+  - rstats
+tags:
+  - purrr
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+```
+
+
+
+# Problem statement
+
+
+Assume you have to call a function multiple times, but each with (possibly) different argument. Given enough repitioons, you will not want to repeat yourself.  
+In other words, we would like to loop over function arguments, each round in the loop giving the respective argument'value(s) to the function.
+
+One example would be to generate many random values but each with different mean and/or sd:
+
+
+```{r}
+rnorm(n = 1, mean = 0, sd = 1)
+rnorm(n = 2, mean = 0, sd = 2)
+rnorm(n = 3, mean = 0, sd = 3)
+# heck, my wrists strains!
+```
+
+
+Note that some arguments may not change.
+
+
+# Enter purrr
+
+One way to build a loop is using `purrr`.
+
+First we define the list of arguments.
+
+```{r}
+args <- list(sd = c(1, 2, 3), n = c(1, 2, 3))
+```
+
+
+If we have some arguments that do not change, we can come up with a "prefilled" function, called a `partial` in purrr:
+
+```{r}
+rnorm_m0 <- partial(rnorm, mean = 0)
+```
+
+
+With `pmap` we can map many lists ("values", here: arguments and their values) to a function.
+
+
+The following image taken from Hadley Wickham's book [Advanced R](https://adv-r.hadley.nz/functionals.html) helps to visualize what `pmap` does:
+
+![](https://d33wubrfki0l68.cloudfront.net/2eb2eefe34ad6d114da2a22df42deac8511b4788/5a538/diagrams/functionals/pmap-arg.png)
+
+```{r}
+set.seed(42)
+pmap(args, rnorm_m0)
+```
+
+Alternatively, we can directly hand-over the "constant" argument to `pmap`:
+
+```{r}
+set.seed(42)
+pmap(args, rnorm, mean = 0)
+```
+
