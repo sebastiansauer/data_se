@@ -1,0 +1,63 @@
+---
+title: Looping over function arguments using purrr
+author: Sebastian Sauer
+date: '2019-09-28'
+slug: looping-over-function-arguments-using-purrr
+categories:
+  - rstats
+tags:
+  - purrr
+---
+
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)</code></pre>
+</div>
+<div id="problem-statement" class="section level1">
+<h1>Problem statement</h1>
+<p>Assume you have to call a function multiple times, but each with (possibly) different argument. Given enough repitioons, you will not want to repeat yourself.<br />
+In other words, we would like to loop over function arguments, each round in the loop giving the respective argument’value(s) to the function.</p>
+<p>One example would be to generate many random values but each with different mean and/or sd:</p>
+<pre class="r"><code>rnorm(n = 1, mean = 0, sd = 1)
+#&gt; [1] -1.125083
+rnorm(n = 2, mean = 0, sd = 2)
+#&gt; [1] 2.542126 4.880299
+rnorm(n = 3, mean = 0, sd = 3)
+#&gt; [1]  0.3925394 -0.4260117  0.0236865
+# heck, my wrists strains!</code></pre>
+<p>Note that some arguments may not change.</p>
+</div>
+<div id="enter-purrr" class="section level1">
+<h1>Enter purrr</h1>
+<p>One way to build a loop is using <code>purrr</code>.</p>
+<p>First we define the list of arguments.</p>
+<pre class="r"><code>args &lt;- list(sd = c(1, 2, 3), n = c(1, 2, 3))</code></pre>
+<p>If we have some arguments that do not change, we can come up with a “prefilled” function, called a <code>partial</code> in purrr:</p>
+<pre class="r"><code>rnorm_m0 &lt;- partial(rnorm, mean = 0)</code></pre>
+<p>With <code>pmap</code> we can map many lists (“values”, here: arguments and their values) to a function.</p>
+<p>The following image taken from Hadley Wickham’s book <a href="https://adv-r.hadley.nz/functionals.html">Advanced R</a> helps to visualize what <code>pmap</code> does:</p>
+<p><img src="https://d33wubrfki0l68.cloudfront.net/2eb2eefe34ad6d114da2a22df42deac8511b4788/5a538/diagrams/functionals/pmap-arg.png" /></p>
+<pre class="r"><code>set.seed(42)
+pmap(args, rnorm_m0)
+#&gt; [[1]]
+#&gt; [1] 1.370958
+#&gt; 
+#&gt; [[2]]
+#&gt; [1] -1.1293963  0.7262568
+#&gt; 
+#&gt; [[3]]
+#&gt; [1]  1.8985878  1.2128050 -0.3183735</code></pre>
+<p>Alternatively, we can directly hand-over the “constant” argument to <code>pmap</code>:</p>
+<pre class="r"><code>set.seed(42)
+pmap(args, rnorm, mean = 0)
+#&gt; [[1]]
+#&gt; [1] 1.370958
+#&gt; 
+#&gt; [[2]]
+#&gt; [1] -1.1293963  0.7262568
+#&gt; 
+#&gt; [[3]]
+#&gt; [1]  1.8985878  1.2128050 -0.3183735</code></pre>
+</div>
