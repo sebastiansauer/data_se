@@ -1,0 +1,205 @@
+---
+title: Simple proof that the correlation coefficient cannot exceed abs(1)
+author: Sebastian Sauer
+date: '2019-10-07'
+slug: simple-proof-that-the-correlation-coefficient-cannot-exceed-abs-1
+categories:
+  - diverse
+tags:
+  - rstats
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(MASS)
+```
+
+
+
+
+# Motivation
+
+It is well-known that the notorious (Pearson's) correlation cannot exceed an absolute value greater than 1, that is
+
+$$
+-1 \le r \le +1
+$$
+
+or
+
+$$
+|r| \le 1
+$$
+
+
+
+However, proofing this fact is less straightforward. A classical way of proofing the above inequality is by using the Cauchy-Schwarz inequality. From a teacher's perspective, the CS inequality may not be ideal, because the students may lack some knowledge necessary for appreciating this proof. In order to provide teachers's (or anyone else for that matter), this posts provides an alternative way, one that does not demand much more than basical algebra and some knowledge about descriptive statistics (particularly including z-scores and correlation). This posts builds on [this paper](https://www.google.de/url?sa=t&rct=j&q=&esrc=s&source=web&cd=2&cad=rja&uact=8&ved=0CDYQFjAB&url=http://wwwg.uni-klu.ac.at/stochastik.schule/2001-10_abstracts/Beitraege/2002-1_riedwyl.pdf&ei=ipd1VJyvH873auHwgIgP&usg=AFQjCNFZXczeveqpwiXgm-yME2qIF2ck2w&sig2=).
+
+
+# Definitions
+
+
+Assume there are two sets of measurements (values), where $x_i$ and $y_i$ denote the $i$ measurement, $i = 1, 2, \ldots, n$. The (empirical) correlation $r$ can then be defined as
+
+
+$$
+r_{xy} = r = \frac{s_{xy}}{s_x s_y}
+$$
+
+
+where $s_x$ denotes the standard deviation of $X$, and $s_xy$ the covariancee of $x$ and $y$.
+
+
+Let's denote $x_i - \bar{x}$ with $dx_i$ (and $dy_i$ in the obvious way).
+
+
+Note the analoguous definition of $s^2_x$ and $s_{xy}$:
+
+
+$$
+\begin{align}
+s^2_x  &= \frac{1}{n}\sum{dx_i^2} = \frac{1}{n}\sum{(dx_i \cdot dx_i)} \\
+s_{xy} &= \frac{1}{n}\sum{(dx_i \cdot dy_i)}
+\end{align}
+$$
+
+Hence
+
+$$
+\begin{align}
+\sqrt{s_x^2 \cdot s_y^2} = s_{xy}
+\end{align}
+$$
+
+
+In other words: The variance $s_x=\frac{1}{n}\sum{(dx_i\cdot dx_i)}$ equals the covariance if we let the *second* $dx_i$ equal $dy_i$.
+
+
+
+$$
+\begin{align}
+s_{x}s_y &= \sqrt{\frac{1}{n} \sum (dx_i)^2 \cdot \frac{1}{n} \sum (dy_i)^2 }\\
+&= \frac{1}{n} \sum {(dx_i\cdot  dy_i)} 
+\end{align}
+$$
+
+
+As the z-score is defined as 
+
+$$
+z = \frac{x_i - \bar{x}}{s_x}
+$$
+
+
+we may also define $r$ as
+
+
+$$
+r = \frac{1}{n} \sum{(z_x \cdot z_y)}
+$$
+
+
+# Intuition about the magnitude or $r$
+
+
+Let's simulate some correlated data.
+
+
+```{r}
+d <- mvrnorm(n = 100, mu = c(0,0) , Sigma = matrix(c(1, 0.7, 0.7, 1), nrow = 2), empirical = TRUE) 
+
+d <- as_tibble(d)
+```
+
+
+
+
+Let's color the dots with respect of the *sign* of the product of $V1$ and $V2$.
+
+```{r}
+d <- d %>% 
+  mutate(dot_sign = ifelse(V1*V2 > 0, "pos", "neg"))
+```
+
+
+
+```{r}
+ggplot(d, aes(V1, V2, color = dot_sign)) +
+  geom_point() +
+  geom_vline(xintercept = mean(d$V1), linetype = "dashed") +
+  geom_hline(yintercept = mean(d$V1), linetype = "dashed")
+```
+
+
+We see four "regions", two with positive and two with negative sign.
+
+Observe that in the two "positive" regions the product of V1 and V2 is positive, and in the two negative regions, their product is negative.
+
+
+# Some properties of z-scores and their sums and products
+
+Further note that - as squares cannot be negative - this term must be nonnegative:
+
+
+$$
+(z_{x_i} + z_{y_i})^2
+$$
+
+for each $i$.
+
+
+Similarly,
+
+$$
+\frac{1}{n}\sum{(z_{x_i} + z_{y_i})^2} \ge 0 \qquad \text{eq. 3}
+$$
+
+
+Read the above equation as "the average squared sum of two z-scores must be nonnegative."
+
+Now multiply out the binomial part of the last step:
+
+
+$$
+\begin{align}
+\frac{1}{n}\sum{ \left[ z_x^2 + 2z_x z_y + z_y^2 \right] } &\ge 0 \\
+\frac{1}{n}\sum z_x^2  + 2\frac{1}{n}\sum z_x z_y + \frac{1}{n}\sum z_y^2 &\ge 0  \qquad \text{Note that }\frac{1}{n}\sum z^2 = 1 \\
+1 + 2 r_{xy} + 1 \ge 0 &\\
+2 + 2r_{xy} \ge 0 &\\
+r_{xy} \ge -1 
+\end{align}
+$$
+
+
+
+If we change the plus sign in eq. 3 into a minus sign, we get $r_{xy} \le 1$. In sum:
+
+$$
+-1 \le r_{xy} \le +1
+$$
+
+
+Hence, we have found that the $r$ cannot exceed an absolute values of 1.
+
