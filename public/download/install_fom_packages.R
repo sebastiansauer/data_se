@@ -24,9 +24,13 @@ install_fom_packages <- function(selection = "standard"){
   names(selection_value) <- selection_key
 
 
+  if(!selection %in% selection_key)
+    error("Error: invalid choice for parameter `selection`")
+
+
   # determine the selected bundle of pckgs to be installed:
 
-  selected_bundle <- selection_value[[selection_key]]
+  selected_bundle <- selection_value[[selection]]
 
 
 
@@ -36,7 +40,7 @@ install_fom_packages <- function(selection = "standard"){
   if(length(pckgs_tobeinstalled)) {
     install.packages(pckgs_tobeinstalled)
     } else {
-      cat("No packages were missing. No packages have been installed")}
+      cat("No packages were missing. No packages have been installed.\n")}
 
   if ("tinytex" %in% pckgs_tobeinstalled)
     cat("After installing `tinytex`, don't forget to install tex by using this commend `tinytex::install_tinytex()`.\nCheck out here more details: https://yihui.name/tinytex/ \n")
