@@ -1,0 +1,155 @@
+---
+title: P-values are equally distributed under the H0, a simulation
+author: Sebastian Sauer
+date: '2019-10-11'
+slug: p-values-are-equally-distributed-under-the-h0
+categories:
+  - rstats
+tags:
+  - stats
+  - inference
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(mosaic)
+```
+
+
+
+# Motivation
+
+The p-value is a ubiquituous tool for gauging the plausibility of a Null hypothesis. More specifically, the p-values indicates the probability of obtaining a test statistic at least as extreme as in the present data if the Null hypothesis was true and the experiment would be repeated an infinite number of times (under the same conditions except the data generating process).
+
+The distribution of the p-values depends on the strength of some effect (among other things). The bigger the effect, the smaller the p-values (ceteris paribus). In the extreme, if the effect is zero, that is, if the Null is true, the distribution will be equally spread out. As this sounds not overly intuitive maybe, let's simulate it.
+
+
+There are of course nice proofs out there, [this one](https://www.quora.com/Why-are-p-values-uniformly-distributed-under-the-null-hypothesis) is quite straigt forward for example.
+
+
+# Simulate p-values for the Null
+
+
+Let our experiment consist of a t-test with two groups of n=30, and the Null being true. Further, let the distribution be standard normal. We'll test two-sided, and take an alpha of .05 for granted.
+
+
+Let's simply extract the p-value:
+
+```{r}
+
+get_p_from_ttest_sim <- function(n = 30, my_m = 0, my_sd = 1) {
+  
+  sample1 <- rnorm(n = n, mean = my_m, sd = my_sd) 
+  sample2 <- rnorm(n = n, mean = my_m, sd = my_sd)  
+  
+  p <- t.test(x = sample1, y = sample2)$p.value
+  
+  p <- list(p_value = p)
+  
+  return( p)
+}
+
+```
+
+
+Test it:
+
+```{r}
+get_p_from_ttest_sim()
+```
+
+
+Now rerun this simulated experiment a couple of times:
+
+
+```{r}
+k <- 1e05
+ps <- do(k) * get_p_from_ttest_sim()
+```
+
+
+
+# Plot it
+
+
+
+
+```{r}
+gf_histogram(~p_value, data = ps, bins = 10)
+```
+
+
+# Closer look
+
+
+Let's compute the proportion of significant p-values, ie p<.05. That should sum up to approx. 5%.
+
+```{r}
+ps %>% 
+  filter(p_value < .05) %>% 
+  summarise(p_prop = n()/k)
+```
+
+
+
+And now let's cut the range in 10 bins:
+
+
+```{r}
+ps %>% 
+  mutate(bins = cut(p_value, breaks = 11)) %>% 
+  group_by(bins) %>% 
+  summarise(p_prop = n())
+```
+
+
+Approximately identical group sizes.
+
+
+Finally, let's check the lower p-values to see if they are also equally distributed. Note that we reduce the sample size greatly by filtering on a small part of p-values so we should expect more variation around the expected value.
+
+
+```{r}
+ps %>% 
+  filter(p_value <= .05) %>% 
+  mutate(bins =cut(p_value, breaks = 11)) %>% 
+  group_by(bins) %>% 
+  summarise(p_prop = n())
+```
+
+
+
+As said there appears to be quite some variation within these bins.
+
+And even more close-up:
+
+
+```{r}
+ps %>% 
+  filter(p_value <= .005) %>% 
+  mutate(bins =cut(p_value, breaks = 11)) %>% 
+  group_by(bins) %>% 
+  summarise(p_prop = n())
+```

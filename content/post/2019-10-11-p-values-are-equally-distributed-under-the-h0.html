@@ -1,0 +1,124 @@
+---
+title: P-values are equally distributed under the H0, a simulation
+author: Sebastian Sauer
+date: '2019-10-11'
+slug: p-values-are-equally-distributed-under-the-h0
+categories:
+  - rstats
+tags:
+  - stats
+  - inference
+---
+
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)
+library(mosaic)</code></pre>
+</div>
+<div id="motivation" class="section level1">
+<h1>Motivation</h1>
+<p>The p-value is a ubiquituous tool for gauging the plausibility of a Null hypothesis. More specifically, the p-values indicates the probability of obtaining a test statistic at least as extreme as in the present data if the Null hypothesis was true and the experiment would be repeated an infinite number of times (under the same conditions except the data generating process).</p>
+<p>The distribution of the p-values depends on the strength of some effect (among other things). The bigger the effect, the smaller the p-values (ceteris paribus). In the extreme, if the effect is zero, that is, if the Null is true, the distribution will be equally spread out. As this sounds not overly intuitive maybe, let’s simulate it.</p>
+<p>There are of course nice proofs out there, <a href="https://www.quora.com/Why-are-p-values-uniformly-distributed-under-the-null-hypothesis">this one</a> is quite straigt forward for example.</p>
+</div>
+<div id="simulate-p-values-for-the-null" class="section level1">
+<h1>Simulate p-values for the Null</h1>
+<p>Let our experiment consist of a t-test with two groups of n=30, and the Null being true. Further, let the distribution be standard normal. We’ll test two-sided, and take an alpha of .05 for granted.</p>
+<p>Let’s simply extract the p-value:</p>
+<pre class="r"><code>
+get_p_from_ttest_sim &lt;- function(n = 30, my_m = 0, my_sd = 1) {
+  
+  sample1 &lt;- rnorm(n = n, mean = my_m, sd = my_sd) 
+  sample2 &lt;- rnorm(n = n, mean = my_m, sd = my_sd)  
+  
+  p &lt;- t.test(x = sample1, y = sample2)$p.value
+  
+  p &lt;- list(p_value = p)
+  
+  return( p)
+}</code></pre>
+<p>Test it:</p>
+<pre class="r"><code>get_p_from_ttest_sim()
+#&gt; $p_value
+#&gt; [1] 0.2101958</code></pre>
+<p>Now rerun this simulated experiment a couple of times:</p>
+<pre class="r"><code>k &lt;- 1e05
+ps &lt;- do(k) * get_p_from_ttest_sim()</code></pre>
+</div>
+<div id="plot-it" class="section level1">
+<h1>Plot it</h1>
+<pre class="r"><code>gf_histogram(~p_value, data = ps, bins = 10)</code></pre>
+<p><img src="/post/2019-10-11-p-values-are-equally-distributed-under-the-h0_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="closer-look" class="section level1">
+<h1>Closer look</h1>
+<p>Let’s compute the proportion of significant p-values, ie p&lt;.05. That should sum up to approx. 5%.</p>
+<pre class="r"><code>ps %&gt;% 
+  filter(p_value &lt; .05) %&gt;% 
+  summarise(p_prop = n()/k)
+#&gt;    p_prop
+#&gt; 1 0.04945</code></pre>
+<p>And now let’s cut the range in 10 bins:</p>
+<pre class="r"><code>ps %&gt;% 
+  mutate(bins = cut(p_value, breaks = 11)) %&gt;% 
+  group_by(bins) %&gt;% 
+  summarise(p_prop = n())
+#&gt; # A tibble: 11 x 2
+#&gt;    bins            p_prop
+#&gt;    &lt;fct&gt;            &lt;int&gt;
+#&gt;  1 (-0.001,0.0909]   9067
+#&gt;  2 (0.0909,0.182]    8935
+#&gt;  3 (0.182,0.273]     9109
+#&gt;  4 (0.273,0.364]     9184
+#&gt;  5 (0.364,0.455]     8946
+#&gt;  6 (0.455,0.545]     9046
+#&gt;  7 (0.545,0.636]     9035
+#&gt;  8 (0.636,0.727]     9301
+#&gt;  9 (0.727,0.818]     9189
+#&gt; 10 (0.818,0.909]     9141
+#&gt; 11 (0.909,1]         9047</code></pre>
+<p>Approximately identical group sizes.</p>
+<p>Finally, let’s check the lower p-values to see if they are also equally distributed. Note that we reduce the sample size greatly by filtering on a small part of p-values so we should expect more variation around the expected value.</p>
+<pre class="r"><code>ps %&gt;% 
+  filter(p_value &lt;= .05) %&gt;% 
+  mutate(bins =cut(p_value, breaks = 11)) %&gt;% 
+  group_by(bins) %&gt;% 
+  summarise(p_prop = n())
+#&gt; # A tibble: 11 x 2
+#&gt;    bins                p_prop
+#&gt;    &lt;fct&gt;                &lt;int&gt;
+#&gt;  1 (-4.97e-05,0.00455]    450
+#&gt;  2 (0.00455,0.00909]      412
+#&gt;  3 (0.00909,0.0136]       468
+#&gt;  4 (0.0136,0.0182]        420
+#&gt;  5 (0.0182,0.0227]        449
+#&gt;  6 (0.0227,0.0273]        437
+#&gt;  7 (0.0273,0.0318]        475
+#&gt;  8 (0.0318,0.0364]        460
+#&gt;  9 (0.0364,0.0409]        461
+#&gt; 10 (0.0409,0.0455]        442
+#&gt; 11 (0.0455,0.05]          471</code></pre>
+<p>As said there appears to be quite some variation within these bins.</p>
+<p>And even more close-up:</p>
+<pre class="r"><code>ps %&gt;% 
+  filter(p_value &lt;= .005) %&gt;% 
+  mutate(bins =cut(p_value, breaks = 11)) %&gt;% 
+  group_by(bins) %&gt;% 
+  summarise(p_prop = n())
+#&gt; # A tibble: 11 x 2
+#&gt;    bins                 p_prop
+#&gt;    &lt;fct&gt;                 &lt;int&gt;
+#&gt;  1 (-4.72e-06,0.000454]     54
+#&gt;  2 (0.000454,0.000908]      42
+#&gt;  3 (0.000908,0.00136]       48
+#&gt;  4 (0.00136,0.00182]        49
+#&gt;  5 (0.00182,0.00227]        50
+#&gt;  6 (0.00227,0.00272]        49
+#&gt;  7 (0.00272,0.00318]        42
+#&gt;  8 (0.00318,0.00363]        45
+#&gt;  9 (0.00363,0.00409]        42
+#&gt; 10 (0.00409,0.00454]        28
+#&gt; 11 (0.00454,0.005]          43</code></pre>
+</div>
