@@ -1,0 +1,138 @@
+---
+title: Correspondance of residual and outcome variable distribution in regression
+author: Sebastian Sauer
+date: '2019-10-11'
+draft: TRUE
+slug: correspondance-of-residual-and-outcome-variable-distribution-in-regression
+categories:
+  - rstats
+tags:
+  - stats
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(mosaic)
+library(broom)
+```
+
+
+
+# Motivation
+
+
+A well known assumption of the linear model is that the error terms (residuals) should be normally distributed. Noteworthy, statisticians such as Gelman do not consider this assumption te be central (in their 2007 book, he and Hill say that they do not even test for it). However, for p-values this distribution plays a role. In this post, we will not discuss the relevance of this assumption but rather explore a related but different question: Is there a correspondance between the distribution of the error terms and the outcome variable? 
+
+
+# Model definition - outcome is normal
+
+Let's define a linear model as follows. Say, we want to regress heigth back onto weight, for concreteness.
+
+
+```{r}
+n <- 1e03
+
+weight <- rnorm(n = n, mean = 70, sd = 5)
+height <- weight+110 + rnorm(n = n, mean = 0, sd = 10)
+```
+
+```{r}
+gf_point(height ~ weight) %>% 
+  gf_lm()
+```
+
+
+
+
+Run the model:
+```{r}
+lm1 <- lm(height ~ weight)
+tidy(lm1)
+glance(lm1)
+```
+
+The model picked up nicely the parameters.
+
+
+
+
+Check the distrubtion of the residuals.
+
+```{r}
+gf_density(~resid(lm1))
+```
+
+
+Nicely normally.
+
+
+
+# Model definition - outcome is uniform
+
+Let's ignore that such a model will not make any sense from a biological (theoretical) point of view.
+
+
+```{r}
+weight <- runif(n = n, min = 60, max = 110)
+height <- weight+110 + runif(n = n, min = -20, max = +20)
+```
+
+
+Let's visualize the distribution of `height`:
+
+```{r}
+gf_density(~ height)
+```
+
+
+```{r}
+gf_point(height ~ weight) %>% 
+  gf_lm()
+```
+
+
+
+
+
+Run the model:
+```{r}
+lm2 <- lm(height ~ weight)
+tidy(lm2)
+glance(lm2)
+```
+
+The model picked up nicely the parameters.
+
+
+
+
+Check the distrubtion of the residuals.
+
+```{r}
+gf_density(~resid(lm2))
+```
+
+
+Not *too* normal, to be sure. 

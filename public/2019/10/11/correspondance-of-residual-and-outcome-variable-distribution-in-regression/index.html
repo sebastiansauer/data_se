@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.58.3" />
+
+
+<title>Correspondance of residual and outcome variable distribution in regression - Data Se</title>
+<meta property="og:title" content="Correspondance of residual and outcome variable distribution in regression - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">3 min read</span>
+    
+
+    <h1 class="article-title">Correspondance of residual and outcome variable distribution in regression</h1>
+
+    
+    <span class="article-date">2019/10/11</span>
+    
+
+    <div class="article-content">
+      
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)
+library(mosaic)
+library(broom)</code></pre>
+</div>
+<div id="motivation" class="section level1">
+<h1>Motivation</h1>
+<p>A well known assumption of the linear model is that the error terms (residuals) should be normally distributed. Noteworthy, statisticians such as Gelman do not consider this assumption te be central (in their 2007 book, he and Hill say that they do not even test for it). However, for p-values this distribution plays a role. In this post, we will not discuss the relevance of this assumption but rather explore a related but different question: Is there a correspondance between the distribution of the error terms and the outcome variable?</p>
+</div>
+<div id="model-definition---outcome-is-normal" class="section level1">
+<h1>Model definition - outcome is normal</h1>
+<p>Let’s define a linear model as follows. Say, we want to regress heigth back onto weight, for concreteness.</p>
+<pre class="r"><code>n &lt;- 1e03
+
+weight &lt;- rnorm(n = n, mean = 70, sd = 5)
+height &lt;- weight+110 + rnorm(n = n, mean = 0, sd = 10)</code></pre>
+<pre class="r"><code>gf_point(height ~ weight) %&gt;% 
+  gf_lm()</code></pre>
+<p><img src="/post/2019-10-11-correspondance-of-residual-and-outcome-variable-distribution-in-regression_files/figure-html/unnamed-chunk-2-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Run the model:</p>
+<pre class="r"><code>lm1 &lt;- lm(height ~ weight)
+tidy(lm1)
+#&gt; # A tibble: 2 x 5
+#&gt;   term        estimate std.error statistic  p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+#&gt; 1 (Intercept)   104.      4.46        23.2 8.02e-96
+#&gt; 2 weight          1.09    0.0635      17.1 7.45e-58
+glance(lm1)
+#&gt; # A tibble: 1 x 11
+#&gt;   r.squared adj.r.squared sigma statistic  p.value    df logLik   AIC   BIC
+#&gt;       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;int&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     0.227         0.226  10.1      293. 7.45e-58     2 -3730. 7466. 7481.
+#&gt; # … with 2 more variables: deviance &lt;dbl&gt;, df.residual &lt;int&gt;</code></pre>
+<p>The model picked up nicely the parameters.</p>
+<p>Check the distrubtion of the residuals.</p>
+<pre class="r"><code>gf_density(~resid(lm1))</code></pre>
+<p><img src="/post/2019-10-11-correspondance-of-residual-and-outcome-variable-distribution-in-regression_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Nicely normally.</p>
+</div>
+<div id="model-definition---outcome-is-uniform" class="section level1">
+<h1>Model definition - outcome is uniform</h1>
+<p>Let’s ignore that such a model will not make any sense from a biological (theoretical) point of view.</p>
+<pre class="r"><code>weight &lt;- runif(n = n, min = 60, max = 110)
+height &lt;- weight+110 + runif(n = n, min = -20, max = +20)</code></pre>
+<p>Let’s visualize the distribution of <code>height</code>:</p>
+<pre class="r"><code>gf_density(~ height)</code></pre>
+<p><img src="/post/2019-10-11-correspondance-of-residual-and-outcome-variable-distribution-in-regression_files/figure-html/unnamed-chunk-6-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>gf_point(height ~ weight) %&gt;% 
+  gf_lm()</code></pre>
+<p><img src="/post/2019-10-11-correspondance-of-residual-and-outcome-variable-distribution-in-regression_files/figure-html/unnamed-chunk-7-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Run the model:</p>
+<pre class="r"><code>lm2 &lt;- lm(height ~ weight)
+tidy(lm2)
+#&gt; # A tibble: 2 x 5
+#&gt;   term        estimate std.error statistic   p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+#&gt; 1 (Intercept)   107.      2.11        50.8 4.17e-279
+#&gt; 2 weight          1.03    0.0246      42.0 1.20e-222
+glance(lm2)
+#&gt; # A tibble: 1 x 11
+#&gt;   r.squared adj.r.squared sigma statistic   p.value    df logLik   AIC
+#&gt;       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt; &lt;int&gt;  &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     0.638         0.638  11.6     1762. 1.20e-222     2 -3866. 7739.
+#&gt; # … with 3 more variables: BIC &lt;dbl&gt;, deviance &lt;dbl&gt;, df.residual &lt;int&gt;</code></pre>
+<p>The model picked up nicely the parameters.</p>
+<p>Check the distrubtion of the residuals.</p>
+<pre class="r"><code>gf_density(~resid(lm2))</code></pre>
+<p><img src="/post/2019-10-11-correspondance-of-residual-and-outcome-variable-distribution-in-regression_files/figure-html/unnamed-chunk-9-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Not <em>too</em> normal, to be sure.</p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+
+    
+  </body>
+</html>
+
