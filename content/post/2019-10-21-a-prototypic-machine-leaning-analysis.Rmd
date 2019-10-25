@@ -1,0 +1,528 @@
+---
+title: A prototypic machine leaning analysis - Reanalyis of "Mindful Machine Learning"
+author: Sebastian Sauer
+date: '2019-10-21'
+draft: TRUE
+slug: a-prototypic-machine-leaning-analysis
+categories:
+  - rstats
+tags:
+  - machine-learning
+---
+
+
+
+
+
+# Scope
+
+This is the re-analysis of this paper
+
+Sauer, S., Buettner, R., Heidenreich, T., Lemke, J., Berg, C., & Kurz, C. (2018). 
+Mindful machine learning: Using machine learning algorithms to predict the practice of mindfulness. 
+European Journal of Psychological Assessment, 34(1), 6-13.
+http://dx.doi.org/10.1027/1015-5759/a000312
+
+
+
+A colleague ([Dr. Florian Pargent](http://www.psy.lmu.de/pm/personen/lehrstuhlmitarbeiter/pargent/index.html)) informed me about an potential error in my analysis. Having checked it, I confirm that there is an error in the initial analyses.
+
+Specifically, he informed me that the performance measures appear to be based on on the *train* sample, 
+where the *test* sample should have been used.
+
+
+After having checked the original code, I agree with Dr. Pargent notion. Specifically, in *each model*, the *training* data has been presented, but not the *testing* data as it should have been.
+
+The following code documents the re-analyses that now employs the *testing* data for gauging model performance.
+
+
+# Cautions
+
+The following aspects could not been controlled:
+
+- Package versions
+- R version
+
+
+It seems unlikely though not completely impossible that these factors possibly influence the results. However, we deem the possible influence of those factor negligible.
+
+
+
+# Aim of this post
+
+Correcting the literature is taking place elsewhere; he I would like to show a somewhat typical flow of analysis in machine learning for prediction. I think the code is quite straight forward and should be easy to generalize to similar problems.
+
+
+
+
+
+# Accessibility
+
+
+This code, alongside with the data, can be openly accessed from this repository: https://github.com/sebastiansauer/reanalysis-mindful-machine-learning
+
+
+
+# Setup
+
+
+## Init
+
+```{r knitr-setup}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  results = "hide",
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+Load libs:
+
+```{r libs, message = FALSE}
+library(conflicted)
+library(caret)
+library(here)
+library(tictoc)
+library(testthat)
+library(tidyverse)
+library(drlib)
+```
+
+
+## Define constants
+
+
+```{r}
+output_filename <- "model_performance.Rds"
+```
+
+
+
+
+## Load original data
+
+
+
+```{r read-data}
+dat_url <- "https://raw.github.com/sebastiansauer/reanalysis-mindful-machine-learning/master/original-data/1015-5759_a000312_esm5.csv"
+
+dat <- read_csv(dat_url)
+```
+
+
+
+
+
+
+
+## Prepare data
+
+
+
+### Set DV to type `factor`
+
+As `caret` will only do classificiton if the outcome is of type factor, we need to convert the outcome variable `practice` to factor.
+
+```{r prep, results = "show"}
+dat2 <- dat %>% 
+  mutate(practice = factor(practice),
+         practice = case_when(
+           practice == "1" ~ "yes",
+           practice == "0" ~ "no"
+         ),
+         practice = factor(practice)) %>% 
+  dplyr::select(practice, everything()) %>% 
+  dplyr::select(-X1)
+
+glimpse(dat2)
+```
+
+
+
+### Ensure valide factor levels
+
+The factor levels should be proper R names for some caret models, accoring to [this source](https://www.kaggle.com/c/15-071x-the-analytics-edge-competition-spring-2015/discussion/13964), see also [this SO post](https://stackoverflow.com/questions/18402016/error-when-i-try-to-predict-class-probabilities-in-r-caret).
+
+
+The dependent variable should be of type `factor` and needs valid factor levels [as stated in this SO post](https://stackoverflow.com/questions/18402016/error-when-i-try-to-predict-class-probabilities-in-r-caret).
+Let's check that.
+
+
+```{r results = "show"}
+levels(dat2$practice) <- make.names(levels(factor(dat2$practice)))
+levels(dat2$practice)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+Check that all predictors are metric, and that the DV is of type factor.
+
+Define vector of predictor names:
+
+```{r}
+predictor_names <- c(paste0("fmi", 1:14))
+predictor_names
+```
+
+
+
+Test for correct length:
+
+```{r}
+test_dat2 <- dat2 %>% 
+  map( ~class(.))
+
+expect_length(test_dat2, n = (length(predictor_names) + 1))
+```
+
+
+
+
+
+
+# Training vs test sample
+
+```{r train-test-sample}
+inTraining <- createDataPartition(dat2$practice, p = 0.8, list = FALSE)
+training <- dat2[inTraining, ]
+testing <- dat2[-inTraining, ]
+```
+
+
+
+
+
+
+## Define model list
+
+```{r model-list}
+model_list <- c("glm", "gbm", "qda", "svmLinear", "svmPoly", "rf", "nnet", "ada", "knn", "elm")
+
+n_models <- length(model_list)
+n_models
+```
+
+
+
+
+There are `r n_models` being tested.
+
+
+## Define standard cross-validation scheme
+
+
+```{r fitControl}
+fitControl <- trainControl(## 10-fold CV
+    method = "repeatedcv",
+    number = 10,
+    ## repeated ten times
+    repeats = 10)
+```
+
+
+
+## Define data objects for results
+
+
+```{r}
+conf.all <- data.frame(matrix(nrow = 10, ncol = 4))
+names(conf.all) <- c("model", "sensitivity", "specificity", "kappa")
+
+
+model_output <- list()
+
+model_confmatrix <- list()
+```
+
+
+# funs
+
+This function stores the model output in some lists:
+
+
+```{r}
+# delete-me
+save_model_output <- function(name, modelOut) {
+  
+  model_confmatrix[[name]] <<- confusionMatrix(predict(modelOut, testing), 
+                                             testing$practice)
+  
+  conf.all[name, ] <<- c(name, model_confmatrix[[name]][c(1,2)], model_confmatrix[[name]]$overall[2])
+  
+}
+```
+
+
+
+
+```{r run-model-fun}
+run_model <- function(model_name, ...){
+  
+  set.seed(42)
+  
+  start_time = Sys.time()
+  
+  modelOut <- train(practice ~ ., 
+                    data = training, 
+                    method = model_name, 
+                    trControl = fitControl,
+                    ...)
+  
+  modelPred <- predict(modelOut, testing)
+  
+  modelConfMatrix <- confusionMatrix(modelPred, testing$practice)
+  
+  end_time = Sys.time()
+  
+  coefs <- list(name = model_name, 
+                sensitivity = modelConfMatrix$byClass[1], 
+                specificity = modelConfMatrix$byClass[2], 
+                accuracy = modelConfMatrix$overall[1],
+                kappa = modelConfMatrix$overall[2],
+                time_taken = end_time - start_time)
+}
+```
+
+
+# Now run the models
+
+
+## Check
+
+
+```{r check-run-model, results = "show"}
+modelOut <- train(practice ~ ., 
+                  data = training, 
+                  method = "glm", 
+                  trControl = fitControl,
+                  family = "binomial")
+
+modelPred <- predict(modelOut, testing)
+  
+modelConfMatrix <- confusionMatrix(modelPred, testing$practice)
+modelConfMatrix
+
+
+modelConfMatrix$byClass[c(1,2)]
+
+modelConfMatrix$overall[c(1,2)]
+```
+
+
+
+## Check - GLM
+```{r glm}
+model_output[["glm"]] <- run_model("glm", family = "binomial")
+
+model_output[["glm"]]
+```
+
+
+
+
+
+
+## Loop over models
+
+
+
+
+```{r}
+if (!file.exists(paste0(here(),"/MML/reanalysis-objects/", output_filename))) {
+  time <- Sys.time()
+  model_performance <- model_list %>% 
+    map_dfr(run_model)
+  
+  Sys.time() - time
+} else {cat("Output file already exists. Skipping re-computation. Loading output file.\n")
+  model_performance <- read_rds(paste0(here(),"/reanalysis-objects/", output_filename) )}
+```
+
+
+
+
+## Check results
+
+
+```{r}
+model_performance
+```
+
+
+
+## Own music for Boosting
+
+Define different grid to check hyper parameter:
+
+```{r boosting, verbose = FALSE, results = "hide"}
+gbmGrid <-  expand.grid(interaction.depth = c(1, 5, 9),
+                        n.trees = 1:30*50,
+                        shrinkage = 0.1,
+                        n.minobsinnode = 10)
+
+performance_gbm <- run_model("gbm", tuneGrid = gbmGrid)
+
+
+performance_gbm_df <- flatten(performance_gbm) %>% 
+  as_tibble()
+
+```
+
+
+Now add the gbm results to the main performance data frame, that is, replace the old values by the new one:
+
+
+```{r}
+model_performance2 <- model_performance
+
+
+model_performance2[performance_gbm_df$name == model_performance2$name, ] <- performance_gbm_df
+
+
+model_performance2
+```
+
+
+
+
+# Visualize model performance
+
+
+## Reformat data
+
+Now spread it into a long format.
+
+```{r output-long}
+model_performance_long <- model_performance2 %>% 
+  pivot_longer(cols = sensitivity:kappa, names_to = "coefficient", values_to = "value")
+model_performance_long
+```
+
+
+## Check
+
+```{r}
+model_performance_long %>% 
+  count(name)
+```
+
+
+Looks good, 4 coefficients per model (name).
+
+
+Similarly,
+
+```{r check-coeffs}
+model_performance_long %>% 
+  count(coefficient)
+```
+
+
+
+## Figure 2 (original paper)
+
+Now plot:
+
+```{r figure2, outwidth = "100%"}
+model_performance_long %>%
+  #dplyr::filter(coefficient != "accuracy") %>% 
+  ggplot(aes(x = reorder_within(name, value, coefficient), y = value, fill = coefficient)) +
+  geom_col(position = "dodge") +
+  coord_flip() +
+  scale_fill_viridis_d() +
+  scale_x_reordered() +
+  theme_light() +
+  labs(x = "model", y = "value") +
+  facet_wrap(~ coefficient, scales = "free")
+```
+
+
+
+In the original mode, `rf` scores best. In this re-analysis, `rf` scored third-best (measured by Cohen's Kappa in both analyses).
+
+
+## Figure 3
+
+Figure 3 in the original paper computes the average per coefficient across all models, and compares "classical" linear model results with the "machine learning" models.
+
+First compute the summary stats.
+
+```{r model-perform-sum}
+model_output_df_sum <- model_performance_long %>% 
+  mutate(type = ifelse(name == "glm", "classical", "machine learning")) %>% 
+  group_by(type, coefficient) %>% 
+  summarise(cofficient_mean = mean(value))
+
+model_output_df_sum
+```
+
+
+Now plot.
+
+
+```{r figure3, outwidth = "100%"}
+model_output_df_sum %>% 
+  ggplot(aes(x = reorder(coefficient, -cofficient_mean), y = cofficient_mean)) +
+  geom_col(position = "dodge", aes(fill = coefficient)) +
+  facet_wrap(~ type) +
+  scale_fill_viridis_d() +
+  theme_light() +
+  labs(y = "value", x = "coefficient") +
+  geom_label(aes(label = round(cofficient_mean, 2)))
+```
+
+
+There is no strong difference between classical and machine learning models, seen from an summary perspective. However, a slight advantage may be inferred in favor of the ML models. In particular, the best scoring model came from the ML fraction. 
+
+As concluded in the original paper, algorithms do differ in their performance given a particular data set. Analysts should be aware of the variation in the results induced by picking one ore more certain models. 
+
+
+
+# Computation time
+
+
+```{r}
+model_performance2 %>%
+  mutate(time = as.numeric(time_taken)) %>% 
+  ggplot(aes(x = reorder(name, time), y = time)) +
+  geom_point(size = 4) +
+  coord_flip() +
+  theme_light() +
+  scale_y_log10() +
+  labs(y = "time in log10 [sec]", x = "model")
+```
+
+
+# Write output to disk
+
+
+```{r save-output}
+#model_output <- read_rds("reanalysis-objects/model_output.rds")
+#write_rds(model_performance, paste0(here(),"/MML/reanalysis-objects/", output_filename))
+
+```
+
+
+
+
+
+
