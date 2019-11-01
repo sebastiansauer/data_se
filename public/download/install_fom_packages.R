@@ -10,10 +10,11 @@ install_fom_packages <- function(selection = "standard"){
                       "devtools", "tidytext", "lsr", "sjstats",
                       "gapminder", "rnaturalearth", "corrr", "okcupiddata",
                       "wordcloud", "corrplot", "janitor", "SnowballC",
-                      "tinytex", "paramtest")
+                      "tinytex", "paramtest", "rnaturalearth", "countrycode",
+                      "effsize", "pwr", "rocr")
 
 
-  pckgs_advanced <- c(pckgs_standard, "ISLR", "caret")
+  pckgs_advanced <- c(pckgs_standard, "ISLR", "caret", "nlme", "lme4")
 
 
 
@@ -46,7 +47,7 @@ install_fom_packages <- function(selection = "standard"){
     cat("After installing `tinytex`, don't forget to install tex by using this commend `tinytex::install_tinytex()`.\nCheck out here more details: https://yihui.name/tinytex/ \n")
 
 
-  cat("Consider updating your packages next by using `update.packagges()` \n")
+  cat("Consider updating your packages next by using `update.packagges()`.\n")
 
 
 
