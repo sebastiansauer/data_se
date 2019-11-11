@@ -1,0 +1,136 @@
+---
+title: Some notes on data transformations for regression
+author: Sebastian Sauer
+date: '2019-11-11'
+slug: some-notes-on-data-transformations-for-regression
+categories:
+  - rstats
+tags:
+  - rstats
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(mosaic)
+```
+
+
+
+# Motivation
+
+
+What are data transformation good for? Why do we bother to transform variables for regression analysis? This post explores some nuances around these themes.
+
+
+# Simulate an exponentially distributed assocation
+
+
+
+```{r}
+len <- 42  # 42 x values
+x <- rep(runif(len), 30)  # each x value repeated 30 times
+y <- dexp(x) + rnorm(length(x), mean = 0, sd = .01)  # add some noise
+```
+
+
+
+Plot it:
+
+```{r}
+gf_point(y ~ x) %>% 
+  gf_smooth()
+```
+
+
+If we now do a log transformation on $y$, we get this:
+
+
+```{r}
+gf_point(log(y) ~ x) %>% 
+  gf_smooth()
+```
+
+A straigt line. That means, we have a linear trend, thus additivity holds - and additivity is a/the central assumption in lineare models.
+
+
+For comparison, let's log $x$:
+
+```{r}
+gf_point(y ~ log(x)) %>% 
+  gf_smooth()
+```
+
+
+We get a different trend, but additivity does not hold anymore.
+
+
+
+# Gelman's comment on the use of transformation (Chap. 5, p. 53ff)
+
+
+Gelman and Hill (2007) point out three reasons for transformations:
+
+1. Easier interpretation (more on that later)
+2. Improved additivity (as seen above)
+3. Improved normality of the residuls (see below)
+
+
+
+
+# Improved normality of the residuls 
+
+Consider the residulas of the *non*transformed regression:
+
+
+```{r}
+lm1 <- lm(y ~ x)
+gf_histogram(~ resid(lm1), bins = 10)
+```
+
+Well, not toooo much of a normal distribution.
+
+
+Compare the logged lm:
+
+```{r}
+lm2 <- lm(log(y) ~ x)
+gf_histogram(~ resid(lm2), bins = 10)
+```
+
+
+Much better.
+
+
+
+# Easier interpretation
+
+Assume we have a regression model on log scale. As can be seen in the Figure below, small values of the exponential function (close to zero) are similar to the $y=x+1$ straigt line. That means, we can interpret an logged coefficient of say 6% as a growth factor of 1.06. Note that this correspondence deteriorates for larger values. 
+
+```{r}
+gf_fun(exp(x) ~ x, xlim = c(-1,1)) %>% 
+  gf_fun(x +1 ~ x , color = "red")
+```
+
+
