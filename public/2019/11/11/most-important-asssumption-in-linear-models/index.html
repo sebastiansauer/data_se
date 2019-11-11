@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.59.0" />
+
+
+<title>Most important asssumption in linear models ... and the second most - Data Se</title>
+<meta property="og:title" content="Most important asssumption in linear models ... and the second most - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">Most important asssumption in linear models ... and the second most</h1>
+
+    
+    <span class="article-date">2019/11/11</span>
+    
+
+    <div class="article-content">
+      
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)
+library(mosaic)</code></pre>
+<p>We are following here the advise of Gelman and Hill (2007).</p>
+</div>
+<div id="validity" class="section level1">
+<h1>Validity</h1>
+<p>Quite obviously, the <em>right predictors</em> must be included in the model in order to learn something from the model. The “right” predictors means: avoiding the wrong ones, and including the correct ones. Easier said than done, particularly with a look to the causal inference aspects. Let’s turn to the next most important assumption.</p>
+</div>
+<div id="additivity-and-linearity-as-the-second-most-important-assumptions-in-linear-models" class="section level1">
+<h1>Additivity and linearity as the second most important assumptions in linear models</h1>
+<p>We assume that <span class="math inline">\(y\)</span> is a linear function of the predictors. If y is not a linear function of the predictors, we cannot expect the model to deliver correct insights (predictions, causal coefficients). Let’s check an example.</p>
+<div id="simulate-an-exponentially-distributed-assocation" class="section level2">
+<h2>Simulate an exponentially distributed assocation</h2>
+<p>We will only use positive values, let’s add some small value to the y’s in order they are all positive.</p>
+<pre class="r"><code>len &lt;- 42  # 42 x values
+set.seed(42)
+x &lt;- rep(runif(len), 30)  # each x value repeated 30 times
+y &lt;- dexp(x, rate = 5) + rnorm(length(x), mean = 0, sd = .1)  # add some noise
+
+y &lt;- y + 1
+gf_point(y ~ x)</code></pre>
+<p><img src="/post/2019-11-11-most-important-asssumption-in-linear-models_files/figure-html/unnamed-chunk-1-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="linear-model" class="section level2">
+<h2>Linear model</h2>
+<div id="compute-the-model-as-linear-model-not-transformed" class="section level3">
+<h3>Compute the Model as linear model (not transformed)</h3>
+<pre class="r"><code>lm1 &lt;- lm(y ~ x)
+coef(lm1)
+#&gt; (Intercept)           x 
+#&gt;    3.797730   -3.458985</code></pre>
+</div>
+<div id="plot-it" class="section level3">
+<h3>Plot it</h3>
+<pre class="r"><code>gf_point(y ~ x) %&gt;% 
+  gf_abline(slope = coef(lm1)[2], intercept = coef(lm1)[1], color = &quot;red&quot;)</code></pre>
+<p><img src="/post/2019-11-11-most-important-asssumption-in-linear-models_files/figure-html/unnamed-chunk-3-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Doesn’t fit well.</p>
+</div>
+<div id="check-the-linearity-assumption" class="section level3">
+<h3>Check the linearity assumption</h3>
+<p>Actually the plot above vividly shows us that the linear model is not doing a good job. But anyhow, let’s put that in a form more typically used for checking model assumptions.</p>
+<pre class="r"><code>gf_point(lm1$residuals ~ fitted(lm1)) %&gt;% 
+  gf_smooth() %&gt;% 
+  gf_lims(y = c(-3, 3))</code></pre>
+<p><img src="/post/2019-11-11-most-important-asssumption-in-linear-models_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>If we had a linear trend, we should see no strong pattern whatsoever. The mean residual should jump around zero at each value of the x-axis, with the variance remaining (more or less) constant. This is not the case here.</p>
+</div>
+</div>
+<div id="second-model-log-tranformed-in-y" class="section level2">
+<h2>Second model: log-tranformed in y</h2>
+<pre class="r"><code>gf_point(log(y) ~ x)</code></pre>
+<p><img src="/post/2019-11-11-most-important-asssumption-in-linear-models_files/figure-html/unnamed-chunk-5-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>lm2 &lt;- lm(log(y) ~ x)
+coef(lm2)
+#&gt; (Intercept)           x 
+#&gt;    1.331698   -1.556101</code></pre>
+<pre class="r"><code>gf_point(log(y) ~ x) %&gt;% 
+  gf_abline(slope = coef(lm2)[2], intercept = coef(lm2)[1], color = &quot;red&quot;)</code></pre>
+<p><img src="/post/2019-11-11-most-important-asssumption-in-linear-models_files/figure-html/unnamed-chunk-7-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Quite ok. Note that the discrepancies stem completely from the fact that we added some Gaussian noise.</p>
+<pre class="r"><code>gf_point(resid(lm2) ~ fitted(lm2)) %&gt;% 
+  gf_smooth() %&gt;% 
+  gf_lims(y = c(-3, 3))</code></pre>
+<p><img src="/post/2019-11-11-most-important-asssumption-in-linear-models_files/figure-html/unnamed-chunk-8-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Much better than the first model.</p>
+</div>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+
