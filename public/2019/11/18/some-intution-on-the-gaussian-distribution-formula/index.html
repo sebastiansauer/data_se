@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.59.0" />
+
+
+<title>Some intution on the Gaussian distribution formula - Data Se</title>
+<meta property="og:title" content="Some intution on the Gaussian distribution formula - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">3 min read</span>
+    
+
+    <h1 class="article-title">Some intution on the Gaussian distribution formula</h1>
+
+    
+    <span class="article-date">2019/11/18</span>
+    
+
+    <div class="article-content">
+      
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)
+library(mosaic)</code></pre>
+</div>
+<div id="the-gaussian" class="section level1">
+<h1>The Gaussian</h1>
+<p>The ubiquituous Gaussian (aka normal) distribution is probably the most widely known distribution for stochastic process (a<a href="https://psycnet.apa.org/record/1989-14214-001">lthough maybe as frequently encountered as a unicorn</a>).</p>
+<p>Here it is in all its glory.</p>
+<pre class="r"><code>gf_dist(&quot;norm&quot;)</code></pre>
+<p><img src="/post/2019-11-18-some-intution-on-the-gaussian-distribution-formula_files/figure-html/unnamed-chunk-1-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>There are two typical ways, why it may be considered “normal”, one is using the <a href="https://www.edumedia-sciences.com/en/media/905-galton-board">Galton Board</a>, and one approach is building on the <a href="https://en.wikipedia.org/wiki/Central_limit_theorem">Central Limit Theorem</a>. While such considerations are great for understanding “where” the Gaussian distribution comes from, this post explore some other direction of intuiton. Namely, how can one make sense of the formula of the Gaussian distribution?</p>
+<p>Here is the density function of the Gaussian:</p>
+<p><span class="math display">\[
+f(x) = \frac{1}{\sqrt{2\pi \sigma^2}}e^{-\frac{(x-y)^2}{2\sigma^2}}
+\]</span></p>
+</div>
+<div id="first-idea-could-the-gaussian-be-approximated-via-a-linar-function" class="section level1">
+<h1>First Idea: Could the Gaussian be approximated via a linar function?</h1>
+<p>A linear function would be the most simple case. However an instant of thought tells us that this way is a dead end. A linear function has no maximum, but the Gaussian does have a maximum.</p>
+<pre class="r"><code>gf_abline(slope = 1, intercept = 0)</code></pre>
+<p><img src="/post/2019-11-18-some-intution-on-the-gaussian-distribution-formula_files/figure-html/unnamed-chunk-2-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p><strong>Does not work</strong></p>
+</div>
+<div id="second-idea-a-quadratic-function-can-have-a-maximum" class="section level1">
+<h1>Second Idea: A quadratic function can have a maximum</h1>
+<p>OK, a linear function does not have a maximum, but a quadratic function may have a maximum, as the Gaussian does. Maybe we can “re-engineer” the Gaussian by using some quadratic function? Let’s see.</p>
+<pre class="r"><code>f &lt;- makeFun(-x^2 ~ x)
+
+x &lt;- seq(from = -5, to = 5, by = 0.1)
+plotFun(f(x) ~ x)</code></pre>
+<p><img src="/post/2019-11-18-some-intution-on-the-gaussian-distribution-formula_files/figure-html/unnamed-chunk-3-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>In ggplot2 terms:</p>
+<pre class="r"><code>p &lt;- ggplot(data = data.frame(x = x), 
+            mapping = aes(x = x))
+p + stat_function(fun = f)</code></pre>
+<p><img src="/post/2019-11-18-some-intution-on-the-gaussian-distribution-formula_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p><strong>Better, but not really close to a normal distribution</strong></p>
+</div>
+<div id="some-function-that-yields-large-values-for-xs-close-to-zero" class="section level1">
+<h1>Some function that yields large values for x’s close to zero…</h1>
+<p>We need some function that yields large (positive) values for x’s clos to zero (no matter whether we are approaching zero from left or right), and that yields small positive values for larger values (and increasingly so for even larger values).</p>
+<p>Don’t worry about magnitudes (how large), we can try to standardize later (ie., divide by some value to adjust the absolute magnitude of our function.)</p>
+<p>Hey, a quite simple function that fulfills this requirement is</p>
+<p><span class="math display">\[
+f(x) 2^{-x}
+\]</span></p>
+<p>See:</p>
+<pre class="r"><code>x &lt;- -5:5
+y &lt;- 2^-x^2
+y
+#&gt;  [1] 2.980232e-08 1.525879e-05 1.953125e-03 6.250000e-02 5.000000e-01
+#&gt;  [6] 1.000000e+00 5.000000e-01 6.250000e-02 1.953125e-03 1.525879e-05
+#&gt; [11] 2.980232e-08</code></pre>
+<p>For any real number <span class="math inline">\(k\)</span>, we are sure to get a positive value if we plug <span class="math inline">\(k\)</span> into <span class="math inline">\(k^-x^2\)</span> for any real <span class="math inline">\(x\)</span>.</p>
+<p>Let’s plot that.</p>
+<pre class="r"><code>f &lt;- makeFun(2^(-x^2) ~ x)
+#plotFun(f)
+gf_function(fun = f, xlim = c(-5, 5))</code></pre>
+<p><img src="/post/2019-11-18-some-intution-on-the-gaussian-distribution-formula_files/figure-html/unnamed-chunk-6-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>In more simple R terms:</p>
+<pre class="r"><code>x &lt;- seq(-5,5, .1)
+y &lt;- 2^(-x^2)
+
+gf_line(y ~ x)</code></pre>
+<p><img src="/post/2019-11-18-some-intution-on-the-gaussian-distribution-formula_files/figure-html/unnamed-chunk-7-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p><strong>That looks great!</strong></p>
+<p>What about some other bases <span class="math inline">\(k\)</span>, such as 3?</p>
+<pre class="r"><code>f &lt;- makeFun(3^(-x^2) ~ x)
+gf_function(fun = f, xlim = c(-5, 5))</code></pre>
+<p><img src="/post/2019-11-18-some-intution-on-the-gaussian-distribution-formula_files/figure-html/unnamed-chunk-8-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>or <span class="math inline">\(k=100\)</span>?</p>
+<pre class="r"><code>f &lt;- makeFun(100^(-x^2) ~ x)
+gf_function(fun = f, xlim = c(-5, 5))</code></pre>
+<p><img src="/post/2019-11-18-some-intution-on-the-gaussian-distribution-formula_files/figure-html/unnamed-chunk-9-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Well, the choice of the base <span class="math inline">\(k\)</span> appears to make some difference, look at the spike. So, we are obviously close but not perfectly there, at the normal Gaussian.</p>
+</div>
+<div id="stop-and-pause" class="section level1">
+<h1>Stop and pause</h1>
+<p>Our reengineering of the Gaussian is quite close, although not perfect. But we have covered a long way just using simple heuristics and intuition.</p>
+<p>Comparing that with the Gaussian distribution formula above, note that the whole of the demoninator serves to standardize the area under the curve to 1.</p>
+<p>Besides that we are nearly there: Let’s take 2.71 (or <span class="math inline">\(e\)</span>) as our base, and we have found a Gaussian with some particular mean (0) and some SD.</p>
+<pre class="r"><code>f &lt;- makeFun(2.71^(-x^2) ~ x)
+gf_function(fun = f, 
+            xlim = c(-3, 3))</code></pre>
+<p><img src="/post/2019-11-18-some-intution-on-the-gaussian-distribution-formula_files/figure-html/unnamed-chunk-10-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="compare-to-the-normal-distribution" class="section level1">
+<h1>Compare to the Normal distribution</h1>
+<p>We have not adjusted the magnitudes (y axis), but besides, we appear to have found a pretty neat approximation of the Normal, just using basic, simple tools.</p>
+<pre class="r"><code>gf_dist(&quot;norm&quot;)</code></pre>
+<p><img src="/post/2019-11-18-some-intution-on-the-gaussian-distribution-formula_files/figure-html/unnamed-chunk-11-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+
