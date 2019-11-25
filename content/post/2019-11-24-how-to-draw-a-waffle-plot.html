@@ -1,0 +1,94 @@
+---
+title: How to draw a waffle plot
+author: Sebastian Sauer
+draft: FALSE
+date: '2019-11-24'
+slug: how-to-draw-a-waffle-plot
+categories:
+  - rstats
+tags:
+  - plotting
+---
+
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)
+library(waffle)
+library(viridis)
+library(hrbrthemes)</code></pre>
+</div>
+<div id="whats-a-waffle-diagram" class="section level1">
+<h1>What’s a waffle diagram?</h1>
+<p>A waffle diagram is a variant of (stacked) bar plots or pie plots. They do not have great perceptual properties, I’d suspect, but for some purposes they may be adequate. This is best explored by example. This post draws heavily from the introduction of <a href="https://github.com/hrbrmstr/waffle">hrbrmstr to his Waffle package</a>.</p>
+</div>
+<div id="lets-make-up-some-data-and-a-case-for-it" class="section level1">
+<h1>Let’s make up some data and a case for it</h1>
+<p>Assume you would like to explain the differences between some sampling schemes, such as random sampling, stratified sampling, ad-hoc sampling and so on. For that, some illustrative plot might come in handy. Let’s simulate a dataset appropriate to explain sampling schemes.</p>
+<pre class="r"><code>set.seed(42)
+d &lt;- tibble(
+  id = 1:100,
+  sampled = sample(c(TRUE, FALSE), size = 100, replace = TRUE)
+)
+d
+#&gt; # A tibble: 100 x 2
+#&gt;       id sampled
+#&gt;    &lt;int&gt; &lt;lgl&gt;  
+#&gt;  1     1 TRUE   
+#&gt;  2     2 TRUE   
+#&gt;  3     3 TRUE   
+#&gt;  4     4 TRUE   
+#&gt;  5     5 FALSE  
+#&gt;  6     6 FALSE  
+#&gt;  7     7 FALSE  
+#&gt;  8     8 FALSE  
+#&gt;  9     9 TRUE   
+#&gt; 10    10 FALSE  
+#&gt; # … with 90 more rows</code></pre>
+</div>
+<div id="count-the-different-values" class="section level1">
+<h1>Count the different values</h1>
+<pre class="r"><code>d %&gt;% 
+  count(sampled) -&gt; d_counted
+
+d_counted
+#&gt; # A tibble: 2 x 2
+#&gt;   sampled     n
+#&gt;   &lt;lgl&gt;   &lt;int&gt;
+#&gt; 1 FALSE      56
+#&gt; 2 TRUE       44</code></pre>
+</div>
+<div id="setup-showtext" class="section level1">
+<h1>Setup showtext</h1>
+<pre class="r"><code>showtext_auto()</code></pre>
+</div>
+<div id="waffle-1" class="section level1">
+<h1>Waffle 1</h1>
+<pre class="r"><code>w0 &lt;- ggplot(d_counted) +
+  aes(fill = sampled, values = n)
+
+
+w1 &lt;- w0 +
+  geom_waffle(flip = TRUE, color = &quot;white&quot;) +
+  scale_fill_manual(values = viridis(2),
+                    labels = c(&quot;Yes&quot;, &quot;No&quot;))
+
+w1</code></pre>
+<p><img src="/post/2019-11-24-how-to-draw-a-waffle-plot_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="waffle-2" class="section level1">
+<h1>Waffle 2</h1>
+<pre class="r"><code>w2 &lt;- w1 +
+  coord_equal() +
+  theme_ipsum_rc(grid=&quot;&quot;) +
+  theme_enhance_waffle()
+
+w2</code></pre>
+<p><img src="/post/2019-11-24-how-to-draw-a-waffle-plot_files/figure-html/unnamed-chunk-5-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="pictogram-waffle" class="section level1">
+<h1>Pictogram Waffle</h1>
+<p>I could not get the pictogram waffle from this package to run. I assume the Font Awesome version I used has some different name, so that it is not found by the function.</p>
+<p>However, here’s an alternative using the package <code>emojifont</code>. More on that in a later post.</p>
+</div>

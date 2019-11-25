@@ -1,0 +1,124 @@
+---
+title: How to draw a waffle plot
+author: Sebastian Sauer
+draft: FALSE
+date: '2019-11-24'
+slug: how-to-draw-a-waffle-plot
+categories:
+  - rstats
+tags:
+  - plotting
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(waffle)
+library(viridis)
+library(hrbrthemes)
+```
+
+
+
+# What's a waffle diagram?
+
+A waffle diagram is a variant of (stacked) bar plots or pie plots. They do not have great perceptual properties, I'd suspect, but for some purposes they may be adequate. This is best explored by example. This post draws heavily from the introduction of [hrbrmstr to his Waffle package](https://github.com/hrbrmstr/waffle).
+
+
+
+# Let's make up some data and a case for it
+
+Assume you would like to explain the differences between some sampling schemes, such as random sampling, stratified sampling, ad-hoc sampling and so on. For that, some illustrative plot might come in handy. Let's simulate a dataset appropriate to explain sampling schemes.
+
+
+```{r}
+set.seed(42)
+d <- tibble(
+  id = 1:100,
+  sampled = sample(c(TRUE, FALSE), size = 100, replace = TRUE)
+)
+d
+```
+
+
+# Count the different values
+
+```{r}
+d %>% 
+  count(sampled) -> d_counted
+
+d_counted
+```
+
+
+# Setup showtext
+
+```{r}
+showtext_auto()
+```
+
+
+
+
+# Waffle 1
+
+```{r}
+w0 <- ggplot(d_counted) +
+  aes(fill = sampled, values = n)
+
+
+w1 <- w0 +
+  geom_waffle(flip = TRUE, color = "white") +
+  scale_fill_manual(values = viridis(2),
+                    labels = c("Yes", "No"))
+
+w1
+```
+
+
+
+# Waffle 2
+
+
+```{r fig.showtext=TRUE}
+w2 <- w1 +
+  coord_equal() +
+  theme_ipsum_rc(grid="") +
+  theme_enhance_waffle()
+
+w2
+```
+
+
+
+# Pictogram Waffle
+
+
+I could not get the pictogram waffle from this package to run. I assume the Font Awesome version I used has some different name, so that it is not found by the function.
+
+However, here's an alternative using the package `emojifont`. More on that in a later post.
+
+
+
+
