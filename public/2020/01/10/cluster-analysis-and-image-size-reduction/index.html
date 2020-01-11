@@ -59,7 +59,7 @@
 
   <article class="article">
     
-    <span class="article-duration">15 min read</span>
+    <span class="article-duration">16 min read</span>
     
 
     <h1 class="article-title">Cluster analysis and image size reduction</h1>
@@ -112,7 +112,7 @@ img &lt;- download.file(url = iris_url, destfile = iris_path)</code></pre>
 dimension &lt;- dim(img)  # 1: rows, 2: cols, 3: layers
 dimension
 #&gt; [1] 213 320   3</code></pre>
-<p>Note that the first dimension indicate rows, second the columns, and third the RGB value</p>
+<p>Note that the first dimension indicate rows, second the columns, and third the RGB value.</p>
 <p>Note that we have a 3D data cube.</p>
 <p><img src="/img/EPSON003.JPG" width="30%" style="display: block; margin: auto;" /></p>
 </div>
@@ -125,6 +125,7 @@ dimension
 <pre class="r"><code>img_df &lt;-map_df(1:3, ~ bind_rows(data.frame(img[,, .])))
 dim(img_df)
 #&gt; [1] 639 320</code></pre>
+<p>Now the rows is 3 times the original numbers of rows, as we have now a long-format data frame.</p>
 <p>We need to note that the first 213 rows are the “r” color part, the next the “g” part, and the last ones the “b” part:</p>
 <pre class="r"><code>img_df &lt;- img_df %&gt;% 
   mutate(color_part = rep(c(&quot;r&quot;, &quot;g&quot;, &quot;b&quot;), 
@@ -2424,14 +2425,27 @@ img_df %&gt;% head() %&gt;%
 <div id="reshape-to-long-format" class="section level1">
 <h1>Reshape to long format</h1>
 <p>The long format is the standard for many operations, such as the cluster analysis. So, let’s reshape:</p>
+</div>
+<div id="pivot-to-long-format" class="section level1">
+<h1>Pivot to long format</h1>
 <pre class="r"><code>img_df_long &lt;- img_df %&gt;% 
   pivot_longer(cols = -c(color_part, y),
                names_to = &quot;x&quot;,
                values_to = &quot;value&quot;)
 
 dim(img_df_long)
-#&gt; [1] 204480      4
-head(img_df_long)
+#&gt; [1] 204480      4</code></pre>
+<p>The number of rows of this data frame should be the product of</p>
+<ul>
+<li>the number of rows by</li>
+<li>the number of columns by</li>
+<li>the number of color parts (ie., rgb)</li>
+</ul>
+<p>of the original data frame. Let’s check:</p>
+<pre class="r"><code>nrow(img_df_long) == dimension[1] * dimension[2] * dimension[3]
+#&gt; [1] TRUE</code></pre>
+<p>OK.</p>
+<pre class="r"><code>head(img_df_long)
 #&gt; # A tibble: 6 x 4
 #&gt;   color_part     y x     value
 #&gt;   &lt;chr&gt;      &lt;int&gt; &lt;chr&gt; &lt;dbl&gt;
@@ -2508,12 +2522,12 @@ k_means &lt;- kmeans(img_rgb[,c(&quot;r&quot;,&quot;g&quot;,&quot;b&quot;)], cen
 <pre class="r"><code>k_means$centers %&gt;%
   rgb() %&gt;%
   show_col()</code></pre>
-<p><img src="/post/2020-01-10-cluster-analysis-and-image-size-reduction_files/figure-html/unnamed-chunk-20-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2020-01-10-cluster-analysis-and-image-size-reduction_files/figure-html/unnamed-chunk-22-1.png" width="70%" style="display: block; margin: auto;" /></p>
 </div>
 <div id="frequencies-of-colors" class="section level1">
 <h1>Frequencies of colors</h1>
 <pre class="r"><code>gf_col(k_means$size ~ 1:16, fill = rgb(k_means$centers))</code></pre>
-<p><img src="/post/2020-01-10-cluster-analysis-and-image-size-reduction_files/figure-html/unnamed-chunk-21-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2020-01-10-cluster-analysis-and-image-size-reduction_files/figure-html/unnamed-chunk-23-1.png" width="70%" style="display: block; margin: auto;" /></p>
 </div>
 <div id="compress-colors" class="section level1">
 <h1>Compress colors</h1>
@@ -2543,17 +2557,23 @@ dim(img_rgb)
   select(x, y, cluster) %&gt;% 
   full_join(centers_rgb) %&gt;% 
   select(r, g, b) %&gt;% 
-  as.matrix()
-
-nrow(img_new) == nrow(img_rgb)
+  as.matrix()</code></pre>
+</div>
+<div id="check-1" class="section level1">
+<h1>Check</h1>
+<p>Let’s check that the row number remained the same:</p>
+<pre class="r"><code>nrow(img_new) == nrow(img_rgb)
 #&gt; [1] TRUE</code></pre>
 </div>
-<div id="write-3d-data-cube-for-image" class="section level1">
-<h1>Write 3D data cube for image</h1>
-<p>We directly convert to a matrix, as we need a (3D) matrix again to write the jpg image:</p>
+<div id="initialize-3d-data-cube-for-image" class="section level1">
+<h1>Initialize 3D data cube for image</h1>
+<p>We now convert to a matrix, as we need a (3D) matrix again to write the jpg image:</p>
 <pre class="r"><code>img_new_array &lt;- array(NA, dimension)
 dim(img_new_array)
 #&gt; [1] 213 320   3</code></pre>
+</div>
+<div id="write-to-3d-array" class="section level1">
+<h1>Write to 3D array</h1>
 <pre class="r"><code>for(i in 1:3) img_new_array[,,i] &lt;- matrix(img_new[,i], 
                                            nrow=dimension[1]) </code></pre>
 </div>

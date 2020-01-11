@@ -102,7 +102,7 @@ dimension
 ```
 
 
-Note that the first dimension indicate rows, second the columns, and third the RGB value
+Note that the first dimension indicate rows, second the columns, and third the RGB value.
 
 Note that we have a 3D data cube.
 
@@ -135,6 +135,8 @@ knitr::include_graphics("/img/cube-long.png")
 img_df <-map_df(1:3, ~ bind_rows(data.frame(img[,, .])))
 dim(img_df)
 ```
+
+Now the rows is 3 times the original numbers of rows, as we have now a long-format data frame.
 
 We need to note that the first `r dimension[1]` rows are the "r" color part, the next the "g" part, and the last ones the "b" part:
 
@@ -182,6 +184,9 @@ tally(~ y, data = img_df) %>% all(. == 3)
 
 The long format is the standard for many operations, such as the cluster analysis. So, let's reshape:
 
+
+# Pivot to long format
+
 ```{r}
 img_df_long <- img_df %>% 
   pivot_longer(cols = -c(color_part, y),
@@ -189,8 +194,27 @@ img_df_long <- img_df %>%
                values_to = "value")
 
 dim(img_df_long)
-head(img_df_long)
 ```
+
+The number of rows of this data frame should be the product of
+
+- the number of rows by
+- the number of columns by
+- the number of color parts (ie., rgb) 
+
+of the original data frame. Let's check:
+
+```{r}
+nrow(img_df_long) == dimension[1] * dimension[2] * dimension[3]
+```
+
+OK.
+
+```{r}
+head(img_df_long)
+
+```
+
 
 Transfer `col_nr` values to pure numbers:
 
@@ -307,13 +331,21 @@ img_new <- img_rgb %>%
   select(r, g, b) %>% 
   as.matrix()
 
+```
+
+
+# Check
+
+Let's check that the row number remained the same:
+
+```{r}
 nrow(img_new) == nrow(img_rgb)
 ```
 
 
-# Write 3D data cube for image
+# Initialize 3D data cube for image
 
-We directly convert to a matrix, as we need a (3D) matrix again to write the jpg image:
+We now convert to a matrix, as we need a (3D) matrix again to write the jpg image:
 
 ```{r}
 img_new_array <- array(NA, dimension)
@@ -321,6 +353,7 @@ dim(img_new_array)
 ```
 
 
+# Write to 3D array
 
 ```{r}
 for(i in 1:3) img_new_array[,,i] <- matrix(img_new[,i], 
