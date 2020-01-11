@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Effect sizes for the Mann-Whitney U Test: an intuition - Data Se</title>
@@ -69,124 +69,72 @@
     
 
     <div class="article-content">
-      
-
-<p>The Mann-Whitney U-Test is a test with a wide applicability, wider than the t-Test. Why that? Because the U-Test is applicable for ordinal data, and it can be argued that confining the metric level of a psychological variable to ordinal niveau is a reasonable bet. Second, it is robust, more robust than the t-test, because it only considers ranks, not raw values. In addition, <a href="https://en.wikipedia.org/wiki/Mann%E2%80%93Whitney_U_test#cite_note-Lehmann_1999-13">some say</a> that the efficiency of the U-Test is very close to the t-Test (.95). In sum: use the U-Test.</p>
-
+      <p>The Mann-Whitney U-Test is a test with a wide applicability, wider than the t-Test. Why that? Because the U-Test is applicable for ordinal data, and it can be argued that confining the metric level of a psychological variable to ordinal niveau is a reasonable bet. Second, it is robust, more robust than the t-test, because it only considers ranks, not raw values. In addition, <a href="https://en.wikipedia.org/wiki/Mann%E2%80%93Whitney_U_test#cite_note-Lehmann_1999-13">some say</a> that the efficiency of the U-Test is very close to the t-Test (.95). In sum: use the U-Test.</p>
 <h1 id="idea-of-the-u-test">Idea of the U-Test</h1>
-
-<p>How is the test computed? In essence, that&rsquo;s easy:</p>
-
+<p>How is the test computed? In essence, that's easy:</p>
 <ol>
 <li>Count the number of pairwise comparisons in your sample. Say you have  two groups, with n1=5 and n2=4. Thus there are 20 comparisons in total.</li>
 <li>Now count the frequency group 1 &ldquo;wins&rdquo; a comparison (count 0.5 for ties). The resulting statistic can be called U.</li>
 </ol>
-
 <p>How to achieve that in R? Try this code. Say we have two groups of runners (100m), and we record their running time (in seconds):</p>
-
-<pre><code class="language-r">g1 &lt;- c(9.9, 10.3, 11.5, 12.1, 23.3)
-g2 &lt;- c(13.2, 14.5, 15.2, 16.6)
-</code></pre>
-
-<p>Now let&rsquo;s see all possible comparisons:</p>
-
-<pre><code class="language-r">comp &lt;- expand.grid(g1, g2)
-names(comp) &lt;- c(&quot;g1&quot;, &quot;g2&quot;)
-head(comp)
-</code></pre>
-
-<pre><code>##     g1   g2
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">g1 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">9.9</span>, <span style="color:#ae81ff">10.3</span>, <span style="color:#ae81ff">11.5</span>, <span style="color:#ae81ff">12.1</span>, <span style="color:#ae81ff">23.3</span>)
+g2 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">13.2</span>, <span style="color:#ae81ff">14.5</span>, <span style="color:#ae81ff">15.2</span>, <span style="color:#ae81ff">16.6</span>)
+</code></pre></div><p>Now let's see all possible comparisons:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">comp <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">expand.grid</span>(g1, g2)
+<span style="color:#a6e22e">names</span>(comp) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">g1&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">g2&#34;</span>)
+<span style="color:#a6e22e">head</span>(comp)
+</code></pre></div><pre><code>##     g1   g2
 ## 1  9.9 13.2
 ## 2 10.3 13.2
 ## 3 11.5 13.2
 ## 4 12.1 13.2
 ## 5 23.3 13.2
 ## 6  9.9 14.5
-</code></pre>
-
-<p>How man comparisons do we have?</p>
-
-<pre><code class="language-r">nrow(comp)
-</code></pre>
-
-<pre><code>## [1] 20
-</code></pre>
-
-<p>And now count how often members of g1 outperform members of g2, ie., we count the proportion of $$g1_i &gt; g2_j$$ for all $$i,j$$.</p>
-
+</code></pre><p>How man comparisons do we have?</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">nrow</span>(comp)
+</code></pre></div><pre><code>## [1] 20
+</code></pre><p>And now count how often members of g1 outperform members of g2, ie., we count the proportion of $$g1_i &gt; g2_j$$ for all $$i,j$$.</p>
 <p>I need the pipe for that&hellip;</p>
-
-<pre><code class="language-r">library(tidyverse)
-</code></pre>
-
-<pre><code class="language-r">comp %&gt;% 
-  mutate(g1fasterg2 = g1 &lt; g2) %&gt;% 
-  summarise(sum_g1fasterg2 = sum(g1fasterg2))
-</code></pre>
-
-<pre><code>##   sum_g1fasterg2
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">comp <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(g1fasterg2 <span style="color:#f92672">=</span> g1 <span style="color:#f92672">&lt;</span> g2) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">summarise</span>(sum_g1fasterg2 <span style="color:#f92672">=</span> <span style="color:#a6e22e">sum</span>(g1fasterg2))
+</code></pre></div><pre><code>##   sum_g1fasterg2
 ## 1             16
-</code></pre>
-
-<p>So we now have the sum of &ldquo;wins&rdquo;; getting the proportion is easy, just divide by the number of comparisons.</p>
-
+</code></pre><p>So we now have the sum of &ldquo;wins&rdquo;; getting the proportion is easy, just divide by the number of comparisons.</p>
 <h1 id="computing-u-the-standard-way">Computing U the standard way</h1>
-
-<p>Let&rsquo;s compare that to the more &ldquo;traditional&rdquo; way of computing U.</p>
-
+<p>Let's compare that to the more &ldquo;traditional&rdquo; way of computing U.</p>
 <p>U is given by</p>
-
 <p>$$U1 =\sum{g1} - \sum{min1}$$</p>
-
-<p>where $$U1$$ means the U statistic for g1, and $$min1$$ is the <em>minimal possible</em> rank sum in g1. What&rsquo;s the smallest possible rank sum if there are 2 observations in a group? 3. Because 1+2=3. If there are 5 runners in a group? 15. Because 1+2+3+4+5=15. So, in our case for g1, 15 is the minimal possible rank sum in g1. Now we now that if we get a rank sum of 15 that&rsquo;s as possible as it can be.</p>
-
-<p>Let&rsquo;s compute the rank sums for each group.</p>
-
+<p>where $$U1$$ means the U statistic for g1, and $$min1$$ is the <em>minimal possible</em> rank sum in g1. What's the smallest possible rank sum if there are 2 observations in a group? 3. Because 1+2=3. If there are 5 runners in a group? 15. Because 1+2+3+4+5=15. So, in our case for g1, 15 is the minimal possible rank sum in g1. Now we now that if we get a rank sum of 15 that's as possible as it can be.</p>
+<p>Let's compute the rank sums for each group.</p>
 <p>First, build a dataframe:</p>
-
-<pre><code class="language-r">df &lt;- data.frame(
-  runtime = c(g1, g2),
-  groups = c(rep(&quot;g1&quot;, 5), rep(&quot;g2&quot;,4))
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">data.frame</span>(
+  runtime <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(g1, g2),
+  groups <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#a6e22e">rep</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">g1&#34;</span>, <span style="color:#ae81ff">5</span>), <span style="color:#a6e22e">rep</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">g2&#34;</span>,<span style="color:#ae81ff">4</span>))
   )
-</code></pre>
-
-<p>Now transform the run time to ranks.</p>
-
-<pre><code class="language-r">df %&gt;% 
-  mutate(ranks = min_rank(runtime)) -&gt; df
-</code></pre>
-
-<p>Note that we are not considering ties here for the sake of simplicity.</p>
-
+</code></pre></div><p>Now transform the run time to ranks.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">df <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(ranks <span style="color:#f92672">=</span> <span style="color:#a6e22e">min_rank</span>(runtime)) <span style="color:#f92672">-&gt;</span> df
+</code></pre></div><p>Note that we are not considering ties here for the sake of simplicity.</p>
 <p>Now compute the sum of <code>ranks</code> grouped by <code>groups</code>.</p>
-
-<pre><code class="language-r">df %&gt;% 
-  group_by(groups) %&gt;% 
-  summarise(ranks_sum = sum(ranks))
-</code></pre>
-
-<pre><code>## # A tibble: 2 x 2
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">df <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">group_by</span>(groups) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">summarise</span>(ranks_sum <span style="color:#f92672">=</span> <span style="color:#a6e22e">sum</span>(ranks))
+</code></pre></div><pre><code>## # A tibble: 2 x 2
 ##   groups ranks_sum
 ##   &lt;fctr&gt;     &lt;int&gt;
 ## 1     g1        19
 ## 2     g2        26
-</code></pre>
-
-<p>Applying the formula above we see that the rank sum for g1 is 19, subtracting the min rank of 15, we get a value of 4. This number is equivalent to saying that out of 20 comparisons, g1 lost 4 (and won 16). U is obviously synonymous to saying &ldquo;how many comparisons were lost&rdquo;.</p>
-
+</code></pre><p>Applying the formula above we see that the rank sum for g1 is 19, subtracting the min rank of 15, we get a value of 4. This number is equivalent to saying that out of 20 comparisons, g1 lost 4 (and won 16). U is obviously synonymous to saying &ldquo;how many comparisons were lost&rdquo;.</p>
 <p>For g2, similarly: 26 - 10 = 16, so 16 (out of 20) comparisons were <em>lost</em>.</p>
-
-<p>Now, the <em>proportion</em> of won (or lost) comparisons is of course more telling than the absolute value, seen from a practical point of view. This amounts to saying that the proportion of won/lost comparisons is some kind of <em>effect size</em>. See details for this idea in the paper of <a href="http://journals.sagepub.com/doi/pdf/10.2466/11.IT.3.1">Kerby</a> (Kerby, D. S. (2014). The Simple Difference Formula: An Approach to Teaching Nonparametric Correlation. <em>Comprehensive Psychology, 3</em>, 11.IT.3.1. <a href="http://doi.org/10.2466/11.IT.3.1">http://doi.org/10.2466/11.IT.3.1</a>), and the 1992 paper of
-<a href="http://core.ecu.edu/psyc/wuenschk/docs30/CL.pdf">McGraw and Wong</a> (McGraw, K. O., &amp; Wong, S. P. (1992). A common language effect size statistic. <em>Psychological Bulletin, 111</em>(2), 361–365. <a href="http://doi.org/10.1037/0033-2909.111.2.361">http://doi.org/10.1037/0033-2909.111.2.361</a>). That&rsquo;s were the ideas presented here stem from (as far as I am involved).</p>
-
+<p>Now, the <em>proportion</em> of won (or lost) comparisons is of course more telling than the absolute value, seen from a practical point of view. This amounts to saying that the proportion of won/lost comparisons is some kind of <em>effect size</em>. See details for this idea in the paper of <a href="http://journals.sagepub.com/doi/pdf/10.2466/11.IT.3.1">Kerby</a> (Kerby, D. S. (2014). The Simple Difference Formula: An Approach to Teaching Nonparametric Correlation. <em>Comprehensive Psychology, 3</em>, 11.IT.3.1. <a href="http://doi.org/10.2466/11.IT.3.1),">http://doi.org/10.2466/11.IT.3.1),</a> and the 1992 paper of
+<a href="http://core.ecu.edu/psyc/wuenschk/docs30/CL.pdf">McGraw and Wong</a> (McGraw, K. O., &amp; Wong, S. P. (1992). A common language effect size statistic. <em>Psychological Bulletin, 111</em>(2), 361–365. <a href="http://doi.org/10.1037/0033-2909.111.2.361)">http://doi.org/10.1037/0033-2909.111.2.361)</a>. That's were the ideas presented here stem from (as far as I am involved).</p>
 <blockquote>
 <p>The proportion of favorable comparisons can be gauged a &ldquo;common language effect size&rdquo; (CLES).</p>
 </blockquote>
-
-<p>In our example, the effect size (CLES) would amount to <sup>16</sup>&frasl;<sub>20</sub> = 80% (.8). For the sake of a memorable example, let&rsquo;s say that g1 are &ldquo;doped runners&rdquo; and g2 are &ldquo;normal runners&rdquo;.</p>
-
-<p>It&rsquo;s quite straight forward to say &ldquo;doped runners outperform normal runners in 80 of 100 cases&rdquo;.</p>
-
+<p>In our example, the effect size (CLES) would amount to 16/20 = 80% (.8). For the sake of a memorable example, let's say that g1 are &ldquo;doped runners&rdquo; and g2 are &ldquo;normal runners&rdquo;.</p>
+<p>It's quite straight forward to say &ldquo;doped runners outperform normal runners in 80 of 100 cases&rdquo;.</p>
 <p>As an effect size for non-parametric two-group comparison scenarios are quite often neglected in standard text books, I think it is helpful to ponder the CLES idea presented by Kerby, and put forward earlier by McGraw and Wong.</p>
 
     </div>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Three ways to dichotomize a variable - Data Se</title>
@@ -69,101 +69,57 @@
     
 
     <div class="article-content">
-      
-
-<p>Dichotomizing is also called dummy coding. It means: Take a variable with multiple different values (&gt;2), and transform it so that the output variable has 2 different values.</p>
-
-<p>Note that this &ldquo;thing&rdquo; can be understood as consisting of two different aspects: Recoding and cutting. Recoding means that value &ldquo;a&rdquo; becomes values &ldquo;b&rdquo; etc. Cutting means that a &ldquo;rope&rdquo; of numbers is cut into several shorter &ldquo;ropes&rdquo; (that&rsquo;s why it is called cutting).</p>
-
+      <p>Dichotomizing is also called dummy coding. It means: Take a variable with multiple different values (&gt;2), and transform it so that the output variable has 2 different values.</p>
+<p>Note that this &ldquo;thing&rdquo; can be understood as consisting of two different aspects: Recoding and cutting. Recoding means that value &ldquo;a&rdquo; becomes values &ldquo;b&rdquo; etc. Cutting means that a &ldquo;rope&rdquo; of numbers is cut into several shorter &ldquo;ropes&rdquo; (that's why it is called cutting).</p>
 <p>Several ways of achieving this exist in R. Here we discuss three.</p>
-
-<p>First, let&rsquo;s load some data.</p>
-
-<pre><code class="language-r">library(AER)
-data(Affairs)
-</code></pre>
-
-<p>We will define a new variable, called &ldquo;halodrie&rdquo;. A &ldquo;halodrie&rdquo; is someone who likes having affairs (German parlance). The variable should have 2 values, ie., &ldquo;yes&rdquo; and &ldquo;no&rdquo;.</p>
-
+<p>First, let's load some data.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(AER)
+<span style="color:#a6e22e">data</span>(Affairs)
+</code></pre></div><p>We will define a new variable, called &ldquo;halodrie&rdquo;. A &ldquo;halodrie&rdquo; is someone who likes having affairs (German parlance). The variable should have 2 values, ie., &ldquo;yes&rdquo; and &ldquo;no&rdquo;.</p>
 <h1 id="using-car">Using {car}</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(car)
 
-<pre><code class="language-r">library(car)
+Affairs<span style="color:#f92672">$</span>halodrie <span style="color:#f92672">&lt;-</span> car<span style="color:#f92672">::</span><span style="color:#a6e22e">recode</span>(Affairs<span style="color:#f92672">$</span>affairs, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0 = &#39;no&#39;; 1:12 = &#39;yes&#39;&#34;</span>)
 
-Affairs$halodrie &lt;- car::recode(Affairs$affairs, &quot;0 = 'no'; 1:12 = 'yes'&quot;)
-
-head(Affairs$halodrie)
-</code></pre>
-
-<pre><code>## [1] &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot;
-</code></pre>
-
-<pre><code class="language-r">table(Affairs$halodrie)
-</code></pre>
-
-<pre><code>## 
+<span style="color:#a6e22e">head</span>(Affairs<span style="color:#f92672">$</span>halodrie)
+</code></pre></div><pre><code>## [1] &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot;
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">table</span>(Affairs<span style="color:#f92672">$</span>halodrie)
+</code></pre></div><pre><code>## 
 ##  no yes 
 ## 451 150
-</code></pre>
-
-<p>A comfortable feature of this function is that it allows using the colon operator. Note that the whole recode-thing (all values to be recoded) is to be put into quotation marks.</p>
-
+</code></pre><p>A comfortable feature of this function is that it allows using the colon operator. Note that the whole recode-thing (all values to be recoded) is to be put into quotation marks.</p>
 <h1 id="using-dplyr">Using {dplyr}</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(dplyr)
 
-<pre><code class="language-r">library(dplyr)
+Affairs<span style="color:#f92672">$</span>halodrie <span style="color:#f92672">&lt;-</span> 
+  dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">recode</span>(Affairs<span style="color:#f92672">$</span>affairs, `0` <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">no&#34;</span>, .default <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes&#34;</span>)
 
-Affairs$halodrie &lt;- 
-  dplyr::recode(Affairs$affairs, `0` = &quot;no&quot;, .default = &quot;yes&quot;)
-
-Affairs$halodrie %&gt;% head
-</code></pre>
-
-<pre><code>## [1] &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot;
-</code></pre>
-
-<pre><code class="language-r">table(Affairs$halodrie)
-</code></pre>
-
-<pre><code>## 
+Affairs<span style="color:#f92672">$</span>halodrie <span style="color:#f92672">%&gt;%</span> head
+</code></pre></div><pre><code>## [1] &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot; &quot;no&quot;
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">table</span>(Affairs<span style="color:#f92672">$</span>halodrie)
+</code></pre></div><pre><code>## 
 ##  no yes 
 ## 451 150
-</code></pre>
+</code></pre><p>This function does not allow the colon operator. I assume the reason that the author (Hadley Wickham) argues that a given function should only be capable of one thing. Here, the function reassigns a value of a variable, not (much) more, not less.</p>
+<h1 id="using-basecut">Using <code>base::cut</code></h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">Affairs<span style="color:#f92672">$</span>halodrie <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">cut</span>(Affairs<span style="color:#f92672">$</span>affairs, breaks <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#f92672">-</span><span style="color:#66d9ef">Inf</span>, <span style="color:#ae81ff">0</span>, <span style="color:#f92672">+</span><span style="color:#66d9ef">Inf</span>), labels <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">no&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yes&#34;</span>))
 
-<p>This function does not allow the colon operator. I assume the reason that the author (Hadley Wickham) argues that a given function should only be capable of one thing. Here, the function reassigns a value of a variable, not (much) more, not less.</p>
-
-<h1 id="using-base-cut">Using <code>base::cut</code></h1>
-
-<pre><code class="language-r">Affairs$halodrie &lt;- cut(Affairs$affairs, breaks = c(-Inf, 0, +Inf), labels = c(&quot;no&quot;, &quot;yes&quot;))
-
-table(Affairs$halodrie)
-</code></pre>
-
-<pre><code>## 
+<span style="color:#a6e22e">table</span>(Affairs<span style="color:#f92672">$</span>halodrie)
+</code></pre></div><pre><code>## 
 ##  no yes 
 ## 451 150
-</code></pre>
-
-<p>Of note, when a continuous variable is &ldquo;cut&rdquo;, one must specify the minimum and the maximum value (or arbitrarly small or large values) as cutting points. So cutting in two halfs, is <em>not one</em> cutting point for <code>cut</code>, but three (always add two cutting points: one being the smallest value in the sample [or smaller, even <code>-Inf</code>, the other one being the largest value in the sample [or even <code>Inf</code>]).</p>
-
+</code></pre><p>Of note, when a continuous variable is &ldquo;cut&rdquo;, one must specify the minimum and the maximum value (or arbitrarly small or large values) as cutting points. So cutting in two halfs, is <em>not one</em> cutting point for <code>cut</code>, but three (always add two cutting points: one being the smallest value in the sample [or smaller, even <code>-Inf</code>, the other one being the largest value in the sample [or even <code>Inf</code>]).</p>
 <h1 id="summary">Summary</h1>
-
 <p>For beginners, I would recommend <code>car::recode</code>. It provides both recoding and cutting in one function, and hence may be easier to apply at start. It also offers quite some flexibility. Assume you are interested in marriages ranging from 5 to 15 years:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">Affairs<span style="color:#f92672">$</span>years5_15 <span style="color:#f92672">&lt;-</span> car<span style="color:#f92672">::</span><span style="color:#a6e22e">recode</span>(Affairs<span style="color:#f92672">$</span>yearsmarried, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0:4 =  &#39;no&#39;; 5:15 = &#39;yes&#39;; else = &#39;no&#39;&#34;</span>)
 
-<pre><code class="language-r">Affairs$years5_15 &lt;- car::recode(Affairs$yearsmarried, &quot;0:4 =  'no'; 5:15 = 'yes'; else = 'no'&quot;)
-
-head(Affairs$years5_15)
-</code></pre>
-
-<pre><code>## [1] &quot;yes&quot; &quot;no&quot;  &quot;yes&quot; &quot;yes&quot; &quot;no&quot;  &quot;no&quot;
-</code></pre>
-
-<pre><code class="language-r">table(Affairs$years5_15)
-</code></pre>
-
-<pre><code>## 
+<span style="color:#a6e22e">head</span>(Affairs<span style="color:#f92672">$</span>years5_15)
+</code></pre></div><pre><code>## [1] &quot;yes&quot; &quot;no&quot;  &quot;yes&quot; &quot;yes&quot; &quot;no&quot;  &quot;no&quot;
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">table</span>(Affairs<span style="color:#f92672">$</span>years5_15)
+</code></pre></div><pre><code>## 
 ##  no yes 
 ## 245 356
 </code></pre>
-
     </div>
   </article>
 

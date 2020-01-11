@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Sentiment-Wörterbuch erstellen - Data Se</title>
@@ -69,62 +69,39 @@
     
 
     <div class="article-content">
-      
-
-<p>Bei der Textanalyse (Textmining) ist die Sentiment-Analyse eine typische Tätigkeit. Natürlich steht und fällt die Qualität der Sentiment-Analyse mit der Qualität des verwendeten Wörterbuchs (was nicht heißt, dass man nicht auch auf andere Klippen schellen kann).</p>
-
+      <p>Bei der Textanalyse (Textmining) ist die Sentiment-Analyse eine typische Tätigkeit. Natürlich steht und fällt die Qualität der Sentiment-Analyse mit der Qualität des verwendeten Wörterbuchs (was nicht heißt, dass man nicht auch auf andere Klippen schellen kann).</p>
 <p>Der Zweck dieses Posts ist es, eine Sentiment-Lexikon in deutscher Sprache einzulesen.</p>
-
 <p>Dazu wird das Sentiment-Lexikon <a href="http://asv.informatik.uni-leipzig.de/download/sentiws.html">dieser Quelle</a> verwendet (CC-BY-NC-SA 3.0). In <a href="http://asv.informatik.uni-leipzig.de/publication/file/155/490_Paper.pdf">diesem Paper</a> finden sich Hintergründe. Von dort lassen sich die Daten herunter laden. Im folgenden gehe ich davon aus, dass die Daten herunter geladen sind und sich im Working Directory befinden.</p>
-
 <p>Wir benötigen diese Pakete (es ginge auch über base):</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(stringr)
+<span style="color:#a6e22e">library</span>(readr)
+<span style="color:#a6e22e">library</span>(dplyr)
+</code></pre></div><p>Dann lesen wir die Daten ein, zuerst die Datei mit den negativen Konnotationen:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">neg_df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_tsv</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">SentiWS_v1.8c_Negative.txt&#34;</span>, col_names <span style="color:#f92672">=</span> <span style="color:#66d9ef">FALSE</span>)
+<span style="color:#a6e22e">names</span>(neg_df) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Wort_POS&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Wert&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Inflektionen&#34;</span>)
 
-<pre><code class="language-r">library(stringr)
-library(readr)
-library(dplyr)
-</code></pre>
-
-<p>Dann lesen wir die Daten ein, zuerst die Datei mit den negativen Konnotationen:</p>
-
-<pre><code class="language-r">neg_df &lt;- read_tsv(&quot;SentiWS_v1.8c_Negative.txt&quot;, col_names = FALSE)
-names(neg_df) &lt;- c(&quot;Wort_POS&quot;, &quot;Wert&quot;, &quot;Inflektionen&quot;)
-
-glimpse(neg_df)
-#&gt; Observations: 1,818
-#&gt; Variables: 3
-#&gt; $ Wort_POS     &lt;chr&gt; &quot;Abbau|NN&quot;, &quot;Abbruch|NN&quot;, &quot;Abdankung|NN&quot;, &quot;Abdämp...
-#&gt; $ Wert         &lt;dbl&gt; -0.0580, -0.0048, -0.0048, -0.0048, -0.0048, -0.3...
-#&gt; $ Inflektionen &lt;chr&gt; &quot;Abbaus,Abbaues,Abbauen,Abbaue&quot;, &quot;Abbruches,Abbrü...
-</code></pre>
-
-<p>Dann parsen wir aus der ersten Spalte (<code>Wort_POS</code>) zum einen den entsprechenden Begriff (z.B. &ldquo;Abbau&rdquo;) und zum anderen die Wortarten-Tags (eine Erläuterung zu den Wortarten-Tags findet sich <a href="http://www.jlcl.org/2013_Heft1/H2013-1.pdf">hier</a>).</p>
-
-<pre><code class="language-r">neg_df %&gt;% 
-  mutate(Wort = str_sub(Wort_POS, 1, regexpr(&quot;\\|&quot;, .$Wort_POS)-1),
-         POS = str_sub(Wort_POS, start = regexpr(&quot;\\|&quot;, .$Wort_POS)+1)) -&gt; neg_df
-</code></pre>
-
-<p><code>str_sub</code> parst zuerst das Wort. Dazu nehmen wir den Wort-Vektor <code>Wort_POS</code>, und für jedes Element wird der Text von Position 1 bis vor dem Zeichen <code>|</code> geparst; da der Querstrich ein Steuerzeichen in Regex muss er escaped werden. Für <code>POS</code> passiert das gleiche von Position <code>|</code>+1 bis zum Ende des Text-Elements.</p>
-
+<span style="color:#a6e22e">glimpse</span>(neg_df)
+<span style="color:#75715e">#&gt; Observations: 1,818</span>
+<span style="color:#75715e">#&gt; Variables: 3</span>
+<span style="color:#75715e">#&gt; $ Wort_POS     &lt;chr&gt; &#34;Abbau|NN&#34;, &#34;Abbruch|NN&#34;, &#34;Abdankung|NN&#34;, &#34;Abdämp...</span>
+<span style="color:#75715e">#&gt; $ Wert         &lt;dbl&gt; -0.0580, -0.0048, -0.0048, -0.0048, -0.0048, -0.3...</span>
+<span style="color:#75715e">#&gt; $ Inflektionen &lt;chr&gt; &#34;Abbaus,Abbaues,Abbauen,Abbaue&#34;, &#34;Abbruches,Abbrü...</span>
+</code></pre></div><p>Dann parsen wir aus der ersten Spalte (<code>Wort_POS</code>) zum einen den entsprechenden Begriff (z.B. &ldquo;Abbau&rdquo;) und zum anderen die Wortarten-Tags (eine Erläuterung zu den Wortarten-Tags findet sich <a href="http://www.jlcl.org/2013_Heft1/H2013-1.pdf">hier</a>).</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">neg_df <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(Wort <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(Wort_POS, <span style="color:#ae81ff">1</span>, <span style="color:#a6e22e">regexpr</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\\|&#34;</span>, .$Wort_POS)<span style="color:#ae81ff">-1</span>),
+         POS <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(Wort_POS, start <span style="color:#f92672">=</span> <span style="color:#a6e22e">regexpr</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\\|&#34;</span>, .$Wort_POS)<span style="color:#ae81ff">+1</span>)) <span style="color:#f92672">-&gt;</span> neg_df
+</code></pre></div><p><code>str_sub</code> parst zuerst das Wort. Dazu nehmen wir den Wort-Vektor <code>Wort_POS</code>, und für jedes Element wird der Text von Position 1 bis vor dem Zeichen <code>|</code> geparst; da der Querstrich ein Steuerzeichen in Regex muss er escaped werden. Für <code>POS</code> passiert das gleiche von Position <code>|</code>+1 bis zum Ende des Text-Elements.</p>
 <p>Das gleiche wiederholen wir für positiv konnotierte Wörter.</p>
-
-<pre><code class="language-r">pos_df &lt;- read_tsv(&quot;SentiWS_v1.8c_Positive.txt&quot;, col_names = FALSE)
-names(pos_df) &lt;- c(&quot;Wort_POS&quot;, &quot;Wert&quot;, &quot;Inflektionen&quot;)
-pos_df %&gt;% 
-  mutate(Wort = str_sub(Wort_POS, 1, regexpr(&quot;\\|&quot;, .$Wort_POS)-1),
-         POS = str_sub(Wort_POS, start = regexpr(&quot;\\|&quot;, .$Wort_POS)+1)) -&gt; pos_df
-</code></pre>
-
-<p>Schließlich schweißen wir beide Dataframes in einen:</p>
-
-<pre><code class="language-r">bind_rows(&quot;neg&quot; = neg_df, &quot;pos&quot; = pos_df, .id = &quot;neg_pos&quot;) -&gt; sentiment_df
-sentiment_df %&gt;% select(neg_pos, Wort, Wert, Inflektionen, -Wort_POS) -&gt; sentiment_df
-</code></pre>
-
-<pre><code class="language-r">knitr::kable(head(sentiment_df))
-</code></pre>
-
-<table>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">pos_df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_tsv</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">SentiWS_v1.8c_Positive.txt&#34;</span>, col_names <span style="color:#f92672">=</span> <span style="color:#66d9ef">FALSE</span>)
+<span style="color:#a6e22e">names</span>(pos_df) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Wort_POS&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Wert&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Inflektionen&#34;</span>)
+pos_df <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(Wort <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(Wort_POS, <span style="color:#ae81ff">1</span>, <span style="color:#a6e22e">regexpr</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\\|&#34;</span>, .$Wort_POS)<span style="color:#ae81ff">-1</span>),
+         POS <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(Wort_POS, start <span style="color:#f92672">=</span> <span style="color:#a6e22e">regexpr</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\\|&#34;</span>, .$Wort_POS)<span style="color:#ae81ff">+1</span>)) <span style="color:#f92672">-&gt;</span> pos_df
+</code></pre></div><p>Schließlich schweißen wir beide Dataframes in einen:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">bind_rows</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">neg&#34;</span> <span style="color:#f92672">=</span> neg_df, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pos&#34;</span> <span style="color:#f92672">=</span> pos_df, .id <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">neg_pos&#34;</span>) <span style="color:#f92672">-&gt;</span> sentiment_df
+sentiment_df <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">select</span>(neg_pos, Wort, Wert, Inflektionen, <span style="color:#f92672">-</span>Wort_POS) <span style="color:#f92672">-&gt;</span> sentiment_df
+</code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">knitr<span style="color:#f92672">::</span><span style="color:#a6e22e">kable</span>(<span style="color:#a6e22e">head</span>(sentiment_df))
+</code></pre></div><table>
 <thead>
 <tr>
 <th align="left">neg_pos</th>
@@ -133,7 +110,6 @@ sentiment_df %&gt;% select(neg_pos, Wort, Wert, Inflektionen, -Wort_POS) -&gt; s
 <th align="left">Inflektionen</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="left">neg</td>
@@ -141,35 +117,30 @@ sentiment_df %&gt;% select(neg_pos, Wort, Wert, Inflektionen, -Wort_POS) -&gt; s
 <td align="right">-0.058</td>
 <td align="left">Abbaus,Abbaues,Abbauen,Abbaue</td>
 </tr>
-
 <tr>
 <td align="left">neg</td>
 <td align="left">Abbruch</td>
 <td align="right">-0.005</td>
 <td align="left">Abbruches,Abbrüche,Abbruchs,Abbrüchen</td>
 </tr>
-
 <tr>
 <td align="left">neg</td>
 <td align="left">Abdankung</td>
 <td align="right">-0.005</td>
 <td align="left">Abdankungen</td>
 </tr>
-
 <tr>
 <td align="left">neg</td>
 <td align="left">Abdämpfung</td>
 <td align="right">-0.005</td>
 <td align="left">Abdämpfungen</td>
 </tr>
-
 <tr>
 <td align="left">neg</td>
 <td align="left">Abfall</td>
 <td align="right">-0.005</td>
 <td align="left">Abfalles,Abfälle,Abfalls,Abfällen</td>
 </tr>
-
 <tr>
 <td align="left">neg</td>
 <td align="left">Abfuhr</td>
@@ -178,11 +149,9 @@ sentiment_df %&gt;% select(neg_pos, Wort, Wert, Inflektionen, -Wort_POS) -&gt; s
 </tr>
 </tbody>
 </table>
-
 <h1 id="literatur">Literatur</h1>
-
 <p>R. Remus, U. Quasthoff &amp; G. Heyer: SentiWS - a Publicly Available German-language Resource for Sentiment Analysis.
-In: Proceedings of the 7th International Language Ressources and Evaluation (LREC&rsquo;10), 2010</p>
+In: Proceedings of the 7th International Language Ressources and Evaluation (LREC'10), 2010</p>
 
     </div>
   </article>

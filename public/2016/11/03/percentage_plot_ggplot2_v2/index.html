@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>How to plot a &#39;percentage plot&#39; with ggplot2 - Data Se</title>
@@ -69,79 +69,51 @@
     
 
     <div class="article-content">
-      
+      <p>At times it is convenient to draw a frequency bar plot; at times we prefer not the bare frequencies but the proportions or the percentages per category. There are lots of ways doing so; let's look at some <code>ggplot2</code> ways.</p>
+<p>First, let's load some data.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">data</span>(tips, package <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">reshape2&#34;</span>)
+</code></pre></div><p>And the typical libraries.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(dplyr)
+<span style="color:#a6e22e">library</span>(ggplot2)
+<span style="color:#a6e22e">library</span>(tidyr)
+<span style="color:#a6e22e">library</span>(scales)  <span style="color:#75715e"># for percentage scales</span>
+</code></pre></div><h1 id="way-1">Way 1</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tips <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">count</span>(day) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(perc <span style="color:#f92672">=</span> n <span style="color:#f92672">/</span> <span style="color:#a6e22e">nrow</span>(tips)) <span style="color:#f92672">-&gt;</span> tips2
 
-<p>At times it is convenient to draw a frequency bar plot; at times we prefer not the bare frequencies but the proportions or the percentages per category. There are lots of ways doing so; let&rsquo;s look at some <code>ggplot2</code> ways.</p>
-
-<p>First, let&rsquo;s load some data.</p>
-
-<pre><code class="language-r">data(tips, package = &quot;reshape2&quot;)
-</code></pre>
-
-<p>And the typical libraries.</p>
-
-<pre><code class="language-r">library(dplyr)
-library(ggplot2)
-library(tidyr)
-library(scales)  # for percentage scales
-</code></pre>
-
-<h1 id="way-1">Way 1</h1>
-
-<pre><code class="language-r">tips %&gt;% 
-  count(day) %&gt;% 
-  mutate(perc = n / nrow(tips)) -&gt; tips2
-
-ggplot(tips2, aes(x = day, y = perc)) + geom_bar(stat = &quot;identity&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/plot1-1.png" alt="plot of chunk plot1" /></p>
-
+<span style="color:#a6e22e">ggplot</span>(tips2, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> day, y <span style="color:#f92672">=</span> perc)) <span style="color:#f92672">+</span> <span style="color:#a6e22e">geom_bar</span>(stat <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">identity&#34;</span>)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/plot1-1.png" alt="plot of chunk plot1"></p>
 <h1 id="way-2">Way 2</h1>
-
-<pre><code class="language-r">ggplot(tips, aes(x = day)) +  
-  geom_bar(aes(y = (..count..)/sum(..count..)))
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/unnamed-chunk-1-1.png" alt="plot of chunk unnamed-chunk-1" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">ggplot</span>(tips, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> day)) <span style="color:#f92672">+</span>  
+  <span style="color:#a6e22e">geom_bar</span>(<span style="color:#a6e22e">aes</span>(y <span style="color:#f92672">=</span> (..count..)<span style="color:#f92672">/</span><span style="color:#a6e22e">sum</span>(..count..)))
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/unnamed-chunk-1-1.png" alt="plot of chunk unnamed-chunk-1"></p>
 <h1 id="way-3">Way 3</h1>
-
-<pre><code class="language-r">myplot &lt;- ggplot(tips, aes(day)) + 
-          geom_bar(aes(y = (..count..)/sum(..count..))) + 
-          scale_y_continuous(labels=scales::percent) +
-  ylab(&quot;relative frequencies&quot;)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">myplot <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">ggplot</span>(tips, <span style="color:#a6e22e">aes</span>(day)) <span style="color:#f92672">+</span> 
+          <span style="color:#a6e22e">geom_bar</span>(<span style="color:#a6e22e">aes</span>(y <span style="color:#f92672">=</span> (..count..)<span style="color:#f92672">/</span><span style="color:#a6e22e">sum</span>(..count..))) <span style="color:#f92672">+</span> 
+          <span style="color:#a6e22e">scale_y_continuous</span>(labels<span style="color:#f92672">=</span>scales<span style="color:#f92672">::</span>percent) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">ylab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">relative frequencies&#34;</span>)
 
 myplot
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/unnamed-chunk-2-1.png" alt="plot of chunk unnamed-chunk-2" /></p>
-
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/unnamed-chunk-2-1.png" alt="plot of chunk unnamed-chunk-2"></p>
 <h1 id="way-4">Way 4</h1>
-
-<pre><code class="language-r">myplot &lt;- ggplot(tips, aes(day, group = sex)) + 
-          geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat=&quot;count&quot;) + 
-          scale_y_continuous(labels=scales::percent) +
-          ylab(&quot;relative frequencies&quot;) +
-          facet_grid(~sex)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">myplot <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">ggplot</span>(tips, <span style="color:#a6e22e">aes</span>(day, group <span style="color:#f92672">=</span> sex)) <span style="color:#f92672">+</span> 
+          <span style="color:#a6e22e">geom_bar</span>(<span style="color:#a6e22e">aes</span>(y <span style="color:#f92672">=</span> ..prop.., fill <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(..x..)), stat<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">count&#34;</span>) <span style="color:#f92672">+</span> 
+          <span style="color:#a6e22e">scale_y_continuous</span>(labels<span style="color:#f92672">=</span>scales<span style="color:#f92672">::</span>percent) <span style="color:#f92672">+</span>
+          <span style="color:#a6e22e">ylab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">relative frequencies&#34;</span>) <span style="color:#f92672">+</span>
+          <span style="color:#a6e22e">facet_grid</span>(<span style="color:#f92672">~</span>sex)
 
 myplot
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3" /></p>
-
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3"></p>
 <h1 id="way-5">Way 5</h1>
-
-<pre><code class="language-r">ggplot(tips, aes(x= day,  group=sex)) + 
-    geom_bar(aes(y = ..prop.., fill = factor(..x..)), stat=&quot;count&quot;) +
-    geom_text(aes( label = scales::percent(..prop..),
-                   y= ..prop.. ), stat= &quot;count&quot;, vjust = -.5) +
-    labs(y = &quot;Percent&quot;, fill=&quot;day&quot;) +
-    facet_grid(~sex) +
-    scale_y_continuous(labels = scales::percent)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">ggplot</span>(tips, <span style="color:#a6e22e">aes</span>(x<span style="color:#f92672">=</span> day,  group<span style="color:#f92672">=</span>sex)) <span style="color:#f92672">+</span> 
+    <span style="color:#a6e22e">geom_bar</span>(<span style="color:#a6e22e">aes</span>(y <span style="color:#f92672">=</span> ..prop.., fill <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(..x..)), stat<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">count&#34;</span>) <span style="color:#f92672">+</span>
+    <span style="color:#a6e22e">geom_text</span>(<span style="color:#a6e22e">aes</span>( label <span style="color:#f92672">=</span> scales<span style="color:#f92672">::</span><span style="color:#a6e22e">percent</span>(..prop..),
+                   y<span style="color:#f92672">=</span> ..prop.. ), stat<span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">count&#34;</span>, vjust <span style="color:#f92672">=</span> <span style="color:#ae81ff">-.5</span>) <span style="color:#f92672">+</span>
+    <span style="color:#a6e22e">labs</span>(y <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Percent&#34;</span>, fill<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">day&#34;</span>) <span style="color:#f92672">+</span>
+    <span style="color:#a6e22e">facet_grid</span>(<span style="color:#f92672">~</span>sex) <span style="color:#f92672">+</span>
+    <span style="color:#a6e22e">scale_y_continuous</span>(labels <span style="color:#f92672">=</span> scales<span style="color:#f92672">::</span>percent)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-02-02/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4"></p>
 
     </div>
   </article>

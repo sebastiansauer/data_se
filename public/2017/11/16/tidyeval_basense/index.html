@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Some thoughts on tidyveal and environments in R - Data Se</title>
@@ -69,170 +69,95 @@
     
 
     <div class="article-content">
-      
-
-<p>The tidyeval framework is a rather new, and in parts complementary,
+      <p>The tidyeval framework is a rather new, and in parts complementary,
 framework to dealing with non-standarde evaluation (NSE) in R. In short, NSE
 is about capturing some R-code, witholding execution, maybe editing the code,
 and finally execuing it later and/or somewhere else.</p>
-
-<hr />
-
-<p>This post borrows heavily by Edwin Thon&rsquo;s great <a href="https://edwinth.github.io/blog/nse/">post</a>, and <a href="https://edwinth.github.io/blog/dplyr-recipes/">this post</a> by the same author.</p>
-
-<p>In addtion, most of the knowledge is derived from Hadley Wickham&rsquo;s book <a href="http://adv-r.had.co.nz/">Advanced R</a>.</p>
-
-<hr />
-
+<hr>
+<p>This post borrows heavily by Edwin Thon's great <a href="https://edwinth.github.io/blog/nse/">post</a>, and <a href="https://edwinth.github.io/blog/dplyr-recipes/">this post</a> by the same author.</p>
+<p>In addtion, most of the knowledge is derived from Hadley Wickham's book <a href="http://adv-r.had.co.nz/">Advanced R</a>.</p>
+<hr>
 <p>The typical base R culprits are <code>eval()</code>, and <code>quote()</code> or <code>substitute()</code>,
 respectively.</p>
-
-<pre><code class="language-r">library(tidyverse)  # load tidyeval too
-library(rlang)  # more on tidyeval
-library(pryr)  # working with environments
-</code></pre>
-
-<pre><code>## 
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)  <span style="color:#75715e"># load tidyeval too</span>
+<span style="color:#a6e22e">library</span>(rlang)  <span style="color:#75715e"># more on tidyeval</span>
+<span style="color:#a6e22e">library</span>(pryr)  <span style="color:#75715e"># working with environments</span>
+</code></pre></div><pre><code>## 
 ## Attaching package: 'pryr'
-</code></pre>
-
-<pre><code>## The following object is masked from 'package:rlang':
+</code></pre><pre><code>## The following object is masked from 'package:rlang':
 ## 
 ##     bytes
-</code></pre>
-
-<pre><code>## The following objects are masked from 'package:purrr':
+</code></pre><pre><code>## The following objects are masked from 'package:purrr':
 ## 
 ##     compose, partial
-</code></pre>
-
-<h1 id="what-s-the-difference-between-base-nse-and-tidyeval-nse">What&rsquo;s the difference between base nse and tidyeval nse?</h1>
-
+</code></pre><h1 id="whats-the-difference-between-base-nse-and-tidyeval-nse">What's the difference between base nse and tidyeval nse?</h1>
 <p>And why should I bother?</p>
-
-<p>Let&rsquo;s look at some border case that show the difference quite strikingly.</p>
-
+<p>Let's look at some border case that show the difference quite strikingly.</p>
 <p>Consider this base nse code:</p>
-
-<pre><code class="language-r">base_NSE_fun &lt;- function(some_arg) {
-  some_var &lt;- 10
-  quote(some_var + some_arg)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">base_NSE_fun <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">function</span>(some_arg) {
+  some_var <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">10</span>
+  <span style="color:#a6e22e">quote</span>(some_var <span style="color:#f92672">+</span> some_arg)
 }
-base_NSE_fun(4) %&gt;% eval()
-</code></pre>
-
-<pre><code>## Error in eval(.): object 'some_var' not found
-</code></pre>
-
-<p>It does not work. <code>eval()</code> has no idea about the environment in which <code>some_var</code> is defined. (And in addition, <code>quote()</code> will take its arguments too literally, but we spare that for later.)</p>
-
-<p>We might had expected the code above to work, however. That&rsquo;s where tidyeval comes into play:</p>
-
+<span style="color:#a6e22e">base_NSE_fun</span>(<span style="color:#ae81ff">4</span>) <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">eval</span>()
+</code></pre></div><pre><code>## Error in eval(.): object 'some_var' not found
+</code></pre><p>It does not work. <code>eval()</code> has no idea about the environment in which <code>some_var</code> is defined. (And in addition, <code>quote()</code> will take its arguments too literally, but we spare that for later.)</p>
+<p>We might had expected the code above to work, however. That's where tidyeval comes into play:</p>
 <p>See here:</p>
-
-<pre><code class="language-r">tidy_eval_fun &lt;- function(some_arg) {
-  some_var &lt;- 10
-  quo(some_var + some_arg)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tidy_eval_fun <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">function</span>(some_arg) {
+  some_var <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">10</span>
+  <span style="color:#a6e22e">quo</span>(some_var <span style="color:#f92672">+</span> some_arg)
 }
-tidy_eval_fun(4) %&gt;% rlang::eval_tidy()
-</code></pre>
-
-<pre><code>## [1] 14
-</code></pre>
-
-<p>Does work. With tidyeval, the environment of the variables are memorized. With base R, the environment is forgotton.</p>
-
+<span style="color:#a6e22e">tidy_eval_fun</span>(<span style="color:#ae81ff">4</span>) <span style="color:#f92672">%&gt;%</span> rlang<span style="color:#f92672">::</span><span style="color:#a6e22e">eval_tidy</span>()
+</code></pre></div><pre><code>## [1] 14
+</code></pre><p>Does work. With tidyeval, the environment of the variables are memorized. With base R, the environment is forgotton.</p>
 <h1 id="looking-at-the-chain-of-environments">Looking at the chain of environments</h1>
-
-<p>What&rsquo;s the enclosing environment of <code>eval()</code>? We can get hold of that environment using the function <code>environment()</code>:</p>
-
-<pre><code class="language-r">environment(eval)
-</code></pre>
-
-<pre><code>## &lt;environment: namespace:base&gt;
-</code></pre>
-
-<p>What&rsquo;s that for a strange environment? Well, that&rsquo;s the NAMESPACE of package <code>base</code>,  the exported objects of that package. A namespace is useful so the searchpath will not be cluttered by too many objects. Using a namespace we can define which objects should be made (easily) accessible to the users.</p>
-
+<p>What's the enclosing environment of <code>eval()</code>? We can get hold of that environment using the function <code>environment()</code>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">environment</span>(eval)
+</code></pre></div><pre><code>## &lt;environment: namespace:base&gt;
+</code></pre><p>What's that for a strange environment? Well, that's the NAMESPACE of package <code>base</code>,  the exported objects of that package. A namespace is useful so the searchpath will not be cluttered by too many objects. Using a namespace we can define which objects should be made (easily) accessible to the users.</p>
 <p>But in this environment, for sure, we will not have put some variable.  How comes that this code does wor:</p>
-
-<pre><code class="language-r">vanilla_x &lt;- 1
-eval(vanilla_x)
-</code></pre>
-
-<pre><code>## [1] 1
-</code></pre>
-
-<p>What&rsquo;s the environment of <code>vanilla_x</code>? We can access the enclosing environment of some object using this code:</p>
-
-<pre><code class="language-r">pryr::where(&quot;vanilla_x&quot;)
-</code></pre>
-
-<pre><code>## &lt;environment: R_GlobalEnv&gt;
-</code></pre>
-
-<p>So, if <code>eval()</code> looks in the namespace of <code>base</code> how comes that it finds some object in the global environment?</p>
-
-<p>The answer is called <em>lexical scoping</em>. There&rsquo;s a chain or ladder of enclosing environments, where the value is looked for. The total of this chaining is the search path.</p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">vanilla_x <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">1</span>
+<span style="color:#a6e22e">eval</span>(vanilla_x)
+</code></pre></div><pre><code>## [1] 1
+</code></pre><p>What's the environment of <code>vanilla_x</code>? We can access the enclosing environment of some object using this code:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">pryr<span style="color:#f92672">::</span><span style="color:#a6e22e">where</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">vanilla_x&#34;</span>)
+</code></pre></div><pre><code>## &lt;environment: R_GlobalEnv&gt;
+</code></pre><p>So, if <code>eval()</code> looks in the namespace of <code>base</code> how comes that it finds some object in the global environment?</p>
+<p>The answer is called <em>lexical scoping</em>. There's a chain or ladder of enclosing environments, where the value is looked for. The total of this chaining is the search path.</p>
 <p>Hadley Wickham illustrates this chain using this diagram in <a href="http://adv-r.had.co.nz/Environments.html">this chapter of Adv R</a>:</p>
-
-<p><img src="http://adv-r.had.co.nz/diagrams/environments.png/namespace.png" alt="" /></p>
-
+<p><img src="http://adv-r.had.co.nz/diagrams/environments.png/namespace.png" alt=""></p>
 <p>Each arrow coming from a grey dot refers to the enclosing environment of some object or function. The enclosing environment is the &ldquo;home&rdquo; environment, where the object was created.</p>
-
 <p>We see that each object has an environment, and each environment has exactly one &ldquo;parent&rdquo; environment - with the notably execption of the <code>emptyenv</code> which is the first &ldquo;ancestor&rdquo; of this sequence.</p>
-
 <h1 id="different-types-of-environments">Different types of environments</h1>
-
 <p>A function can and does have <em>four</em> environments:</p>
-
 <ol>
 <li>The <em>enclosing environment</em>: The environment where the fun was created; this environment is used for lexical scoping</li>
 <li>The <em>executing environment</em>: The environment where a fun is executed</li>
 <li>The <em>binding environment</em>: The environment(s) where some object is bound to the function</li>
 <li>The <em>calling environment</em>: The environment where the fun was called from</li>
 </ol>
-
 <h1 id="what-substitute-can-and-cannot-do">What <code>substitute()</code> can and cannot do</h1>
-
 <p><code>substitute()</code> is the counterpart of <code>quote()</code> for use within functions. Do not use <code>quote()</code> within functions, use <code>substitue()</code> instead (or the tidyeval counterpart).</p>
-
 <p>Consider:</p>
-
-<pre><code class="language-r">base_eval_fun2 &lt;- function(some_arg) {
-  some_var &lt;- 10
-  substitute(some_var + some_arg)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">base_eval_fun2 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">function</span>(some_arg) {
+  some_var <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">10</span>
+  <span style="color:#a6e22e">substitute</span>(some_var <span style="color:#f92672">+</span> some_arg)
 }
-base_eval_fun2(4) %&gt;% rlang::eval_tidy()
-</code></pre>
-
-<pre><code>## [1] 14
-</code></pre>
-
-<p>Great! Appears to work, does is not? Not exactly. Look what the function
+<span style="color:#a6e22e">base_eval_fun2</span>(<span style="color:#ae81ff">4</span>) <span style="color:#f92672">%&gt;%</span> rlang<span style="color:#f92672">::</span><span style="color:#a6e22e">eval_tidy</span>()
+</code></pre></div><pre><code>## [1] 14
+</code></pre><p>Great! Appears to work, does is not? Not exactly. Look what the function
 call <code>tidy_eval_fun2(4)</code> is actually returning:</p>
-
-<pre><code class="language-r">base_eval_fun2(4)
-</code></pre>
-
-<pre><code>## 10 + 4
-</code></pre>
-
-<p>The result is quite hard coded (Thanks Edwin for pointing that out!). Compare the tidyeval variant:</p>
-
-<pre><code class="language-r">tidy_eval_fun2 &lt;- function(some_arg) {
-  some_var &lt;- 10
-  quo(some_var + some_arg)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">base_eval_fun2</span>(<span style="color:#ae81ff">4</span>)
+</code></pre></div><pre><code>## 10 + 4
+</code></pre><p>The result is quite hard coded (Thanks Edwin for pointing that out!). Compare the tidyeval variant:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tidy_eval_fun2 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">function</span>(some_arg) {
+  some_var <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">10</span>
+  <span style="color:#a6e22e">quo</span>(some_var <span style="color:#f92672">+</span> some_arg)
 }
-tidy_eval_fun2(4)
-</code></pre>
-
-<pre><code>## &lt;quosure: local&gt;
+<span style="color:#a6e22e">tidy_eval_fun2</span>(<span style="color:#ae81ff">4</span>)
+</code></pre></div><pre><code>## &lt;quosure: local&gt;
 ## ~some_var + some_arg
-</code></pre>
-
-<p>Now we do <em>not</em> get the &ldquo;hard&rdquo; values but the variables AND their environment is carried over. We might change the expression or carry it to another environment where <code>some_arg</code> has some other value.</p>
+</code></pre><p>Now we do <em>not</em> get the &ldquo;hard&rdquo; values but the variables AND their environment is carried over. We might change the expression or carry it to another environment where <code>some_arg</code> has some other value.</p>
 
     </div>
   </article>

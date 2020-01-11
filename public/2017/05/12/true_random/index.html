@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Plotting true random numbers - Data Se</title>
@@ -69,89 +69,57 @@
     
 
     <div class="article-content">
-      <pre><code class="language-r">knitr::opts_chunk$set(fig.align = &quot;center&quot;,
-                      out.width = &quot;70%&quot;,
-                      fig.asp = .61)
-</code></pre>
-
-<p>Every now and then, random numbers come in handy to demonstrate some statistical behavior. Of course, well-known appraoches are <code>rnorm</code> and friends. These functions are what is called <em>pseudo random number generators</em>, because they are not random at all, strictly speaking, but determined by some algorithm. An algorithm is a sort of creature that is 100% predictable once you know the input (and the details of the algorithm). Pseudo random numbers are useful &lsquo;cause you know what you will get; reproducibility ensured.</p>
-
-<p>However, at times it is useful to get make use of <em>true</em> random numbers, coming from atmospheric noise, for example. That&rsquo;s were the R package <code>random</code> by Dirk Eddelbuettel comes into play.</p>
-
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">knitr<span style="color:#f92672">::</span>opts_chunk<span style="color:#f92672">$</span><span style="color:#a6e22e">set</span>(fig.align <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">center&#34;</span>,
+                      out.width <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">70%&#34;</span>,
+                      fig.asp <span style="color:#f92672">=</span> <span style="color:#ae81ff">.61</span>)
+</code></pre></div><p>Every now and then, random numbers come in handy to demonstrate some statistical behavior. Of course, well-known appraoches are <code>rnorm</code> and friends. These functions are what is called <em>pseudo random number generators</em>, because they are not random at all, strictly speaking, but determined by some algorithm. An algorithm is a sort of creature that is 100% predictable once you know the input (and the details of the algorithm). Pseudo random numbers are useful &lsquo;cause you know what you will get; reproducibility ensured.</p>
+<p>However, at times it is useful to get make use of <em>true</em> random numbers, coming from atmospheric noise, for example. That's were the R package <code>random</code> by Dirk Eddelbuettel comes into play.</p>
 <p>Technical details are beyond the scope of this post; here we just grap some random numbers to simulate or demonstrate some research setting.</p>
-
 <p>For that end, suppose we conducted an experiment with three groups. Our hypothesis was that stories plus images of persons in despair will induce more pro social behavior (ie. amount of donation) compared to presenting stats about suffering people.</p>
-
 <p>Say we came up with three experimental groups:</p>
-
 <ol>
 <li>Statistics only (&ldquo;100,000 are at the brink of famine&rdquo;)</li>
 <li>Story plus image of child (&ldquo;Rodia from Sudan has not eaten since a week&rdquo;. Picture added.)</li>
 <li>Combination of 1. and 2.</li>
 </ol>
-
 <p>The basis of this experiment is from this paper:</p>
-
 <p>Slovic, P. (2007). If I look at the mass I will never act: Psychic numbing and genocide. <em>Judgment and Decision Making</em>, 2(2), 79–95. <a href="https://doi.org/10.1007/978-90-481-8647-1">https://doi.org/10.1007/978-90-481-8647-1</a></p>
-
 <p>For a presentation, I wanted to demonstrate simulated data.</p>
-
-<p>That&rsquo;s what I did:</p>
-
+<p>That's what I did:</p>
 <p>First, load some packages.</p>
-
-<pre><code class="language-r">library(tidyverse)
-library(random)
-</code></pre>
-
-<p>Next, simulate <em>true</em> random data.</p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)
+<span style="color:#a6e22e">library</span>(random)
+</code></pre></div><p>Next, simulate <em>true</em> random data.</p>
 <p>Note that the data is uniformally distributed, more or less.</p>
-
-<pre><code class="language-r">raw &lt;- random::randomNumbers(n = 150, min = 1, max = 10, col = 3) %&gt;% 
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">raw <span style="color:#f92672">&lt;-</span> random<span style="color:#f92672">::</span><span style="color:#a6e22e">randomNumbers</span>(n <span style="color:#f92672">=</span> <span style="color:#ae81ff">150</span>, min <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, max <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>, col <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>) <span style="color:#f92672">%&gt;%</span> 
   as_tibble
-</code></pre>
-
-<p>Then, we tidy up the dataframe:</p>
-
-<pre><code class="language-r">df &lt;- raw %&gt;% 
-  mutate(V2 = V2 + 5,
-         V3 = V3 + 10) %&gt;% 
-  gather %&gt;% 
-  mutate(group = recode(key, 
-                        V1 = &quot;stat&quot;, 
-                        V2 = &quot;stat+img&quot;,
-                        V3 = &quot;img&quot;))
-</code></pre>
-
-<p>&hellip; and plot it:</p>
-
-<pre><code class="language-r">ggplot(df) +
-  aes(x = group, y = value, color = group) +
-  geom_boxplot() +
-  geom_jitter() +
-  theme_minimal() +
-  scale_color_brewer(palette = &quot;Set1&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-05-12/figure/unnamed-chunk-4-1.png" title="plot of chunk unnamed-chunk-4" alt="plot of chunk unnamed-chunk-4" width="70%" style="display: block; margin: auto;" /></p>
-
+</code></pre></div><p>Then, we tidy up the dataframe:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">df <span style="color:#f92672">&lt;-</span> raw <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(V2 <span style="color:#f92672">=</span> V2 <span style="color:#f92672">+</span> <span style="color:#ae81ff">5</span>,
+         V3 <span style="color:#f92672">=</span> V3 <span style="color:#f92672">+</span> <span style="color:#ae81ff">10</span>) <span style="color:#f92672">%&gt;%</span> 
+  gather <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(group <span style="color:#f92672">=</span> <span style="color:#a6e22e">recode</span>(key, 
+                        V1 <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">stat&#34;</span>, 
+                        V2 <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">stat+img&#34;</span>,
+                        V3 <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">img&#34;</span>))
+</code></pre></div><p>&hellip; and plot it:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">ggplot</span>(df) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> group, y <span style="color:#f92672">=</span> value, color <span style="color:#f92672">=</span> group) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_boxplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_jitter</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">theme_minimal</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_color_brewer</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Set1&#34;</span>)
+</code></pre></div><p><!-- raw HTML omitted --></p>
 <p>In order sort the groups to our desire, we can make use of <code>factors</code>.</p>
-
-<pre><code class="language-r">df$group &lt;- factor(df$group, levels = c(&quot;stat&quot;, &quot;stat+img&quot;, &quot;img&quot;))
-</code></pre>
-
-<p>And plot again, now with groups sorted:</p>
-
-<pre><code class="language-r">ggplot(df) +
-  aes(x = group, y = value, color = group) +
-  geom_boxplot() +
-  geom_jitter() +
-  theme_minimal() +
-  scale_color_brewer(palette = &quot;Set1&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-05-12/figure/unnamed-chunk-6-1.png" title="plot of chunk unnamed-chunk-6" alt="plot of chunk unnamed-chunk-6" width="70%" style="display: block; margin: auto;" /></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">df<span style="color:#f92672">$</span>group <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">factor</span>(df<span style="color:#f92672">$</span>group, levels <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">stat&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">stat+img&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">img&#34;</span>))
+</code></pre></div><p>And plot again, now with groups sorted:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">ggplot</span>(df) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> group, y <span style="color:#f92672">=</span> value, color <span style="color:#f92672">=</span> group) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_boxplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_jitter</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">theme_minimal</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_color_brewer</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Set1&#34;</span>)
+</code></pre></div><p><!-- raw HTML omitted --></p>
 
     </div>
   </article>

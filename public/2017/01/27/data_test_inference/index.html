@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Dataset &#39;performance in stats test&#39; - Data Se</title>
@@ -69,44 +69,26 @@
     
 
     <div class="article-content">
-      
-
-<p>This posts shows data cleaning and preparation for a data set on a statistics test (NHST inference). Data is published under a CC-licence, see <a href="https://osf.io/sjhuy/">here</a>.</p>
-
-<p>Data was collected 2015 to 2017 in statistics courses at the FOM university in different places in Germany. Several colleagues helped to collect the data. Thanks a lot! Now let&rsquo;s enjoy the outcome (and make it freely available to all).</p>
-
+      <p>This posts shows data cleaning and preparation for a data set on a statistics test (NHST inference). Data is published under a CC-licence, see <a href="https://osf.io/sjhuy/">here</a>.</p>
+<p>Data was collected 2015 to 2017 in statistics courses at the FOM university in different places in Germany. Several colleagues helped to collect the data. Thanks a lot! Now let's enjoy the outcome (and make it freely available to all).</p>
 <p>Raw N is 743. The test consists of 40 items which are framed as propositions; students are asked to respond with either &ldquo;true&rdquo; or &ldquo;false&rdquo; to each item. In addition, self-rating of proportion correct, study time and interest in the subject are asked. Last column notes the number (proportion) of correct responses.</p>
-
 <p>Raw data can be accessed here</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">df_raw <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read.csv</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">https://sebastiansauer.github.io/data/test_inf_raw.csv&#34;</span>)
 
-<pre><code class="language-r">df_raw &lt;- read.csv(&quot;https://sebastiansauer.github.io/data/test_inf_raw.csv&quot;)
-
-</code></pre>
-
-<p>Alternatively, use this link: <a href="https://osf.io/zcvkd">https://osf.io/zcvkd</a>.</p>
-
+</code></pre></div><p>Alternatively, use this link: <a href="https://osf.io/zcvkd">https://osf.io/zcvkd</a>.</p>
 <p>DOI of this data is: DOI 10.17605/OSF.IO/SJHUY, URL: <a href="https://osf.io/sjhuy">https://osf.io/sjhuy</a></p>
-
 <p>Some packages:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)
+</code></pre></div><p>To make the data set less clumsy, let's replace variable names.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">test_inf_names <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">names</span>(df_raw)
+df <span style="color:#f92672">&lt;-</span> df_raw
+<span style="color:#a6e22e">names</span>(df) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">paste</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">V&#34;</span>, <span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#a6e22e">ncol</span>(df_raw), sep <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">_&#34;</span>)
 
-<pre><code class="language-r">library(tidyverse)
-</code></pre>
+df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">rename</span>(df, study_time <span style="color:#f92672">=</span> V_43, self_eval <span style="color:#f92672">=</span> V_44, interest <span style="color:#f92672">=</span> V_45)
 
-<p>To make the data set less clumsy, let&rsquo;s replace variable names.</p>
-
-<pre><code class="language-r">test_inf_names &lt;- names(df_raw)
-df &lt;- df_raw
-names(df) &lt;- paste(&quot;V&quot;, 1:ncol(df_raw), sep = &quot;_&quot;)
-
-df &lt;- rename(df, study_time = V_43, self_eval = V_44, interest = V_45)
-
-</code></pre>
-
-<p>The vector <code>test_inf_names</code> can now serve as a codebook; the variable names are stored there.</p>
-
+</code></pre></div><p>The vector <code>test_inf_names</code> can now serve as a codebook; the variable names are stored there.</p>
 <p>The correct answers for the 40 questions are:</p>
-
-<pre><code class="language-r">correct &lt;- c(
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">correct <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(
   T, T, T, T, F, 
   F, F, F, F, T, 
   T, T, F, T, T,
@@ -116,242 +98,181 @@ df &lt;- rename(df, study_time = V_43, self_eval = V_44, interest = V_45)
   T, T, F, T, T,
   F, T, T, T, F 
 )
-</code></pre>
+</code></pre></div><p>We can now compare the actual answers to the correct ones for each respondent. Let's leave that for later :-) What's more, the items (questions) have changed over time. Malheuresement, the software used for delivering the survey (Google forms) does not save the history (and I did not really either, I admit). So I am not 100% sure whether the &ldquo;solution vector&rdquo; above is correct for each and every (older) respondent.</p>
+<p>Instead, in the first step, let's focus on the data where the solution is already provided for brevity. This information is stored in <code>V_46</code> (<code>Punkte</code>). Let's convert that string to a number.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(readr) 
+<span style="color:#a6e22e">library</span>(stringr)
+df<span style="color:#f92672">$</span>score <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">str_sub</span>(df<span style="color:#f92672">$</span>V_46, start <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, end <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>)
+df<span style="color:#f92672">$</span>score <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">as.numeric</span>(df<span style="color:#f92672">$</span>score)
+</code></pre></div><p>Out of curiosity, let's look at the distribution of the score.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">ggplot</span>(df, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> score)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_histogram</span>()
+<span style="color:#75715e">#&gt; `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</span>
+<span style="color:#75715e">#&gt; Warning: Removed 443 rows containing non-finite values (stat_bin).</span>
+</code></pre></div><p><!-- raw HTML omitted --></p>
+<p>Note that the <code>NAs</code> are not shown. If a given student didn't know anything, but would flip a coin for each answer, what's the probability of getting <code>x</code> correct answers? In other words, in a sequence of 40 coin flips, what's the probability of getting at least <code>x</code> right?</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">x <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">0</span><span style="color:#f92672">:</span><span style="color:#ae81ff">40</span>
+cdf <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">pbinom</span>(x, <span style="color:#ae81ff">40</span>, prob <span style="color:#f92672">=</span> <span style="color:#ae81ff">.5</span>)
 
-<p>We can now compare the actual answers to the correct ones for each respondent. Let&rsquo;s leave that for later :-) What&rsquo;s more, the items (questions) have changed over time. Malheuresement, the software used for delivering the survey (Google forms) does not save the history (and I did not really either, I admit). So I am not 100% sure whether the &ldquo;solution vector&rdquo; above is correct for each and every (older) respondent.</p>
+temp <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">tibble</span>(x, cdf)
 
-<p>Instead, in the first step, let&rsquo;s focus on the data where the solution is already provided for brevity. This information is stored in <code>V_46</code> (<code>Punkte</code>). Let&rsquo;s convert that string to a number.</p>
-
-<pre><code class="language-r">library(readr) 
-library(stringr)
-df$score &lt;- str_sub(df$V_46, start = 1, end = 2)
-df$score &lt;- as.numeric(df$score)
-</code></pre>
-
-<p>Out of curiosity, let&rsquo;s look at the distribution of the score.</p>
-
-<pre><code class="language-r">ggplot(df, aes(x = score)) +
-  geom_histogram()
-#&gt; `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
-#&gt; Warning: Removed 443 rows containing non-finite values (stat_bin).
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-27/unnamed-chunk-6-1.png" title="plot of chunk unnamed-chunk-6" alt="plot of chunk unnamed-chunk-6" width="70%" style="display: block; margin: auto;" /></p>
-
-<p>Note that the <code>NAs</code> are not shown. If a given student didn&rsquo;t know anything, but would flip a coin for each answer, what&rsquo;s the probability of getting <code>x</code> correct answers? In other words, in a sequence of 40 coin flips, what&rsquo;s the probability of getting at least <code>x</code> right?</p>
-
-<pre><code class="language-r">x &lt;- 0:40
-cdf &lt;- pbinom(x, 40, prob = .5)
-
-temp &lt;- tibble(x, cdf)
-
-ggplot() +
-  geom_rect(aes(xmin = 15, xmax = 25, ymin = 0, ymax = 1), fill = &quot;red&quot;, alpha = .3) +
-  geom_line(data = temp, aes(x = x, y = cdf) )
+<span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_rect</span>(<span style="color:#a6e22e">aes</span>(xmin <span style="color:#f92672">=</span> <span style="color:#ae81ff">15</span>, xmax <span style="color:#f92672">=</span> <span style="color:#ae81ff">25</span>, ymin <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, ymax <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>), fill <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">red&#34;</span>, alpha <span style="color:#f92672">=</span> <span style="color:#ae81ff">.3</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_line</span>(data <span style="color:#f92672">=</span> temp, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> x, y <span style="color:#f92672">=</span> cdf) )
   
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-27/unnamed-chunk-7-1.png" title="plot of chunk unnamed-chunk-7" alt="plot of chunk unnamed-chunk-7" width="70%" style="display: block; margin: auto;" /></p>
-
+</code></pre></div><p><!-- raw HTML omitted --></p>
 <p>The diagram shows the probability of getting not more than <code>x</code> right. From a crude glance, say, 15 to 25 corrects answers are quite compatible with chance (coin tossing).</p>
+<p>Let's extract these and see how many cases are left.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">df <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">filter</span>(<span style="color:#f92672">!</span><span style="color:#a6e22e">is.na</span>(score)) <span style="color:#f92672">%&gt;%</span> nrow
+<span style="color:#75715e">#&gt; [1] 321</span>
+df <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">filter</span>(score <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">16</span>) <span style="color:#f92672">%&gt;%</span> nrow
+<span style="color:#75715e">#&gt; [1] 306</span>
+</code></pre></div><p>As the initial score variable was <code>Punkte</code>, let's see how many <code>NAs</code> we had there.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">df <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">filter</span>(<span style="color:#f92672">!</span><span style="color:#a6e22e">is.na</span>(V_46)) <span style="color:#f92672">%&gt;%</span> nrow
+<span style="color:#75715e">#&gt; [1] 764</span>
+</code></pre></div><p>OK, let's assume all responses &gt; 15 are &ldquo;real&rdquo; trials, not just guessing and clicking.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">filter</span>(df, score <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">15</span>)
+</code></pre></div><h1 id="association-of-study-time-and-score">Association of study time and score</h1>
+<p>Now, what's bothering me since years is whether (and how strong) there is an association between score and study time. Now finally, let's <em>jete a coup d'oeil</em>.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">
+r1 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">round</span>(<span style="color:#a6e22e">cor</span>(df<span style="color:#f92672">$</span>study_time, df<span style="color:#f92672">$</span>score, use <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">complete.obs&#34;</span>), <span style="color:#ae81ff">2</span>)
 
-<p>Let&rsquo;s extract these and see how many cases are left.</p>
-
-<pre><code class="language-r">df %&gt;% filter(!is.na(score)) %&gt;% nrow
-#&gt; [1] 321
-df %&gt;% filter(score &gt; 16) %&gt;% nrow
-#&gt; [1] 306
-</code></pre>
-
-<p>As the initial score variable was <code>Punkte</code>, let&rsquo;s see how many <code>NAs</code> we had there.</p>
-
-<pre><code class="language-r">df %&gt;% filter(!is.na(V_46)) %&gt;% nrow
-#&gt; [1] 764
-</code></pre>
-
-<p>OK, let&rsquo;s assume all responses &gt; 15 are &ldquo;real&rdquo; trials, not just guessing and clicking.</p>
-
-<pre><code class="language-r">df &lt;- filter(df, score &gt; 15)
-</code></pre>
-
-<h1 id="association-of-study-time-and-score">Association of study time and score</h1>
-
-<p>Now, what&rsquo;s bothering me since years is whether (and how strong) there is an association between score and study time. Now finally, let&rsquo;s <em>jete a coup d&rsquo;oeil</em>.</p>
-
-<pre><code class="language-r">
-r1 &lt;- round(cor(df$study_time, df$score, use = &quot;complete.obs&quot;), 2)
-
-p1 &lt;- ggplot(df) +
-  aes(x = study_time, y = score) +
-  geom_jitter() + geom_smooth() +
-  annotate(label = paste(&quot;r = &quot;, r1), geom = &quot;label&quot;, x = 4, y = 20, hjust = 0)
+p1 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">ggplot</span>(df) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> study_time, y <span style="color:#f92672">=</span> score) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_jitter</span>() <span style="color:#f92672">+</span> <span style="color:#a6e22e">geom_smooth</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">annotate</span>(label <span style="color:#f92672">=</span> <span style="color:#a6e22e">paste</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">r = &#34;</span>, r1), geom <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">label&#34;</span>, x <span style="color:#f92672">=</span> <span style="color:#ae81ff">4</span>, y <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>, hjust <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>)
 
 p1
-#&gt; `geom_smooth()` using method = 'loess' and formula 'y ~ x'
-#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).
-#&gt; Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
-#&gt; parametric, : pseudoinverse used at 3
-#&gt; Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
-#&gt; parametric, : neighborhood radius 1
-#&gt; Warning in simpleLoess(y, x, w, span, degree = degree, parametric =
-#&gt; parametric, : reciprocal condition number 0
-#&gt; Warning in predLoess(object$y, object$x, newx = if
-#&gt; (is.null(newdata)) object$x else if (is.data.frame(newdata))
-#&gt; as.matrix(model.frame(delete.response(terms(object)), : pseudoinverse used
-#&gt; at 3
-#&gt; Warning in predLoess(object$y, object$x, newx = if
-#&gt; (is.null(newdata)) object$x else if (is.data.frame(newdata))
-#&gt; as.matrix(model.frame(delete.response(terms(object)), : neighborhood radius
-#&gt; 1
-#&gt; Warning in predLoess(object$y, object$x, newx = if
-#&gt; (is.null(newdata)) object$x else if (is.data.frame(newdata))
-#&gt; as.matrix(model.frame(delete.response(terms(object)), : reciprocal
-#&gt; condition number 0
-#&gt; Warning: Removed 68 rows containing missing values (geom_point).
+<span style="color:#75715e">#&gt; `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).</span>
+<span style="color:#75715e">#&gt; Warning in simpleLoess(y, x, w, span, degree = degree, parametric =</span>
+<span style="color:#75715e">#&gt; parametric, : pseudoinverse used at 3</span>
+<span style="color:#75715e">#&gt; Warning in simpleLoess(y, x, w, span, degree = degree, parametric =</span>
+<span style="color:#75715e">#&gt; parametric, : neighborhood radius 1</span>
+<span style="color:#75715e">#&gt; Warning in simpleLoess(y, x, w, span, degree = degree, parametric =</span>
+<span style="color:#75715e">#&gt; parametric, : reciprocal condition number 0</span>
+<span style="color:#75715e">#&gt; Warning in predLoess(object$y, object$x, newx = if</span>
+<span style="color:#75715e">#&gt; (is.null(newdata)) object$x else if (is.data.frame(newdata))</span>
+<span style="color:#75715e">#&gt; as.matrix(model.frame(delete.response(terms(object)), : pseudoinverse used</span>
+<span style="color:#75715e">#&gt; at 3</span>
+<span style="color:#75715e">#&gt; Warning in predLoess(object$y, object$x, newx = if</span>
+<span style="color:#75715e">#&gt; (is.null(newdata)) object$x else if (is.data.frame(newdata))</span>
+<span style="color:#75715e">#&gt; as.matrix(model.frame(delete.response(terms(object)), : neighborhood radius</span>
+<span style="color:#75715e">#&gt; 1</span>
+<span style="color:#75715e">#&gt; Warning in predLoess(object$y, object$x, newx = if</span>
+<span style="color:#75715e">#&gt; (is.null(newdata)) object$x else if (is.data.frame(newdata))</span>
+<span style="color:#75715e">#&gt; as.matrix(model.frame(delete.response(terms(object)), : reciprocal</span>
+<span style="color:#75715e">#&gt; condition number 0</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing missing values (geom_point).</span>
 
-library(ggExtra)
-#ggMarginal(p1)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-27/unnamed-chunk-11-1.png" title="plot of chunk unnamed-chunk-11" alt="plot of chunk unnamed-chunk-11" width="70%" style="display: block; margin: auto;" /></p>
-
-<p>And the correlation is 0.441; hey, that&rsquo;s quite strong!</p>
-
-<p>Let&rsquo;s also check ordinal correlation:</p>
-
-<pre><code class="language-r">cor(df$study_time, df$score, method = &quot;spearman&quot;, use = &quot;complete.obs&quot;)
-#&gt; [1] 0.452
-cor(df$study_time, df$score, method = &quot;kendall&quot;, use = &quot;complete.obs&quot;)
-#&gt; [1] 0.349
-</code></pre>
-
-<p>Given some measurement error, it can be speculated that the real, unattenuated correlation is quite substantial indeed.</p>
-
+<span style="color:#a6e22e">library</span>(ggExtra)
+<span style="color:#75715e">#ggMarginal(p1)</span>
+</code></pre></div><p><!-- raw HTML omitted --></p>
+<p>And the correlation is 0.441; hey, that's quite strong!</p>
+<p>Let's also check ordinal correlation:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">cor</span>(df<span style="color:#f92672">$</span>study_time, df<span style="color:#f92672">$</span>score, method <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">spearman&#34;</span>, use <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">complete.obs&#34;</span>)
+<span style="color:#75715e">#&gt; [1] 0.452</span>
+<span style="color:#a6e22e">cor</span>(df<span style="color:#f92672">$</span>study_time, df<span style="color:#f92672">$</span>score, method <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">kendall&#34;</span>, use <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">complete.obs&#34;</span>)
+<span style="color:#75715e">#&gt; [1] 0.349</span>
+</code></pre></div><p>Given some measurement error, it can be speculated that the real, unattenuated correlation is quite substantial indeed.</p>
 <p>Maybe have a lookt at boxplots, as study time is not really metric:</p>
-
-<pre><code class="language-r">ggplot(df) +
-  aes(x = factor(study_time), y = score) +
-  geom_boxplot()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-27/unnamed-chunk-13-1.png" title="plot of chunk unnamed-chunk-13" alt="plot of chunk unnamed-chunk-13" width="70%" style="display: block; margin: auto;" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">ggplot</span>(df) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(study_time), y <span style="color:#f92672">=</span> score) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_boxplot</span>()
+</code></pre></div><p><!-- raw HTML omitted --></p>
 <h1 id="assocation-of-interest-and-score">Assocation of interest and score</h1>
-
 <p>Similarly, if one is interested in the subject, does she scores higher?</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">r2 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">round</span>(<span style="color:#a6e22e">cor</span>(df<span style="color:#f92672">$</span>interest, df<span style="color:#f92672">$</span>score, use <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">complete.obs&#34;</span>), <span style="color:#ae81ff">2</span>)
 
-<pre><code class="language-r">r2 &lt;- round(cor(df$interest, df$score, use = &quot;complete.obs&quot;), 2)
-
-p2 &lt;- ggplot(df) +
-  aes(x = interest, y = score) +
-  geom_jitter() + geom_smooth() +
-  annotate(label = paste(&quot;r = &quot;, r2), geom = &quot;label&quot;, x = 4, y = 20, hjust = 0)
+p2 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">ggplot</span>(df) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> interest, y <span style="color:#f92672">=</span> score) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_jitter</span>() <span style="color:#f92672">+</span> <span style="color:#a6e22e">geom_smooth</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">annotate</span>(label <span style="color:#f92672">=</span> <span style="color:#a6e22e">paste</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">r = &#34;</span>, r2), geom <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">label&#34;</span>, x <span style="color:#f92672">=</span> <span style="color:#ae81ff">4</span>, y <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>, hjust <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>)
 p2
-#&gt; `geom_smooth()` using method = 'loess' and formula 'y ~ x'
-#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).
-#&gt; Warning: Removed 68 rows containing missing values (geom_point).
+<span style="color:#75715e">#&gt; `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing missing values (geom_point).</span>
 
-#ggMarginal(p2)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-27/unnamed-chunk-14-1.png" title="plot of chunk unnamed-chunk-14" alt="plot of chunk unnamed-chunk-14" width="70%" style="display: block; margin: auto;" /></p>
-
+<span style="color:#75715e">#ggMarginal(p2)</span>
+</code></pre></div><p><!-- raw HTML omitted --></p>
 <p>Weaker, but detectable.</p>
-
 <h1 id="association-of-self-evaluation-and-score">Association of self-evaluation and score</h1>
-
 <p>Well, if I think I will score poorly (superb), will I do so? Does my self-image match the actual outcome?</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">r3 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">round</span>(<span style="color:#a6e22e">cor</span>(df<span style="color:#f92672">$</span>self_eval, df<span style="color:#f92672">$</span>score, use <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">complete.obs&#34;</span>), <span style="color:#ae81ff">2</span>)
 
-<pre><code class="language-r">r3 &lt;- round(cor(df$self_eval, df$score, use = &quot;complete.obs&quot;), 2)
-
-p3 &lt;- ggplot(df) +
-  aes(x = self_eval, y = score) +
-  geom_jitter() + geom_smooth() +
-  annotate(label = paste(&quot;r = &quot;, r3), geom = &quot;label&quot;, x = 8, y = 20, hjust = 0)
+p3 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">ggplot</span>(df) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> self_eval, y <span style="color:#f92672">=</span> score) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_jitter</span>() <span style="color:#f92672">+</span> <span style="color:#a6e22e">geom_smooth</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">annotate</span>(label <span style="color:#f92672">=</span> <span style="color:#a6e22e">paste</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">r = &#34;</span>, r3), geom <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">label&#34;</span>, x <span style="color:#f92672">=</span> <span style="color:#ae81ff">8</span>, y <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>, hjust <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>)
 p3
-#&gt; `geom_smooth()` using method = 'loess' and formula 'y ~ x'
-#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).
-#&gt; Warning: Removed 68 rows containing missing values (geom_point).
+<span style="color:#75715e">#&gt; `geom_smooth()` using method = &#39;loess&#39; and formula &#39;y ~ x&#39;</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing missing values (geom_point).</span>
 
-#ggMarginal(p3)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-27/unnamed-chunk-15-1.png" title="plot of chunk unnamed-chunk-15" alt="plot of chunk unnamed-chunk-15" width="70%" style="display: block; margin: auto;" /></p>
-
-<p>Oh, that&rsquo;s strong; folks know when they&rsquo;ll nail it. Good.</p>
-
+<span style="color:#75715e">#ggMarginal(p3)</span>
+</code></pre></div><p><!-- raw HTML omitted --></p>
+<p>Oh, that's strong; folks know when they'll nail it. Good.</p>
 <h1 id="correlation-matrix">Correlation matrix</h1>
+<p>Finally, let's look at the correlation matrix of the variables mentioned above.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(corrr)
 
-<p>Finally, let&rsquo;s look at the correlation matrix of the variables mentioned above.</p>
-
-<pre><code class="language-r">library(corrr)
-
-df %&gt;%
-  select(score, study_time, interest, self_eval) %&gt;% 
-  correlate %&gt;% 
-  shave   -&gt; r_mat
+df <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(score, study_time, interest, self_eval) <span style="color:#f92672">%&gt;%</span> 
+  correlate <span style="color:#f92672">%&gt;%</span> 
+  shave   <span style="color:#f92672">-&gt;</span> r_mat
 
 r_mat
-#&gt; # A tibble: 4 × 5
-#&gt;      rowname score study_time interest self_eval
-#&gt;        &lt;chr&gt; &lt;dbl&gt;      &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;
-#&gt; 1      score    NA         NA       NA        NA
-#&gt; 2 study_time 0.441         NA       NA        NA
-#&gt; 3   interest 0.223      0.461       NA        NA
-#&gt; 4  self_eval 0.628      0.559     0.36        NA
+<span style="color:#75715e">#&gt; # A tibble: 4 × 5</span>
+<span style="color:#75715e">#&gt;      rowname score study_time interest self_eval</span>
+<span style="color:#75715e">#&gt;        &lt;chr&gt; &lt;dbl&gt;      &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;</span>
+<span style="color:#75715e">#&gt; 1      score    NA         NA       NA        NA</span>
+<span style="color:#75715e">#&gt; 2 study_time 0.441         NA       NA        NA</span>
+<span style="color:#75715e">#&gt; 3   interest 0.223      0.461       NA        NA</span>
+<span style="color:#75715e">#&gt; 4  self_eval 0.628      0.559     0.36        NA</span>
 
-corrr::rplot(r_mat)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-27/unnamed-chunk-16-1.png" title="plot of chunk unnamed-chunk-16" alt="plot of chunk unnamed-chunk-16" width="70%" style="display: block; margin: auto;" /></p>
-
+corrr<span style="color:#f92672">::</span><span style="color:#a6e22e">rplot</span>(r_mat)
+</code></pre></div><p><!-- raw HTML omitted --></p>
 <p>A scatter plot matrix can be of interest, too.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(GGally)
 
-<pre><code class="language-r">library(GGally)
 
-
-df %&gt;%
-  select(score, study_time, interest, self_eval) %&gt;% 
-  ggpairs( 
-    lower = list(
-    continuous = &quot;smooth&quot;,
-    combo = &quot;facetdensity&quot;
+df <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(score, study_time, interest, self_eval) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">ggpairs</span>( 
+    lower <span style="color:#f92672">=</span> <span style="color:#a6e22e">list</span>(
+    continuous <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">smooth&#34;</span>,
+    combo <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">facetdensity&#34;</span>
   ))
-#&gt; Warning in (function (data, mapping, alignPercent = 0.6, method =
-#&gt; &quot;pearson&quot;, : Removed 68 rows containing missing values
-#&gt; Warning in (function (data, mapping, alignPercent = 0.6, method =
-#&gt; &quot;pearson&quot;, : Removed 68 rows containing missing values
-#&gt; Warning in (function (data, mapping, alignPercent = 0.6, method =
-#&gt; &quot;pearson&quot;, : Removed 68 rows containing missing values
-#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).
-#&gt; Warning: Removed 68 rows containing missing values (geom_point).
-#&gt; Warning: Removed 68 rows containing non-finite values (stat_density).
-#&gt; Warning in (function (data, mapping, alignPercent = 0.6, method =
-#&gt; &quot;pearson&quot;, : Removed 68 rows containing missing values
-#&gt; Warning in (function (data, mapping, alignPercent = 0.6, method =
-#&gt; &quot;pearson&quot;, : Removed 68 rows containing missing values
-#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).
-#&gt; Warning: Removed 68 rows containing missing values (geom_point).
-#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).
-#&gt; Warning: Removed 68 rows containing missing values (geom_point).
-#&gt; Warning: Removed 68 rows containing non-finite values (stat_density).
-#&gt; Warning in (function (data, mapping, alignPercent = 0.6, method =
-#&gt; &quot;pearson&quot;, : Removed 68 rows containing missing values
-#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).
-#&gt; Warning: Removed 68 rows containing missing values (geom_point).
-#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).
-#&gt; Warning: Removed 68 rows containing missing values (geom_point).
-#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).
-#&gt; Warning: Removed 68 rows containing missing values (geom_point).
-#&gt; Warning: Removed 68 rows containing non-finite values (stat_density).
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-27/unnamed-chunk-17-1.png" title="plot of chunk unnamed-chunk-17" alt="plot of chunk unnamed-chunk-17" width="70%" style="display: block; margin: auto;" /></p>
-
+<span style="color:#75715e">#&gt; Warning in (function (data, mapping, alignPercent = 0.6, method =</span>
+<span style="color:#75715e">#&gt; &#34;pearson&#34;, : Removed 68 rows containing missing values</span>
+<span style="color:#75715e">#&gt; Warning in (function (data, mapping, alignPercent = 0.6, method =</span>
+<span style="color:#75715e">#&gt; &#34;pearson&#34;, : Removed 68 rows containing missing values</span>
+<span style="color:#75715e">#&gt; Warning in (function (data, mapping, alignPercent = 0.6, method =</span>
+<span style="color:#75715e">#&gt; &#34;pearson&#34;, : Removed 68 rows containing missing values</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing missing values (geom_point).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing non-finite values (stat_density).</span>
+<span style="color:#75715e">#&gt; Warning in (function (data, mapping, alignPercent = 0.6, method =</span>
+<span style="color:#75715e">#&gt; &#34;pearson&#34;, : Removed 68 rows containing missing values</span>
+<span style="color:#75715e">#&gt; Warning in (function (data, mapping, alignPercent = 0.6, method =</span>
+<span style="color:#75715e">#&gt; &#34;pearson&#34;, : Removed 68 rows containing missing values</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing missing values (geom_point).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing missing values (geom_point).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing non-finite values (stat_density).</span>
+<span style="color:#75715e">#&gt; Warning in (function (data, mapping, alignPercent = 0.6, method =</span>
+<span style="color:#75715e">#&gt; &#34;pearson&#34;, : Removed 68 rows containing missing values</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing missing values (geom_point).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing missing values (geom_point).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing non-finite values (stat_smooth).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing missing values (geom_point).</span>
+<span style="color:#75715e">#&gt; Warning: Removed 68 rows containing non-finite values (stat_density).</span>
+</code></pre></div><p><!-- raw HTML omitted --></p>
 <h1 id="debrief">Debrief</h1>
-
 <p>As a teacher, I feel reassured that study time is associated with test performance.</p>
-
 <p>Processed data can also be downloaded, <a href="https://sebastiansauer.github.io/data/test_inf_short.csv">here</a>.</p>
 
     </div>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Mapping unemployment ratio to AfD election results in German Wahlkreise - Data Se</title>
@@ -59,7 +59,7 @@
 
   <article class="article">
     
-    <span class="article-duration">13 min read</span>
+    <span class="article-duration">12 min read</span>
     
 
     <h1 class="article-title">Mapping unemployment ratio to AfD election results in German Wahlkreise</h1>
@@ -69,110 +69,69 @@
     
 
     <div class="article-content">
-      
-
-<p>There is the idea that the alt-right German party AfD is followed by those who are deprived of chances, thoses of fearing to falling down the social ladder, and so on. Let&rsquo;s test this hypothesis. No, I am not thinking on hypothesis testing, p-values, and stuff. Rather, let&rsquo;s color a map of German election districts (Wahlkreise) according to whether the area is poor AND the AfD gained a lot of votes (and vice versa: the area is rich AND the AfD gained relatively few votes). More specifically, let&rsquo;s look at unemployment ratios and incomes at different election areas in the country and compare those figures to AfD election results.</p>
-
-<p>In a similar vein, one could put forward the &ldquo;unemployment-AfD-accordance hypothesis&rdquo;: The rank order of a given area is equal (or similar) to the AfD vote rank order. Let&rsquo;s test this hypothesis in this post.</p>
-
+      <p>There is the idea that the alt-right German party AfD is followed by those who are deprived of chances, thoses of fearing to falling down the social ladder, and so on. Let's test this hypothesis. No, I am not thinking on hypothesis testing, p-values, and stuff. Rather, let's color a map of German election districts (Wahlkreise) according to whether the area is poor AND the AfD gained a lot of votes (and vice versa: the area is rich AND the AfD gained relatively few votes). More specifically, let's look at unemployment ratios and incomes at different election areas in the country and compare those figures to AfD election results.</p>
+<p>In a similar vein, one could put forward the &ldquo;unemployment-AfD-accordance hypothesis&rdquo;: The rank order of a given area is equal (or similar) to the AfD vote rank order. Let's test this hypothesis in this post.</p>
 <h1 id="packages">Packages</h1>
-
-<pre><code class="language-r">library(sf)
-library(stringr)
-library(tidyverse)
-library(readxl)
-library(magrittr)
-library(huxtable)
-library(broom)
-</code></pre>
-
-<h1 id="geo-data">Geo data</h1>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(sf)
+<span style="color:#a6e22e">library</span>(stringr)
+<span style="color:#a6e22e">library</span>(tidyverse)
+<span style="color:#a6e22e">library</span>(readxl)
+<span style="color:#a6e22e">library</span>(magrittr)
+<span style="color:#a6e22e">library</span>(huxtable)
+<span style="color:#a6e22e">library</span>(broom)
+</code></pre></div><h1 id="geo-data">Geo data</h1>
 <p>In this post, we try to map election areas of Germany (&ldquo;Wahlkreise&rdquo;) to three types of statistical data:</p>
-
 <ul>
 <li>AfD election results</li>
 <li>unemployment ratio and/or</li>
 <li>income</li>
 </ul>
-
 <p>:attention: The election ratios are <em>unequal</em> to the district areas (as far as I know, not complete identical to the very least). So will need to get some special geo data. This geo data is available <a href="https://www.bundeswahlleiter.de/dam/jcr/67e3e9b8-dbca-4bc9-8977-ac792665bbce/btw17_geometrie_wahlkreise_vg250_shp.zip">here</a> and the others links on that page.</p>
-
 <p>Download and unzip the data; store them in an appropriate folder. Adjust the path to your needs:</p>
-
-<pre><code class="language-r">my_path_wahlkreise &lt;- &quot;~/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp&quot;
-file.exists(my_path_wahlkreise)
-</code></pre>
-
-<pre><code>## [1] TRUE
-</code></pre>
-
-<pre><code class="language-r">wahlkreise_shp &lt;- st_read(my_path_wahlkreise)
-</code></pre>
-
-<pre><code>## Reading layer `Geometrie_Wahlkreise_19DBT' from data source `/Users/sebastiansauer/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp' using driver `ESRI Shapefile'
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">my_path_wahlkreise <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp&#34;</span>
+<span style="color:#a6e22e">file.exists</span>(my_path_wahlkreise)
+</code></pre></div><pre><code>## [1] TRUE
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">wahlkreise_shp <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">st_read</span>(my_path_wahlkreise)
+</code></pre></div><pre><code>## Reading layer `Geometrie_Wahlkreise_19DBT' from data source `/Users/sebastiansauer/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp' using driver `ESRI Shapefile'
 ## Simple feature collection with 299 features and 4 fields
 ## geometry type:  MULTIPOLYGON
 ## dimension:      XY
 ## bbox:           xmin: 280387.7 ymin: 5235855 xmax: 921025.5 ymax: 6101444
 ## epsg (SRID):    NA
 ## proj4string:    +proj=utm +zone=32 +ellps=GRS80 +units=m +no_defs
-</code></pre>
-
-<pre><code class="language-r">glimpse(wahlkreise_shp)
-</code></pre>
-
-<pre><code>## Observations: 299
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">glimpse</span>(wahlkreise_shp)
+</code></pre></div><pre><code>## Observations: 299
 ## Variables: 5
 ## $ WKR_NR    &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1...
 ## $ LAND_NR   &lt;fctr&gt; 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 13, 13,...
 ## $ LAND_NAME &lt;fctr&gt; Schleswig-Holstein, Schleswig-Holstein, Schleswig-H...
 ## $ WKR_NAME  &lt;fctr&gt; Flensburg – Schleswig, Nordfriesland – Dithmarschen...
 ## $ geometry  &lt;simple_feature&gt; MULTIPOLYGON (((543474.9057..., MULTIPOLY...
-</code></pre>
-
-<pre><code class="language-r">wahlkreise_shp %&gt;%
-  ggplot() +
-  geom_sf()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3" /></p>
-
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">wahlkreise_shp <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_sf</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3"></p>
 <p>That was easy, right? The <code>sf</code> package fits nicely with the tidyverse. Hence not much to learn in that regard. I am not saying that geo data is simple, quite the contrary. But luckily the R functions fit in a well known schema.</p>
-
-<p>For instance, let&rsquo;s remove the axis labels and let&rsquo;s fill the country with some different color. Hm, what&rsquo;s the color of Germany? Grey? Black (color of the leading party)? Black-red-gold?</p>
-
-<pre><code class="language-r">wahlkreise_shp %&gt;%
-  ggplot() +
-  geom_sf(fill = &quot;grey40&quot;) +
-  theme_void()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
-
-<p>Ok, that&rsquo;s complete. How many of those &ldquo;WahlKreise&rdquo; do we have? 318, it appears. At least (that&rsquo;s the number of rows in the dataframe). That&rsquo;s not exactly the number of administrative districts in Germany, which is 401.</p>
-
+<p>For instance, let's remove the axis labels and let's fill the country with some different color. Hm, what's the color of Germany? Grey? Black (color of the leading party)? Black-red-gold?</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">wahlkreise_shp <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_sf</span>(fill <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">grey40&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">theme_void</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4"></p>
+<p>Ok, that's complete. How many of those &ldquo;WahlKreise&rdquo; do we have? 318, it appears. At least (that's the number of rows in the dataframe). That's not exactly the number of administrative districts in Germany, which is 401.</p>
 <h1 id="unemployment-ratios">unemployment ratios</h1>
-
 <p>These data can as well be fetched from the <a href="https://www.bundeswahlleiter.de/dam/jcr/f7566722-a528-4b18-bea3-ea419371e300/btw17_strukturdaten.csv">same site as above</a>, as mentioned above, we need to make sure that we have the statistics according to the election aras, not the administrative areas.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">unemp_file <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Documents/datasets/Strukturdaten_De/btw17_Strukturdaten-utf8.csv&#34;</span>
 
-<pre><code class="language-r">unemp_file &lt;- &quot;~/Documents/datasets/Strukturdaten_De/btw17_Strukturdaten-utf8.csv&quot;
-
-file.exists(unemp_file)
-</code></pre>
-
-<pre><code>## [1] TRUE
-</code></pre>
-
-<pre><code class="language-r">unemp_de_raw &lt;- read_delim(unemp_file,
-    &quot;;&quot;, escape_double = FALSE,
-    locale = locale(decimal_mark = &quot;,&quot;,
-        grouping_mark = &quot;.&quot;),
-    trim_ws = TRUE,
-    skip = 8)  # skipt the first 8 rows
-</code></pre>
-
-<pre><code>## Parsed with column specification:
+<span style="color:#a6e22e">file.exists</span>(unemp_file)
+</code></pre></div><pre><code>## [1] TRUE
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">unemp_de_raw <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_delim</span>(unemp_file,
+    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">;&#34;</span>, escape_double <span style="color:#f92672">=</span> <span style="color:#66d9ef">FALSE</span>,
+    locale <span style="color:#f92672">=</span> <span style="color:#a6e22e">locale</span>(decimal_mark <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">,&#34;</span>,
+        grouping_mark <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">.&#34;</span>),
+    trim_ws <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>,
+    skip <span style="color:#f92672">=</span> <span style="color:#ae81ff">8</span>)  <span style="color:#75715e"># skipt the first 8 rows</span>
+</code></pre></div><pre><code>## Parsed with column specification:
 ## cols(
 ##   .default = col_double(),
 ##   Land = col_character(),
@@ -188,51 +147,31 @@ file.exists(unemp_file)
 ##   `Sozialversicherungspflichtig Beschäftigte am 30.06.2016 - Öffentliche und private Dienstl eister (%)` = col_character(),
 ##   Fußnoten = col_character()
 ## )
-</code></pre>
+</code></pre><pre><code>## See spec(...) for full column specifications.
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#75715e">#glimpse(unemp_de_raw)</span>
+</code></pre></div><p>Jezz, we need to do some cleansing before we can work with this dataset.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">unemp_names <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">names</span>(unemp_de_raw)
 
-<pre><code>## See spec(...) for full column specifications.
-</code></pre>
+unemp_de <span style="color:#f92672">&lt;-</span> unemp_de_raw
 
-<pre><code class="language-r">#glimpse(unemp_de_raw)
-</code></pre>
-
-<p>Jezz, we need to do some cleansing before we can work with this dataset.</p>
-
-<pre><code class="language-r">unemp_names &lt;- names(unemp_de_raw)
-
-unemp_de &lt;- unemp_de_raw
-
-names(unemp_de) &lt;- paste0(&quot;V&quot;,1:ncol(unemp_de))
-</code></pre>
-
-<p>The important columns are:</p>
-
-<pre><code class="language-r">unemp_de &lt;- unemp_de %&gt;%
-  rename(state = V1,
-         area_nr = V2,
-         area_name = V3,
-         for_prop = V8,
-         pop_move = V11,
-         pop_migr_background = V19,
-         income = V26,
-         unemp = V47)  # total, as to March 2017
-</code></pre>
-
-<h1 id="afd-election-results">AfD election results</h1>
-
+<span style="color:#a6e22e">names</span>(unemp_de) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">paste0</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">V&#34;</span>,<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#a6e22e">ncol</span>(unemp_de))
+</code></pre></div><p>The important columns are:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">unemp_de <span style="color:#f92672">&lt;-</span> unemp_de <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">rename</span>(state <span style="color:#f92672">=</span> V1,
+         area_nr <span style="color:#f92672">=</span> V2,
+         area_name <span style="color:#f92672">=</span> V3,
+         for_prop <span style="color:#f92672">=</span> V8,
+         pop_move <span style="color:#f92672">=</span> V11,
+         pop_migr_background <span style="color:#f92672">=</span> V19,
+         income <span style="color:#f92672">=</span> V26,
+         unemp <span style="color:#f92672">=</span> V47)  <span style="color:#75715e"># total, as to March 2017</span>
+</code></pre></div><h1 id="afd-election-results">AfD election results</h1>
 <p>Again, we can access the data from the same source, the Bundeswahlleiter <a href="https://www.bundeswahlleiter.de/dam/jcr/72f186bb-aa56-47d3-b24c-6a46f5de22d0/btw17_kerg.csv">here</a>. I have prepared the column names of the data and the data structure, to render the file more accessible to machine parsing. Data points were not altered. You can access my version of the file <a href="https://sebastiansauer.github.io/data/btw17_election_results.csv">here</a>.</p>
-
-<pre><code class="language-r">elec_file &lt;- &quot;~/Documents/datasets/Strukturdaten_De/btw17_election_results.csv&quot;
-file.exists(elec_file)
-</code></pre>
-
-<pre><code>## [1] TRUE
-</code></pre>
-
-<pre><code class="language-r">elec_results &lt;- read_csv(elec_file)
-</code></pre>
-
-<pre><code>## Parsed with column specification:
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">elec_file <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Documents/datasets/Strukturdaten_De/btw17_election_results.csv&#34;</span>
+<span style="color:#a6e22e">file.exists</span>(elec_file)
+</code></pre></div><pre><code>## [1] TRUE
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">elec_results <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_csv</span>(elec_file)
+</code></pre></div><pre><code>## Parsed with column specification:
 ## cols(
 ##   .default = col_integer(),
 ##   Gebiet = col_character(),
@@ -257,94 +196,62 @@ file.exists(elec_file)
 ##   Vorperiode__25 = col_character()
 ##   # ... with 46 more columns
 ## )
-</code></pre>
-
-<pre><code>## See spec(...) for full column specifications.
-</code></pre>
-
-<p>For each party, four values are reported:</p>
-
+</code></pre><pre><code>## See spec(...) for full column specifications.
+</code></pre><p>For each party, four values are reported:</p>
 <ol>
 <li>primary vote, present election</li>
 <li>primary vote, previous election</li>
 <li>secondary vote, present election</li>
 <li>secondary vote, previous election</li>
 </ol>
-
-<p>The secondary vote refers to the party, that&rsquo;s what we are interested in (column 46). The primary vote refers to the candidate of that area; the pimary vote may also be of similar interest, but that&rsquo;s a slightly different question, as it taps more into the approval of a person, rather to a party (of course there&rsquo;s a lot overlap between both in this situation).</p>
-
-<pre><code class="language-r"># names(elec_results)
-afd_prop &lt;- elec_results %&gt;%
-  select(1, 2, 46, 18) %&gt;%
-  rename(afd_votes = AfD3,
-         area_nr = Nr,
-         area_name = Gebiet,
-         votes_total = Waehler_gueltige_Zweitstimmen_vorlauefig) %&gt;%
-  mutate(afd_prop = afd_votes / votes_total) %&gt;%
+<p>The secondary vote refers to the party, that's what we are interested in (column 46). The primary vote refers to the candidate of that area; the pimary vote may also be of similar interest, but that's a slightly different question, as it taps more into the approval of a person, rather to a party (of course there's a lot overlap between both in this situation).</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#75715e"># names(elec_results)</span>
+afd_prop <span style="color:#f92672">&lt;-</span> elec_results <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">46</span>, <span style="color:#ae81ff">18</span>) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">rename</span>(afd_votes <span style="color:#f92672">=</span> AfD3,
+         area_nr <span style="color:#f92672">=</span> Nr,
+         area_name <span style="color:#f92672">=</span> Gebiet,
+         votes_total <span style="color:#f92672">=</span> Waehler_gueltige_Zweitstimmen_vorlauefig) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">mutate</span>(afd_prop <span style="color:#f92672">=</span> afd_votes <span style="color:#f92672">/</span> votes_total) <span style="color:#f92672">%&gt;%</span>
   na.omit
-</code></pre>
-
-<p>In the previous step, we have selected the columns of interest, changed their name (shorter, English), and have computed the proportion of (valid) secondary votes in favor of the AfD.</p>
-
+</code></pre></div><p>In the previous step, we have selected the columns of interest, changed their name (shorter, English), and have computed the proportion of (valid) secondary votes in favor of the AfD.</p>
 <h1 id="match-unemployment-and-income-to-afd-votes-for-each-wahlkreis">Match unemployment and income to AfD votes for each Wahlkreis</h1>
-
-<pre><code class="language-r">wahlkreise_shp %&gt;%
-  left_join(unemp_de, by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;%
-  left_join(afd_prop, by = &quot;area_name&quot;) -&gt; chloro_data
-</code></pre>
-
-<h1 id="plot-geo-map-with-afd-votes">Plot geo map with afd votes</h1>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  ggplot() +
-  geom_sf(aes(fill = afd_prop)) -&gt; p1
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">wahlkreise_shp <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">left_join</span>(unemp_de, by <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">WKR_NR&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">area_nr&#34;</span>)) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">left_join</span>(afd_prop, by <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">area_name&#34;</span>) <span style="color:#f92672">-&gt;</span> chloro_data
+</code></pre></div><h1 id="plot-geo-map-with-afd-votes">Plot geo map with afd votes</h1>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> afd_prop)) <span style="color:#f92672">-&gt;</span> p1
 p1
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-11-1.png" alt="plot of chunk unnamed-chunk-11" /></p>
-
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-11-1.png" alt="plot of chunk unnamed-chunk-11"></p>
 <p>We might want to play with the fill color, or clean up the map (remove axis etc.)</p>
-
-<pre><code class="language-r">p1 + scale_fill_distiller(palette = &quot;Spectral&quot;) +
-  theme_void()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-12-1.png" alt="plot of chunk unnamed-chunk-12" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p1 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Spectral&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">theme_void</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-12-1.png" alt="plot of chunk unnamed-chunk-12"></p>
 <h1 id="geo-map-of-election-areas-with-unemployment-map">Geo map (of election areas) with unemployment map</h1>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  ggplot() +
-  geom_sf(aes(fill = unemp)) +
-  scale_fill_distiller(palette = &quot;Spectral&quot;) +
-  theme_void() -&gt; p2
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> unemp)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Spectral&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">theme_void</span>() <span style="color:#f92672">-&gt;</span> p2
 p2
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-13-1.png" alt="plot of chunk unnamed-chunk-13" /></p>
-
-<h1 id="concordance-of-afd-results-and-unemployment-income">Concordance of AfD results and unemployment/income</h1>
-
-<p>Let&rsquo;s compute the percent ranking for each of the variables of interest (AfD votes, unemployment ratio, and income). Then we can compute the concordance for each pair by simply computing the difference (or maybe absolute difference). After that, we plot this &ldquo;concordance variables&rdquo; as fill color to the map.</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  mutate(afd_rank = percent_rank(afd_prop),
-         unemp_rank = percent_rank(unemp),
-         income_rank = percent_rank(income)) %&gt;%
-  mutate(afd_income_diff = subtract(afd_rank, income_rank),
-         afd_unemp_diff = subtract(afd_rank, unemp_rank)) -&gt; chloro_data
-</code></pre>
-
-<p>Let&rsquo;s check the first ranks for each of the variables of interest. AfD ranks first:</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  as.data.frame %&gt;%
-  select(area_name, afd_rank, afd_prop, unemp_rank, income_rank) %&gt;%
-  arrange(-afd_rank) %&gt;%
-  slice(1:5)
-</code></pre>
-
-<pre><code>## # A tibble: 5 x 5
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-13-1.png" alt="plot of chunk unnamed-chunk-13"></p>
+<h1 id="concordance-of-afd-results-and-unemploymentincome">Concordance of AfD results and unemployment/income</h1>
+<p>Let's compute the percent ranking for each of the variables of interest (AfD votes, unemployment ratio, and income). Then we can compute the concordance for each pair by simply computing the difference (or maybe absolute difference). After that, we plot this &ldquo;concordance variables&rdquo; as fill color to the map.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">mutate</span>(afd_rank <span style="color:#f92672">=</span> <span style="color:#a6e22e">percent_rank</span>(afd_prop),
+         unemp_rank <span style="color:#f92672">=</span> <span style="color:#a6e22e">percent_rank</span>(unemp),
+         income_rank <span style="color:#f92672">=</span> <span style="color:#a6e22e">percent_rank</span>(income)) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">mutate</span>(afd_income_diff <span style="color:#f92672">=</span> <span style="color:#a6e22e">subtract</span>(afd_rank, income_rank),
+         afd_unemp_diff <span style="color:#f92672">=</span> <span style="color:#a6e22e">subtract</span>(afd_rank, unemp_rank)) <span style="color:#f92672">-&gt;</span> chloro_data
+</code></pre></div><p>Let's check the first ranks for each of the variables of interest. AfD ranks first:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  as.data.frame <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(area_name, afd_rank, afd_prop, unemp_rank, income_rank) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">arrange</span>(<span style="color:#f92672">-</span>afd_rank) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">slice</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">5</span>)
+</code></pre></div><pre><code>## # A tibble: 5 x 5
 ##                          area_name  afd_rank  afd_prop unemp_rank
 ##                              &lt;chr&gt;     &lt;dbl&gt;     &lt;dbl&gt;      &lt;dbl&gt;
 ## 1 Sächsische Schweiz-Osterzgebirge 1.0000000 0.3546391  0.5637584
@@ -353,18 +260,13 @@ p2
 ## 4                        Bautzen I 0.9899329 0.3276397  0.6476510
 ## 5                    Mittelsachsen 0.9865772 0.3124584  0.5872483
 ## # ... with 1 more variables: income_rank &lt;dbl&gt;
-</code></pre>
-
-<p>Saxonia leads. Unemployment &ldquo;top&rdquo; places:</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  as.data.frame %&gt;%
-  select(area_name, afd_prop, unemp_rank, income_rank) %&gt;%
-  arrange(-unemp_rank) %&gt;%
-  slice(1:5)
-</code></pre>
-
-<pre><code>## # A tibble: 5 x 4
+</code></pre><p>Saxonia leads. Unemployment &ldquo;top&rdquo; places:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  as.data.frame <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(area_name, afd_prop, unemp_rank, income_rank) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">arrange</span>(<span style="color:#f92672">-</span>unemp_rank) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">slice</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">5</span>)
+</code></pre></div><pre><code>## # A tibble: 5 x 4
 ##                                    area_name  afd_prop unemp_rank
 ##                                        &lt;chr&gt;     &lt;dbl&gt;      &lt;dbl&gt;
 ## 1                              Gelsenkirchen 0.1703539  1.0000000
@@ -373,18 +275,13 @@ p2
 ## 4 Vorpommern-Rügen – Vorpommern-Greifswald I 0.1964088  0.9832215
 ## 5                                   Essen II 0.1496040  0.9832215
 ## # ... with 1 more variables: income_rank &lt;dbl&gt;
-</code></pre>
-
-<p>The Ruhrpott is ahead of this sad pack. And the lowest unemployment ranks are at:</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  as.data.frame %&gt;%
-  select(area_name, afd_prop, unemp_rank, income_rank) %&gt;%
-  arrange(unemp_rank) %&gt;%
-  slice(1:5)
-</code></pre>
-
-<pre><code>## # A tibble: 5 x 4
+</code></pre><p>The Ruhrpott is ahead of this sad pack. And the lowest unemployment ranks are at:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  as.data.frame <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(area_name, afd_prop, unemp_rank, income_rank) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">arrange</span>(unemp_rank) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">slice</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">5</span>)
+</code></pre></div><pre><code>## # A tibble: 5 x 4
 ##            area_name  afd_prop  unemp_rank income_rank
 ##                &lt;chr&gt;     &lt;dbl&gt;       &lt;dbl&gt;       &lt;dbl&gt;
 ## 1 Erding – Ebersberg 0.1191024 0.000000000   0.9496644
@@ -392,18 +289,13 @@ p2
 ## 3         Donau-Ries 0.1470312 0.003355705   0.8255034
 ## 4         Ingolstadt 0.1513400 0.010067114   0.5973154
 ## 5            Neu-Ulm 0.1511712 0.010067114   0.8456376
-</code></pre>
-
-<p>And finale income, low 5 and top 5:</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  as.data.frame %&gt;%
-  select(area_name, afd_prop, unemp_rank, income_rank) %&gt;%
-  arrange(income_rank) %&gt;%
-  slice(c(1:5, 294:299))
-</code></pre>
-
-<pre><code>## # A tibble: 11 x 4
+</code></pre><p>And finale income, low 5 and top 5:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  as.data.frame <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(area_name, afd_prop, unemp_rank, income_rank) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">arrange</span>(income_rank) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">slice</span>(<span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">294</span><span style="color:#f92672">:</span><span style="color:#ae81ff">299</span>))
+</code></pre></div><pre><code>## # A tibble: 11 x 4
 ##                             area_name   afd_prop unemp_rank income_rank
 ##                                 &lt;chr&gt;      &lt;dbl&gt;      &lt;dbl&gt;       &lt;dbl&gt;
 ##  1                      Gelsenkirchen 0.17035387 1.00000000 0.000000000
@@ -417,366 +309,108 @@ p2
 ##  9      Starnberg – Landsberg am Lech 0.09900204 0.04026846 0.993288591
 ## 10                          Heilbronn 0.16416233 0.26174497 0.996644295
 ## 11                       München-Land 0.09399476 0.03355705 1.000000000
-</code></pre>
-
-<p>Now plot.</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  ggplot() +
-  geom_sf(aes(fill = afd_unemp_diff)) +
-  scale_fill_gradient2() +
-  theme_void() -&gt; p3
+</code></pre><p>Now plot.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> afd_unemp_diff)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_fill_gradient2</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">theme_void</span>() <span style="color:#f92672">-&gt;</span> p3
 p3
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-19-1.png" alt="plot of chunk unnamed-chunk-19" /></p>
-
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-19-1.png" alt="plot of chunk unnamed-chunk-19"></p>
 <p>The fill color denotes the difference between unemployment rank of a given area and its afd vote rank. For example, if area X has an unemployment rank of .5 (50%), it means that half of the areas in the country have a lower (higher) unemployment ratio, respectively (the median). Similarly, an AfD vote rank of .5 indicates the median position. The difference of these two figures is zero, indicating accordance or close match. Thus, figures around zero denote accordance or match. 1 (100%) of AfD vote rank indicates the area with the best AfD results (area with the most votes); similar reasoning applies for income and unemployment ratio.</p>
-
 <p>Hence, numbers <em>greater</em> than zero indicate that the AfD scored <em>better</em> than it would be expected by the accordance-hypothesis.</p>
-
 <p>Similarly, numbers <em>smaller</em> than zero indicate that the AfD scored <em>better</em> than it would be expected by the accordance-hypothesis.</p>
-
 <p>Areas with (near) white filling provide some support for the accordance hypothesis. There are areas of this type, but it is not the majority. The vast majority of areas showed too much or too little AfD - relative to their unemployment ratio.</p>
-
 <p>This reasonsing shows that the AfD received <em>better</em> results in southern and middle areas of Germany than it would be expected by the accordance hypothesis. In contrast, the more poorer northern areas voted for the AfD much less often than it would be expected by the accordance hypothesis.</p>
-
-<p>Let&rsquo;s look at the areas with minimal and maximal dis-accordance, out of curiosity.</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  as.data.frame %&gt;%
-  select(area_name, afd_unemp_diff, unemp, afd_prop) %&gt;%
-  arrange(afd_unemp_diff) %&gt;%
-  slice(c(1:5, 295:299)) %&gt;% hux %&gt;%
+<p>Let's look at the areas with minimal and maximal dis-accordance, out of curiosity.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  as.data.frame <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(area_name, afd_unemp_diff, unemp, afd_prop) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">arrange</span>(afd_unemp_diff) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">slice</span>(<span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">295</span><span style="color:#f92672">:</span><span style="color:#ae81ff">299</span>)) <span style="color:#f92672">%&gt;%</span> hux <span style="color:#f92672">%&gt;%</span>
   add_colnames
-</code></pre>
-
-<p><!--html_preserve--><table class="huxtable" style="border-collapse: collapse; width: 50%; margin-left: auto; margin-right: auto;">
-<col style="width: NA;"><col style="width: NA;"><col style="width: NA;"><col style="width: NA;"><tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">area_name</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">afd_unemp_diff</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">unemp</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">afd_prop</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Essen III</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.85</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">11.90</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.08</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Berlin-Friedrichshain-Kreuzberg – Prenzlauer Berg Ost</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.83</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 9.40</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.06</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Köln II</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.80</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 8.50</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.05</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Kiel</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.78</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 8.80</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.07</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Bremen I</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.77</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 9.80</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.08</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Deggendorf</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.71</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 3.60</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.19</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Rottal-Inn</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.76</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 3.10</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.17</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Donau-Ries</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.77</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 2.20</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.15</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Neu-Ulm</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.78</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 2.50</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.15</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Ingolstadt</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.78</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 2.50</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.15</td>
-</tr>
-</table>
-<!--/html_preserve--></p>
-
+</code></pre></div><!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
 <p>And areas with high accordance (diff score close to zero):</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  as.data.frame %&gt;%
-  select(area_name, afd_unemp_diff, unemp, afd_prop) %&gt;%
-  arrange(afd_unemp_diff) %&gt;%
-  filter(afd_unemp_diff &gt; -0.05, afd_unemp_diff &lt; .05) %&gt;%
-  hux %&gt;%
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  as.data.frame <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(area_name, afd_unemp_diff, unemp, afd_prop) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">arrange</span>(afd_unemp_diff) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">filter</span>(afd_unemp_diff <span style="color:#f92672">&gt;</span> <span style="color:#ae81ff">-0.05</span>, afd_unemp_diff <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">.05</span>) <span style="color:#f92672">%&gt;%</span>
+  hux <span style="color:#f92672">%&gt;%</span>
   add_colnames
-</code></pre>
-
-<p><!--html_preserve--><table class="huxtable" style="border-collapse: collapse; width: 50%; margin-left: auto; margin-right: auto;">
-<col style="width: NA;"><col style="width: NA;"><col style="width: NA;"><col style="width: NA;"><tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">area_name</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">afd_unemp_diff</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">unemp</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">afd_prop</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Rostock – Landkreis Rostock II</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.04</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 8.90</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.16</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Offenbach</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.03</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 6.60</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.12</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Berlin-Lichtenberg</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.03</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 9.40</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.17</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Rhein-Sieg-Kreis I</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.03</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.20</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.10</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Mosel/Rhein-Hunsrück</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.03</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 4.10</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.09</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Berlin-Treptow-Köpenick</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.02</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 9.40</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.17</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Herzogtum Lauenburg – Stormarn-Süd</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.02</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 4.80</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.10</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Helmstedt – Wolfsburg</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.01</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.80</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.11</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Oberbergischer Kreis</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.01</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.50</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.11</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Kreuznach</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.01</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 6.40</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.12</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Herford – Minden-Lübbecke II</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.01</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.70</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.11</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Mansfeld</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">-0.01</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">10.20</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.24</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Siegen-Wittgenstein</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.00</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.40</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.11</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Minden-Lübbecke I</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.01</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.30</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.11</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Heidelberg</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.01</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 4.30</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.09</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Leipzig II</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.01</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 8.30</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.16</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Neuwied</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.02</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 5.30</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.11</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Osterholz – Verden</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.03</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 4.40</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.10</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Prignitz – Ostprignitz-Ruppin – Havelland I</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.03</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 8.90</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.19</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Dessau – Wittenberg</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.04</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 9.10</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.20</td>
-</tr>
-<tr>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; ">Elbe-Elster – Oberspreewald-Lausitz II</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.04</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 9.60</td>
-  <td  style="vertical-align: top; text-align: left; white-space: nowrap; border-width:0pt 0pt 0pt 0pt; border-style: solid; border-top-color: NA;  border-right-color: NA;  border-bottom-color: NA;  border-left-color: NA; padding: 4pt 4pt 4pt 4pt; "> 0.25</td>
-</tr>
-</table>
-<!--/html_preserve--></p>
-
+</code></pre></div><!-- raw HTML omitted -->
+<!-- raw HTML omitted -->
 <p>Similar story for income.</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  ggplot() +
-  geom_sf(aes(fill = afd_income_diff)) +
-  scale_fill_gradient2() +
-  theme_void() -&gt; p4
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> afd_income_diff)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_fill_gradient2</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">theme_void</span>() <span style="color:#f92672">-&gt;</span> p4
 p4
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-22-1.png" alt="plot of chunk unnamed-chunk-22" /></p>
-
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-22-1.png" alt="plot of chunk unnamed-chunk-22"></p>
 <p>The map shows a clear pattern: The eastern parts of Germany are far more afd-oriented than their income rank would predict (diff scores above zero, blue color). However, for some areas across the whole rest of the country, the likewise pattern is true too: A lot areas are rich and do <em>not</em> vote for the AfD (reddish color, diff score below zero). And, thirdly, a lot of aras support the accordance hypothesis (white color, diff score around zero).</p>
-
 <h1 id="more-simple-map">More simple map</h1>
-
-<p>Maybe we should simplify the map: Let&rsquo;s only distinguish three type of areas: too much AfD in comparison to the unemployment, too few AfD for the unemployment, or AfD at par with unemployment. Maybe the picture is more clearcut then.</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  select(afd_unemp_diff) %&gt;%
-  mutate(afd_unemp_diff_3g = cut_interval(afd_unemp_diff, n = 3,
-         labels = c(&quot;AFD &lt; Arbeitslosigkeit&quot;,
-                    &quot;AFD = Arbeitslosigkeit&quot;,
-                    &quot;AFD &gt; Arbeitslosigkeit&quot;))) %&gt;%
-  ggplot() +
-  geom_sf(aes(fill = afd_unemp_diff_3g)) +
-  labs(fill) +
-  theme_void()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-23-1.png" alt="plot of chunk unnamed-chunk-23" /></p>
-
+<p>Maybe we should simplify the map: Let's only distinguish three type of areas: too much AfD in comparison to the unemployment, too few AfD for the unemployment, or AfD at par with unemployment. Maybe the picture is more clearcut then.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(afd_unemp_diff) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">mutate</span>(afd_unemp_diff_3g <span style="color:#f92672">=</span> <span style="color:#a6e22e">cut_interval</span>(afd_unemp_diff, n <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>,
+         labels <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">AFD &lt; Arbeitslosigkeit&#34;</span>,
+                    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">AFD = Arbeitslosigkeit&#34;</span>,
+                    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">AFD &gt; Arbeitslosigkeit&#34;</span>))) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> afd_unemp_diff_3g)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">labs</span>(fill) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">theme_void</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-23-1.png" alt="plot of chunk unnamed-chunk-23"></p>
 <h1 id="afd-density">&ldquo;AfD density&rdquo;</h1>
-
-<p>In a similar vein, we could compute the ratio of AfD votes and unemployment. That would give us some measure of covariability. Let&rsquo;s see.</p>
-
-<pre><code class="language-r">library(viridis)
-chloro_data %&gt;%
-  mutate(afd_dens = afd_prop / unemp) %&gt;%
-  ggplot +
-  geom_sf(aes(fill = afd_dens)) +
-  theme_void() +
-  scale_fill_viridis()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-24-1.png" alt="plot of chunk unnamed-chunk-24" /></p>
-
-<p>The diagram shows that <em>in relation to unemployment</em>, the AfD votes are strongest in central Bavaria (Oberbayern). Don&rsquo;t forget that this measure is an indication of co-occurence, not of absolute AfD votes.</p>
-
+<p>In a similar vein, we could compute the ratio of AfD votes and unemployment. That would give us some measure of covariability. Let's see.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(viridis)
+chloro_data <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">mutate</span>(afd_dens <span style="color:#f92672">=</span> afd_prop <span style="color:#f92672">/</span> unemp) <span style="color:#f92672">%&gt;%</span>
+  ggplot <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> afd_dens)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">theme_void</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_fill_viridis</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-24-1.png" alt="plot of chunk unnamed-chunk-24"></p>
+<p>The diagram shows that <em>in relation to unemployment</em>, the AfD votes are strongest in central Bavaria (Oberbayern). Don't forget that this measure is an indication of co-occurence, not of absolute AfD votes.</p>
 <h1 id="correlation-of-unemployment-and-afd-votes">Correlation of unemployment and AfD votes</h1>
-
-<p>A simple, straight-forward and well-known approach to devise assocation strength is Pearson&rsquo;s correlation coefficient. Oldie but goldie. Let&rsquo;s depict it.</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  select(unemp, afd_prop, income, area_name) %&gt;%
-  ggplot +
-  aes(x = unemp, y = afd_prop) +
-  geom_point() +
-  geom_smooth()
-</code></pre>
-
-<pre><code>## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-25-1.png" alt="plot of chunk unnamed-chunk-25" /></p>
-
+<p>A simple, straight-forward and well-known approach to devise assocation strength is Pearson's correlation coefficient. Oldie but goldie. Let's depict it.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(unemp, afd_prop, income, area_name) <span style="color:#f92672">%&gt;%</span>
+  ggplot <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> unemp, y <span style="color:#f92672">=</span> afd_prop) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_point</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_smooth</span>()
+</code></pre></div><pre><code>## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+</code></pre><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-25-1.png" alt="plot of chunk unnamed-chunk-25"></p>
 <p>The correlation itself is</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  select(unemp, afd_prop, income, area_name) %&gt;%
-  as.data.frame %T&gt;%
-  summarise(cor_afd_unemp = cor(afd_prop, unemp)) %&gt;%
-  do(tidy(cor.test(.$afd_prop, .$unemp)))
-</code></pre>
-
-<pre><code>##    estimate statistic     p.value parameter  conf.low conf.high
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(unemp, afd_prop, income, area_name) <span style="color:#f92672">%&gt;%</span>
+  as.data.frame <span style="color:#f92672">%T&gt;%</span>
+  <span style="color:#a6e22e">summarise</span>(cor_afd_unemp <span style="color:#f92672">=</span> <span style="color:#a6e22e">cor</span>(afd_prop, unemp)) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">do</span>(<span style="color:#a6e22e">tidy</span>(<span style="color:#a6e22e">cor.test</span>(.$afd_prop, .$unemp)))
+</code></pre></div><pre><code>##    estimate statistic     p.value parameter  conf.low conf.high
 ## 1 0.1834224    3.2156 0.001445273       297 0.0714793 0.2908024
 ##                                 method alternative
 ## 1 Pearson's product-moment correlation   two.sided
-</code></pre>
-
-<p>Which is not strong, but is certainly more than mere noise (and p-value below some magic number).</p>
-
+</code></pre><p>Which is not strong, but is certainly more than mere noise (and p-value below some magic number).</p>
 <h1 id="regression-residuals-of-predicting-unemployment-by-afd-score">Regression residuals of predicting unemployment by afd_score</h1>
+<p>Let's predict the AfD vote score taking the unemployment as an predictor. Then let's plot the residuals to see how good the prediction is, ie., how close (or rather, far) the association of unemployment and AfD voting is.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">lm1 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">lm</span>(afd_prop <span style="color:#f92672">~</span> unemp, data <span style="color:#f92672">=</span> chloro_data)
 
-<p>Let&rsquo;s predict the AfD vote score taking the unemployment as an predictor. Then let&rsquo;s plot the residuals to see how good the prediction is, ie., how close (or rather, far) the association of unemployment and AfD voting is.</p>
-
-<pre><code class="language-r">lm1 &lt;- lm(afd_prop ~ unemp, data = chloro_data)
-
-chloro_data %&gt;%
-  mutate(afd_lm1 = lm(afd_prop ~ unemp, data = .)$residuals) -&gt; chloro_data
-</code></pre>
-
-<p>And now plot the residuals:</p>
-
-<pre><code class="language-r">chloro_data %&gt;%
-  select(afd_lm1) %&gt;%
-  ggplot() +
-  geom_sf(aes(fill = afd_lm1)) +
-  scale_fill_gradient2() +
-  theme_void()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-28-1.png" alt="plot of chunk unnamed-chunk-28" /></p>
-
+chloro_data <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">mutate</span>(afd_lm1 <span style="color:#f92672">=</span> <span style="color:#a6e22e">lm</span>(afd_prop <span style="color:#f92672">~</span> unemp, data <span style="color:#f92672">=</span> .)<span style="color:#f92672">$</span>residuals) <span style="color:#f92672">-&gt;</span> chloro_data
+</code></pre></div><p>And now plot the residuals:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(afd_lm1) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> afd_lm1)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_fill_gradient2</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">theme_void</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-28-1.png" alt="plot of chunk unnamed-chunk-28"></p>
 <p>Interesting! This model shows a clearcut picture: The eastern part is too &ldquo;afd&rdquo; for its unemployment ratio (some parts of east-southern Bavaria too); the west is less afd-ic than what would be expected by the unemployment. The rest (middle and south) parts over-and-above show the AfD levels that woul be expected by their unemployment.</p>
-
 <h1 id="conclusion">Conclusion</h1>
-
 <p>The regression model provides a quite clearcut picture, much more than the rank difference has unveiled. The difference in information may be due to the fact that the rank difference is of ordinal level only, and hence omits information compared to the regression level. The story of the data may thus be summarized in easy words: The higher the unemployment ratio, the higher the AfD ratio. However, this is only <em>part</em> of the story. unemployment explains a rather small fraction of AfD votes. Yet, given the multitude of potential influences on voting behavior, a correlation coefficient of .18 is not negligible, rather substantial.</p>
 
     </div>

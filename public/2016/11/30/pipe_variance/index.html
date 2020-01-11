@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Pipe the Variance - Data Se</title>
@@ -70,59 +70,38 @@
 
     <div class="article-content">
       <p>One idea of problem solving is, or should be, I think, that one should tackle problems of high complexity, but not too high. That sounds trivial, cooler tone would be &ldquo;as hard as possible, as easy as necessary&rdquo; which is basically the same thing.</p>
-
 <p>In software development including Rstats, a similar principle applies. Sounds theoretical, I admit. So see here some lines of code that has bitten me recently:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">obs <span style="color:#f92672">&lt;-</span>  <span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">1</span>,<span style="color:#ae81ff">2</span>,<span style="color:#ae81ff">3</span>)
+pred <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">1</span>,<span style="color:#ae81ff">2</span>,<span style="color:#ae81ff">4</span>)
 
-<pre><code class="language-r">obs &lt;-  c(1,2,3)
-pred &lt;- c(1,2,4)
-
-monster &lt;- 1 - (sum((obs - pred)^2))/(sum((obs - mean(obs))^2))
+monster <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">-</span> (<span style="color:#a6e22e">sum</span>((obs <span style="color:#f92672">-</span> pred)^2))<span style="color:#f92672">/</span>(<span style="color:#a6e22e">sum</span>((obs <span style="color:#f92672">-</span> <span style="color:#a6e22e">mean</span>(obs))^2))
 monster
-</code></pre>
-
-<pre><code>## [1] 0.5
-</code></pre>
-
-<p>The important line is of course</p>
-
-<pre><code class="language-r"> 1 - (sum((obs - pred)^2))/(sum((obs - mean(obs))^2))
-</code></pre>
-
-<p>The bug I incorporated was something like this:</p>
-
-<pre><code class="language-r"> 1 - ((obs - pred)^2)/((obs - mean(obs))^2)
-</code></pre>
-
-<p>Friendly bugs yield a functions that dies trying its job. Nasty bugs silently infuse problems. In this case, not a single number, but a vector of numbers resulted. Once you know it, surely, it is easy. But starring at some 1000 lines of codes can make it more difficult to see&hellip;</p>
-
+</code></pre></div><pre><code>## [1] 0.5
+</code></pre><p>The important line is of course</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"> <span style="color:#ae81ff">1</span> <span style="color:#f92672">-</span> (<span style="color:#a6e22e">sum</span>((obs <span style="color:#f92672">-</span> pred)^2))<span style="color:#f92672">/</span>(<span style="color:#a6e22e">sum</span>((obs <span style="color:#f92672">-</span> <span style="color:#a6e22e">mean</span>(obs))^2))
+</code></pre></div><p>The bug I incorporated was something like this:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"> <span style="color:#ae81ff">1</span> <span style="color:#f92672">-</span> ((obs <span style="color:#f92672">-</span> pred)^2)<span style="color:#f92672">/</span>((obs <span style="color:#f92672">-</span> <span style="color:#a6e22e">mean</span>(obs))^2)
+</code></pre></div><p>Friendly bugs yield a functions that dies trying its job. Nasty bugs silently infuse problems. In this case, not a single number, but a vector of numbers resulted. Once you know it, surely, it is easy. But starring at some 1000 lines of codes can make it more difficult to see&hellip;</p>
 <p>So, one could argue that the complexity was (too) high&hellip; for me, at least. Sigh. To put it differently: Can the code rendered more bug-robust?</p>
-
 <p>I think the <code>pipe</code> &mdash;- <code>%&gt;%</code> &mdash;- helps to reduce the complexity. The pipe hacks a big package in tiny pieces, to be dealt with step-by-step, one after each other. And not all in one gobble-dee-gopp.</p>
-
 <p>So, compare the pipe code:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(dplyr)  <span style="color:#75715e"># make sure it is installed</span>
 
-<pre><code class="language-r">library(dplyr)  # make sure it is installed
+obs <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">`-`</span>(pred) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">`^`</span>(<span style="color:#ae81ff">2</span>) <span style="color:#f92672">%&gt;%</span> 
+  sum <span style="color:#f92672">-&gt;</span> SS_b
 
-obs %&gt;% 
-  `-`(pred) %&gt;% 
-  `^`(2) %&gt;% 
-  sum -&gt; SS_b
-
-obs %&gt;% 
-  `-`(mean(obs)) %&gt;% 
-  `^`(2) %&gt;% 
-  sum -&gt; SS_t
+obs <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">`-`</span>(<span style="color:#a6e22e">mean</span>(obs)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">`^`</span>(<span style="color:#ae81ff">2</span>) <span style="color:#f92672">%&gt;%</span> 
+  sum <span style="color:#f92672">-&gt;</span> SS_t
   
 
-R2 &lt;- 1 - (SS_b/SS_t)
+R2 <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">1</span> <span style="color:#f92672">-</span> (SS_b<span style="color:#f92672">/</span>SS_t)
 R2
-</code></pre>
-
-<pre><code>## [1] 0.5
-</code></pre>
-
-<p>In words, what does this code do:</p>
-
+</code></pre></div><pre><code>## [1] 0.5
+</code></pre><p>In words, what does this code do:</p>
 <ol>
 <li>Take <code>obs</code>, then</li>
 <li>from that (<code>obs</code>) subtract <code>pred</code>, then</li>
@@ -130,14 +109,10 @@ R2
 <li>sum up the resulting numbers, then</li>
 <li>save that number as <code>SS_b</code></li>
 </ol>
-
-<p>That&rsquo;s really simple, isn&rsquo;t it!</p>
-
+<p>That's really simple, isn't it!</p>
 <p>Similarly procedure for the second bit. <code>tl;dr</code>.</p>
-
 <p>Note that the pipe comes from the package <code>magrittr</code>, but is included by <code>dplyr</code>.</p>
-
-<p>Admittedly, I have allowed one or two intermediate steps which make it easier to follow, too. But that&rsquo;s also a way to reduce unnecessary (I would say) complexity.</p>
+<p>Admittedly, I have allowed one or two intermediate steps which make it easier to follow, too. But that's also a way to reduce unnecessary (I would say) complexity.</p>
 
     </div>
   </article>

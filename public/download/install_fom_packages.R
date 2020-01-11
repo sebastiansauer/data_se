@@ -20,11 +20,19 @@ install_fom_packages <- function(selection = "standard",
                       "effsize", "pwr", "ROCR", "foreign")
 
 
+  pckgs_day2 <- c(pckgs_standard, "mosaic", "tidyverse", "viridis", "gridExtra",
+                  "sjmisc", "pwr", "simr", "lsr",
+                  "MBESS", "MASS", "compute.es", "brms", "broom",
+                  "ISLR", "lme4", "rstanarm", "arm", "broom",
+                  "sjmisc", "countrycode", "rnaturalearth")
+
+
+
 
   # define customized bundle of packages, depending on "selection" (as type of dictionnary):
 
-  selection_key <- c("standard", "advanced")
-  selection_value <- list(pckgs_standard, pckgs_advanced)
+  selection_key <- c("standard", "advanced", "day2")
+  selection_value <- list(pckgs_standard, pckgs_advanced, pckgs_day2)
   names(selection_value) <- selection_key
 
 

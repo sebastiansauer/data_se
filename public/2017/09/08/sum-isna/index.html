@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Different ways to count NAs over multiple columns - Data Se</title>
@@ -69,144 +69,113 @@
     
 
     <div class="article-content">
-      
-
-<p>There are a number of ways in R to count NAs (missing values). A common use case is to count the NAs over multiple columns, ie., a whole dataframe. That&rsquo;s basically the question &ldquo;how many NAs are there in each column of my dataframe&rdquo;? This post demonstrates some ways to answer this question.</p>
-
+      <p>There are a number of ways in R to count NAs (missing values). A common use case is to count the NAs over multiple columns, ie., a whole dataframe. That's basically the question &ldquo;how many NAs are there in each column of my dataframe&rdquo;? This post demonstrates some ways to answer this question.</p>
 <h1 id="way-1-using-sapply">Way 1: using <code>sapply</code></h1>
-
 <p>A typical way (or classical way) in R to achieve some iteration is using <code>apply</code> and friends. <code>sapply</code> renders through a list and simplifies (hence the &ldquo;s&rdquo; in sapply) if possible.</p>
-
-<pre><code class="language-r">sapply(mtcars, function(x) sum(is.na(x)))
-#&gt;  mpg  cyl disp   hp drat   wt qsec   vs   am gear carb
-#&gt;    0    0    0    0    0    0    0    0    0    0    0
-</code></pre>
-
-<p>Pros: Straightforward. No dependencies on other packages. Tried and true.<br />
-Cons: Not typestable; not sure you will always get the same data type back from this function. You might be surprised and get something you did not expect. That&rsquo;s no problem in interactive use, but you&rsquo;d not want for programming.</p>
-
-<h1 id="way-2-using-purrr-map">Way 2: using <code>purrr::map</code></h1>
-
-<p><code>map</code> maps (applies) a function to each element of a vector/list. Here, the following code reads as &ldquo;Apply &lsquo;sum(is.na(.))&rsquo; on each column of mtcars&rdquo;. Mind the tilde <code>~</code> before <code>function. The dot</code>.` refers to the respective column.</p>
-
-<pre><code class="language-r">library(tidyverse)
-map(mtcars, ~sum(is.na(.)))
-#&gt; $mpg
-#&gt; [1] 0
-#&gt;
-#&gt; $cyl
-#&gt; [1] 0
-#&gt;
-#&gt; $disp
-#&gt; [1] 0
-#&gt;
-#&gt; $hp
-#&gt; [1] 0
-#&gt;
-#&gt; $drat
-#&gt; [1] 0
-#&gt;
-#&gt; $wt
-#&gt; [1] 0
-#&gt;
-#&gt; $qsec
-#&gt; [1] 0
-#&gt;
-#&gt; $vs
-#&gt; [1] 0
-#&gt;
-#&gt; $am
-#&gt; [1] 0
-#&gt;
-#&gt; $gear
-#&gt; [1] 0
-#&gt;
-#&gt; $carb
-#&gt; [1] 0
-</code></pre>
-
-<p>Pros: Modern, cool. Straightforward. Typestable. Complex function with lots of use cases.<br />
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">sapply</span>(mtcars, <span style="color:#a6e22e">function</span>(x) <span style="color:#a6e22e">sum</span>(<span style="color:#a6e22e">is.na</span>(x)))
+<span style="color:#75715e">#&gt;  mpg  cyl disp   hp drat   wt qsec   vs   am gear carb</span>
+<span style="color:#75715e">#&gt;    0    0    0    0    0    0    0    0    0    0    0</span>
+</code></pre></div><p>Pros: Straightforward. No dependencies on other packages. Tried and true.<br>
+Cons: Not typestable; not sure you will always get the same data type back from this function. You might be surprised and get something you did not expect. That's no problem in interactive use, but you'd not want for programming.</p>
+<h1 id="way-2-using-purrrmap">Way 2: using <code>purrr::map</code></h1>
+<p><code>map</code> maps (applies) a function to each element of a vector/list. Here, the following code reads as &ldquo;Apply &lsquo;sum(is.na(.))&rsquo; on each column of mtcars&rdquo;. Mind the tilde <code>~</code> before <code>function. The dot </code>.` refers to the respective column.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)
+<span style="color:#a6e22e">map</span>(mtcars, <span style="color:#f92672">~</span><span style="color:#a6e22e">sum</span>(<span style="color:#a6e22e">is.na</span>(.)))
+<span style="color:#75715e">#&gt; $mpg</span>
+<span style="color:#75715e">#&gt; [1] 0</span>
+<span style="color:#75715e">#&gt;</span>
+<span style="color:#75715e">#&gt; $cyl</span>
+<span style="color:#75715e">#&gt; [1] 0</span>
+<span style="color:#75715e">#&gt;</span>
+<span style="color:#75715e">#&gt; $disp</span>
+<span style="color:#75715e">#&gt; [1] 0</span>
+<span style="color:#75715e">#&gt;</span>
+<span style="color:#75715e">#&gt; $hp</span>
+<span style="color:#75715e">#&gt; [1] 0</span>
+<span style="color:#75715e">#&gt;</span>
+<span style="color:#75715e">#&gt; $drat</span>
+<span style="color:#75715e">#&gt; [1] 0</span>
+<span style="color:#75715e">#&gt;</span>
+<span style="color:#75715e">#&gt; $wt</span>
+<span style="color:#75715e">#&gt; [1] 0</span>
+<span style="color:#75715e">#&gt;</span>
+<span style="color:#75715e">#&gt; $qsec</span>
+<span style="color:#75715e">#&gt; [1] 0</span>
+<span style="color:#75715e">#&gt;</span>
+<span style="color:#75715e">#&gt; $vs</span>
+<span style="color:#75715e">#&gt; [1] 0</span>
+<span style="color:#75715e">#&gt;</span>
+<span style="color:#75715e">#&gt; $am</span>
+<span style="color:#75715e">#&gt; [1] 0</span>
+<span style="color:#75715e">#&gt;</span>
+<span style="color:#75715e">#&gt; $gear</span>
+<span style="color:#75715e">#&gt; [1] 0</span>
+<span style="color:#75715e">#&gt;</span>
+<span style="color:#75715e">#&gt; $carb</span>
+<span style="color:#75715e">#&gt; [1] 0</span>
+</code></pre></div><p>Pros: Modern, cool. Straightforward. Typestable. Complex function with lots of use cases.<br>
 Cons: Learning curve. Depends on package <code>tidyverse</code>.</p>
-
 <h1 id="way-3-using-dplyr">Way 3: using <code>dplyr</code></h1>
-
 <p>The following code can be translated as something like this:</p>
-
 <pre><code>1. Hey R, take mtcars -and then-    
 2. Select all columns (if I'm in a good mood tomorrow, I might select fewer) -and then-  
 3. Summarise all selected columns by using the function 'sum(is.na(.))'
-</code></pre>
-
-<p>The dot <code>.</code> refers to what was handed over by the pipe, ie., the output of the last step.</p>
-
-<pre><code class="language-r">mtcars %&gt;%
-  select(everything()) %&gt;%  # replace to your needs
-  summarise_all(funs(sum(is.na(.))))
-#&gt;   mpg cyl disp hp drat wt qsec vs am gear carb
-#&gt; 1   0   0    0  0    0  0    0  0  0    0    0
-</code></pre>
-
-<p>Pros: Straightforward. Quite simple (simple than <code>map</code> to me).<br />
+</code></pre><p>The dot <code>.</code> refers to what was handed over by the pipe, ie., the output of the last step.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">select</span>(<span style="color:#a6e22e">everything</span>()) <span style="color:#f92672">%&gt;%</span>  <span style="color:#75715e"># replace to your needs</span>
+  <span style="color:#a6e22e">summarise_all</span>(<span style="color:#a6e22e">funs</span>(<span style="color:#a6e22e">sum</span>(<span style="color:#a6e22e">is.na</span>(.))))
+<span style="color:#75715e">#&gt;   mpg cyl disp hp drat wt qsec vs am gear carb</span>
+<span style="color:#75715e">#&gt; 1   0   0    0  0    0  0    0  0  0    0    0</span>
+</code></pre></div><p>Pros: Straightforward. Quite simple (simple than <code>map</code> to me).<br>
 Cons: Depends on package <code>tidyverse</code>.</p>
-
 <h1 id="way-4-counting-nas-rowwise-using-apply">Way 4: Counting NAs rowwise using <code>apply</code></h1>
-
 <p>Sometimes it is useful to count the NAs rowwise (case by case). <code>apply</code> allows for applying a function to each <em>row</em>  of a dataframe (that the <code>MARGIN</code> parameter).</p>
-
-<pre><code class="language-r">apply(mtcars, MARGIN = 1, function(x) sum(is.na(x)))
-#&gt;           Mazda RX4       Mazda RX4 Wag          Datsun 710
-#&gt;                   0                   0                   0
-#&gt;      Hornet 4 Drive   Hornet Sportabout             Valiant
-#&gt;                   0                   0                   0
-#&gt;          Duster 360           Merc 240D            Merc 230
-#&gt;                   0                   0                   0
-#&gt;            Merc 280           Merc 280C          Merc 450SE
-#&gt;                   0                   0                   0
-#&gt;          Merc 450SL         Merc 450SLC  Cadillac Fleetwood
-#&gt;                   0                   0                   0
-#&gt; Lincoln Continental   Chrysler Imperial            Fiat 128
-#&gt;                   0                   0                   0
-#&gt;         Honda Civic      Toyota Corolla       Toyota Corona
-#&gt;                   0                   0                   0
-#&gt;    Dodge Challenger         AMC Javelin          Camaro Z28
-#&gt;                   0                   0                   0
-#&gt;    Pontiac Firebird           Fiat X1-9       Porsche 914-2
-#&gt;                   0                   0                   0
-#&gt;        Lotus Europa      Ford Pantera L        Ferrari Dino
-#&gt;                   0                   0                   0
-#&gt;       Maserati Bora          Volvo 142E
-#&gt;                   0                   0
-</code></pre>
-
-<p>Pros: Straightforward.<br />
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">apply</span>(mtcars, MARGIN <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, <span style="color:#a6e22e">function</span>(x) <span style="color:#a6e22e">sum</span>(<span style="color:#a6e22e">is.na</span>(x)))
+<span style="color:#75715e">#&gt;           Mazda RX4       Mazda RX4 Wag          Datsun 710</span>
+<span style="color:#75715e">#&gt;                   0                   0                   0</span>
+<span style="color:#75715e">#&gt;      Hornet 4 Drive   Hornet Sportabout             Valiant</span>
+<span style="color:#75715e">#&gt;                   0                   0                   0</span>
+<span style="color:#75715e">#&gt;          Duster 360           Merc 240D            Merc 230</span>
+<span style="color:#75715e">#&gt;                   0                   0                   0</span>
+<span style="color:#75715e">#&gt;            Merc 280           Merc 280C          Merc 450SE</span>
+<span style="color:#75715e">#&gt;                   0                   0                   0</span>
+<span style="color:#75715e">#&gt;          Merc 450SL         Merc 450SLC  Cadillac Fleetwood</span>
+<span style="color:#75715e">#&gt;                   0                   0                   0</span>
+<span style="color:#75715e">#&gt; Lincoln Continental   Chrysler Imperial            Fiat 128</span>
+<span style="color:#75715e">#&gt;                   0                   0                   0</span>
+<span style="color:#75715e">#&gt;         Honda Civic      Toyota Corolla       Toyota Corona</span>
+<span style="color:#75715e">#&gt;                   0                   0                   0</span>
+<span style="color:#75715e">#&gt;    Dodge Challenger         AMC Javelin          Camaro Z28</span>
+<span style="color:#75715e">#&gt;                   0                   0                   0</span>
+<span style="color:#75715e">#&gt;    Pontiac Firebird           Fiat X1-9       Porsche 914-2</span>
+<span style="color:#75715e">#&gt;                   0                   0                   0</span>
+<span style="color:#75715e">#&gt;        Lotus Europa      Ford Pantera L        Ferrari Dino</span>
+<span style="color:#75715e">#&gt;                   0                   0                   0</span>
+<span style="color:#75715e">#&gt;       Maserati Bora          Volvo 142E</span>
+<span style="color:#75715e">#&gt;                   0                   0</span>
+</code></pre></div><p>Pros: Straightforward.<br>
 Cons: ?</p>
-
 <h1 id="way-5-counting-nas-rowwise-using-dplyr">Way 5: Counting NAs rowwise using <code>dplyr</code></h1>
-
-<pre><code class="language-r">mtcars %&gt;%
-  rowwise %&gt;%
-  summarise(NA_per_row = sum(is.na(.)))
-#&gt; # A tibble: 32 x 1
-#&gt;    NA_per_row
-#&gt;         &lt;int&gt;
-#&gt;  1          0
-#&gt;  2          0
-#&gt;  3          0
-#&gt;  4          0
-#&gt;  5          0
-#&gt;  6          0
-#&gt;  7          0
-#&gt;  8          0
-#&gt;  9          0
-#&gt; 10          0
-#&gt; # ... with 22 more rows
-</code></pre>
-
-<p>Pro: Fits into the pipe thinking.<br />
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span>
+  rowwise <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">summarise</span>(NA_per_row <span style="color:#f92672">=</span> <span style="color:#a6e22e">sum</span>(<span style="color:#a6e22e">is.na</span>(.)))
+<span style="color:#75715e">#&gt; # A tibble: 32 x 1</span>
+<span style="color:#75715e">#&gt;    NA_per_row</span>
+<span style="color:#75715e">#&gt;         &lt;int&gt;</span>
+<span style="color:#75715e">#&gt;  1          0</span>
+<span style="color:#75715e">#&gt;  2          0</span>
+<span style="color:#75715e">#&gt;  3          0</span>
+<span style="color:#75715e">#&gt;  4          0</span>
+<span style="color:#75715e">#&gt;  5          0</span>
+<span style="color:#75715e">#&gt;  6          0</span>
+<span style="color:#75715e">#&gt;  7          0</span>
+<span style="color:#75715e">#&gt;  8          0</span>
+<span style="color:#75715e">#&gt;  9          0</span>
+<span style="color:#75715e">#&gt; 10          0</span>
+<span style="color:#75715e">#&gt; # ... with 22 more rows</span>
+</code></pre></div><p>Pro: Fits into the pipe thinking.<br>
 Cons: Somewhat less common.</p>
-
 <h1 id="debrief">Debrief</h1>
-
 <p>Counting NAs over all columns of a dataframe is quite a common task. Like always (?) in R, there a multiple ways to achieve it. Some where shown here (more exist). Enjoy!</p>
 
     </div>

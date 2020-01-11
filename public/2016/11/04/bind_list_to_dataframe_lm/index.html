@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Bind lists to data frame for aggregating linear models results - Data Se</title>
@@ -70,16 +70,11 @@
 
     <div class="article-content">
       <p>I found myself doing the following: I had a bunch of predictors, one (numeric) outcome, and wanted to run I simple regression for each of the predictors. Having a bunch of model results, I would like to have them bundled in one data frame.</p>
-
 <p>So, here is one way to do it.</p>
-
 <p>First, load some data.</p>
-
-<pre><code class="language-r">data(mtcars)
-str(mtcars)
-</code></pre>
-
-<pre><code>## 'data.frame':	32 obs. of  11 variables:
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">data</span>(mtcars)
+<span style="color:#a6e22e">str</span>(mtcars)
+</code></pre></div><pre><code>## 'data.frame':	32 obs. of  11 variables:
 ##  $ mpg : num  21 21 22.8 21.4 18.7 18.1 14.3 24.4 22.8 19.2 ...
 ##  $ cyl : num  6 6 4 6 8 6 8 4 4 6 ...
 ##  $ disp: num  160 160 108 258 360 ...
@@ -91,37 +86,24 @@ str(mtcars)
 ##  $ am  : num  1 1 1 0 0 0 0 0 0 0 ...
 ##  $ gear: num  4 4 4 3 3 3 3 4 4 4 ...
 ##  $ carb: num  4 4 1 1 2 1 4 2 2 4 ...
-</code></pre>
-
-<p>Say, <code>mpg</code> is our outcome/ criterion. The rest of the variables are predictors.</p>
-
+</code></pre><p>Say, <code>mpg</code> is our outcome/ criterion. The rest of the variables are predictors.</p>
 <p>Then, some packages.</p>
-
-<pre><code class="language-r">library(dplyr)
-library(purrr)
-library(tibble)
-library(ggplot2)
-library(stringr)
-library(tidyr)
-library(broom)
-library(scales)
-</code></pre>
-
-<p>For illustration, let&rsquo;s run a regression with each and all of the predictors as a preliminary step.</p>
-
-<pre><code class="language-r">lm(mpg ~ ., data = mtcars) %&gt;% glance
-</code></pre>
-
-<pre><code>##   r.squared adj.r.squared    sigma statistic      p.value df    logLik
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(dplyr)
+<span style="color:#a6e22e">library</span>(purrr)
+<span style="color:#a6e22e">library</span>(tibble)
+<span style="color:#a6e22e">library</span>(ggplot2)
+<span style="color:#a6e22e">library</span>(stringr)
+<span style="color:#a6e22e">library</span>(tidyr)
+<span style="color:#a6e22e">library</span>(broom)
+<span style="color:#a6e22e">library</span>(scales)
+</code></pre></div><p>For illustration, let's run a regression with each and all of the predictors as a preliminary step.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">lm</span>(mpg <span style="color:#f92672">~</span> ., data <span style="color:#f92672">=</span> mtcars) <span style="color:#f92672">%&gt;%</span> glance
+</code></pre></div><pre><code>##   r.squared adj.r.squared    sigma statistic      p.value df    logLik
 ## 1 0.8690158     0.8066423 2.650197  13.93246 3.793152e-07 11 -69.85491
 ##        AIC      BIC deviance df.residual
 ## 1 163.7098 181.2986 147.4944          21
-</code></pre>
-
-<pre><code class="language-r">lm(mpg ~ ., data = mtcars) %&gt;% summary %&gt;% tidy
-</code></pre>
-
-<pre><code>##           term    estimate   std.error  statistic    p.value
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">lm</span>(mpg <span style="color:#f92672">~</span> ., data <span style="color:#f92672">=</span> mtcars) <span style="color:#f92672">%&gt;%</span> summary <span style="color:#f92672">%&gt;%</span> tidy
+</code></pre></div><pre><code>##           term    estimate   std.error  statistic    p.value
 ## 1  (Intercept) 12.30337416 18.71788443  0.6573058 0.51812440
 ## 2          cyl -0.11144048  1.04502336 -0.1066392 0.91608738
 ## 3         disp  0.01333524  0.01785750  0.7467585 0.46348865
@@ -133,27 +115,21 @@ library(scales)
 ## 9           am  2.52022689  2.05665055  1.2254035 0.23398971
 ## 10        gear  0.65541302  1.49325996  0.4389142 0.66520643
 ## 11        carb -0.19941925  0.82875250 -0.2406258 0.81217871
-</code></pre>
-
-<p>Of interest, no p-value is below .05.</p>
-
-<p>Now come the main part, let&rsquo;s run multiple regression and then combine the results.</p>
-
-<pre><code class="language-r">mtcars %&gt;% 
-  dplyr::select(-mpg) %&gt;% 
-  map(~lm(mtcars$mpg ~ .x, data = mtcars)) %&gt;% 
-  map(summary) %&gt;% 
-  map(&quot;coefficients&quot;) %&gt;% 
-  do.call(rbind.data.frame, .) %&gt;% 
-  rownames_to_column %&gt;% 
-  as_tibble %&gt;% 
-  setNames(c(&quot;predictor&quot;, &quot;b&quot;, &quot;SE&quot;, &quot;t&quot;, &quot;p&quot;)) %&gt;% 
-  dplyr::arrange(p) %&gt;% 
-  dplyr::filter(!str_detect(predictor, &quot;(Intercept)&quot;)) %&gt;% 
-  mutate(predictor = str_sub(predictor, start = 1, end = str_length(predictor)-3))
-</code></pre>
-
-<pre><code>## # A tibble: 10 × 5
+</code></pre><p>Of interest, no p-value is below .05.</p>
+<p>Now come the main part, let's run multiple regression and then combine the results.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
+  dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">select</span>(<span style="color:#f92672">-</span>mpg) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">lm</span>(mtcars<span style="color:#f92672">$</span>mpg <span style="color:#f92672">~</span> .x, data <span style="color:#f92672">=</span> mtcars)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(summary) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">coefficients&#34;</span>) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">do.call</span>(rbind.data.frame, .) <span style="color:#f92672">%&gt;%</span> 
+  rownames_to_column <span style="color:#f92672">%&gt;%</span> 
+  as_tibble <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">setNames</span>(<span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">predictor&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">b&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">SE&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">t&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">p&#34;</span>)) <span style="color:#f92672">%&gt;%</span> 
+  dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">arrange</span>(p) <span style="color:#f92672">%&gt;%</span> 
+  dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">filter</span>(<span style="color:#f92672">!</span><span style="color:#a6e22e">str_detect</span>(predictor, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(Intercept)&#34;</span>)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(predictor <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(predictor, start <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, end <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_length</span>(predictor)<span style="color:#ae81ff">-3</span>))
+</code></pre></div><pre><code>## # A tibble: 10 × 5
 ##    predictor           b          SE         t            p
 ##        &lt;chr&gt;       &lt;dbl&gt;       &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt;
 ## 1         wt -5.34447157 0.559101045 -9.559044 1.293959e-10
@@ -166,10 +142,7 @@ library(scales)
 ## 8       carb -2.05571870 0.568545640 -3.615750 1.084446e-03
 ## 9       gear  3.92333333 1.308130699  2.999191 5.400948e-03
 ## 10      qsec  1.41212484 0.559210130  2.525213 1.708199e-02
-</code></pre>
-
-<p>Some explanation:</p>
-
+</code></pre><p>Some explanation:</p>
 <ul>
 <li>l2: deselect the outcome variable, so that we can address &ldquo;all&rdquo; variables in the next lines</li>
 <li>l3: map each list element to <code>lm</code>; <code>.x</code> is a placeholder for all the list elements (here predictors)</li>
@@ -178,24 +151,19 @@ library(scales)
 <li>l6: rownames should be their own column</li>
 <li>l7: tibbles are nic</li>
 <li>l8: make the col names typing-friendly</li>
-<li>l9: filter those lines, where <code>predictor</code> is <em>not</em> equal to &ldquo;(Intercept)&rdquo;.</li>
+<li>l9: filter those lines, where <code>predictor</code> is <em>not</em> equal to &ldquo;(Intercept)&quot;.</li>
 <li>l10: change the values of <code>predictor</code> such that the strange end part &ldquo;..x&rdquo; is removed</li>
 </ul>
-
 <p>Puh, quite some hassle.</p>
-
-<p>Now, for completeness, let&rsquo;s look at the $R^2$.</p>
-
-<pre><code class="language-r">mtcars %&gt;% 
-  dplyr::select(-mpg) %&gt;% 
-  map(~lm(mtcars$mpg ~ .x, data = mtcars)) %&gt;% 
-  map(glance) %&gt;% 
-  do.call(rbind.data.frame, .) %&gt;% 
-  rownames_to_column %&gt;% 
+<p>Now, for completeness, let's look at the $R^2$.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
+  dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">select</span>(<span style="color:#f92672">-</span>mpg) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">lm</span>(mtcars<span style="color:#f92672">$</span>mpg <span style="color:#f92672">~</span> .x, data <span style="color:#f92672">=</span> mtcars)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(glance) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">do.call</span>(rbind.data.frame, .) <span style="color:#f92672">%&gt;%</span> 
+  rownames_to_column <span style="color:#f92672">%&gt;%</span> 
   as_tibble 
-</code></pre>
-
-<pre><code>## # A tibble: 10 × 12
+</code></pre></div><pre><code>## # A tibble: 10 × 12
 ##    rowname r.squared adj.r.squared    sigma statistic      p.value    df
 ##      &lt;chr&gt;     &lt;dbl&gt;         &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt;        &lt;dbl&gt; &lt;int&gt;
 ## 1      cyl 0.7261800     0.7170527 3.205902 79.561028 6.112687e-10     2
@@ -210,47 +178,37 @@ library(scales)
 ## 10    carb 0.3035184     0.2803024 5.112961 13.073646 1.084446e-03     2
 ## # ... with 5 more variables: logLik &lt;dbl&gt;, AIC &lt;dbl&gt;, BIC &lt;dbl&gt;,
 ## #   deviance &lt;dbl&gt;, df.residual &lt;int&gt;
-</code></pre>
-
-<p>Ok, I admit, I like plotting, particularly with <code>ggplot2</code>.</p>
-
+</code></pre><p>Ok, I admit, I like plotting, particularly with <code>ggplot2</code>.</p>
 <p>First, the $R^2$ for all models:</p>
-
-<pre><code class="language-r">mtcars %&gt;% 
-  dplyr::select(-mpg) %&gt;% 
-  map(~lm(mtcars$mpg ~ .x, data = mtcars)) %&gt;% 
-  map(glance) %&gt;% 
-  do.call(rbind.data.frame, .) %&gt;% 
-  rownames_to_column %&gt;% 
-  as_tibble %&gt;% 
-  ggplot(aes(x = reorder(rowname, -adj.r.squared), y = adj.r.squared)) +
-  geom_point() +
-  coord_flip() + 
-  scale_y_continuous(labels = scales::percent)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-04/p1-1.png" alt="plot of chunk p1" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
+  dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">select</span>(<span style="color:#f92672">-</span>mpg) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">lm</span>(mtcars<span style="color:#f92672">$</span>mpg <span style="color:#f92672">~</span> .x, data <span style="color:#f92672">=</span> mtcars)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(glance) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">do.call</span>(rbind.data.frame, .) <span style="color:#f92672">%&gt;%</span> 
+  rownames_to_column <span style="color:#f92672">%&gt;%</span> 
+  as_tibble <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">ggplot</span>(<span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> <span style="color:#a6e22e">reorder</span>(rowname, <span style="color:#f92672">-</span>adj.r.squared), y <span style="color:#f92672">=</span> adj.r.squared)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_point</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">coord_flip</span>() <span style="color:#f92672">+</span> 
+  <span style="color:#a6e22e">scale_y_continuous</span>(labels <span style="color:#f92672">=</span> scales<span style="color:#f92672">::</span>percent)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-04/p1-1.png" alt="plot of chunk p1"></p>
 <p>Last, the p-values of each predictor (OMG).</p>
-
-<pre><code class="language-r">mtcars %&gt;% 
-  dplyr::select(-mpg) %&gt;% 
-  map(~lm(mtcars$mpg ~ .x, data = mtcars)) %&gt;% 
-  map(summary) %&gt;% 
-  map(&quot;coefficients&quot;) %&gt;% 
-  do.call(rbind.data.frame, .) %&gt;% 
-  rownames_to_column %&gt;% 
-  as_tibble %&gt;% 
-  setNames(c(&quot;predictor&quot;, &quot;b&quot;, &quot;SE&quot;, &quot;t&quot;, &quot;p&quot;)) %&gt;% 
-  dplyr::arrange(p) %&gt;% 
-  dplyr::filter(!str_detect(predictor, &quot;(Intercept)&quot;)) %&gt;% 
-  mutate(predictor = str_sub(predictor, start = 1, end = str_length(predictor)-3)) %&gt;% 
-  ggplot(aes(x = reorder(predictor,p), y = p)) +
-  geom_point() +
-  geom_hline(yintercept = .05, color = &quot;red&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-04/p2-1.png" alt="plot of chunk p2" /></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
+  dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">select</span>(<span style="color:#f92672">-</span>mpg) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">lm</span>(mtcars<span style="color:#f92672">$</span>mpg <span style="color:#f92672">~</span> .x, data <span style="color:#f92672">=</span> mtcars)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(summary) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">coefficients&#34;</span>) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">do.call</span>(rbind.data.frame, .) <span style="color:#f92672">%&gt;%</span> 
+  rownames_to_column <span style="color:#f92672">%&gt;%</span> 
+  as_tibble <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">setNames</span>(<span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">predictor&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">b&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">SE&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">t&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">p&#34;</span>)) <span style="color:#f92672">%&gt;%</span> 
+  dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">arrange</span>(p) <span style="color:#f92672">%&gt;%</span> 
+  dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">filter</span>(<span style="color:#f92672">!</span><span style="color:#a6e22e">str_detect</span>(predictor, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">(Intercept)&#34;</span>)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(predictor <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(predictor, start <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, end <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_length</span>(predictor)<span style="color:#ae81ff">-3</span>)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">ggplot</span>(<span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> <span style="color:#a6e22e">reorder</span>(predictor,p), y <span style="color:#f92672">=</span> p)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_point</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_hline</span>(yintercept <span style="color:#f92672">=</span> <span style="color:#ae81ff">.05</span>, color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">red&#34;</span>)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-04/p2-1.png" alt="plot of chunk p2"></p>
 
     </div>
   </article>

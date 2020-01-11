@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>How to draw a waffle plot - Data Se</title>
@@ -70,14 +70,18 @@
 
     <div class="article-content">
       
+<script src="/rmarkdown-libs/jquery/jquery.min.js"></script>
+<script src="/rmarkdown-libs/elevate-section-attrs/elevate-section-attrs.js"></script>
 
 
 <div id="load-packages" class="section level1">
 <h1>Load packages</h1>
 <pre class="r"><code>library(tidyverse)
-library(waffle)
+#library(waffle)
 library(viridis)
-library(hrbrthemes)</code></pre>
+#library(hrbrthemes)
+library(extrafont)
+library(emojifont)</code></pre>
 </div>
 <div id="whats-a-waffle-diagram" class="section level1">
 <h1>What’s a waffle diagram?</h1>
@@ -119,10 +123,6 @@ d_counted
 #&gt; 1 FALSE      56
 #&gt; 2 TRUE       44</code></pre>
 </div>
-<div id="setup-showtext" class="section level1">
-<h1>Setup showtext</h1>
-<pre class="r"><code>showtext_auto()</code></pre>
-</div>
 <div id="waffle-1" class="section level1">
 <h1>Waffle 1</h1>
 <pre class="r"><code>w0 &lt;- ggplot(d_counted) +
@@ -135,7 +135,7 @@ w1 &lt;- w0 +
                     labels = c(&quot;Yes&quot;, &quot;No&quot;))
 
 w1</code></pre>
-<p><img src="/post/2019-11-24-how-to-draw-a-waffle-plot_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2019-11-24-how-to-draw-a-waffle-plot_files/figure-html/unnamed-chunk-3-1.png" width="70%" style="display: block; margin: auto;" /></p>
 </div>
 <div id="waffle-2" class="section level1">
 <h1>Waffle 2</h1>
@@ -145,12 +145,29 @@ w1</code></pre>
   theme_enhance_waffle()
 
 w2</code></pre>
-<p><img src="/post/2019-11-24-how-to-draw-a-waffle-plot_files/figure-html/unnamed-chunk-5-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p><img src="/post/2019-11-24-how-to-draw-a-waffle-plot_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /></p>
 </div>
 <div id="pictogram-waffle" class="section level1">
 <h1>Pictogram Waffle</h1>
 <p>I could not get the pictogram waffle from this package to run. I assume the Font Awesome version I used has some different name, so that it is not found by the function.</p>
-<p>However, here’s an alternative using the package <code>emojifont</code>. More on that in a later post.</p>
+<p>However, here’s an alternative using the package <code>emojifont</code>.</p>
+<p>First, choose some Font Awesome glyphs:</p>
+<pre class="r"><code>fa2 &lt;- fontawesome(c(&quot;fa-user&quot;, &quot;fa-user-circle&quot;))</code></pre>
+<p>Next, come up with some data that will be arranged in “waffle format”:</p>
+<pre class="r"><code>d &lt;- crossing(x = 1:10,
+               y = 1:10) %&gt;% 
+  mutate(label = sample(x = fa2, size = 100, replace = TRUE))</code></pre>
+<pre class="r"><code>load.fontawesome()</code></pre>
+<p>Last, plot using <code>geom_tile</code> and <code>geom_text</code>:</p>
+<pre class="r"><code>ggplot(d, aes(x = x, y = y, color = label, label = label)) +
+  geom_tile(color = &quot;white&quot;, size = .5, aes(fill = label), alpha = .2) +
+  theme_void() +
+  geom_text(family=&#39;FontAwesome 5 Free&#39;, size=8) +
+  scale_color_manual(label = c(&quot;gewählt&quot;, &quot;nicht-gewählt&quot;),
+                     values = c(&quot;#00998A&quot;, &quot;grey80&quot;)) +
+  scale_fill_manual( values = c(&quot;#00998A&quot;, &quot;grey80&quot;)) +
+  theme(legend.position = &quot;none&quot;)</code></pre>
+<p><img src="/post/2019-11-24-how-to-draw-a-waffle-plot_files/figure-html/unnamed-chunk-8-1.png" width="70%" style="display: block; margin: auto;" /></p>
 </div>
 
     </div>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Visualizing Interaction Effects with ggplot2 - Data Se</title>
@@ -69,162 +69,101 @@
     
 
     <div class="article-content">
-      
-
-<p>Moderator effects or interaction effect are a frequent topic of scientific endeavor. Put bluntly, such effects respond to the question whether the input variable X (predictor or independent variable IV) has an effect on the output variable (dependent variable DV) Y: &ldquo;it depends&rdquo;. More precisely, it depends on a second variable, M (Moderator).</p>
-
+      <p>Moderator effects or interaction effect are a frequent topic of scientific endeavor. Put bluntly, such effects respond to the question whether the input variable X (predictor or independent variable IV) has an effect on the output variable (dependent variable DV) Y: &ldquo;it depends&rdquo;. More precisely, it depends on a second variable, M (Moderator).</p>
 <p>More formally, a moderation effect can be summarized as follows:</p>
-
 <blockquote>
 <p>If the effect of X on Y depends on M, a moderator effect takes place.</p>
 </blockquote>
-
 <p>There exist some typical procedures to detect such effects. In this post, however we are concerned only with the visualization of moderation.</p>
-
 <p>To do so, we will distinguish three situations: Where X and M are nominal, where X and M are numeric, and situations where one of them is nominal and the other numeric.</p>
-
-<p>We will look at some visualization methods based on <code>ggplot2</code> (don&rsquo;t forget to install upfront if not yet installed). We will use the dataset <code>tips</code> from <code>reshape2</code>. <code>dplyr</code> will be used for data mingling.</p>
-
-<pre><code class="language-r">library(ggplot2) 
-library(dplyr) 
-tips &lt;- read.csv(&quot;https://sebastiansauer.github.io/data/tips.csv&quot;)
-</code></pre>
-
-<h1 id="iv-numeric-m-nominal">IV: numeric, M: nominal</h1>
-
-<p>Let&rsquo;s assume we take <code>total_bill</code> as predictor (X), and <code>sex</code> as moderator; <code>tip</code> is the criterion (outcome).</p>
-
-<pre><code class="language-r">qplot(x = total_bill, y = tip, facets = ~sex, data = tips) +
-  geom_smooth(method = &quot;lm&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-2-1.png" alt="plot of chunk unnamed-chunk-2" /></p>
-
+<p>We will look at some visualization methods based on <code>ggplot2</code> (don't forget to install upfront if not yet installed). We will use the dataset <code>tips</code> from <code>reshape2</code>. <code>dplyr</code> will be used for data mingling.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(ggplot2) 
+<span style="color:#a6e22e">library</span>(dplyr) 
+tips <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read.csv</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">https://sebastiansauer.github.io/data/tips.csv&#34;</span>)
+</code></pre></div><h1 id="iv-numeric-m-nominal">IV: numeric, M: nominal</h1>
+<p>Let's assume we take <code>total_bill</code> as predictor (X), and <code>sex</code> as moderator; <code>tip</code> is the criterion (outcome).</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">qplot</span>(x <span style="color:#f92672">=</span> total_bill, y <span style="color:#f92672">=</span> tip, facets <span style="color:#f92672">=</span> <span style="color:#f92672">~</span>sex, data <span style="color:#f92672">=</span> tips) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_smooth</span>(method <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">lm&#34;</span>)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-2-1.png" alt="plot of chunk unnamed-chunk-2"></p>
 <p>The data set is split in two facets; a regression line indicates the strength of association in each level of the moderator.</p>
-
 <p>However, as the two lines are not aligned, they are of limited use for visual comparison. Better place the lines in one, single diagram.</p>
-
-<pre><code class="language-r">qplot(x = total_bill, y = tip, data = tips, color = sex) +
-  geom_smooth(method = &quot;lm&quot;) 
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">qplot</span>(x <span style="color:#f92672">=</span> total_bill, y <span style="color:#f92672">=</span> tip, data <span style="color:#f92672">=</span> tips, color <span style="color:#f92672">=</span> sex) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_smooth</span>(method <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">lm&#34;</span>) 
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3"></p>
 <p>Now we see clearly that there are little differences between the groups, if at all.</p>
-
 <p>Some tweaks:</p>
-
-<pre><code class="language-r">ggplot(tips) +
-  aes(x = total_bill, y = tip, color = sex) +
-  geom_point(color = &quot;grey&quot;) +
-  geom_smooth(method = &quot;lm&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">ggplot</span>(tips) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> total_bill, y <span style="color:#f92672">=</span> tip, color <span style="color:#f92672">=</span> sex) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_point</span>(color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">grey&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_smooth</span>(method <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">lm&#34;</span>)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4"></p>
 <p>Or:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tips_f <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">filter</span>(tips, sex <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Female&#34;</span>)
+tips_m <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">filter</span>(tips, sex <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Male&#34;</span>)
 
-<pre><code class="language-r">tips_f &lt;- filter(tips, sex == &quot;Female&quot;)
-tips_m &lt;- filter(tips, sex == &quot;Male&quot;)
 
-
-ggplot(tips) +
-  aes(x = total_bill, y = tip, color = sex) +
-  geom_point(color = &quot;grey&quot;) +
-  geom_smooth(method = &quot;lm&quot;, data = tips_f) +
-   geom_smooth(method = &quot;lm&quot;, data = tips_m)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-5-1.png" alt="plot of chunk unnamed-chunk-5" /></p>
-
+<span style="color:#a6e22e">ggplot</span>(tips) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> total_bill, y <span style="color:#f92672">=</span> tip, color <span style="color:#f92672">=</span> sex) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_point</span>(color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">grey&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_smooth</span>(method <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">lm&#34;</span>, data <span style="color:#f92672">=</span> tips_f) <span style="color:#f92672">+</span>
+   <span style="color:#a6e22e">geom_smooth</span>(method <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">lm&#34;</span>, data <span style="color:#f92672">=</span> tips_m)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-5-1.png" alt="plot of chunk unnamed-chunk-5"></p>
 <h1 id="iv-nominal-m-nominal">IV: nominal, M: nominal</h1>
-
-<pre><code class="language-r">ggplot(tips) +
-  aes(x = sex, y = tip) +
-  geom_boxplot() +
-  facet_wrap(~smoker)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-6-1.png" alt="plot of chunk unnamed-chunk-6" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">ggplot</span>(tips) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> sex, y <span style="color:#f92672">=</span> tip) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_boxplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">facet_wrap</span>(<span style="color:#f92672">~</span>smoker)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-6-1.png" alt="plot of chunk unnamed-chunk-6"></p>
 <p>The moderator effect can be put in this question here &ldquo;Is the difference between the sexes of equal size in non-smokers the same as in smokers&rdquo;? It appears that there is little difference in the differences, hence little indication for a moderator effect.</p>
-
 <p>We can also do the statistical summary ourselves:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tips <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">group_by</span>(sex, smoker) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">summarise</span>(tip_groups <span style="color:#f92672">=</span> <span style="color:#a6e22e">mean</span>(tip)) <span style="color:#f92672">-&gt;</span> tips2
 
-<pre><code class="language-r">tips %&gt;% 
-  group_by(sex, smoker) %&gt;% 
-  summarise(tip_groups = mean(tip)) -&gt; tips2
 
-
-tips2 %&gt;% 
-  ggplot() +
-  aes(x = sex, y = tip_groups, color = smoker) +
-  geom_line(aes(group = smoker)) +
-  geom_point()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7" /></p>
-
+tips2 <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> sex, y <span style="color:#f92672">=</span> tip_groups, color <span style="color:#f92672">=</span> smoker) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_line</span>(<span style="color:#a6e22e">aes</span>(group <span style="color:#f92672">=</span> smoker)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_point</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7"></p>
 <p>This plot argues for some interaction of the two predictors, as the lines are not parallel (in fact they are crossed here).</p>
-
 <p>Similarly, in <code>ggplot2</code>:</p>
-
-<pre><code class="language-r">tips %&gt;% 
-  ggplot() +
-  aes(x = sex, color = smoker, group = smoker, y = tip) +
-  stat_summary(fun.y = mean, geom = &quot;point&quot;) +
-  stat_summary(fun.y = mean, geom = &quot;line&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tips <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> sex, color <span style="color:#f92672">=</span> smoker, group <span style="color:#f92672">=</span> smoker, y <span style="color:#f92672">=</span> tip) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">stat_summary</span>(fun.y <span style="color:#f92672">=</span> mean, geom <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">point&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">stat_summary</span>(fun.y <span style="color:#f92672">=</span> mean, geom <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">line&#34;</span>)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8"></p>
 <h1 id="iv-metric-m-metric">IV: metric, M: metric</h1>
-
 <p>As the effect of the metric moderator is not straight-forward to plot, it is convenient to discretize the metric moderator. For example, in two groups (median split) or in three (1 sd below the mean, mean, 1 sd above the mean, or in terciles&hellip;). Then we proceed as above.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tips<span style="color:#f92672">$</span>tip_2tile <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">ntile</span>(tips<span style="color:#f92672">$</span>tip, <span style="color:#ae81ff">2</span>)
+<span style="color:#a6e22e">head</span>(tips<span style="color:#f92672">$</span>tip_2tile)
+</code></pre></div><pre><code>## [1] 1 1 2 2 2 2
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tips<span style="color:#f92672">$</span>tip_3tile <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">ntile</span>(tips<span style="color:#f92672">$</span>tip, <span style="color:#ae81ff">3</span>)
+<span style="color:#a6e22e">head</span>(tips<span style="color:#f92672">$</span>tip_3tile)
+</code></pre></div><pre><code>## [1] 1 1 3 3 3 3
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">x <span style="color:#f92672">&lt;-</span> tips<span style="color:#f92672">$</span>tip
 
-<pre><code class="language-r">tips$tip_2tile &lt;- ntile(tips$tip, 2)
-head(tips$tip_2tile)
-</code></pre>
+tips<span style="color:#f92672">$</span>tip_3group <span style="color:#f92672">&lt;-</span>
+  <span style="color:#a6e22e">case_when</span>(x <span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">mean</span>(x)<span style="color:#f92672">+</span><span style="color:#a6e22e">sd</span>(x) <span style="color:#f92672">~</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">high&#34;</span>,
+            x <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">mean</span>(x)<span style="color:#f92672">+</span><span style="color:#a6e22e">sd</span>(x) <span style="color:#f92672">&amp;</span> x <span style="color:#f92672">&gt;</span> <span style="color:#a6e22e">mean</span>(x)<span style="color:#f92672">-</span><span style="color:#a6e22e">sd</span>(x) <span style="color:#f92672">~</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">average&#34;</span>,
+            x <span style="color:#f92672">&lt;</span> <span style="color:#a6e22e">mean</span>(x)<span style="color:#f92672">-</span><span style="color:#a6e22e">sd</span>(x) <span style="color:#f92672">~</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">low&#34;</span>)
 
-<pre><code>## [1] 1 1 2 2 2 2
-</code></pre>
-
-<pre><code class="language-r">tips$tip_3tile &lt;- ntile(tips$tip, 3)
-head(tips$tip_3tile)
-</code></pre>
-
-<pre><code>## [1] 1 1 3 3 3 3
-</code></pre>
-
-<pre><code class="language-r">x &lt;- tips$tip
-
-tips$tip_3group &lt;-
-  case_when(x &gt; mean(x)+sd(x) ~ &quot;high&quot;,
-            x &lt; mean(x)+sd(x) &amp; x &gt; mean(x)-sd(x) ~ &quot;average&quot;,
-            x &lt; mean(x)-sd(x) ~ &quot;low&quot;)
-
-count(tips, tip_3group)
-</code></pre>
-
-<pre><code>## # A tibble: 3 × 2
+<span style="color:#a6e22e">count</span>(tips, tip_3group)
+</code></pre></div><pre><code>## # A tibble: 3 × 2
 ##   tip_3group     n
 ##        &lt;chr&gt; &lt;int&gt;
 ## 1    average   182
 ## 2       high    32
 ## 3        low    30
-</code></pre>
-
-<pre><code class="language-r">tips %&gt;% 
-  ggplot() +
-  aes(x = total_bill, y = size, group = tip_3group, color = tip_3group) +
-  geom_point(color = &quot;grey&quot;, alpha = .7) +
-    geom_smooth(method = &quot;lm&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9" /></p>
-
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tips <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> total_bill, y <span style="color:#f92672">=</span> size, group <span style="color:#f92672">=</span> tip_3group, color <span style="color:#f92672">=</span> tip_3group) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_point</span>(color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">grey&#34;</span>, alpha <span style="color:#f92672">=</span> <span style="color:#ae81ff">.7</span>) <span style="color:#f92672">+</span>
+    <span style="color:#a6e22e">geom_smooth</span>(method <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">lm&#34;</span>)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-01-17/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9"></p>
 <h1 id="debrief">Debrief</h1>
-
 <p>In sum, <code>ggplot2</code> provides some handy functions for visualizing moderator effects. In addition to traditional regression analyses, such plots can help to better grasp what actually is going on.</p>
 
     </div>

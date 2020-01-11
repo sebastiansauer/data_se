@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>The effect of sample on p-values. A simulation. - Data Se</title>
@@ -69,141 +69,96 @@
     
 
     <div class="article-content">
-      
-
-<p>It is well-known that the notorious p-values is sensitive to sample size: The larger the sample, the more bound the p-value is to fall below the magic number of .05.</p>
-
+      <p>It is well-known that the notorious p-values is sensitive to sample size: The larger the sample, the more bound the p-value is to fall below the magic number of .05.</p>
 <p>Of course, the p-value is also a function of the effect size, eg., the distance between two means and the respective variances. But still, the p-values tends to become significant in the face of larges samples, and non-significant otherwise.</p>
-
-<p>Theoretically, quite simple and well understood. But let&rsquo;s take the test of &ldquo;real&rdquo; data and do a simulation to demonstrate or test this behavior.</p>
-
+<p>Theoretically, quite simple and well understood. But let's take the test of &ldquo;real&rdquo; data and do a simulation to demonstrate or test this behavior.</p>
 <p>First, load some required packages</p>
-
-<pre><code class="language-r">library(tidyverse)
-</code></pre>
-
-<h1 id="simulate-data-with-large-sample-size">Simulate data with large sample size</h1>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)
+</code></pre></div><h1 id="simulate-data-with-large-sample-size">Simulate data with large sample size</h1>
 <p>Next, we simulate data: A data frame of 20 cols and many rows (1e06, ie., 1 million). We should also make sure that the null hypothesis is <em>false</em> in our data. To that end, we let the mean values of the columns vary somewhat.</p>
-
-<pre><code class="language-r">k &lt;- 20
-n &lt;- 1e06
-df &lt;- data.frame(replicate(k,rnorm(n = n, mean = rnorm(1, 0, 1), sd = 1)))
-</code></pre>
-
-<p>Now let&rsquo;s compute t-tests for each and every combination (cartesian product of all combinations). We will save the resulting p-values in a (square) matrix.</p>
-
-<pre><code class="language-r">m &lt;- matrix(nrow = k, ncol = k)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">k <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">20</span>
+n <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">1e06</span>
+df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">data.frame</span>(<span style="color:#a6e22e">replicate</span>(k,<span style="color:#a6e22e">rnorm</span>(n <span style="color:#f92672">=</span> n, mean <span style="color:#f92672">=</span> <span style="color:#a6e22e">rnorm</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>), sd <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>)))
+</code></pre></div><p>Now let's compute t-tests for each and every combination (cartesian product of all combinations). We will save the resulting p-values in a (square) matrix.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">m <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">matrix</span>(nrow <span style="color:#f92672">=</span> k, ncol <span style="color:#f92672">=</span> k)
 
 
-for (i in seq_len(ncol(df))) {
-  for (j in seq_len(ncol(df))) {
-    m[i, j] &lt;- t.test(df[i], df[j])$p.value
+<span style="color:#a6e22e">for </span>(i in <span style="color:#a6e22e">seq_len</span>(<span style="color:#a6e22e">ncol</span>(df))) {
+  <span style="color:#a6e22e">for </span>(j in <span style="color:#a6e22e">seq_len</span>(<span style="color:#a6e22e">ncol</span>(df))) {
+    m[i, j] <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">t.test</span>(df[i], df[j])<span style="color:#f92672">$</span>p.value
   }
 }
-</code></pre>
-
-<p>One half of the matrix is redundant, as the matrix is symmetric. The same reasoning applies for the diagonal. Let&rsquo;s take out the redundant elements.</p>
-
-<pre><code class="language-r">m[lower.tri(m)] &lt;- NA
-m[diag(m)] &lt;- NA
-</code></pre>
-
-<p>Let&rsquo;s come up with a logical matrix indicating whether one cell (ie., one t-test) indicates a significant t-test (<code>TRUE</code>) or not (<code>FALSE</code>).</p>
-
-<pre><code class="language-r">m_significant &lt;- apply(m, c(1,2), function(x) x &lt; .05)
-</code></pre>
-
-<p>Finally, let&rsquo;s count the number of significant results, and sum then up.</p>
-
-<pre><code class="language-r">m_significant %&gt;% sum(TRUE, na.rm = TRUE)
-</code></pre>
-
-<pre><code>## [1] 191
-</code></pre>
-
-<p>The number of different tests is $$(k*k - k)/2$$.</p>
-
+</code></pre></div><p>One half of the matrix is redundant, as the matrix is symmetric. The same reasoning applies for the diagonal. Let's take out the redundant elements.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">m<span style="color:#a6e22e">[lower.tri</span>(m)] <span style="color:#f92672">&lt;-</span> <span style="color:#66d9ef">NA</span>
+m<span style="color:#a6e22e">[diag</span>(m)] <span style="color:#f92672">&lt;-</span> <span style="color:#66d9ef">NA</span>
+</code></pre></div><p>Let's come up with a logical matrix indicating whether one cell (ie., one t-test) indicates a significant t-test (<code>TRUE</code>) or not (<code>FALSE</code>).</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">m_significant <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">apply</span>(m, <span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">1</span>,<span style="color:#ae81ff">2</span>), <span style="color:#a6e22e">function</span>(x) x <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">.05</span>)
+</code></pre></div><p>Finally, let's count the number of significant results, and sum then up.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">m_significant <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">sum</span>(<span style="color:#66d9ef">TRUE</span>, na.rm <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>)
+</code></pre></div><pre><code>## [1] 191
+</code></pre><p>The number of different tests is $$(k*k - k)/2$$.</p>
 <p>Which amounts, in this case to</p>
-
-<pre><code class="language-r">(k*k-20)/2
-</code></pre>
-
-<pre><code>## [1] 190
-</code></pre>
-
-<p>Hence, all tests are significant.</p>
-
-<pre><code class="language-r">rm(df)
-</code></pre>
-
-<h1 id="simulate-data-with-small-sample-size">Simulate data with small sample size</h1>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">(k<span style="color:#f92672">*</span>k<span style="color:#ae81ff">-20</span>)<span style="color:#f92672">/</span><span style="color:#ae81ff">2</span>
+</code></pre></div><pre><code>## [1] 190
+</code></pre><p>Hence, all tests are significant.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">rm</span>(df)
+</code></pre></div><h1 id="simulate-data-with-small-sample-size">Simulate data with small sample size</h1>
 <p>Now, we repeat the same thing with a small sample.</p>
-
-<pre><code class="language-r">simulate_ps &lt;- function(n = 1e06, k = 20){
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">simulate_ps <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">function</span>(n <span style="color:#f92672">=</span> <span style="color:#ae81ff">1e06</span>, k <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>){
   
-  # arguments:
-  # n: number of rows
-  # k: number of columns
-  # returns: proportion of significant (p&lt;.05) t-tests
+  <span style="color:#75715e"># arguments:</span>
+  <span style="color:#75715e"># n: number of rows</span>
+  <span style="color:#75715e"># k: number of columns</span>
+  <span style="color:#75715e"># returns: proportion of significant (p&lt;.05) t-tests</span>
 
-set.seed(42)  
+<span style="color:#a6e22e">set.seed</span>(<span style="color:#ae81ff">42</span>)  
   
-# simulate data
-df &lt;- data.frame(replicate(k,rnorm(n = n, mean = rnorm(1, 0, 1), sd = 1)))
+<span style="color:#75715e"># simulate data</span>
+df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">data.frame</span>(<span style="color:#a6e22e">replicate</span>(k,<span style="color:#a6e22e">rnorm</span>(n <span style="color:#f92672">=</span> n, mean <span style="color:#f92672">=</span> <span style="color:#a6e22e">rnorm</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">1</span>), sd <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>)))
 
-# matrix for t-test results
-m &lt;- matrix(nrow = k, ncol = k)
+<span style="color:#75715e"># matrix for t-test results</span>
+m <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">matrix</span>(nrow <span style="color:#f92672">=</span> k, ncol <span style="color:#f92672">=</span> k)
 
-# cartesian product of all t-tests
-for (i in seq_len(ncol(df))) {
-  for (j in seq_len(ncol(df))) {
-    m[i, j] &lt;- t.test(df[i], df[j])$p.value
+<span style="color:#75715e"># cartesian product of all t-tests</span>
+<span style="color:#a6e22e">for </span>(i in <span style="color:#a6e22e">seq_len</span>(<span style="color:#a6e22e">ncol</span>(df))) {
+  <span style="color:#a6e22e">for </span>(j in <span style="color:#a6e22e">seq_len</span>(<span style="color:#a6e22e">ncol</span>(df))) {
+    m[i, j] <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">t.test</span>(df[i], df[j])<span style="color:#f92672">$</span>p.value
   }
 }
 
-# take-out redundant cells
-m[lower.tri(m)] &lt;- NA
-m[diag(m)] &lt;- NA
+<span style="color:#75715e"># take-out redundant cells</span>
+m<span style="color:#a6e22e">[lower.tri</span>(m)] <span style="color:#f92672">&lt;-</span> <span style="color:#66d9ef">NA</span>
+m<span style="color:#a6e22e">[diag</span>(m)] <span style="color:#f92672">&lt;-</span> <span style="color:#66d9ef">NA</span>
 
-# compute matrix to count number of significant t-tests
-m_significant &lt;- apply(m, c(1,2), function(x) x &lt; .05)
+<span style="color:#75715e"># compute matrix to count number of significant t-tests</span>
+m_significant <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">apply</span>(m, <span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">1</span>,<span style="color:#ae81ff">2</span>), <span style="color:#a6e22e">function</span>(x) x <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">.05</span>)
 
 
-# count
-sum_significant &lt;- m_significant %&gt;% sum(TRUE, na.rm = TRUE)
+<span style="color:#75715e"># count</span>
+sum_significant <span style="color:#f92672">&lt;-</span> m_significant <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">sum</span>(<span style="color:#66d9ef">TRUE</span>, na.rm <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>)
 
-sum_distinct_tests &lt;- (k*k - k)/2
+sum_distinct_tests <span style="color:#f92672">&lt;-</span> (k<span style="color:#f92672">*</span>k <span style="color:#f92672">-</span> k)<span style="color:#f92672">/</span><span style="color:#ae81ff">2</span>
 
-prop_significant &lt;- sum_significant / sum_distinct_tests
+prop_significant <span style="color:#f92672">&lt;-</span> sum_significant <span style="color:#f92672">/</span> sum_distinct_tests
 
-rm(df)
-return(prop_significant)
+<span style="color:#a6e22e">rm</span>(df)
+<span style="color:#a6e22e">return</span>(prop_significant)
 
 }
 
-simulate_ps(n = 10, k = 20)
-</code></pre>
-
-<pre><code>## [1] 0.5894737
-</code></pre>
-
-<h1 id="play-around">Play around</h1>
-
+<span style="color:#a6e22e">simulate_ps</span>(n <span style="color:#f92672">=</span> <span style="color:#ae81ff">10</span>, k <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>)
+</code></pre></div><pre><code>## [1] 0.5894737
+</code></pre><h1 id="play-around">Play around</h1>
 <p>Now, we can play around a bit.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">ns <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">5</span>, <span style="color:#ae81ff">10</span>, <span style="color:#ae81ff">15</span>, <span style="color:#ae81ff">20</span>, <span style="color:#ae81ff">30</span>, <span style="color:#ae81ff">40</span>, <span style="color:#ae81ff">50</span>, <span style="color:#ae81ff">100</span>, <span style="color:#ae81ff">200</span>, <span style="color:#ae81ff">300</span>, <span style="color:#ae81ff">500</span>, <span style="color:#ae81ff">1000</span>, <span style="color:#ae81ff">2000</span>, <span style="color:#ae81ff">5000</span>, <span style="color:#ae81ff">10000</span>, <span style="color:#ae81ff">2e04</span>, <span style="color:#ae81ff">5e04</span>, <span style="color:#ae81ff">1e05</span>)
 
-<pre><code class="language-r">ns &lt;- c(5, 10, 15, 20, 30, 40, 50, 100, 200, 300, 500, 1000, 2000, 5000, 10000, 2e04, 5e04, 1e05)
+ps <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">vector</span>(mode <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">numeric&#34;</span>, length <span style="color:#f92672">=</span> <span style="color:#a6e22e">length</span>(ns))
 
-ps &lt;- vector(mode = &quot;numeric&quot;, length = length(ns))
-
-for (i in seq_along(ns)){
-  ps[i] &lt;- simulate_ps(n = ns[i], k = 20)
-  print(ps[i])
+<span style="color:#a6e22e">for </span>(i in <span style="color:#a6e22e">seq_along</span>(ns)){
+  ps[i] <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">simulate_ps</span>(n <span style="color:#f92672">=</span> ns[i], k <span style="color:#f92672">=</span> <span style="color:#ae81ff">20</span>)
+  <span style="color:#a6e22e">print</span>(ps[i])
 }
-</code></pre>
-
-<pre><code>## [1] 0.4263158
+</code></pre></div><pre><code>## [1] 0.4263158
 ## [1] 0.5894737
 ## [1] 0.5789474
 ## [1] 0.7315789
@@ -221,22 +176,16 @@ for (i in seq_along(ns)){
 ## [1] 0.9947368
 ## [1] 1
 ## [1] 0.9947368
-</code></pre>
-
-<p>Finally, let&rsquo;s plot that:</p>
-
-<pre><code class="language-r">data_frame(
-  ns = ns,
-  ps = ps
-)  %&gt;% 
-  ggplot +
-  aes(x = ns, y = ps) +
-  geom_line(color = &quot;gray80&quot;) +
-  geom_point(color = &quot;firebrick&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2017-04-13/figure/unnamed-chunk-11-1.png" title="plot of chunk unnamed-chunk-11" alt="plot of chunk unnamed-chunk-11" style="display: block; margin: auto;" /></p>
-
+</code></pre><p>Finally, let's plot that:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">data_frame</span>(
+  ns <span style="color:#f92672">=</span> ns,
+  ps <span style="color:#f92672">=</span> ps
+)  <span style="color:#f92672">%&gt;%</span> 
+  ggplot <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> ns, y <span style="color:#f92672">=</span> ps) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_line</span>(color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">gray80&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_point</span>(color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">firebrick&#34;</span>)
+</code></pre></div><p><!-- raw HTML omitted --></p>
 <p>Thus, our result appears reasonable: The larger the sample size (<code>ns</code>), the higher the proportion of ps (<code>ps</code>).</p>
 
     </div>

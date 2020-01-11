@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Replacing dplyr::do by purrr:map. Some considerations - Data Se</title>
@@ -69,176 +69,134 @@
     
 
     <div class="article-content">
-      
-
-<p>Hadley Wickham has announced to depreceate <code>dplyr::do</code> in favor of <code>purrr:map</code>. In a recent post, I have made use of <code>do</code>, so some commentators informed me about that. In this post, I will show use cases of <code>map</code>, specifically as a replacement of <code>do</code>. <code>map</code> is for lists; read more about lists <a href="http://r4ds.had.co.nz/lists.html">here</a>.</p>
-
-<pre><code class="language-r">library(tidyverse)
-library(broom)
-</code></pre>
-
-<p>We will use <code>mtcars</code> as a sample dataframe (boring, I know, but convenient).</p>
-
-<pre><code class="language-r">data(mtcars)
-</code></pre>
-
-<h1 id="cor-is-a-function-that-takes-a-dataframe-as-its-input"><code>Cor</code> is a function that takes a dataframe as its input</h1>
-
-<p>As in the last post, assume we would like to conduct a correlation test. First, let&rsquo;s start simple using <code>cor</code>.</p>
-
-<pre><code class="language-r">mtcars %&gt;% 
-  select_if(is.numeric) %&gt;% 
-  select(1:3) %&gt;%   # to make it smaller
+      <p>Hadley Wickham has announced to depreceate <code>dplyr::do</code> in favor of <code>purrr:map</code>. In a recent post, I have made use of <code>do</code>, so some commentators informed me about that. In this post, I will show use cases of <code>map</code>, specifically as a replacement of <code>do</code>. <code>map</code> is for lists; read more about lists <a href="http://r4ds.had.co.nz/lists.html">here</a>.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)
+<span style="color:#a6e22e">library</span>(broom)
+</code></pre></div><p>We will use <code>mtcars</code> as a sample dataframe (boring, I know, but convenient).</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">data</span>(mtcars)
+</code></pre></div><h1 id="cor-is-a-function-that-takes-a-dataframe-as-its-input"><code>Cor</code> is a function that takes a dataframe as its input</h1>
+<p>As in the last post, assume we would like to conduct a correlation test. First, let's start simple using <code>cor</code>.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select_if</span>(is.numeric) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">3</span>) <span style="color:#f92672">%&gt;%</span>   <span style="color:#75715e"># to make it smaller</span>
   cor
-#&gt;             mpg        cyl       disp
-#&gt; mpg   1.0000000 -0.8521620 -0.8475514
-#&gt; cyl  -0.8521620  1.0000000  0.9020329
-#&gt; disp -0.8475514  0.9020329  1.0000000
-</code></pre>
-
-<p>Here&rsquo;s no need for <code>purrr:map</code>. <code>map</code> is essentially a looping device, taking a list as input. However, <code>cor</code> does not takes lists as input. It takes a whole dataframe (consisting of many lists). That&rsquo;s even more practical than a looping function such as <code>map</code>.</p>
-
-<h1 id="cor-test-via-do-and-via-map"><code>cor.test</code> via <code>do</code> and via <code>map</code></h1>
-
-<p>Now let&rsquo;s see where <code>map</code> makes sense. Consider <code>cor.test</code> from the last post. <code>cor.test</code> does not accept a dataframe as input, hence the <code>dplyr</code> logic does not apply well. Instead we have to build a workaround using <code>do</code>:</p>
-
-<pre><code class="language-r">mtcars %&gt;% 
-  do(cor.test(.$hp, .$cyl) %&gt;% tidy)
-#&gt;    estimate statistic      p.value parameter  conf.low conf.high
-#&gt; 1 0.8324475  8.228604 3.477861e-09        30 0.6816016 0.9154223
-#&gt;                                 method alternative
-#&gt; 1 Pearson's product-moment correlation   two.sided
-</code></pre>
-
-<p>Here we apply the function <code>cor.test</code> to two columns. Applying functions to columns (ie., lists) works smoothly with <code>map</code> and friends:</p>
-
-<pre><code class="language-r">mtcars %&gt;% 
-  select(hp) %&gt;%  # take out this line for iteration/loop
-  map(~cor.test(.x, mtcars$cyl) %&gt;% tidy)
-#&gt; $hp
-#&gt;    estimate statistic      p.value parameter  conf.low conf.high
-#&gt; 1 0.8324475  8.228604 3.477861e-09        30 0.6816016 0.9154223
-#&gt;                                 method alternative
-#&gt; 1 Pearson's product-moment correlation   two.sided
-</code></pre>
-
-<h1 id="map-applies-a-function-to-a-list-element"><code>map</code> applies a function to a list element</h1>
-
+<span style="color:#75715e">#&gt;             mpg        cyl       disp</span>
+<span style="color:#75715e">#&gt; mpg   1.0000000 -0.8521620 -0.8475514</span>
+<span style="color:#75715e">#&gt; cyl  -0.8521620  1.0000000  0.9020329</span>
+<span style="color:#75715e">#&gt; disp -0.8475514  0.9020329  1.0000000</span>
+</code></pre></div><p>Here's no need for <code>purrr:map</code>. <code>map</code> is essentially a looping device, taking a list as input. However, <code>cor</code> does not takes lists as input. It takes a whole dataframe (consisting of many lists). That's even more practical than a looping function such as <code>map</code>.</p>
+<h1 id="cortest-via-do-and-via-map"><code>cor.test</code> via <code>do</code> and via <code>map</code></h1>
+<p>Now let's see where <code>map</code> makes sense. Consider <code>cor.test</code> from the last post. <code>cor.test</code> does not accept a dataframe as input, hence the <code>dplyr</code> logic does not apply well. Instead we have to build a workaround using <code>do</code>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">do</span>(<span style="color:#a6e22e">cor.test</span>(.$hp, .$cyl) <span style="color:#f92672">%&gt;%</span> tidy)
+<span style="color:#75715e">#&gt;    estimate statistic      p.value parameter  conf.low conf.high</span>
+<span style="color:#75715e">#&gt; 1 0.8324475  8.228604 3.477861e-09        30 0.6816016 0.9154223</span>
+<span style="color:#75715e">#&gt;                                 method alternative</span>
+<span style="color:#75715e">#&gt; 1 Pearson&#39;s product-moment correlation   two.sided</span>
+</code></pre></div><p>Here we apply the function <code>cor.test</code> to two columns. Applying functions to columns (ie., lists) works smoothly with <code>map</code> and friends:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(hp) <span style="color:#f92672">%&gt;%</span>  <span style="color:#75715e"># take out this line for iteration/loop</span>
+  <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">cor.test</span>(.x, mtcars<span style="color:#f92672">$</span>cyl) <span style="color:#f92672">%&gt;%</span> tidy)
+<span style="color:#75715e">#&gt; $hp</span>
+<span style="color:#75715e">#&gt;    estimate statistic      p.value parameter  conf.low conf.high</span>
+<span style="color:#75715e">#&gt; 1 0.8324475  8.228604 3.477861e-09        30 0.6816016 0.9154223</span>
+<span style="color:#75715e">#&gt;                                 method alternative</span>
+<span style="color:#75715e">#&gt; 1 Pearson&#39;s product-moment correlation   two.sided</span>
+</code></pre></div><h1 id="map-applies-a-function-to-a-list-element"><code>map</code> applies a function to a list element</h1>
 <p>So, what does <code>map</code> do? It applies a function <code>.fun</code> over all elements of a list <code>.list</code>:</p>
-
 <p><code>map(.list, .fun)</code></p>
-
 <p><code>.list</code> must either be a list or a simple vector. <code>mapp</code> is convenient for iteration as a replacement of &ldquo;for-loops&rdquo;:</p>
-
-<pre><code class="language-r">mtcars %&gt;% 
-  select(hp, cyl, mpg) %&gt;%  # only three for the sake of demonstration
-  map(~cor.test(.x, mtcars$cyl) %&gt;% tidy)
-#&gt; $hp
-#&gt;    estimate statistic      p.value parameter  conf.low conf.high
-#&gt; 1 0.8324475  8.228604 3.477861e-09        30 0.6816016 0.9154223
-#&gt;                                 method alternative
-#&gt; 1 Pearson's product-moment correlation   two.sided
-#&gt; 
-#&gt; $cyl
-#&gt;   estimate statistic p.value parameter conf.low conf.high
-#&gt; 1        1       Inf       0        30        1         1
-#&gt;                                 method alternative
-#&gt; 1 Pearson's product-moment correlation   two.sided
-#&gt; 
-#&gt; $mpg
-#&gt;    estimate statistic      p.value parameter   conf.low  conf.high
-#&gt; 1 -0.852162 -8.919699 6.112687e-10        30 -0.9257694 -0.7163171
-#&gt;                                 method alternative
-#&gt; 1 Pearson's product-moment correlation   two.sided
-</code></pre>
-
-<p>BTW, it would be nice to combine the tidy output elements (<code>$hp</code>, <code>$cyl</code>, <code>$mpg</code>) to a dataframe:</p>
-
-<pre><code class="language-r">mtcars %&gt;% 
-  select(hp, cyl, mpg) %&gt;%  # only three for the sake of demonstration
-  map_df(~cor.test(.x, mtcars$cyl) %&gt;% tidy)
-#&gt;     estimate statistic      p.value parameter   conf.low  conf.high
-#&gt; 1  0.8324475  8.228604 3.477861e-09        30  0.6816016  0.9154223
-#&gt; 2  1.0000000       Inf 0.000000e+00        30  1.0000000  1.0000000
-#&gt; 3 -0.8521620 -8.919699 6.112687e-10        30 -0.9257694 -0.7163171
-#&gt;                                 method alternative
-#&gt; 1 Pearson's product-moment correlation   two.sided
-#&gt; 2 Pearson's product-moment correlation   two.sided
-#&gt; 3 Pearson's product-moment correlation   two.sided
-</code></pre>
-
-<p><code>map_df</code> maps the function (that&rsquo;s what comes after &ldquo;~&ldquo;) to each list (ie., column) of <code>mtcars</code>. If possible, the resulting elements will be row-binded to a dataframe. To make the output of <code>cor.test</code> nice (ie., tidy) we again use <code>tidy</code>.</p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(hp, cyl, mpg) <span style="color:#f92672">%&gt;%</span>  <span style="color:#75715e"># only three for the sake of demonstration</span>
+  <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">cor.test</span>(.x, mtcars<span style="color:#f92672">$</span>cyl) <span style="color:#f92672">%&gt;%</span> tidy)
+<span style="color:#75715e">#&gt; $hp</span>
+<span style="color:#75715e">#&gt;    estimate statistic      p.value parameter  conf.low conf.high</span>
+<span style="color:#75715e">#&gt; 1 0.8324475  8.228604 3.477861e-09        30 0.6816016 0.9154223</span>
+<span style="color:#75715e">#&gt;                                 method alternative</span>
+<span style="color:#75715e">#&gt; 1 Pearson&#39;s product-moment correlation   two.sided</span>
+<span style="color:#75715e">#&gt; </span>
+<span style="color:#75715e">#&gt; $cyl</span>
+<span style="color:#75715e">#&gt;   estimate statistic p.value parameter conf.low conf.high</span>
+<span style="color:#75715e">#&gt; 1        1       Inf       0        30        1         1</span>
+<span style="color:#75715e">#&gt;                                 method alternative</span>
+<span style="color:#75715e">#&gt; 1 Pearson&#39;s product-moment correlation   two.sided</span>
+<span style="color:#75715e">#&gt; </span>
+<span style="color:#75715e">#&gt; $mpg</span>
+<span style="color:#75715e">#&gt;    estimate statistic      p.value parameter   conf.low  conf.high</span>
+<span style="color:#75715e">#&gt; 1 -0.852162 -8.919699 6.112687e-10        30 -0.9257694 -0.7163171</span>
+<span style="color:#75715e">#&gt;                                 method alternative</span>
+<span style="color:#75715e">#&gt; 1 Pearson&#39;s product-moment correlation   two.sided</span>
+</code></pre></div><p>BTW, it would be nice to combine the tidy output elements (<code>$hp</code>, <code>$cyl</code>, <code>$mpg</code>) to a dataframe:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(hp, cyl, mpg) <span style="color:#f92672">%&gt;%</span>  <span style="color:#75715e"># only three for the sake of demonstration</span>
+  <span style="color:#a6e22e">map_df</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">cor.test</span>(.x, mtcars<span style="color:#f92672">$</span>cyl) <span style="color:#f92672">%&gt;%</span> tidy)
+<span style="color:#75715e">#&gt;     estimate statistic      p.value parameter   conf.low  conf.high</span>
+<span style="color:#75715e">#&gt; 1  0.8324475  8.228604 3.477861e-09        30  0.6816016  0.9154223</span>
+<span style="color:#75715e">#&gt; 2  1.0000000       Inf 0.000000e+00        30  1.0000000  1.0000000</span>
+<span style="color:#75715e">#&gt; 3 -0.8521620 -8.919699 6.112687e-10        30 -0.9257694 -0.7163171</span>
+<span style="color:#75715e">#&gt;                                 method alternative</span>
+<span style="color:#75715e">#&gt; 1 Pearson&#39;s product-moment correlation   two.sided</span>
+<span style="color:#75715e">#&gt; 2 Pearson&#39;s product-moment correlation   two.sided</span>
+<span style="color:#75715e">#&gt; 3 Pearson&#39;s product-moment correlation   two.sided</span>
+</code></pre></div><p><code>map_df</code> maps the function (that's what comes after &ldquo;~&rdquo;) to each list (ie., column) of <code>mtcars</code>. If possible, the resulting elements will be row-binded to a dataframe. To make the output of <code>cor.test</code> nice (ie., tidy) we again use <code>tidy</code>.</p>
 <h1 id="extract-elements-from-a-list-using-map">Extract elements from a list using <code>map</code></h1>
-
 <p>Say, we are only interest in the p-value (OMG). How to extract each of the 3 p-values in our example?</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(hp, cyl, mpg) <span style="color:#f92672">%&gt;%</span>  <span style="color:#75715e"># only three for the sake of demonstration</span>
+  <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">cor.test</span>(.x, mtcars<span style="color:#f92672">$</span>cyl) <span style="color:#f92672">%&gt;%</span> tidy) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">p.value&#34;</span>)
+<span style="color:#75715e">#&gt; $hp</span>
+<span style="color:#75715e">#&gt; [1] 3.477861e-09</span>
+<span style="color:#75715e">#&gt; </span>
+<span style="color:#75715e">#&gt; $cyl</span>
+<span style="color:#75715e">#&gt; [1] 0</span>
+<span style="color:#75715e">#&gt; </span>
+<span style="color:#75715e">#&gt; $mpg</span>
+<span style="color:#75715e">#&gt; [1] 6.112687e-10</span>
+</code></pre></div><p>To extract several elements, say the p-value and r, we can use the <code>[</code> operator:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(hp, cyl, mpg) <span style="color:#f92672">%&gt;%</span>  <span style="color:#75715e"># only three for the sake of demonstration</span>
+  <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">cor.test</span>(.x, mtcars<span style="color:#f92672">$</span>cyl) <span style="color:#f92672">%&gt;%</span> tidy) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(`[`, <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">p.value&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">statistic&#34;</span>))
+<span style="color:#75715e">#&gt; $hp</span>
+<span style="color:#75715e">#&gt;        p.value statistic</span>
+<span style="color:#75715e">#&gt; 1 3.477861e-09  8.228604</span>
+<span style="color:#75715e">#&gt; </span>
+<span style="color:#75715e">#&gt; $cyl</span>
+<span style="color:#75715e">#&gt;   p.value statistic</span>
+<span style="color:#75715e">#&gt; 1       0       Inf</span>
+<span style="color:#75715e">#&gt; </span>
+<span style="color:#75715e">#&gt; $mpg</span>
+<span style="color:#75715e">#&gt;        p.value statistic</span>
+<span style="color:#75715e">#&gt; 1 6.112687e-10 -8.919699</span>
+</code></pre></div><p><code>[</code> is some kind of &ldquo;extractor&rdquo; function; it extracts elements, and returns a list or data frame:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars[<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">hp&#34;</span>] <span style="color:#f92672">%&gt;%</span> head
+<span style="color:#75715e">#&gt;                    hp</span>
+<span style="color:#75715e">#&gt; Mazda RX4         110</span>
+<span style="color:#75715e">#&gt; Mazda RX4 Wag     110</span>
+<span style="color:#75715e">#&gt; Datsun 710         93</span>
+<span style="color:#75715e">#&gt; Hornet 4 Drive    110</span>
+<span style="color:#75715e">#&gt; Hornet Sportabout 175</span>
+<span style="color:#75715e">#&gt; Valiant           105</span>
+mtcars[<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">hp&#34;</span>] <span style="color:#f92672">%&gt;%</span> head <span style="color:#f92672">%&gt;%</span> str
+<span style="color:#75715e">#&gt; &#39;data.frame&#39;:	6 obs. of  1 variable:</span>
+<span style="color:#75715e">#&gt;  $ hp: num  110 110 93 110 175 105</span>
 
-<pre><code class="language-r">mtcars %&gt;% 
-  select(hp, cyl, mpg) %&gt;%  # only three for the sake of demonstration
-  map(~cor.test(.x, mtcars$cyl) %&gt;% tidy) %&gt;% 
-  map(&quot;p.value&quot;)
-#&gt; $hp
-#&gt; [1] 3.477861e-09
-#&gt; 
-#&gt; $cyl
-#&gt; [1] 0
-#&gt; 
-#&gt; $mpg
-#&gt; [1] 6.112687e-10
-</code></pre>
-
-<p>To extract several elements, say the p-value and r, we can use the <code>[</code> operator:</p>
-
-<pre><code class="language-r">mtcars %&gt;% 
-  select(hp, cyl, mpg) %&gt;%  # only three for the sake of demonstration
-  map(~cor.test(.x, mtcars$cyl) %&gt;% tidy) %&gt;% 
-  map(`[`, c(&quot;p.value&quot;, &quot;statistic&quot;))
-#&gt; $hp
-#&gt;        p.value statistic
-#&gt; 1 3.477861e-09  8.228604
-#&gt; 
-#&gt; $cyl
-#&gt;   p.value statistic
-#&gt; 1       0       Inf
-#&gt; 
-#&gt; $mpg
-#&gt;        p.value statistic
-#&gt; 1 6.112687e-10 -8.919699
-</code></pre>
-
-<p><code>[</code> is some kind of &ldquo;extractor&rdquo; function; it extracts elements, and returns a list or data frame:</p>
-
-<pre><code class="language-r">mtcars[&quot;hp&quot;] %&gt;% head
-#&gt;                    hp
-#&gt; Mazda RX4         110
-#&gt; Mazda RX4 Wag     110
-#&gt; Datsun 710         93
-#&gt; Hornet 4 Drive    110
-#&gt; Hornet Sportabout 175
-#&gt; Valiant           105
-mtcars[&quot;hp&quot;] %&gt;% head %&gt;% str
-#&gt; 'data.frame':	6 obs. of  1 variable:
-#&gt;  $ hp: num  110 110 93 110 175 105
-
-x &lt;- list(1, 2, 3)
+x <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">list</span>(<span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">3</span>)
 x[1]
-#&gt; [[1]]
-#&gt; [1] 1
-</code></pre>
-
-<p>Maybe more convenient, there is a function called <code>magrittr:extractor</code>. It&rsquo;s a wrapper aroung <code>[</code>:</p>
-
-<pre><code class="language-r">library(magrittr)
-mtcars %&gt;% 
-  select(hp, cyl, mpg) %&gt;%  # only three for the sake of demonstration
-  map(~cor.test(.x, mtcars$cyl) %&gt;% tidy) %&gt;% 
-  map_df(extract, c(&quot;p.value&quot;, &quot;statistic&quot;))
-#&gt;        p.value statistic
-#&gt; 1 3.477861e-09  8.228604
-#&gt; 2 0.000000e+00       Inf
-#&gt; 3 6.112687e-10 -8.919699
-</code></pre>
-
+<span style="color:#75715e">#&gt; [[1]]</span>
+<span style="color:#75715e">#&gt; [1] 1</span>
+</code></pre></div><p>Maybe more convenient, there is a function called <code>magrittr:extractor</code>. It's a wrapper aroung <code>[</code>:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(magrittr)
+mtcars <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(hp, cyl, mpg) <span style="color:#f92672">%&gt;%</span>  <span style="color:#75715e"># only three for the sake of demonstration</span>
+  <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">cor.test</span>(.x, mtcars<span style="color:#f92672">$</span>cyl) <span style="color:#f92672">%&gt;%</span> tidy) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map_df</span>(extract, <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">p.value&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">statistic&#34;</span>))
+<span style="color:#75715e">#&gt;        p.value statistic</span>
+<span style="color:#75715e">#&gt; 1 3.477861e-09  8.228604</span>
+<span style="color:#75715e">#&gt; 2 0.000000e+00       Inf</span>
+<span style="color:#75715e">#&gt; 3 6.112687e-10 -8.919699</span>
+</code></pre></div>
     </div>
   </article>
 

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Convert list to dataframe - Data Se</title>
@@ -70,30 +70,20 @@
 
     <div class="article-content">
       <p>A handy function to iterate stuff is the function <code>purrr::map</code>. It takes a function and applies it to all elements of a given vector. This vector can be a data frame - which is a list, tecnically - or some other sort of of list (normal atomic vectors are fine, too).</p>
-
 <p>However, <code>purrr::map</code> is designed to return <em>lists</em> (not dataframes). For example, if you apply <code>mosaic::favstats</code> to map, you will get some favorite statistics for some variable:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(mosaic)
+<span style="color:#a6e22e">library</span>(tidyverse)
 
-<pre><code class="language-r">library(mosaic)
-library(tidyverse)
-
-data(tips, package = &quot;reshape2&quot;)
-favstats(tips$tip)
-</code></pre>
-
-<pre><code>##  min Q1 median     Q3 max     mean       sd   n missing
+<span style="color:#a6e22e">data</span>(tips, package <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">reshape2&#34;</span>)
+<span style="color:#a6e22e">favstats</span>(tips<span style="color:#f92672">$</span>tip)
+</code></pre></div><pre><code>##  min Q1 median     Q3 max     mean       sd   n missing
 ##    1  2    2.9 3.5625  10 2.998279 1.383638 244       0
-</code></pre>
-
-<p>Note that <code>favstats</code> does <em>not</em> accept several columns/variables as parameters;  <em>one</em> only at a time is permitted.</p>
-
-<p>Ok, let&rsquo;s apply <code>favstats</code> to each numeric column of our dataframe:</p>
-
-<pre><code class="language-r">tips %&gt;% 
-  select_if(is.numeric) %&gt;% 
-  map(mosaic::favstats)
-</code></pre>
-
-<pre><code>## $total_bill
+</code></pre><p>Note that <code>favstats</code> does <em>not</em> accept several columns/variables as parameters;  <em>one</em> only at a time is permitted.</p>
+<p>Ok, let's apply <code>favstats</code> to each numeric column of our dataframe:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tips <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select_if</span>(is.numeric) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(mosaic<span style="color:#f92672">::</span>favstats)
+</code></pre></div><pre><code>## $total_bill
 ##   min      Q1 median      Q3   max     mean       sd   n missing
 ##  3.07 13.3475 17.795 24.1275 50.81 19.78594 8.902412 244       0
 ## 
@@ -104,19 +94,13 @@ favstats(tips$tip)
 ## $size
 ##  min Q1 median Q3 max     mean        sd   n missing
 ##    1  2      2  3   6 2.569672 0.9510998 244       0
-</code></pre>
-
-<p>Quite nice, but we are given back a list with several elements; each element is a &ldquo;row&rdquo; of our to-be dataframe. How to change this list to a regular dataframe (tibble)?</p>
-
+</code></pre><p>Quite nice, but we are given back a list with several elements; each element is a &ldquo;row&rdquo; of our to-be dataframe. How to change this list to a regular dataframe (tibble)?</p>
 <p>This trick can be solved by use of some sort of repeated <code>rbind</code>. <code>rbind</code> binds rows together, hence the name. But <code>rbinds</code> does only accept <em>two</em> elements as input. Now comes <code>do.call</code> to help. Effectiveley, <code>do.call</code> does something like: <code>rbind(my_list[[1]], my_list[[2]], my_list[[2]], ...)</code> (this is pseudo code).</p>
-
-<pre><code class="language-r">tips %&gt;% 
-  select_if(is.numeric) %&gt;% 
-  map(mosaic::favstats) %&gt;% 
-  do.call(rbind, .)
-</code></pre>
-
-<pre><code>##             min      Q1 median      Q3   max      mean        sd   n
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tips <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select_if</span>(is.numeric) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map</span>(mosaic<span style="color:#f92672">::</span>favstats) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">do.call</span>(rbind, .)
+</code></pre></div><pre><code>##             min      Q1 median      Q3   max      mean        sd   n
 ## total_bill 3.07 13.3475 17.795 24.1275 50.81 19.785943 8.9024120 244
 ## tip        1.00  2.0000  2.900  3.5625 10.00  2.998279 1.3836382 244
 ## size       1.00  2.0000  2.000  3.0000  6.00  2.569672 0.9510998 244
@@ -124,10 +108,7 @@ favstats(tips$tip)
 ## total_bill       0
 ## tip              0
 ## size             0
-</code></pre>
-
-<p>Note the little dot in <code>rbind</code>.</p>
-
+</code></pre><p>Note the little dot in <code>rbind</code>.</p>
 <p>Now be happy with the dataframe :-)</p>
 
     </div>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Shading multiple areas under normal curve - Data Se</title>
@@ -70,97 +70,64 @@
 
     <div class="article-content">
       <p>When plotting a normal curve, it is often helpful to color (or shade) some segments. For example, often we might want to indicate whether an absolute value is greater than 2.</p>
-
 <p>How can we achieve this with <code>ggplot2</code>? Here is one way.</p>
-
 <p>First, load packages and define some constants. Specifically, we define mean, sd, and start/end (z-) value of the area we want to shade. And your favorite color is defined.</p>
-
-<pre><code class="language-r">library(ggplot2)
-library(dplyr)
-</code></pre>
-
-<pre><code>## 
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(ggplot2)
+<span style="color:#a6e22e">library</span>(dplyr)
+</code></pre></div><pre><code>## 
 ## Attaching package: 'dplyr'
-</code></pre>
-
-<pre><code>## The following objects are masked from 'package:stats':
+</code></pre><pre><code>## The following objects are masked from 'package:stats':
 ## 
 ##     filter, lag
-</code></pre>
-
-<pre><code>## The following objects are masked from 'package:base':
+</code></pre><pre><code>## The following objects are masked from 'package:base':
 ## 
 ##     intersect, setdiff, setequal, union
-</code></pre>
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mean.1 <span style="color:#f92672">&lt;-</span><span style="color:#ae81ff">0</span>
+sd.1 <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">1</span>
+zstart <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">2</span>
+zend <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">3</span>
+zcritical <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">1.65</span>
 
-<pre><code class="language-r">mean.1 &lt;-0
-sd.1 &lt;- 1
-zstart &lt;- 2
-zend &lt;- 3
-zcritical &lt;- 1.65
-
-my_col &lt;- &quot;#00998a&quot;
-</code></pre>
-
-<p>Next, we build a sequence from 3sd left to 3sd right to the mean. Along this sequence (for each value) we will compute the density of the normal curve. The data will be used for plotting the curve and the shaded area(s).</p>
-
-<pre><code class="language-r">x &lt;- seq(from = mean.1 - 3*sd.1, to = mean.1 + 3*sd.1, by = .01)
+my_col <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">#00998a&#34;</span>
+</code></pre></div><p>Next, we build a sequence from 3sd left to 3sd right to the mean. Along this sequence (for each value) we will compute the density of the normal curve. The data will be used for plotting the curve and the shaded area(s).</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">x <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">seq</span>(from <span style="color:#f92672">=</span> mean.1 <span style="color:#f92672">-</span> <span style="color:#ae81ff">3</span><span style="color:#f92672">*</span>sd.1, to <span style="color:#f92672">=</span> mean.1 <span style="color:#f92672">+</span> <span style="color:#ae81ff">3</span><span style="color:#f92672">*</span>sd.1, by <span style="color:#f92672">=</span> <span style="color:#ae81ff">.01</span>)
 
 
-MyDF &lt;- data.frame(x = x, y = dnorm(x, mean = mean.1, sd = sd.1))
-</code></pre>
-
-<p>Then, we define a &ldquo;shading&rdquo; function which does the shading job.</p>
-
-<pre><code class="language-r">shade_curve &lt;- function(MyDF, zstart, zend, fill = &quot;red&quot;, alpha = .5){
-  geom_area(data = subset(MyDF, x &gt;= mean.1 + zstart*sd.1
-                          &amp; x &lt; mean.1 + zend*sd.1),
-            aes(y=y), fill = fill, color = NA, alpha = alpha)
+MyDF <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">data.frame</span>(x <span style="color:#f92672">=</span> x, y <span style="color:#f92672">=</span> <span style="color:#a6e22e">dnorm</span>(x, mean <span style="color:#f92672">=</span> mean.1, sd <span style="color:#f92672">=</span> sd.1))
+</code></pre></div><p>Then, we define a &ldquo;shading&rdquo; function which does the shading job.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">shade_curve <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">function</span>(MyDF, zstart, zend, fill <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">red&#34;</span>, alpha <span style="color:#f92672">=</span> <span style="color:#ae81ff">.5</span>){
+  <span style="color:#a6e22e">geom_area</span>(data <span style="color:#f92672">=</span> <span style="color:#a6e22e">subset</span>(MyDF, x <span style="color:#f92672">&gt;=</span> mean.1 <span style="color:#f92672">+</span> zstart<span style="color:#f92672">*</span>sd.1
+                          <span style="color:#f92672">&amp;</span> x <span style="color:#f92672">&lt;</span> mean.1 <span style="color:#f92672">+</span> zend<span style="color:#f92672">*</span>sd.1),
+            <span style="color:#a6e22e">aes</span>(y<span style="color:#f92672">=</span>y), fill <span style="color:#f92672">=</span> fill, color <span style="color:#f92672">=</span> <span style="color:#66d9ef">NA</span>, alpha <span style="color:#f92672">=</span> alpha)
 }
-</code></pre>
-
-<p>Now we plot it:</p>
-
-<pre><code class="language-r">p1a &lt;- ggplot(MyDF, aes(x = x, y = y)) + geom_line() +
-  shade_curve(MyDF = MyDF, zstart = -1, zend = 1, fill = my_col, alpha = .3) +
-  shade_curve(MyDF = MyDF, zstart = 1, zend = 2, fill = my_col, alpha = .5) +
-  shade_curve(MyDF = MyDF, zstart = -2, zend = -1, fill = my_col, alpha = .5) +
-  shade_curve(MyDF = MyDF, zstart = 2, zend = 6, fill = my_col, alpha = .7) +
-  shade_curve(MyDF = MyDF, zstart = -3, zend = -2, fill = my_col, alpha = .7) +
-  scale_x_continuous(breaks = -3:3) +
-  scale_y_continuous(breaks = NULL) +
-  theme_classic() +
-  ylab(&quot;&quot;) + xlab(&quot;&quot;)
+</code></pre></div><p>Now we plot it:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p1a <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">ggplot</span>(MyDF, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> x, y <span style="color:#f92672">=</span> y)) <span style="color:#f92672">+</span> <span style="color:#a6e22e">geom_line</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">shade_curve</span>(MyDF <span style="color:#f92672">=</span> MyDF, zstart <span style="color:#f92672">=</span> <span style="color:#ae81ff">-1</span>, zend <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, fill <span style="color:#f92672">=</span> my_col, alpha <span style="color:#f92672">=</span> <span style="color:#ae81ff">.3</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">shade_curve</span>(MyDF <span style="color:#f92672">=</span> MyDF, zstart <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, zend <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>, fill <span style="color:#f92672">=</span> my_col, alpha <span style="color:#f92672">=</span> <span style="color:#ae81ff">.5</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">shade_curve</span>(MyDF <span style="color:#f92672">=</span> MyDF, zstart <span style="color:#f92672">=</span> <span style="color:#ae81ff">-2</span>, zend <span style="color:#f92672">=</span> <span style="color:#ae81ff">-1</span>, fill <span style="color:#f92672">=</span> my_col, alpha <span style="color:#f92672">=</span> <span style="color:#ae81ff">.5</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">shade_curve</span>(MyDF <span style="color:#f92672">=</span> MyDF, zstart <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>, zend <span style="color:#f92672">=</span> <span style="color:#ae81ff">6</span>, fill <span style="color:#f92672">=</span> my_col, alpha <span style="color:#f92672">=</span> <span style="color:#ae81ff">.7</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">shade_curve</span>(MyDF <span style="color:#f92672">=</span> MyDF, zstart <span style="color:#f92672">=</span> <span style="color:#ae81ff">-3</span>, zend <span style="color:#f92672">=</span> <span style="color:#ae81ff">-2</span>, fill <span style="color:#f92672">=</span> my_col, alpha <span style="color:#f92672">=</span> <span style="color:#ae81ff">.7</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_x_continuous</span>(breaks <span style="color:#f92672">=</span> <span style="color:#ae81ff">-3</span><span style="color:#f92672">:</span><span style="color:#ae81ff">3</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_y_continuous</span>(breaks <span style="color:#f92672">=</span> <span style="color:#66d9ef">NULL</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">theme_classic</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">ylab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>) <span style="color:#f92672">+</span> <span style="color:#a6e22e">xlab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>)
 
 p1a
-</code></pre>
-
-<p><img src="/images/2016-08-30-03.png" alt="" /></p>
-
+</code></pre></div><p><img src="/images/2016-08-30-03.png" alt=""></p>
 <p>OK. Another nice feature would be have printed the cumulative percentages for each shaded segment.</p>
-
-<p>For that purpose, let&rsquo;s add a variable with the cumulative density.</p>
-
-<pre><code class="language-r">MyDF %&gt;%
-  mutate(y_cdf = cumsum(y)) -&gt; MyDF
-</code></pre>
-
-<p>But we are only interested in some quantiles. So let&rsquo;s filter these and kick out the rest.</p>
-
-<pre><code class="language-r">MyDF %&gt;%
-  filter(x %in% c(-3, -2.58, -2, -1.65, -1, -.5, 0, .5, 1, 1.65, 2, 2.58, 3)) -&gt; MyDF_filtered
-</code></pre>
-
-<p>Now, let&rsquo;s add the cumulative percentages for some quantiles of interest.</p>
-
-<pre><code class="language-r">p1a + geom_text(data = MyDF_filtered,
-                aes(x = x, y = y + .1, label = paste(round(y_cdf, 0),&quot;%&quot;)),
-                check_overlap = TRUE) +
-  geom_segment(data = MyDF_filtered,
-               aes(x = x, xend = x, y = 0, yend = y), linetype = &quot;dashed&quot;)
-</code></pre>
-
-<p><img src="/images/2016-08-30-04.png" alt="" /></p>
+<p>For that purpose, let's add a variable with the cumulative density.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">MyDF <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">mutate</span>(y_cdf <span style="color:#f92672">=</span> <span style="color:#a6e22e">cumsum</span>(y)) <span style="color:#f92672">-&gt;</span> MyDF
+</code></pre></div><p>But we are only interested in some quantiles. So let's filter these and kick out the rest.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">MyDF <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">filter</span>(x <span style="color:#f92672">%in%</span> <span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">-3</span>, <span style="color:#ae81ff">-2.58</span>, <span style="color:#ae81ff">-2</span>, <span style="color:#ae81ff">-1.65</span>, <span style="color:#ae81ff">-1</span>, <span style="color:#ae81ff">-.5</span>, <span style="color:#ae81ff">0</span>, <span style="color:#ae81ff">.5</span>, <span style="color:#ae81ff">1</span>, <span style="color:#ae81ff">1.65</span>, <span style="color:#ae81ff">2</span>, <span style="color:#ae81ff">2.58</span>, <span style="color:#ae81ff">3</span>)) <span style="color:#f92672">-&gt;</span> MyDF_filtered
+</code></pre></div><p>Now, let's add the cumulative percentages for some quantiles of interest.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p1a <span style="color:#f92672">+</span> <span style="color:#a6e22e">geom_text</span>(data <span style="color:#f92672">=</span> MyDF_filtered,
+                <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> x, y <span style="color:#f92672">=</span> y <span style="color:#f92672">+</span> <span style="color:#ae81ff">.1</span>, label <span style="color:#f92672">=</span> <span style="color:#a6e22e">paste</span>(<span style="color:#a6e22e">round</span>(y_cdf, <span style="color:#ae81ff">0</span>),<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%&#34;</span>)),
+                check_overlap <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_segment</span>(data <span style="color:#f92672">=</span> MyDF_filtered,
+               <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> x, xend <span style="color:#f92672">=</span> x, y <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, yend <span style="color:#f92672">=</span> y), linetype <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">dashed&#34;</span>)
+</code></pre></div><p><img src="/images/2016-08-30-04.png" alt=""></p>
 
     </div>
   </article>

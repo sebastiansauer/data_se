@@ -1,0 +1,344 @@
+---
+title: Cluster analysis and image size reduction
+author: Sebastian Sauer
+date: '2020-01-10'
+slug: cluster-analysis-and-image-size-reduction
+categories: [rstats]
+tags: [cluster]
+draft: FALSE
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+# Idea
+
+
+This post is a remake of this casestudy: https://fallstudien.netlify.com/fallstudie_bildanalyse/bildanalyse
+
+brought to you by Karsten Lübke.
+
+The main purpose is to replace the base R command that Karsten used with a more tidyverse-friendly style. I think that's easier (for me).
+
+We will compute a cluster analysis to find the typical RGB color per cluster. 
+
+
+# WARNING
+
+There's still a bug in the code. That's why the image at the end appear blurred. I suspect that rows and columns need to be transposed.
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+```
+
+
+
+
+# Setup
+
+
+```{r}
+library(jpeg)
+library(scales)
+library(mosaic)
+library(tidyverse)
+library(knitr)
+```
+
+
+
+# Get iris photo
+
+Download a photo of a iris, such as this one: https://commons.wikimedia.org/wiki/File:Blood_iris.jpg
+
+
+```{r}
+iris_url <- "https://upload.wikimedia.org/wikipedia/commons/thumb/b/b0/Blood_iris.jpg/320px-Blood_iris.jpg"
+iris_path <- paste0(here::here(),"/static/img/iris.jpg")
+img <- download.file(url = iris_url, destfile = iris_path)
+```
+
+
+Read the image:
+
+
+
+```{r}
+img <- readJPEG(iris_path)
+```
+
+
+```{r}
+knitr::include_graphics("/img/iris.jpg")
+```
+
+
+
+What are the dimensions?
+
+```{r}
+
+dimension <- dim(img)  # 1: rows, 2: cols, 3: layers
+dimension
+```
+
+
+Note that the first dimension indicate rows, second the columns, and third the RGB value
+
+Note that we have a 3D data cube.
+
+
+```{r echo = FALSE, out.width = "30%"}
+cube_path <- paste0(here::here(), "/static/img/EPSON003.JPG")
+stopifnot(file.exists(cube_path))
+knitr::include_graphics(cube_path)
+```
+
+
+# Reshape to data frame (2D)
+
+In order to work with the data, better transform to a 2D variant. 
+
+
+That's how it should like like after pivoting to the long form:
+
+Note that we have a 3D data cube.
+
+
+```{r echo = FALSE, out.width = "30%"}
+cube2_path <- paste0(here::here(), "/static/img/cube-long.png")
+stopifnot(file.exists(cube2_path))
+knitr::include_graphics(cube2_path)
+```
+
+
+```{r}
+img_df <-map_df(1:3, ~ bind_rows(data.frame(img[,, .])))
+dim(img_df)
+```
+
+We need to note that the first `r dimension[1]` rows are the "r" color part, the next the "g" part, and the last ones the "b" part:
+
+
+```{r}
+img_df <- img_df %>% 
+  mutate(color_part = rep(c("r", "g", "b"), 
+                          each = dimension[1]),  # nr of rows
+         y = rep(dimension[1]:1, times = dimension[3]))  # nr of rgb parts
+```
+
+
+```{r}
+dim(img_df)
+```
+
+
+Move the interesting columns to the front:
+
+```{r}
+img_df <- img_df %>% select(color_part, y, everything())
+
+img_df %>% head() %>% 
+  kable()
+```
+
+
+# Check
+
+
+
+```{r}
+tally(~ color_part, data = img_df)
+```
+
+
+```{r}
+tally(~ y, data = img_df) %>% all(. == 3)
+```
+
+
+
+
+# Reshape to long format
+
+The long format is the standard for many operations, such as the cluster analysis. So, let's reshape:
+
+```{r}
+img_df_long <- img_df %>% 
+  pivot_longer(cols = -c(color_part, y),
+               names_to = "x",
+               values_to = "value")
+
+dim(img_df_long)
+head(img_df_long)
+```
+
+Transfer `col_nr` values to pure numbers:
+
+```{r}
+img_df_long2 <- img_df_long %>% 
+  mutate(x = parse_number(x))
+head(img_df_long2)
+```
+
+# Checks
+
+
+```{r}
+summarise(img_df_long2, n_distinct(x))
+summarise(img_df_long2, n_distinct(y))
+summarise(img_df_long2, n_distinct(color_part))
+```
+
+
+
+
+
+Check:
+
+```{r}
+count(img_df_long2, color_part)
+```
+
+
+
+
+
+
+
+
+# Spread RGB parts in separate columns
+
+
+```{r}
+img_rgb <- img_df_long2 %>% 
+  pivot_wider(names_from = "color_part",
+              values_from = "value")
+
+head(img_rgb)
+```
+
+
+# k-Means
+
+We have 3 dimensions, so we would like to kind'a find a number of bee swarms in a room. Let's take 16 clusters.
+
+
+```{r}
+set.seed(1896)
+k_means <- kmeans(img_rgb[,c("r","g","b")], centers = 16, 
+                  iter.max = 25, nstart = 10)
+```
+
+
+
+Here are the colors:
+
+```{r}
+k_means$centers %>%
+  rgb() %>%
+  show_col()
+```
+
+
+# Frequencies of colors
+
+
+```{r}
+gf_col(k_means$size ~ 1:16, fill = rgb(k_means$centers))
+```
+
+
+
+# Compress colors
+
+Now we replace the colors of the pixels by the cluster center colors. By that, we will end up with 16 colors only, thereby compressing the image.
+
+
+First, add the cluster to which each pixel belongs to the data frame:
+
+```{r}
+img_rgb <- img_rgb %>% 
+  mutate(cluster = k_means$cluster)
+
+dim(img_rgb)
+```
+
+```{r}
+head(img_rgb)
+```
+
+
+Extract the cluster centers with their colors:
+
+```{r}
+centers_rgb <- k_means$centers %>% 
+  as_tibble() %>% 
+  mutate(cluster = 1:16)
+```
+
+
+
+Define the new image as the image where each pixel gets the color of its cluster center color:
+
+```{r}
+img_new <- img_rgb %>% 
+  select(x, y, cluster) %>% 
+  full_join(centers_rgb) %>% 
+  select(r, g, b) %>% 
+  as.matrix()
+
+nrow(img_new) == nrow(img_rgb)
+```
+
+
+# Write 3D data cube for image
+
+We directly convert to a matrix, as we need a (3D) matrix again to write the jpg image:
+
+```{r}
+img_new_array <- array(NA, dimension)
+dim(img_new_array)
+```
+
+
+
+```{r}
+for(i in 1:3) img_new_array[,,i] <- matrix(img_new[,i], 
+                                           nrow=dimension[1]) 
+```
+
+
+
+# Write to file
+
+
+```{r}
+file_output_path <- paste0(here::here(), "/static/img/iris_reduced.jpg")
+writeJPEG(img_new_array, file_output_path)
+```
+
+
+```{r out.width="70%"}
+knitr::include_graphics("/img/iris_reduced.jpg")
+```
+

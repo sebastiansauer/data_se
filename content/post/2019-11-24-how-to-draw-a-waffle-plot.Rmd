@@ -1,7 +1,7 @@
 ---
 title: How to draw a waffle plot
 author: Sebastian Sauer
-draft: FALSE
+draft: TRUE
 date: '2019-11-24'
 slug: how-to-draw-a-waffle-plot
 categories:
@@ -34,9 +34,11 @@ knitr::opts_chunk$set(
 
 ```{r load-libs, message = FALSE, waring = FALSE}
 library(tidyverse)
-library(waffle)
+#library(waffle)
 library(viridis)
-library(hrbrthemes)
+#library(hrbrthemes)
+library(extrafont)
+library(emojifont)
 ```
 
 
@@ -72,12 +74,6 @@ d_counted
 ```
 
 
-# Setup showtext
-
-```{r}
-showtext_auto()
-```
-
 
 
 
@@ -101,7 +97,7 @@ w1
 # Waffle 2
 
 
-```{r fig.showtext=TRUE}
+```{r}
 w2 <- w1 +
   coord_equal() +
   theme_ipsum_rc(grid="") +
@@ -117,8 +113,44 @@ w2
 
 I could not get the pictogram waffle from this package to run. I assume the Font Awesome version I used has some different name, so that it is not found by the function.
 
-However, here's an alternative using the package `emojifont`. More on that in a later post.
+However, here's an alternative using the package `emojifont`.
 
 
+First, choose some Font Awesome glyphs:
+
+```{r}
+fa2 <- fontawesome(c("fa-user", "fa-user-circle"))
+```
+
+
+
+Next, come up with some data that will be arranged in "waffle format":
+
+```{r}
+d <- crossing(x = 1:10,
+               y = 1:10) %>% 
+  mutate(label = sample(x = fa2, size = 100, replace = TRUE))
+```
+
+
+```{r}
+load.fontawesome()
+```
+
+
+
+Last, plot using `geom_tile` and `geom_text`:
+
+
+```{r}
+ggplot(d, aes(x = x, y = y, color = label, label = label)) +
+  geom_tile(color = "white", size = .5, aes(fill = label), alpha = .2) +
+  theme_void() +
+  geom_text(family='FontAwesome 5 Free', size=8) +
+  scale_color_manual(label = c("gewählt", "nicht-gewählt"),
+                     values = c("#00998A", "grey80")) +
+  scale_fill_manual( values = c("#00998A", "grey80")) +
+  theme(legend.position = "none")
+```
 
 

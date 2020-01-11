@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.59.0" />
+<meta name="generator" content="Hugo 0.62.1" />
 
 
 <title>Plotting survey results using `ggplot2` - Data Se</title>
@@ -69,45 +69,25 @@
     
 
     <div class="article-content">
-      
-
-<p>Plotting (and more generally, analyzing) survey results is a frequent endeavor in many business environments. Let&rsquo;s not think about arguments whether and when surveys are useful (for some recent criticism see <a href="http://www.springer.com/de/book/9783319397559">Briggs&rsquo; book</a>).</p>
-
-<p>Typically, respondents circle some option ranging from &ldquo;don&rsquo;t agree at all&rdquo; to &ldquo;completely agree&rdquo; for each question (or &ldquo;item&rdquo;). Typically, four to six boxes are given where one is expected to tick one.</p>
-
+      <p>Plotting (and more generally, analyzing) survey results is a frequent endeavor in many business environments. Let's not think about arguments whether and when surveys are useful (for some recent criticism see <a href="http://www.springer.com/de/book/9783319397559">Briggs&rsquo; book</a>).</p>
+<p>Typically, respondents circle some option ranging from &ldquo;don't agree at all&rdquo; to &ldquo;completely agree&rdquo; for each question (or &ldquo;item&rdquo;). Typically, four to six boxes are given where one is expected to tick one.</p>
 <p>In this tutorial, I will discuss some barplot type visualizations; the presentation is based on <code>ggplot2</code> (within the <code>R</code> environment) . Sure, much more can be done than will be presented here, but for the scope of this post, we will stick to the plain barplot (although some variations of it).</p>
-
-<p>Let&rsquo;s load some needed packages:</p>
-
-<pre><code class="language-r">library(tidyverse)
-</code></pre>
-
-<hr />
-
+<p>Let's load some needed packages:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)
+</code></pre></div><hr>
 <p>EDIT: The preparation part of this post has been <em>excluded</em> and moved to an <a href="https://sebastiansauer.github.io/preparing_survey_data/">own post</a>, for clarity.</p>
-
-<hr />
-
+<hr>
 <h1 id="loading-data">Loading data</h1>
-
-<p>So, first, let&rsquo;s load some data. That&rsquo;s a data set of a survey on extraversion. Folks were asked a bunch of questions tapping at their &ldquo;psychometric extraversion&rdquo;, and some related behavior, that is, behavior <em>supposed to</em> be related such as &ldquo;number of Facebook friends&rdquo;, &ldquo;how often at a party&rdquo; etc. Note that college students form the sample.</p>
-
+<p>So, first, let's load some data. That's a data set of a survey on extraversion. Folks were asked a bunch of questions tapping at their &ldquo;psychometric extraversion&rdquo;, and some related behavior, that is, behavior <em>supposed to</em> be related such as &ldquo;number of Facebook friends&rdquo;, &ldquo;how often at a party&rdquo; etc. Note that college students form the sample.</p>
 <p>Data are available only (free as in free and free as in beer).</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read.csv</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">https://osf.io/meyhp/?action=download&#34;</span>)
 
-<pre><code class="language-r">data &lt;- read.csv(&quot;https://osf.io/meyhp/?action=download&quot;)
 
-
-data_backup &lt;- data # backup just in case we screw something up
-</code></pre>
-
-<p>Here&rsquo;s the DOI of this piece of data: 10.17605/OSF.IO/4KGZH.</p>
-
-<p>OK, we got &lsquo;em; a dataset of dimension 501, 28. Let&rsquo;s glimpse at the data:</p>
-
-<pre><code class="language-r">glimpse(data)
-</code></pre>
-
-<pre><code>## Observations: 501
+data_backup <span style="color:#f92672">&lt;-</span> data <span style="color:#75715e"># backup just in case we screw something up</span>
+</code></pre></div><p>Here's the DOI of this piece of data: 10.17605/OSF.IO/4KGZH.</p>
+<p>OK, we got &lsquo;em; a dataset of dimension 501, 28. Let's glimpse at the data:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">glimpse</span>(data)
+</code></pre></div><pre><code>## Observations: 501
 ## Variables: 28
 ## $ X                  &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, ...
 ## $ timestamp          &lt;fctr&gt; 11.03.2015 19:17:48, 11.03.2015 19:18:05, ...
@@ -137,209 +117,132 @@ data_backup &lt;- data # backup just in case we screw something up
 ## $ extra_mean         &lt;dbl&gt; 2.9, 2.1, 2.6, 2.9, 3.2, 2.8, 2.8, 2.5, 3.2...
 ## $ extra_median       &lt;dbl&gt; 3.0, 2.0, 3.0, 3.0, 3.5, 3.0, 3.0, 2.5, 3.5...
 ## $ client_freq        &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
-</code></pre>
-
-<p>Let&rsquo;s extract only the items, and exclude <code>NA</code>s (there are not many).</p>
-
-<pre><code class="language-r">data %&gt;% 
-  select(i01:i10) %&gt;% nrow
-</code></pre>
-
-<pre><code>## [1] 501
-</code></pre>
-
-<pre><code class="language-r">data %&gt;% 
-  select(i01:i10) %&gt;%
-  na.omit %&gt;% nrow
-</code></pre>
-
-<pre><code>## [1] 493
-</code></pre>
-
-<pre><code class="language-r">data %&gt;% 
-  select(i01:i10) %&gt;%
-  na.omit -&gt; data_items
-</code></pre>
-
-<h1 id="plotting-item-distribution">Plotting item distribution</h1>
-
+</code></pre><p>Let's extract only the items, and exclude <code>NA</code>s (there are not many).</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(i01<span style="color:#f92672">:</span>i10) <span style="color:#f92672">%&gt;%</span> nrow
+</code></pre></div><pre><code>## [1] 501
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(i01<span style="color:#f92672">:</span>i10) <span style="color:#f92672">%&gt;%</span>
+  na.omit <span style="color:#f92672">%&gt;%</span> nrow
+</code></pre></div><pre><code>## [1] 493
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(i01<span style="color:#f92672">:</span>i10) <span style="color:#f92672">%&gt;%</span>
+  na.omit <span style="color:#f92672">-&gt;</span> data_items
+</code></pre></div><h1 id="plotting-item-distribution">Plotting item distribution</h1>
 <h2 id="typical-stacked-bar-plot">Typical stacked bar plot</h2>
-
-<p>The most obvious thing is to plot the distribution of the items (here: 10) of the survey. So let&rsquo;s do that with <code>ggplot</code>.</p>
-
-<p>On the x-axis we would like to have each item (i1, i2, &hellip;), and on the y-axis the frequency of each answer, in some stapled bar fashion. That means, on the x-axis is <em>one</em> variable only. That&rsquo;s why we need to &ldquo;melt&rdquo; the items to one &ldquo;long&rdquo; variable.</p>
-
-<pre><code class="language-r">data_items %&gt;%  
-  gather(key = items, value = answer) %&gt;% 
-  mutate(answer = factor(answer)) %&gt;% 
-  ggplot(aes(x = items)) +
-  geom_bar(aes(fill = answer), position = &quot;fill&quot;) -&gt; p1
+<p>The most obvious thing is to plot the distribution of the items (here: 10) of the survey. So let's do that with <code>ggplot</code>.</p>
+<p>On the x-axis we would like to have each item (i1, i2, &hellip;), and on the y-axis the frequency of each answer, in some stapled bar fashion. That means, on the x-axis is <em>one</em> variable only. That's why we need to &ldquo;melt&rdquo; the items to one &ldquo;long&rdquo; variable.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data_items <span style="color:#f92672">%&gt;%</span>  
+  <span style="color:#a6e22e">gather</span>(key <span style="color:#f92672">=</span> items, value <span style="color:#f92672">=</span> answer) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(answer <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(answer)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">ggplot</span>(<span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_bar</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> answer), position <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">fill&#34;</span>) <span style="color:#f92672">-&gt;</span> p1
 p1
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4" /></p>
-
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4"></p>
 <p>Maybe nicer to turn it 90 degrees:</p>
-
-<pre><code class="language-r">p1 + coord_flip()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-5-1.png" alt="plot of chunk unnamed-chunk-5" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p1 <span style="color:#f92672">+</span> <span style="color:#a6e22e">coord_flip</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-5-1.png" alt="plot of chunk unnamed-chunk-5"></p>
 <p>And reverse the order of the items, so that <code>i01</code> is at the top.</p>
-
-<pre><code class="language-r">data_items %&gt;% 
-  gather(key = items, value = answer) %&gt;% 
-  mutate(answer = factor(answer),
-         items = factor(items)) -&gt; data2
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data_items <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">gather</span>(key <span style="color:#f92672">=</span> items, value <span style="color:#f92672">=</span> answer) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(answer <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(answer),
+         items <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(items)) <span style="color:#f92672">-&gt;</span> data2
   
-ggplot(data2, aes(x = items)) +
-  geom_bar(aes(fill = answer), position = &quot;fill&quot;) +
-  coord_flip() +
-  scale_x_discrete(limits = rev(levels(data2$items))) -&gt; p2
+<span style="color:#a6e22e">ggplot</span>(data2, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_bar</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> answer), position <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">fill&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">coord_flip</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_x_discrete</span>(limits <span style="color:#f92672">=</span> <span style="color:#a6e22e">rev</span>(<span style="color:#a6e22e">levels</span>(data2<span style="color:#f92672">$</span>items))) <span style="color:#f92672">-&gt;</span> p2
 p2
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-6-1.png" alt="plot of chunk unnamed-chunk-6" /></p>
-
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-6-1.png" alt="plot of chunk unnamed-chunk-6"></p>
 <h2 id="colors">Colors</h2>
-
-<p>The beauty of the colors lie in the eye of the beholder&hellip; Let&rsquo;s try a different palette.</p>
-
+<p>The beauty of the colors lie in the eye of the beholder&hellip; Let's try a different palette.</p>
 <p>Sequential color palettes.</p>
-
-<pre><code class="language-r">p2 + scale_fill_brewer(palette = &quot;Blues&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7" /></p>
-
-<pre><code class="language-r">p2 + scale_fill_brewer(palette = &quot;BuGn&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-7-2.png" alt="plot of chunk unnamed-chunk-7" /></p>
-
-<pre><code class="language-r">p2 + scale_fill_brewer(palette = 12)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-7-3.png" alt="plot of chunk unnamed-chunk-7" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p2 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_brewer</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Blues&#34;</span>)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7"></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p2 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_brewer</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">BuGn&#34;</span>)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-7-2.png" alt="plot of chunk unnamed-chunk-7"></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p2 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_brewer</span>(palette <span style="color:#f92672">=</span> <span style="color:#ae81ff">12</span>)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-7-3.png" alt="plot of chunk unnamed-chunk-7"></p>
 <p>Diverging palettes.</p>
-
-<pre><code class="language-r">p2 + scale_fill_brewer(palette = &quot;RdYlGn&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8" /></p>
-
-<pre><code class="language-r">p2 + scale_fill_brewer(palette = &quot;RdYlBu&quot;)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-8-2.png" alt="plot of chunk unnamed-chunk-8" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p2 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_brewer</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">RdYlGn&#34;</span>)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-8-1.png" alt="plot of chunk unnamed-chunk-8"></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p2 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_brewer</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">RdYlBu&#34;</span>)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-8-2.png" alt="plot of chunk unnamed-chunk-8"></p>
 <p>The divering palettes are useful because we have two &ldquo;poles&rdquo; - &ldquo;do not agree&rdquo; on one side, and &ldquo;do agree&rdquo; on the other side.</p>
-
 <p>See <a href="https://www.r-bloggers.com/choosing-colour-palettes-part-ii-educated-choices/">here</a> for an overview on Brewer palettes.</p>
-
 <p>Or maybe just grey tones.</p>
-
-<pre><code class="language-r">p2 + scale_fill_grey()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p2 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_grey</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9"></p>
 <p>My own favorite-cherished color.</p>
-
-<pre><code class="language-r">colours &lt;- c(&quot;#2121D9&quot;, &quot;#9999FF&quot;, &quot;#D92121&quot;, &quot;#21D921&quot;, &quot;#FFFF4D&quot;, &quot;#FF9326&quot;)
-p2 + scale_fill_manual(values=colours)
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-10-1.png" alt="plot of chunk unnamed-chunk-10" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">colours <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">#2121D9&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">#9999FF&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">#D92121&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">#21D921&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">#FFFF4D&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">#FF9326&#34;</span>)
+p2 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_manual</span>(values<span style="color:#f92672">=</span>colours)
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-10-1.png" alt="plot of chunk unnamed-chunk-10"></p>
 <h2 id="numbers-count-on-bars">Numbers (count) on bars</h2>
-
 <p>It might be helpful to print the exact numbers on the bars.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data2 <span style="color:#f92672">%&gt;%</span> 
+  dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">count</span>(items, answer) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(y_pos <span style="color:#f92672">=</span> <span style="color:#a6e22e">cumsum</span>(n)<span style="color:#f92672">/</span><span style="color:#a6e22e">nrow</span>(data_items) <span style="color:#f92672">-</span> (<span style="color:#ae81ff">0.5</span> <span style="color:#f92672">*</span> n<span style="color:#f92672">/</span><span style="color:#a6e22e">nrow</span>(data_items)),
+         y_cumsum <span style="color:#f92672">=</span> <span style="color:#a6e22e">cumsum</span>(n)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(items_num <span style="color:#f92672">=</span> <span style="color:#a6e22e">parse_number</span>(items)) <span style="color:#f92672">-&gt;</span> data3
 
-<pre><code class="language-r">data2 %&gt;% 
-  dplyr::count(items, answer) %&gt;% 
-  mutate(y_pos = cumsum(n)/nrow(data_items) - (0.5 * n/nrow(data_items)),
-         y_cumsum = cumsum(n)) %&gt;% 
-  mutate(items_num = parse_number(items)) -&gt; data3
-
-ggplot(data3, aes(x = items, y = n)) +
-  geom_bar(aes(fill = answer), position = &quot;fill&quot;, stat = &quot;identity&quot;) +
-  geom_text(aes(y = y_pos, label = n),  size = 3) -&gt; p3
+<span style="color:#a6e22e">ggplot</span>(data3, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items, y <span style="color:#f92672">=</span> n)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_bar</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> answer), position <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">fill&#34;</span>, stat <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">identity&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_text</span>(<span style="color:#a6e22e">aes</span>(y <span style="color:#f92672">=</span> y_pos, label <span style="color:#f92672">=</span> n),  size <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>) <span style="color:#f92672">-&gt;</span> p3
 
 p3
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-11-1.png" alt="plot of chunk unnamed-chunk-11" /></p>
-
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-11-1.png" alt="plot of chunk unnamed-chunk-11"></p>
 <p>Flip coordinate system, and with &ldquo;%&rdquo; labels.</p>
-
-<pre><code class="language-r">p3 + coord_flip() + 
-  scale_y_continuous(labels = scales::percent) +
-  ylab(&quot;proportion of respondents&quot;) -&gt; p4
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p3 <span style="color:#f92672">+</span> <span style="color:#a6e22e">coord_flip</span>() <span style="color:#f92672">+</span> 
+  <span style="color:#a6e22e">scale_y_continuous</span>(labels <span style="color:#f92672">=</span> scales<span style="color:#f92672">::</span>percent) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">ylab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">proportion of respondents&#34;</span>) <span style="color:#f92672">-&gt;</span> p4
 p4
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-12-1.png" alt="plot of chunk unnamed-chunk-12" /></p>
-
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-12-1.png" alt="plot of chunk unnamed-chunk-12"></p>
 <h2 id="highlight-main-category">Highlight main category</h2>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data3 <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(answer <span style="color:#f92672">=</span> <span style="color:#a6e22e">as.numeric</span>(answer)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">group_by</span>(items) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(max_n <span style="color:#f92672">=</span> <span style="color:#a6e22e">max</span>(n)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(max_cat <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(<span style="color:#a6e22e">which</span>(n <span style="color:#f92672">==</span> max_n))) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(fit_cat <span style="color:#f92672">=</span> (answer <span style="color:#f92672">==</span> max_cat)) <span style="color:#f92672">%&gt;%</span> 
+  ungroup <span style="color:#f92672">-&gt;</span> data4
 
-<pre><code class="language-r">data3 %&gt;% 
-  mutate(answer = as.numeric(answer)) %&gt;% 
-  group_by(items) %&gt;% 
-  mutate(max_n = max(n)) %&gt;% 
-  mutate(max_cat = factor(which(n == max_n))) %&gt;% 
-  mutate(fit_cat = (answer == max_cat)) %&gt;% 
-  ungroup -&gt; data4
 
-
-ggplot(data4, aes(x = items, y = n)) +
-  geom_bar(aes(fill = factor(answer),
-               color = fit_cat), position = &quot;fill&quot;, stat = &quot;identity&quot;) +
-  geom_text(aes(y = y_pos, label = n),  size = 3) +
-  scale_color_manual(values = c(&quot;NA&quot;, &quot;red&quot;), guide = &quot;none&quot;) +
-  scale_fill_grey()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-13-1.png" alt="plot of chunk unnamed-chunk-13" /></p>
-
-<p>To be honest, does really look nice. Let&rsquo;s try something different later.</p>
-
+<span style="color:#a6e22e">ggplot</span>(data4, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items, y <span style="color:#f92672">=</span> n)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_bar</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(answer),
+               color <span style="color:#f92672">=</span> fit_cat), position <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">fill&#34;</span>, stat <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">identity&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_text</span>(<span style="color:#a6e22e">aes</span>(y <span style="color:#f92672">=</span> y_pos, label <span style="color:#f92672">=</span> n),  size <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_color_manual</span>(values <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">NA&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">red&#34;</span>), guide <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_fill_grey</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-13-1.png" alt="plot of chunk unnamed-chunk-13"></p>
+<p>To be honest, does really look nice. Let's try something different later.</p>
 <h2 id="barplot-with-geom-rect">Barplot with <code>geom_rect</code></h2>
-
 <p>This section and code is inspired by <a href="http://rnotr.com/likert/ggplot/barometer/likert-plotly/">this post</a>.</p>
-
 <p>The goal is to produce a more flexible bar plot, such as a &ldquo;waterfall plot&rdquo;, where y= 0 is centered at the middle bar height, we need to change the <code>geom</code>. No more <code>geom_bar</code> but the more versatile <code>geom_rect</code>. This geom plots, surprisingly, rectangles. Hence, we need to know the start and the end value (for the y-axis, the width of the bar is just 1).</p>
-
 <p>First, we need to prepare the dataset for that task.</p>
-
-<pre><code class="language-r">data4 %&gt;% 
-  select(items, answer, y_cumsum) %&gt;% 
-  group_by(items) %&gt;% 
-  spread(key = answer, value = y_cumsum) %&gt;% 
-  mutate(zero = 0, end = nrow(data_items)) %&gt;% 
-  select(items, zero, `1`, `2`, `3`, `4`, end) %&gt;% 
-  ungroup %&gt;% 
-  mutate(items_num = 1:10) -&gt; data5
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data4 <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(items, answer, y_cumsum) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">group_by</span>(items) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">spread</span>(key <span style="color:#f92672">=</span> answer, value <span style="color:#f92672">=</span> y_cumsum) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(zero <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>, end <span style="color:#f92672">=</span> <span style="color:#a6e22e">nrow</span>(data_items)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(items, zero, `1`, `2`, `3`, `4`, end) <span style="color:#f92672">%&gt;%</span> 
+  ungroup <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(items_num <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">10</span>) <span style="color:#f92672">-&gt;</span> data5
 
 
-data5 %&gt;% 
-  rename(start_1 = zero) %&gt;% 
-  mutate(end_1 = `1`) %&gt;% 
-  mutate(start_2 = `1`) %&gt;% 
-  mutate(end_2 = `2`) %&gt;% 
-  mutate(start_3 = `2`) %&gt;% 
-  mutate(end_3 = `3`) %&gt;% 
-  mutate(start_4 = `3`) %&gt;% 
-  mutate(end_4 = end) %&gt;% 
-  select(items_num, start_1, end_1, start_2, end_2, start_3, end_3, start_4, end_4) -&gt; data6
 
-head(data6) %&gt;% kable
-</code></pre>
+data5 <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">rename</span>(start_1 <span style="color:#f92672">=</span> zero) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(end_1 <span style="color:#f92672">=</span> `1`) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(start_2 <span style="color:#f92672">=</span> `1`) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(end_2 <span style="color:#f92672">=</span> `2`) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(start_3 <span style="color:#f92672">=</span> `2`) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(end_3 <span style="color:#f92672">=</span> `3`) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(start_4 <span style="color:#f92672">=</span> `3`) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(end_4 <span style="color:#f92672">=</span> end) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(items_num, start_1, end_1, start_2, end_2, start_3, end_3, start_4, end_4) <span style="color:#f92672">-&gt;</span> data6
 
-<table>
+<span style="color:#a6e22e">head</span>(data6) <span style="color:#f92672">%&gt;%</span> kable
+</code></pre></div><table>
 <thead>
 <tr>
 <th align="right">items_num</th>
@@ -353,7 +256,6 @@ head(data6) %&gt;% kable
 <th align="right">end_4</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="right">1</td>
@@ -366,7 +268,6 @@ head(data6) %&gt;% kable
 <td align="right">273</td>
 <td align="right">493</td>
 </tr>
-
 <tr>
 <td align="right">2</td>
 <td align="right">0</td>
@@ -378,7 +279,6 @@ head(data6) %&gt;% kable
 <td align="right">318</td>
 <td align="right">493</td>
 </tr>
-
 <tr>
 <td align="right">3</td>
 <td align="right">0</td>
@@ -390,7 +290,6 @@ head(data6) %&gt;% kable
 <td align="right">461</td>
 <td align="right">493</td>
 </tr>
-
 <tr>
 <td align="right">4</td>
 <td align="right">0</td>
@@ -402,7 +301,6 @@ head(data6) %&gt;% kable
 <td align="right">290</td>
 <td align="right">493</td>
 </tr>
-
 <tr>
 <td align="right">5</td>
 <td align="right">0</td>
@@ -414,7 +312,6 @@ head(data6) %&gt;% kable
 <td align="right">344</td>
 <td align="right">493</td>
 </tr>
-
 <tr>
 <td align="right">6</td>
 <td align="right">0</td>
@@ -428,23 +325,18 @@ head(data6) %&gt;% kable
 </tr>
 </tbody>
 </table>
-
 <p>OK, we have that, pooh, quite a mess.</p>
-
 <p>So, now we need it in long form. Here come a not so elegant, but rather simple, solution for that.</p>
-
-<pre><code class="language-r">data_cat1 &lt;- select(data6, items_num, start_1, end_1) %&gt;% setNames(c(&quot;items&quot;, &quot;start&quot;, &quot;end&quot;)) %&gt;% mutate(answer = 1)
-data_cat2 &lt;- select(data6, items_num, start_2, end_2) %&gt;% setNames(c(&quot;items&quot;,&quot;start&quot;, &quot;end&quot;))  %&gt;% mutate(answer = 2)
-data_cat3 &lt;- select(data6, items_num, start_3, end_3) %&gt;% setNames(c(&quot;items&quot;,&quot;start&quot;, &quot;end&quot;))  %&gt;% mutate(answer = 3)
-data_cat4 &lt;- select(data6, items_num, start_4, end_4) %&gt;% setNames(c(&quot;items&quot;,&quot;start&quot;, &quot;end&quot;))  %&gt;% mutate(answer = 4)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data_cat1 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">select</span>(data6, items_num, start_1, end_1) <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">setNames</span>(<span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">items&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">start&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">end&#34;</span>)) <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">mutate</span>(answer <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>)
+data_cat2 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">select</span>(data6, items_num, start_2, end_2) <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">setNames</span>(<span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">items&#34;</span>,<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">start&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">end&#34;</span>))  <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">mutate</span>(answer <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>)
+data_cat3 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">select</span>(data6, items_num, start_3, end_3) <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">setNames</span>(<span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">items&#34;</span>,<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">start&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">end&#34;</span>))  <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">mutate</span>(answer <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>)
+data_cat4 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">select</span>(data6, items_num, start_4, end_4) <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">setNames</span>(<span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">items&#34;</span>,<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">start&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">end&#34;</span>))  <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">mutate</span>(answer <span style="color:#f92672">=</span> <span style="color:#ae81ff">4</span>)
 
    
-data7 &lt;- bind_rows(data_cat1, data_cat2, data_cat3, data_cat4) 
+data7 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">bind_rows</span>(data_cat1, data_cat2, data_cat3, data_cat4) 
 
-data7 %&gt;% head %&gt;% kable
-</code></pre>
-
-<table>
+data7 <span style="color:#f92672">%&gt;%</span> head <span style="color:#f92672">%&gt;%</span> kable
+</code></pre></div><table>
 <thead>
 <tr>
 <th align="right">items</th>
@@ -453,7 +345,6 @@ data7 %&gt;% head %&gt;% kable
 <th align="right">answer</th>
 </tr>
 </thead>
-
 <tbody>
 <tr>
 <td align="right">1</td>
@@ -461,35 +352,30 @@ data7 %&gt;% head %&gt;% kable
 <td align="right">7</td>
 <td align="right">1</td>
 </tr>
-
 <tr>
 <td align="right">2</td>
 <td align="right">0</td>
 <td align="right">17</td>
 <td align="right">1</td>
 </tr>
-
 <tr>
 <td align="right">3</td>
 <td align="right">0</td>
 <td align="right">203</td>
 <td align="right">1</td>
 </tr>
-
 <tr>
 <td align="right">4</td>
 <td align="right">0</td>
 <td align="right">3</td>
 <td align="right">1</td>
 </tr>
-
 <tr>
 <td align="right">5</td>
 <td align="right">0</td>
 <td align="right">11</td>
 <td align="right">1</td>
 </tr>
-
 <tr>
 <td align="right">6</td>
 <td align="right">0</td>
@@ -498,223 +384,155 @@ data7 %&gt;% head %&gt;% kable
 </tr>
 </tbody>
 </table>
+<p>Now let's plot the bar graph with the rectangle plot.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data7<span style="color:#f92672">$</span>answer <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">factor</span>(data7<span style="color:#f92672">$</span>answer)
 
-<p>Now let&rsquo;s plot the bar graph with the rectangle plot.</p>
-
-<pre><code class="language-r">data7$answer &lt;- factor(data7$answer)
-
-ggplot(data7) +
-  aes() +
-  geom_rect(aes(x = items, 
-                ymin = start, 
-                ymax = end, 
-                xmin = items - 0.4, 
-                xmax = items + 0.4,
-                fill = answer)) +
-  scale_x_continuous(breaks = 1:10, name = &quot;items&quot;) +
-  ylab(&quot;n&quot;) -&gt; p5
-</code></pre>
-
-<pre><code>## Warning: Ignoring unknown aesthetics: x
-</code></pre>
-
-<pre><code class="language-r">p5 + geom_text(data = data3, aes(x = items_num, y = y_pos*nrow(data), label = n), size = 2) -&gt; p6
+<span style="color:#a6e22e">ggplot</span>(data7) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_rect</span>(<span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items, 
+                ymin <span style="color:#f92672">=</span> start, 
+                ymax <span style="color:#f92672">=</span> end, 
+                xmin <span style="color:#f92672">=</span> items <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.4</span>, 
+                xmax <span style="color:#f92672">=</span> items <span style="color:#f92672">+</span> <span style="color:#ae81ff">0.4</span>,
+                fill <span style="color:#f92672">=</span> answer)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_x_continuous</span>(breaks <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">10</span>, name <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">items&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">ylab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">n&#34;</span>) <span style="color:#f92672">-&gt;</span> p5
+</code></pre></div><pre><code>## Warning: Ignoring unknown aesthetics: x
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p5 <span style="color:#f92672">+</span> <span style="color:#a6e22e">geom_text</span>(data <span style="color:#f92672">=</span> data3, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items_num, y <span style="color:#f92672">=</span> y_pos<span style="color:#f92672">*</span><span style="color:#a6e22e">nrow</span>(data), label <span style="color:#f92672">=</span> n), size <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>) <span style="color:#f92672">-&gt;</span> p6
 
 p6
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-16-1.png" alt="plot of chunk unnamed-chunk-16" /></p>
-
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-16-1.png" alt="plot of chunk unnamed-chunk-16"></p>
 <p>Compare that to the <code>geom_bar</code> solution.</p>
-
-<pre><code class="language-r">p3
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-17-1.png" alt="plot of chunk unnamed-chunk-17" /></p>
-
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p3
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-17-1.png" alt="plot of chunk unnamed-chunk-17"></p>
 <p>Basically identical (never mind the bar width).</p>
-
 <p>Now flip the coordinates again (and compare to previous solution with <code>geom_bar</code>).</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p6 <span style="color:#f92672">+</span> <span style="color:#a6e22e">coord_flip</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-18-1.png" alt="plot of chunk unnamed-chunk-18"></p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p4
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-18-2.png" alt="plot of chunk unnamed-chunk-18"></p>
+<p>Let's try to highlight the most frequent answer category for each item.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data7 <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(n <span style="color:#f92672">=</span> end <span style="color:#f92672">-</span> start) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">group_by</span>(items) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(max_n <span style="color:#f92672">=</span> <span style="color:#a6e22e">max</span>(n)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(max_cat <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(<span style="color:#a6e22e">which</span>(n <span style="color:#f92672">==</span> max_n))) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(fit_cat <span style="color:#f92672">=</span> (answer <span style="color:#f92672">==</span> max_cat)) <span style="color:#f92672">%&gt;%</span> 
+  ungroup <span style="color:#f92672">-&gt;</span> data8
 
-<pre><code class="language-r">p6 + coord_flip()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-18-1.png" alt="plot of chunk unnamed-chunk-18" /></p>
-
-<pre><code class="language-r">p4
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-18-2.png" alt="plot of chunk unnamed-chunk-18" /></p>
-
-<p>Let&rsquo;s try to highlight the most frequent answer category for each item.</p>
-
-<pre><code class="language-r">data7 %&gt;% 
-  mutate(n = end - start) %&gt;% 
-  group_by(items) %&gt;% 
-  mutate(max_n = max(n)) %&gt;% 
-  mutate(max_cat = factor(which(n == max_n))) %&gt;% 
-  mutate(fit_cat = (answer == max_cat)) %&gt;% 
-  ungroup -&gt; data8
-
-data8 %&gt;% 
-  filter(fit_cat == TRUE) -&gt; data8a
+data8 <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">filter</span>(fit_cat <span style="color:#f92672">==</span> <span style="color:#66d9ef">TRUE</span>) <span style="color:#f92672">-&gt;</span> data8a
 
 
-data7 %&gt;% 
-  ggplot() +
-  aes() +
-  geom_rect(aes(x = items, 
-                ymin = start, 
-                ymax = end, 
-                xmin = items - 0.4, 
-                xmax = items + 0.4,
-                fill = answer)) +
-  scale_x_continuous(breaks = 1:10, name = &quot;items&quot;) +
-  ylab(&quot;n&quot;) + 
-  scale_fill_grey(start = .4, end = .8) -&gt; p8
-</code></pre>
-
-<pre><code>## Warning: Ignoring unknown aesthetics: x
-</code></pre>
-
-<pre><code class="language-r">p8 + geom_rect(data = data8a, aes(x = items, 
-                ymin = start, 
-                ymax = end, 
-                xmin = items - 0.4, 
-                xmax = items + 0.4), fill = &quot;red&quot;)  + 
-  geom_text(data = data3, aes(x = items_num, y = y_pos*nrow(data), label = n), size = 2) -&gt; p8
-</code></pre>
-
-<pre><code>## Warning: Ignoring unknown aesthetics: x
-</code></pre>
-
-<pre><code class="language-r">p8 + coord_flip()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-19-1.png" alt="plot of chunk unnamed-chunk-19" /></p>
-
-<p><a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">Here&rsquo;s</a> a cheat sheet on colors and palettes; and <a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">here</a> you&rsquo;ll find an overview on colors (with names and hex codes).</p>
-
+data7 <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_rect</span>(<span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items, 
+                ymin <span style="color:#f92672">=</span> start, 
+                ymax <span style="color:#f92672">=</span> end, 
+                xmin <span style="color:#f92672">=</span> items <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.4</span>, 
+                xmax <span style="color:#f92672">=</span> items <span style="color:#f92672">+</span> <span style="color:#ae81ff">0.4</span>,
+                fill <span style="color:#f92672">=</span> answer)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_x_continuous</span>(breaks <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">10</span>, name <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">items&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">ylab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">n&#34;</span>) <span style="color:#f92672">+</span> 
+  <span style="color:#a6e22e">scale_fill_grey</span>(start <span style="color:#f92672">=</span> <span style="color:#ae81ff">.4</span>, end <span style="color:#f92672">=</span> <span style="color:#ae81ff">.8</span>) <span style="color:#f92672">-&gt;</span> p8
+</code></pre></div><pre><code>## Warning: Ignoring unknown aesthetics: x
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p8 <span style="color:#f92672">+</span> <span style="color:#a6e22e">geom_rect</span>(data <span style="color:#f92672">=</span> data8a, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items, 
+                ymin <span style="color:#f92672">=</span> start, 
+                ymax <span style="color:#f92672">=</span> end, 
+                xmin <span style="color:#f92672">=</span> items <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.4</span>, 
+                xmax <span style="color:#f92672">=</span> items <span style="color:#f92672">+</span> <span style="color:#ae81ff">0.4</span>), fill <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">red&#34;</span>)  <span style="color:#f92672">+</span> 
+  <span style="color:#a6e22e">geom_text</span>(data <span style="color:#f92672">=</span> data3, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items_num, y <span style="color:#f92672">=</span> y_pos<span style="color:#f92672">*</span><span style="color:#a6e22e">nrow</span>(data), label <span style="color:#f92672">=</span> n), size <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>) <span style="color:#f92672">-&gt;</span> p8
+</code></pre></div><pre><code>## Warning: Ignoring unknown aesthetics: x
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p8 <span style="color:#f92672">+</span> <span style="color:#a6e22e">coord_flip</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-19-1.png" alt="plot of chunk unnamed-chunk-19"></p>
+<p><a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">Here's</a> a cheat sheet on colors and palettes; and <a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">here</a> you'll find an overview on colors (with names and hex codes).</p>
 <p>Mrs. Brewer <a href="http://colorbrewer2.org/#type=sequential&amp;scheme=BuGn&amp;n=3">site</a> is a great place to come up with your own palette and learn more about colors.</p>
-
 <h1 id="rainbow-diagram">Rainbow diagram</h1>
-
-<p>Let&rsquo;s try to &ldquo;move&rdquo; the bars to our wishes. Precisely, it would be nice if the bars were aligned at the &ldquo;Rubicon&rdquo; between &ldquo;do <em>not</em> agree&rdquo; and &ldquo;<em>do</em> agree&rdquo;. Then we could see better how many persons agree and not.</p>
-
+<p>Let's try to &ldquo;move&rdquo; the bars to our wishes. Precisely, it would be nice if the bars were aligned at the &ldquo;Rubicon&rdquo; between &ldquo;do <em>not</em> agree&rdquo; and &ldquo;<em>do</em> agree&rdquo;. Then we could see better how many persons agree and not.</p>
 <p>More practically, if we knew that 104+212 = 316 persons basically disagree, then 316 could be our &ldquo;zero line&rdquo; (item 10). Repeat that for each item.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data8 <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">group_by</span>(items) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(n_disagree <span style="color:#f92672">=</span> <span style="color:#a6e22e">sum</span>(n<span style="color:#a6e22e">[c</span>(<span style="color:#ae81ff">1</span>,<span style="color:#ae81ff">2</span>)]),
+         n_agree <span style="color:#f92672">=</span> <span style="color:#a6e22e">sum</span>(n<span style="color:#a6e22e">[c</span>(<span style="color:#ae81ff">3</span>,<span style="color:#ae81ff">4</span>)]),
+         start_adj <span style="color:#f92672">=</span> start <span style="color:#f92672">-</span> n_disagree,
+         end_adj <span style="color:#f92672">=</span> end <span style="color:#f92672">-</span> n_disagree
+         ) <span style="color:#f92672">%&gt;%</span> 
+  ungroup <span style="color:#f92672">-&gt;</span> data9
 
-<pre><code class="language-r">data8 %&gt;% 
-  group_by(items) %&gt;% 
-  mutate(n_disagree = sum(n[c(1,2)]),
-         n_agree = sum(n[c(3,4)]),
-         start_adj = start - n_disagree,
-         end_adj = end - n_disagree
-         ) %&gt;% 
-  ungroup -&gt; data9
 
-
-data9 %&gt;% 
-  ggplot() +
-  aes() +
-  geom_rect(aes(x = items, 
-                ymin = start_adj, 
-                ymax = end_adj, 
-                xmin = items - 0.4, 
-                xmax = items + 0.4,
-                fill = answer)) +
-  scale_x_continuous(breaks = 1:10, name = &quot;items&quot;) +
-  ylab(&quot;n&quot;) + 
-  scale_fill_grey(start = .4, end = .8) -&gt; p9
-</code></pre>
-
-<pre><code>## Warning: Ignoring unknown aesthetics: x
-</code></pre>
-
-<pre><code class="language-r">p9
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-20-1.png" alt="plot of chunk unnamed-chunk-20" /></p>
-
+data9 <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_rect</span>(<span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items, 
+                ymin <span style="color:#f92672">=</span> start_adj, 
+                ymax <span style="color:#f92672">=</span> end_adj, 
+                xmin <span style="color:#f92672">=</span> items <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.4</span>, 
+                xmax <span style="color:#f92672">=</span> items <span style="color:#f92672">+</span> <span style="color:#ae81ff">0.4</span>,
+                fill <span style="color:#f92672">=</span> answer)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_x_continuous</span>(breaks <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">10</span>, name <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">items&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">ylab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">n&#34;</span>) <span style="color:#f92672">+</span> 
+  <span style="color:#a6e22e">scale_fill_grey</span>(start <span style="color:#f92672">=</span> <span style="color:#ae81ff">.4</span>, end <span style="color:#f92672">=</span> <span style="color:#ae81ff">.8</span>) <span style="color:#f92672">-&gt;</span> p9
+</code></pre></div><pre><code>## Warning: Ignoring unknown aesthetics: x
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p9
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-20-1.png" alt="plot of chunk unnamed-chunk-20"></p>
 <p>Looks quite cool.</p>
-
-<p>Now let&rsquo;s add the numbers to that plot.</p>
-
-<pre><code class="language-r">data4 %&gt;% 
-  mutate(items_num = parse_number(items)) %&gt;% 
-  dplyr::select(-items) %&gt;% 
-  rename(items = items_num) %&gt;% 
-  select(items, everything()) %&gt;% 
-  arrange(answer, items) %&gt;% 
-  ungroup -&gt; data10
+<p>Now let's add the numbers to that plot.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data4 <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(items_num <span style="color:#f92672">=</span> <span style="color:#a6e22e">parse_number</span>(items)) <span style="color:#f92672">%&gt;%</span> 
+  dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">select</span>(<span style="color:#f92672">-</span>items) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">rename</span>(items <span style="color:#f92672">=</span> items_num) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">select</span>(items, <span style="color:#a6e22e">everything</span>()) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">arrange</span>(answer, items) <span style="color:#f92672">%&gt;%</span> 
+  ungroup <span style="color:#f92672">-&gt;</span> data10
 
 
-data9 %&gt;% 
-  mutate(y_pos_adj = data10$y_pos * nrow(data) - n_disagree) -&gt; data11
+data9 <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(y_pos_adj <span style="color:#f92672">=</span> data10<span style="color:#f92672">$</span>y_pos <span style="color:#f92672">*</span> <span style="color:#a6e22e">nrow</span>(data) <span style="color:#f92672">-</span> n_disagree) <span style="color:#f92672">-&gt;</span> data11
 
 
 
-p9 +  
-  geom_text(data = data11, aes(x = items, y = y_pos_adj, label = n), size = 2) -&gt; p11
+p9 <span style="color:#f92672">+</span>  
+  <span style="color:#a6e22e">geom_text</span>(data <span style="color:#f92672">=</span> data11, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items, y <span style="color:#f92672">=</span> y_pos_adj, label <span style="color:#f92672">=</span> n), size <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>) <span style="color:#f92672">-&gt;</span> p11
 
 p11
-</code></pre>
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-21-1.png" alt="plot of chunk unnamed-chunk-21"></p>
+<p>And now let's highlight the most frequent answer category.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(ggrepel)
 
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-21-1.png" alt="plot of chunk unnamed-chunk-21" /></p>
-
-<p>And now let&rsquo;s highlight the most frequent answer category.</p>
-
-<pre><code class="language-r">library(ggrepel)
-
-data11 %&gt;% 
-  ggplot() +
-  aes() +
-  geom_rect(aes(x = items,
-                ymin = start_adj,
-                ymax = end_adj,
-                xmin = items - 0.4,
-                xmax = items + 0.4,
-                fill = answer)) +
-  scale_fill_grey(start = .4, end = .8) + 
-  geom_rect(data = filter(data11, fit_cat == TRUE), 
-            aes(x = items, 
-                ymin = start_adj, 
-                ymax = end_adj, 
-                xmin = items - 0.4, 
-                xmax = items + 0.4),
-            fill = &quot;red&quot;) + 
-  geom_text(aes(x = items, y = y_pos_adj, label = n), size = 2) +
-  scale_x_continuous(breaks = 1:10) +
-  ylab(&quot;n&quot;) -&gt; p12
-</code></pre>
-
-<pre><code>## Warning: Ignoring unknown aesthetics: x
+data11 <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">aes</span>() <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_rect</span>(<span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items,
+                ymin <span style="color:#f92672">=</span> start_adj,
+                ymax <span style="color:#f92672">=</span> end_adj,
+                xmin <span style="color:#f92672">=</span> items <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.4</span>,
+                xmax <span style="color:#f92672">=</span> items <span style="color:#f92672">+</span> <span style="color:#ae81ff">0.4</span>,
+                fill <span style="color:#f92672">=</span> answer)) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_fill_grey</span>(start <span style="color:#f92672">=</span> <span style="color:#ae81ff">.4</span>, end <span style="color:#f92672">=</span> <span style="color:#ae81ff">.8</span>) <span style="color:#f92672">+</span> 
+  <span style="color:#a6e22e">geom_rect</span>(data <span style="color:#f92672">=</span> <span style="color:#a6e22e">filter</span>(data11, fit_cat <span style="color:#f92672">==</span> <span style="color:#66d9ef">TRUE</span>), 
+            <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items, 
+                ymin <span style="color:#f92672">=</span> start_adj, 
+                ymax <span style="color:#f92672">=</span> end_adj, 
+                xmin <span style="color:#f92672">=</span> items <span style="color:#f92672">-</span> <span style="color:#ae81ff">0.4</span>, 
+                xmax <span style="color:#f92672">=</span> items <span style="color:#f92672">+</span> <span style="color:#ae81ff">0.4</span>),
+            fill <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">red&#34;</span>) <span style="color:#f92672">+</span> 
+  <span style="color:#a6e22e">geom_text</span>(<span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items, y <span style="color:#f92672">=</span> y_pos_adj, label <span style="color:#f92672">=</span> n), size <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_x_continuous</span>(breaks <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">10</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">ylab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">n&#34;</span>) <span style="color:#f92672">-&gt;</span> p12
+</code></pre></div><pre><code>## Warning: Ignoring unknown aesthetics: x
 
 ## Warning: Ignoring unknown aesthetics: x
-</code></pre>
-
-<pre><code class="language-r">p12
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-22-1.png" alt="plot of chunk unnamed-chunk-22" /></p>
-
-<p>OK, that&rsquo;s about it for today. May turn the waterfall by 90°.</p>
-
-<pre><code class="language-r">p12 + coord_flip()
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-23-1.png" alt="plot of chunk unnamed-chunk-23" /></p>
-
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p12
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-22-1.png" alt="plot of chunk unnamed-chunk-22"></p>
+<p>OK, that's about it for today. May turn the waterfall by 90°.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p12 <span style="color:#f92672">+</span> <span style="color:#a6e22e">coord_flip</span>()
+</code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-23-1.png" alt="plot of chunk unnamed-chunk-23"></p>
 <p>And change the direction of the now numeric items-axis.</p>
-
-<pre><code class="language-r">p12 + coord_flip() + scale_x_reverse(breaks = 1:10)
-</code></pre>
-
-<pre><code>## Scale for 'x' is already present. Adding another scale for 'x', which
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p12 <span style="color:#f92672">+</span> <span style="color:#a6e22e">coord_flip</span>() <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_x_reverse</span>(breaks <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">10</span>)
+</code></pre></div><pre><code>## Scale for 'x' is already present. Adding another scale for 'x', which
 ## will replace the existing scale.
-</code></pre>
-
-<p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-24-1.png" alt="plot of chunk unnamed-chunk-24" /></p>
-
+</code></pre><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-24-1.png" alt="plot of chunk unnamed-chunk-24"></p>
 <p>Happy plotting!</p>
 
     </div>
