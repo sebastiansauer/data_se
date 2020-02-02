@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.62.1" />
+<meta name="generator" content="Hugo 0.63.2" />
 
 
 <title>CLES plot - Data Se</title>
@@ -70,20 +70,20 @@
 
     <div class="article-content">
       <p>In data analysis, we often ask &ldquo;Do these two groups differ in the outcome variable&rdquo;? Asking this question, a tacit assumption may be that the grouping variable is the cause of the difference in the outcome variable. For example, assume the two groups are &ldquo;treatment group&rdquo; and &ldquo;control group&rdquo;, and the outcome variable is &ldquo;pain reduction&rdquo;.</p>
-<p>A typical approach would be to report the strenght of the difference by help of Cohen's d. Even better (probably, but this atttitude is not undebated) is to report confidence intervals for d.</p>
+<p>A typical approach would be to report the strenght of the difference by help of Cohen&rsquo;s d. Even better (probably, but this atttitude is not undebated) is to report confidence intervals for d.</p>
 <p>Although this approach is widely used, I think it is not ideal. One reason is that we (may) have tacitly changed our hypothesis. We are <em>not</em> asking anymore &ldquo;Do individuals between the two groups differ?&rdquo; but we ask now &ldquo;Do the mean values differ?&quot;, which is different. Although we are used to this approach, there are problems: Often, our theories do <em>not</em> state that e.g., some pill will change the mean of a group. Rather, the theory will (quite rightly, in principle) suggest that some chemical compound in <em>an organism</em> will change some molecules, thereby some cell metabolism products, and finally bringing about some biological and/or psychological change (to the better). This is complete different a theory. And the last theory makes sense (potentially) from a biological and logical perspective. The former does <em>not</em> make any sense. How can some chemical affect some group averages, some &ldquo;average organism&rdquo; which does not exist in reality? If we agre with that notion we would be forced, I believe, not to compare means.</p>
 <p>But what can we do instead? In fact, some new methods have been proposed; for example James Grice developed what he has dubbed <a href="http://store.elsevier.com/Observation-Oriented-Modeling/James-Grice/isbn-9780123851949/">Observation Oriented Moeling</a>. But maybe an easy, first step alternative could be using the &ldquo;common language effect size&rdquo; (CLES). CLES simply states &ldquo;given the observed effect, how likely is it that if we draw two individuals, one from each of the two groups, that the individual from the experimental group will have a higher value in the variable of interest?&rdquo; (see <a href="http://core.ecu.edu/psyc/wuenschk/docs30/CL.pdf">here</a>).</p>
 <p>The value of CLEs is observational, not a hypothetical parameter. It is quite straight-forward man-on-the-street logic. For example: &ldquo;Draw 100 pairs from the two groups; in 83 cases the experimental group person will a higher value&rdquo;. That makes sense from an observation or individual organism point of view.</p>
 <p>Practically, there are <a href="https://cran.r-project.org/web/packages/compute.es/compute.es.pdf">R packages out there</a> which help us computing CLES (or at least one package). The details of the computation are beyond the scope of this article; see <a href="http://core.ecu.edu/psyc/wuenschk/docs30/CL.pdf">here</a> for mathematical details.</p>
 <p>Rather, we will build a nice plot for displaying a number of CLES differences between two groups.</p>
-<p>First, let's get some data, and load the needed packages.</p>
+<p>First, let&rsquo;s get some data, and load the needed packages.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)
 </code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#75715e"># library(readr)</span>
 extra_file <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">https://raw.github.com/sebastiansauer/Daten_Unterricht/master/extra.csv&#34;</span>
 
 extra_df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_csv</span>(extra_file)
 </code></pre></div><p>This dataset <code>extra</code> comprises answers to a survey tapping into extraversion as a psychometric variable plus some related behavior (e.g., binge drinking). The real-word details are not so much of interest here.</p>
-<p>So, let's pick all numeric variables plus one grouping variable (say, sex):</p>
+<p>So, let&rsquo;s pick all numeric variables plus one grouping variable (say, sex):</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#75715e"># library(dplyr)</span>
 extra_df <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">na.omit</span>() <span style="color:#f92672">%&gt;%</span> 
@@ -108,7 +108,7 @@ extra_df <span style="color:#f92672">%&gt;%</span>
 </code></pre></div><hr>
 <p>Note: output hidden, tl;dr.</p>
 <hr>
-<p>Puh, that's a bit confusing. So, what did we do?</p>
+<p>Puh, that&rsquo;s a bit confusing. So, what did we do?</p>
 <ol>
 <li>We selected the numeric variables of the data frame; here <code>one_of</code> comes handy. This function gets the column names of a data frame as input, and allows to select all of them in the <code>select</code> function.</li>
 <li>We mapped a t-test to each of those columns, where <code>extra_df$Geschlecht</code> was the grouping variable. Note that the dot <code>.</code> is used as a shortcut for the lefthand side of the equation, ie., whatever is handed over by the pipe <code>%&gt;%</code> in the previous line/step.</li>
@@ -138,7 +138,7 @@ CLES_plot
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-10-17/unnamed-chunk-5-1.png" alt=""></p>
 <p>The code above in more detail:</p>
 <ol>
-<li>select columns <code>outcomes</code> and <code>cl.d</code>; note that <code>cl.d</code> stands for CLES (here: Common Language Cohen's d, as CLES is derived from Cohen's d).</li>
+<li>select columns <code>outcomes</code> and <code>cl.d</code>; note that <code>cl.d</code> stands for CLES (here: Common Language Cohen&rsquo;s d, as CLES is derived from Cohen&rsquo;s d).</li>
 <li>Compute variable to tell in which direction the difference points, ie., whether it is greater or smaller than 50%, where 50% refers to ignorance towards the direction of difference.</li>
 <li>Well, now plot, but sort the outcomes by their CLES value; for the purpose of sorting we use <code>reorder</code>.</li>
 <li>Flip the axes because it is more beautiful here.</li>

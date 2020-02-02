@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.62.1" />
+<meta name="generator" content="Hugo 0.63.2" />
 
 
 <title>Some thoughts (and simulation) on overfitting - Data Se</title>
@@ -70,7 +70,7 @@
 
     <div class="article-content">
       <p>Overfitting is a common problem in data analysis. Some go as far as saying that &ldquo;most of&rdquo; published research is false (John Ionnadis); overfitting being one, maybe central, problem of it. In this post, we explore some aspects on the notion of overfitting.</p>
-<p>Assume we have 10 metric variables <code>v</code> (personality/health/behavior/gene indicator variables), and, say, 10 variables for splitting up subgroups (aged vs. young, female vs. male, etc.), so 10 dichotomic variables. Further assume there are no association whatsoever between these variables. How likely is it we find something publishable? Apparently quite probably; but let's give it a try.</p>
+<p>Assume we have 10 metric variables <code>v</code> (personality/health/behavior/gene indicator variables), and, say, 10 variables for splitting up subgroups (aged vs. young, female vs. male, etc.), so 10 dichotomic variables. Further assume there are no association whatsoever between these variables. How likely is it we find something publishable? Apparently quite probably; but let&rsquo;s give it a try.</p>
 <p>Load some packages.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)
 <span style="color:#a6e22e">library</span>(corrr)
@@ -80,11 +80,11 @@
 <p>Make sup some uncorrelated data, 10x10 variables each $$N \sim (0,1)$$.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">set.seed</span>(<span style="color:#ae81ff">123</span>)
 <span style="color:#a6e22e">matrix</span>(<span style="color:#a6e22e">rnorm</span>(<span style="color:#ae81ff">100</span>), <span style="color:#ae81ff">10</span>, <span style="color:#ae81ff">10</span>) <span style="color:#f92672">-&gt;</span> v
-</code></pre></div><p>Let's visualize the correlation matrix.</p>
+</code></pre></div><p>Let&rsquo;s visualize the correlation matrix.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">v <span style="color:#f92672">%&gt;%</span> correlate <span style="color:#f92672">%&gt;%</span> rearrange <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">rplot</span>(print_cor <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-13/corr_matrix_1-1.png" alt="plot of chunk corr_matrix_1"></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">v <span style="color:#f92672">%&gt;%</span> correlate <span style="color:#f92672">-&gt;</span> v_corr_matrix
-</code></pre></div><p>So, quite some music in the bar. Let's look at the distribution of the correlation coefficients.</p>
+</code></pre></div><p>So, quite some music in the bar. Let&rsquo;s look at the distribution of the correlation coefficients.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">v_corr_matrix <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">select</span>(<span style="color:#f92672">-</span>rowname) <span style="color:#f92672">%&gt;%</span> 
   gather <span style="color:#f92672">%&gt;%</span> 
@@ -104,7 +104,7 @@ v_long <span style="color:#f92672">%&gt;%</span>
 ##      se
 ## X1 0.04
 </code></pre><p>Probably more stringent to just choose one triangle from the matrix, but I think it does not really matter for our purposes.</p>
-<p>Quite a bit of substantial correlation going on. Let's look from a different angle.</p>
+<p>Quite a bit of substantial correlation going on. Let&rsquo;s look from a different angle.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">v_long <span style="color:#f92672">%&gt;%</span> 
   ggplot <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span>, y <span style="color:#f92672">=</span> value) <span style="color:#f92672">+</span>
@@ -114,7 +114,7 @@ v_long <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">geom_hline</span>(yintercept <span style="color:#f92672">=</span> <span style="color:#a6e22e">mean</span>(v_long<span style="color:#f92672">$</span>value), linetype <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">dashed&#34;</span>, color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">#880011&#34;</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-13/violin_plot-1.png" alt="plot of chunk violin_plot"></p>
 <h2 id="100x100-dataset-correlation">100x100 dataset correlation</h2>
-<p>Now let's scale up a bit and see whether the pattern stabilize.</p>
+<p>Now let&rsquo;s scale up a bit and see whether the pattern stabilize.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">set.seed</span>(<span style="color:#ae81ff">123</span>)
 <span style="color:#a6e22e">matrix</span>(<span style="color:#a6e22e">rnorm</span>(<span style="color:#ae81ff">10</span>^4), <span style="color:#ae81ff">100</span>, <span style="color:#ae81ff">100</span>) <span style="color:#f92672">-&gt;</span> v2
 v2 <span style="color:#f92672">%&gt;%</span> correlate <span style="color:#f92672">-&gt;</span> v2_corr_matrix
@@ -130,7 +130,7 @@ v2_long <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">geom_bar</span>(<span style="color:#a6e22e">aes</span>(y <span style="color:#f92672">=</span> ..count..<span style="color:#f92672">/</span><span style="color:#a6e22e">sum</span>(..count..))) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">ylab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">proportion&#34;</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-13/histo1-1.png" alt="plot of chunk histo1"></p>
-<p>So, how many r's are in the (0.1,0.3) bin?</p>
+<p>So, how many r&rsquo;s are in the (0.1,0.3) bin?</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(broom)
 v2_long <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">mutate</span>(r_binned <span style="color:#f92672">=</span> <span style="color:#a6e22e">cut_width</span>(value, <span style="color:#ae81ff">0.2</span>)) <span style="color:#f92672">%&gt;%</span> 
@@ -145,9 +145,9 @@ v2_long <span style="color:#f92672">%&gt;%</span>
 ## 3  (-0.1,0.1]      6776         0.68
 ## 4   (0.1,0.3]      1512         0.15
 ## 5   (0.3,0.5]         8         0.00
-</code></pre><p>That's quite a bit; 15% correlation in the bin (.1.3). Publication ahead!</p>
+</code></pre><p>That&rsquo;s quite a bit; 15% correlation in the bin (.1.3). Publication ahead!</p>
 <h1 id="subgroup-analyses">Subgroup analyses</h1>
-<p>Now, let's look at our subgroup. For that purposes, we need actual data, not only the correlation data. Let's come up with 1000 individuals, where he have 100 measurement (metric; N(0,1)), and 100 subgroup variables (dichotomic).</p>
+<p>Now, let&rsquo;s look at our subgroup. For that purposes, we need actual data, not only the correlation data. Let&rsquo;s come up with 1000 individuals, where he have 100 measurement (metric; N(0,1)), and 100 subgroup variables (dichotomic).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">set.seed</span>(<span style="color:#ae81ff">123</span>)
 <span style="color:#a6e22e">matrix</span>(<span style="color:#a6e22e">rnorm</span>(<span style="color:#ae81ff">1000</span><span style="color:#f92672">*</span><span style="color:#ae81ff">100</span>), nrow <span style="color:#f92672">=</span> <span style="color:#ae81ff">1000</span>, ncol <span style="color:#f92672">=</span> <span style="color:#ae81ff">100</span>) <span style="color:#f92672">-&gt;</span> v3
 <span style="color:#a6e22e">dim</span>(v3)
@@ -159,7 +159,7 @@ v2_long <span style="color:#f92672">%&gt;%</span>
 <span style="color:#a6e22e">dim</span>(v5)
 </code></pre></div><pre><code>## [1] 1000  200
 </code></pre><p>Now, t-test battle. For each variable, compute a t-test; for each subgroup, compute a t-test. Do the whole shabeng (100*100 tests).</p>
-<p>But, as a first step, let's look at the first subgroup variable only.</p>
+<p>But, as a first step, let&rsquo;s look at the first subgroup variable only.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">v3 <span style="color:#f92672">%&gt;%</span> 
   data.frame <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">t.test</span>(.x <span style="color:#f92672">~</span> v4[, <span style="color:#ae81ff">1</span>])) <span style="color:#f92672">%&gt;%</span> 
@@ -206,7 +206,7 @@ i <span style="color:#f92672">&lt;-</span> <span style="color:#ae81ff">1</span>
 
 p_df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">as.data.frame</span>(p_list)
 <span style="color:#a6e22e">names</span>(p_df) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">paste</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">V&#34;</span>, <span style="color:#a6e22e">formatC</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">100</span>, width <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>, flag <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>), sep <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>)
-</code></pre></div><p>Let's try a giant plot with 100 small multiples.</p>
+</code></pre></div><p>Let&rsquo;s try a giant plot with 100 small multiples.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p_df <span style="color:#f92672">%&gt;%</span> 
   gather <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">ggplot</span>(<span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> value)) <span style="color:#f92672">+</span> 
@@ -225,7 +225,7 @@ p_df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">as.dat
   <span style="color:#a6e22e">xlab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">p value&#34;</span>)
 </code></pre></div><pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.
 </code></pre><p><img src="https://sebastiansauer.github.io/images/2016-11-13/hist3-1.png" alt="plot of chunk hist3"></p>
-<p>In exact numbers, what's the percentage of significant p-values per variable?</p>
+<p>In exact numbers, what&rsquo;s the percentage of significant p-values per variable?</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p_df <span style="color:#f92672">%&gt;%</span> 
   gather <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">group_by</span>(key) <span style="color:#f92672">%&gt;%</span> 
@@ -259,7 +259,7 @@ p_df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">as.dat
   round <span style="color:#f92672">%&gt;%</span> 
   htmlTable
 </code></pre></div><!-- raw HTML omitted -->
-<p>In sum, overfitting - mistakenly taking noise as signal - happened often. Actually, as often as is expected by theory. But, not knowing or not minding theory, one can easily be surprised by the plethora of &ldquo;interesting findings&rdquo; in the data. In John Tukey's words (more or less): &ldquo;Torture the data for a long enough time and it will tell you anything&rdquo;.</p>
+<p>In sum, overfitting - mistakenly taking noise as signal - happened often. Actually, as often as is expected by theory. But, not knowing or not minding theory, one can easily be surprised by the plethora of &ldquo;interesting findings&rdquo; in the data. In John Tukey&rsquo;s words (more or less): &ldquo;Torture the data for a long enough time and it will tell you anything&rdquo;.</p>
 
     </div>
   </article>

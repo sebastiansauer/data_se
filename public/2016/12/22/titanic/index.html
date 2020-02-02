@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.62.1" />
+<meta name="generator" content="Hugo 0.63.2" />
 
 
 <title>Überleben auf der Titanic - YACSDA für nominale Daten - Data Se</title>
@@ -113,7 +113,7 @@
 ## $ Embarked    &lt;chr&gt; &quot;S&quot;, &quot;C&quot;, &quot;S&quot;, &quot;S&quot;, &quot;S&quot;, &quot;Q&quot;, &quot;S&quot;, &quot;S&quot;, &quot;S&quot;, &quot;C&quot;, ...
 </code></pre><h1 id="welche-variablen-sind-interessant">Welche Variablen sind interessant?</h1>
 <p>Von 12 Variablen des Datensatzes interessieren uns offenbar <code>Pclass</code> und <code>Survived</code>; Hilfe zum Datensatz kann man übrigens mit <code>help(titanic_train)</code> bekommen. Diese beiden Variablen sind kategorial (nicht-metrisch), wobei sie in der Tabelle mit Zahlen kodiert sind. Natürlich ändert die Art der Codierung (hier als Zahl) nichts am eigentlichen Skalenniveau. Genauso könnte man &ldquo;Mann&rdquo; mit <code>1</code> und &ldquo;Frau&rdquo; mit <code>2</code> kodieren; ein Mittelwert bliebe genauso (wenig) aussagekräftig. Zu beachten ist hier nur, dass sich manche R-Befehle verunsichern lassen, wenn nominale Variablen mit Zahlen kodiert sind. Daher ist es oft besser, nominale Variablen mit Text-Werten zu benennen (wie &ldquo;survived&rdquo; vs. &ldquo;drowned&rdquo; etc.). Wir kommen später auf diesen Punkt zurück.</p>
-<h1 id="univariate-hufigkeiten">Univariate Häufigkeiten</h1>
+<h1 id="univariate-häufigkeiten">Univariate Häufigkeiten</h1>
 <p>Bevor wir uns in kompliziertere Fragestellungen stürzen, halten wir fest: Wir untersuchen zwei nominale Variablen. Sprich: wir werden Häufigkeiten auszählen. Häufigkeiten (und relative Häufigkeiten, also Anteile oder Quoten) sind das, was uns hier beschäftigt.</p>
 <p>Zählen wir zuerst die univariaten Häufigkeiten aus: Wie viele Passagiere gab es pro Klasse? Wie viele Passagiere gab es pro Wert von <code>Survived</code> (also die überlebten bzw. nicht überlebten)?</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">c1 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">count</span>(titanic_train, Pclass)
@@ -138,7 +138,7 @@ c2
 ## 1        0   549
 ## 2        1   342
 </code></pre><p>Man beachte, dass der Befehl <code>count</code> stehts eine Tabelle (data.frame bzw. <code>tibble</code>) zurückliefert.</p>
-<h1 id="bivariate-hufigkeiten">Bivariate Häufigkeiten</h1>
+<h1 id="bivariate-häufigkeiten">Bivariate Häufigkeiten</h1>
 <p>OK, gut. Jetzt wissen wir die Häufigkeiten pro Wert von <code>Survived</code> (dasselbe gilt für <code>Pclass</code>). Eigentlich interessiert uns aber die Frage, ob sich die relativen Häufigkeiten der Stufen von <code>Pclass</code> innerhalb der Stufen von <code>Survived</code> unterscheiden. Einfacher gesagt: Ist der Anteil der Überlebenden in der 1. Klasse größer als in der 3. Klasse?</p>
 <p>Zählen wir zuerst die Häufigkeiten für alle Kombinationen von <code>Survived</code> und <code>Pclass</code>:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">c3 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">count</span>(titanic_train, Survived, Pclass)
@@ -179,7 +179,7 @@ c3
 ## data:  titanic_train$Survived and titanic_train$Pclass
 ## X-squared = 102.89, df = 2, p-value &lt; 2.2e-16
 </code></pre><p>Der p-Wert ist kleiner als 5%, daher entscheiden wir uns gegen die H0 und für die H1: &ldquo;Es gibt einen Zusammenhang von Überlebensrate und Passagierklasse&rdquo;.</p>
-<h1 id="effektstrke">Effektstärke</h1>
+<h1 id="effektstärke">Effektstärke</h1>
 <p>Abgesehen von der Signifikanz, und interessanter, ist die Frage, wie sehr die Variablen zusammenhängen. Für Häufigkeitsanalysen mit 2*2-Feldern bietet sich das &ldquo;Odds Ratio&rdquo; (OR), das Chancenverhältnis an. Das Chancen-Verhältnis beantwortet die Frage: &ldquo;Um welchen Faktor ist die Überlebenschance in der einen Klasse größer als in der anderen Klasse?&quot;. Eine interessante Frage, als schauen wir es uns an.</p>
 <p>Das OR ist nur definiert für 2*2-Häufigkeitstabellen, daher müssen wir die Anzahl der Passagierklassen von 3 auf 2 verringern. Nehmen wir nur 1. und 3. Klasse, um den vermuteten Effekt deutlich herauszuschälen:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">t2 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">filter</span>(titanic_train, Pclass <span style="color:#f92672">!=</span> <span style="color:#ae81ff">2</span>)  <span style="color:#75715e"># &#34;!=&#34; heißt &#34;nicht&#34;</span>
@@ -243,7 +243,7 @@ c4
 ##  NNT = 3.57 
 ##  Total N = 707
 </code></pre><p>Die Chance zu überleben ist also in der 1. Klasse mehr als 4 mal so hoch wie in der 3. Klasse. Money buys you live&hellip;</p>
-<h1 id="effektstrken-visualieren">Effektstärken visualieren</h1>
+<h1 id="effektstärken-visualieren">Effektstärken visualieren</h1>
 <p>Zum Abschluss schauen wir uns die Stärke des Zusammenhangs noch einmal graphisch an. Wir berechnen dafür die relativen Häufigkeiten pro Gruppe (im Datensatz ohne 2. Klasse, der Einfachheit halber).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">c5 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">count</span>(t2, Pclass, Survived)
 c5<span style="color:#f92672">$</span>prop <span style="color:#f92672">&lt;-</span> c5<span style="color:#f92672">$</span>n <span style="color:#f92672">/</span> <span style="color:#ae81ff">707</span>

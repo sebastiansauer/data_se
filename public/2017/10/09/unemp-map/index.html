@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.62.1" />
+<meta name="generator" content="Hugo 0.63.2" />
 
 
 <title>Mapping unemployment rate to German district areas - Data Se</title>
@@ -69,7 +69,7 @@
     
 
     <div class="article-content">
-      <p>A <em>chloropleth</em> map is a geographic map where statistical information are mapped to certain areas. Let's plot such a chloropleth map in this post.</p>
+      <p>A <em>chloropleth</em> map is a geographic map where statistical information are mapped to certain areas. Let&rsquo;s plot such a chloropleth map in this post.</p>
 <h1 id="packages">Packages</h1>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(sf)
 <span style="color:#a6e22e">library</span>(stringr)
@@ -77,8 +77,8 @@
 <span style="color:#a6e22e">library</span>(readxl)
 </code></pre></div><h1 id="geo-data">Geo data</h1>
 <p>Best place to get German geo data is from the <a href="http://www.bkg.bund.de%3E">&ldquo;Bundesamt für Kartografie und Geodäsie (BKG)&quot;</a>. One may basically use the data for a purposes unless it is against the law. I have downloaded the data 2017-10-09. More specifically, we are looking at the &ldquo;Verwaltungsgebiete&rdquo; (vg), that is, the administrative areas of the country, ie., counties, states etc.</p>
-<p>Look for the &ldquo;Verwaltungsgebiete&rdquo;. On <a href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=deu&amp;gdz_akt_zeile=5&amp;gdz_anz_zeile=1&amp;gdz_unt_zeile=19&amp;gdz_user_id=0">this page</a> you'll get the geo data scaled 1:2,500,000. This material includes area map of the whole state (hence <code>sta</code>, see below) of Germany.</p>
-<p>It's quite a bit of data. Download it, unzip it and adapt your path variables accordingly. The data is stores as shape files, a standard format for open geo data.</p>
+<p>Look for the &ldquo;Verwaltungsgebiete&rdquo;. On <a href="http://www.geodatenzentrum.de/geodaten/gdz_rahmen.gdz_div?gdz_spr=deu&amp;gdz_akt_zeile=5&amp;gdz_anz_zeile=1&amp;gdz_unt_zeile=19&amp;gdz_user_id=0">this page</a> you&rsquo;ll get the geo data scaled 1:2,500,000. This material includes area map of the whole state (hence <code>sta</code>, see below) of Germany.</p>
+<p>It&rsquo;s quite a bit of data. Download it, unzip it and adapt your path variables accordingly. The data is stores as shape files, a standard format for open geo data.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">my_path_vg2500_sta <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Documents/datasets/geo_maps/vg2500/vg2500_sta.shp&#34;</span>
 <span style="color:#a6e22e">file.exists</span>(my_path_vg2500_sta)
 <span style="color:#75715e">#&gt; [1] TRUE</span>
@@ -96,14 +96,14 @@ vg2500_sta <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">
   <span style="color:#a6e22e">geom_sf</span>()
 </code></pre></div><p><!-- raw HTML omitted --></p>
 <p>That was easy, right? The <code>sf</code> package fits nicely with the tidyverse. Hence not much to learn in that regard. I am not saying that geo data is simple, quite the contrary. But luckily the R functions fit in a well known schema.</p>
-<p>For instance, let's remove the axis labels and let's fill the country with some different color. Hm, what's the color of Germany? Grey? Black (color of the leading party)? Black-red-gold?</p>
+<p>For instance, let&rsquo;s remove the axis labels and let&rsquo;s fill the country with some different color. Hm, what&rsquo;s the color of Germany? Grey? Black (color of the leading party)? Black-red-gold?</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">vg2500_sta <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">slice</span>(<span style="color:#ae81ff">2</span><span style="color:#f92672">:</span><span style="color:#ae81ff">3</span>) <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_sf</span>(fill <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">grey40&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">theme_void</span>()
 </code></pre></div><p><!-- raw HTML omitted --></p>
-<p>Now, let's have a look to the more hi-res data. There a a number of files. We will first use the files with borders, or, geometrically, lines:</p>
+<p>Now, let&rsquo;s have a look to the more hi-res data. There a a number of files. We will first use the files with borders, or, geometrically, lines:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">my_path_vg250_L <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Documents/datasets/geo_maps/vg250/vg250_kompakt/VG250_L.shp&#34;</span>  <span style="color:#75715e"># de for Germany (country code), and L as in lines</span>
 vg_250_L <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">st_read</span>(my_path_vg250_L)
 <span style="color:#75715e">#&gt; Reading layer `VG250_L&#39; from data source `/Users/sebastiansauer/Documents/datasets/geo_maps/vg250/vg250_kompakt/VG250_L.shp&#39; using driver `ESRI Shapefile&#39;</span>
@@ -127,14 +127,14 @@ vg_250_L <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">st
 <span style="color:#75715e">#&gt; 4   1   1   0 LINESTRING (392662.34014679...</span>
 <span style="color:#75715e">#&gt; 5   1   1   0 LINESTRING (826537.76462522...</span>
 <span style="color:#75715e">#&gt; 6   1   1   0 LINESTRING (896720.92151288...</span>
-</code></pre></div><p><code>st_read</code> comes as a friend, smooth and hasslefree. All geo data is stored in <em>one</em> column: <code>geometry</code>. The other columns provide district data. The most important one here for us at this point is <code>AGZ</code> meaning <em>type of border</em>. Value 1 is <em>national border</em>. All right then, let's draw the country borders.</p>
+</code></pre></div><p><code>st_read</code> comes as a friend, smooth and hasslefree. All geo data is stored in <em>one</em> column: <code>geometry</code>. The other columns provide district data. The most important one here for us at this point is <code>AGZ</code> meaning <em>type of border</em>. Value 1 is <em>national border</em>. All right then, let&rsquo;s draw the country borders.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">vg_250_L <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">filter</span>(AGZ <span style="color:#f92672">==</span> <span style="color:#ae81ff">1</span>) <span style="color:#f92672">%&gt;%</span>
   ggplot <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_sf</span>()
 </code></pre></div><p><!-- raw HTML omitted --></p>
 <p>Note that this time, we have <em>lines</em>, no <em>areas</em>, hence we cannot fill the country with some color.</p>
-<p>Now, let's look at the larger Verwaltungsgebiete of Germany, they are:</p>
+<p>Now, let&rsquo;s look at the larger Verwaltungsgebiete of Germany, they are:</p>
 <ul>
 <li>Land (state; <code>lan</code>)</li>
 <li>Regierungsbezirk (legislative area, <code>rbz</code>)</li>
@@ -243,9 +243,9 @@ vg2500_krs <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">
   <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_sf</span>()
 </code></pre></div><p><!-- raw HTML omitted --></p>
-<p>Ok, that's complete. How many of those &ldquo;Kreise&rdquo; do we have? Well, 401, that's the number of rows we have in the data frame.</p>
+<p>Ok, that&rsquo;s complete. How many of those &ldquo;Kreise&rdquo; do we have? Well, 401, that&rsquo;s the number of rows we have in the data frame.</p>
 <h1 id="unemployment-rates">unemployment rates</h1>
-<p>These data can as well be fetched from official sites, that's in this case the <a href="https://www.regionalstatistik.de/genesis/online/data;jsessionid=DD0F1F23A8F85AA60A700BD4596EABBF.reg2?operation=abruftabelleAbrufen&amp;selectionname=13211-01-03-4&amp;levelindex=1&amp;levelid=1507583743311&amp;index=1">&ldquo;Bundesämter für Statistik&rdquo;</a>. We consider here the unemployment rates of German counties for 2016 as provided by this agency.</p>
+<p>These data can as well be fetched from official sites, that&rsquo;s in this case the <a href="https://www.regionalstatistik.de/genesis/online/data;jsessionid=DD0F1F23A8F85AA60A700BD4596EABBF.reg2?operation=abruftabelleAbrufen&amp;selectionname=13211-01-03-4&amp;levelindex=1&amp;levelid=1507583743311&amp;index=1">&ldquo;Bundesämter für Statistik&rdquo;</a>. We consider here the unemployment rates of German counties for 2016 as provided by this agency.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">unemp_file <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Documents/datasets/Strukturdaten_de/GUEST_9559782118415_Arbeitslosenquote_2016.csv&#34;</span>
 <span style="color:#a6e22e">file.exists</span>(unemp_file)
 <span style="color:#75715e">#&gt; [1] TRUE</span>
@@ -262,11 +262,11 @@ unemp_de <span style="color:#f92672">%&gt;%</span>
 <span style="color:#75715e">#&gt;        &lt;chr&gt;    &lt;chr&gt;   &lt;chr&gt; &lt;dbl&gt;</span>
 <span style="color:#75715e">#&gt; 1      09564 Nürnberg    &lt;NA&gt;   6.6</span>
 </code></pre></div><h1 id="match-unemployment-to-geo-data">Match unemployment to geo data</h1>
-<p>Presumingly, we will not have a perfect match, but let's see how good or bad it will be out of the box.</p>
+<p>Presumingly, we will not have a perfect match, but let&rsquo;s see how good or bad it will be out of the box.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">vg2500_krs <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">mutate</span>(GEN <span style="color:#f92672">=</span> <span style="color:#a6e22e">as.character</span>(GEN)) <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">left_join</span>(unemp_de, by <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">GEN&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Name&#34;</span>)) <span style="color:#f92672">-&gt;</span> vg2500_krs_unemp
-</code></pre></div><p>Let's plot the unemployment rates per administrative area.</p>
+</code></pre></div><p>Let&rsquo;s plot the unemployment rates per administrative area.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">vg2500_krs_unemp <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> Wert)) <span style="color:#f92672">+</span>

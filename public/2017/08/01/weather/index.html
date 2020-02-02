@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.62.1" />
+<meta name="generator" content="Hugo 0.63.2" />
 
 
 <title>Precipitation - It never rains in Southern Nuremberg (?). Working with dates/times. - Data Se</title>
@@ -73,7 +73,7 @@
 <p>We will need these packages:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)  <span style="color:#75715e"># data reading and wrangling</span>
 <span style="color:#a6e22e">library</span>(lubridate)  <span style="color:#75715e"># working with dates/times</span>
-</code></pre></div><p>First, let's import some precipitation data:</p>
+</code></pre></div><p>First, let&rsquo;s import some precipitation data:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">file_name <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Downloads/export-sun-nuremberg--flugfeld--airport--precipitation-data--1-hour--individuell.csv&#34;</span>
 rain <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_csv2</span>(file_name,
                  skip <span style="color:#f92672">=</span> <span style="color:#ae81ff">13</span>,
@@ -86,23 +86,23 @@ rain <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_c
 ## See problems(...) for more details.
 </code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">colnames</span>(rain) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">date_time&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">precip&#34;</span>)
 </code></pre></div><p>As there was some strange, non-UTF8 character in line 12, we just skipped this line. As this was the row with the column names, we informed <code>read_csv</code> that there are no col_names (using <code>col_names = FALSE</code>). Also, some missing data occured. Luckily, <code>readr</code> takes care (despite of a lot of warning output).</p>
-<p>Unfortunately, R has not yet reckognized that the first column consists of a date/time object. So let's tell her:</p>
+<p>Unfortunately, R has not yet reckognized that the first column consists of a date/time object. So let&rsquo;s tell her:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain<span style="color:#f92672">$</span>dt <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">parse_date_time</span>(rain<span style="color:#f92672">$</span>date_time, orders<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">dmy HM&#34;</span>)
-</code></pre></div><p>The parameter <code>order</code> tell R, that the format of <code>date_time</code> is day month year (hence <code>dmy</code>), followed by hour and minute (hence <code>HM</code>). Now let's spread the date/time to several columns:</p>
+</code></pre></div><p>The parameter <code>order</code> tell R, that the format of <code>date_time</code> is day month year (hence <code>dmy</code>), followed by hour and minute (hence <code>HM</code>). Now let&rsquo;s spread the date/time to several columns:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">select</span>(<span style="color:#f92672">-</span>date_time) <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">mutate</span>(day <span style="color:#f92672">=</span> <span style="color:#a6e22e">day</span>(dt),
          month <span style="color:#f92672">=</span> <span style="color:#a6e22e">month</span>(dt),
          year <span style="color:#f92672">=</span> <span style="color:#a6e22e">year</span>(dt),
          hour <span style="color:#f92672">=</span> <span style="color:#a6e22e">hour</span>(dt)) <span style="color:#f92672">-&gt;</span> rain
-</code></pre></div><p>Let's give each day a number, first day in record is #1, second day #2, and so on.</p>
+</code></pre></div><p>Let&rsquo;s give each day a number, first day in record is #1, second day #2, and so on.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain<span style="color:#f92672">$</span>date <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">date</span>(rain<span style="color:#f92672">$</span>dt)
 
 first_day <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">min</span>(rain<span style="color:#f92672">$</span>date)
 last_day <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">max</span>(rain<span style="color:#f92672">$</span>date)
 
 rain<span style="color:#f92672">$</span>day_ID <span style="color:#f92672">&lt;-</span> rain<span style="color:#f92672">$</span>date <span style="color:#f92672">-</span> <span style="color:#a6e22e">min</span>(rain<span style="color:#f92672">$</span>date)
-</code></pre></div><p>OK, now let's look at the precipitation in Nuremberg.</p>
+</code></pre></div><p>OK, now let&rsquo;s look at the precipitation in Nuremberg.</p>
 <p>How many dry days (no rain) have there been in 2016?</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">group_by</span>(day_ID) <span style="color:#f92672">%&gt;%</span>
@@ -112,7 +112,7 @@ rain<span style="color:#f92672">$</span>day_ID <span style="color:#f92672">&lt;-
 
 n_dry_days
 </code></pre></div><pre><code>## [1] 207
-</code></pre><p>Oh, 207 out of 366 days no rain, ie., 0.55. BTW: It was a leap year, that's why I put 366 days.</p>
+</code></pre><p>Oh, 207 out of 366 days no rain, ie., 0.55. BTW: It was a leap year, that&rsquo;s why I put 366 days.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">group_by</span>(day_ID) <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">slice</span>(<span style="color:#ae81ff">1</span>) <span style="color:#f92672">%&gt;%</span> nrow
@@ -120,7 +120,7 @@ n_dry_days
 </code></pre><p>Easy enought, this little sweet function tells us whether a given year was a leap year or not.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">leap_year</span>(<span style="color:#ae81ff">2016</span>)
 </code></pre></div><pre><code>## [1] TRUE
-</code></pre><p>Let's visualize whether a day was dry or not. First, we compute a variable <code>rain_today</code>.</p>
+</code></pre><p>Let&rsquo;s visualize whether a day was dry or not. First, we compute a variable <code>rain_today</code>.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">group_by</span>(year, month, day, day_ID) <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">summarise</span>(rain_today <span style="color:#f92672">=</span> <span style="color:#a6e22e">any</span>(precip <span style="color:#f92672">!=</span> <span style="color:#ae81ff">0</span>)) <span style="color:#f92672">%&gt;%</span>
@@ -132,7 +132,7 @@ n_dry_days
   <span style="color:#a6e22e">geom_col</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">scale_x_continuous</span>(breaks <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">12</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9"></p>
-<p>August and September then were quite dry, it appears. Let's look at the amount of precipitation for comparison.</p>
+<p>August and September then were quite dry, it appears. Let&rsquo;s look at the amount of precipitation for comparison.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">group_by</span>(month) <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">summarise</span>(precip_mean_today <span style="color:#f92672">=</span> <span style="color:#a6e22e">sum</span>(precip, na.rm <span style="color:#f92672">=</span> T)) <span style="color:#f92672">%&gt;%</span>
@@ -142,7 +142,7 @@ n_dry_days
   <span style="color:#a6e22e">scale_x_continuous</span>(breaks <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">12</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">labs</span>(title <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Total precipitation in liter per square meter&#34;</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-10-1.png" alt="plot of chunk unnamed-chunk-10"></p>
-<p>For the fun of it, let's prepare a more nuanced picture.</p>
+<p>For the fun of it, let&rsquo;s prepare a more nuanced picture.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain <span style="color:#f92672">%&gt;%</span>
   ggplot <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> date, y <span style="color:#f92672">=</span> hour, fill <span style="color:#f92672">=</span> precip) <span style="color:#f92672">+</span>
@@ -150,7 +150,7 @@ n_dry_days
   <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Spectral&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">scale_x_date</span>(date_breaks <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">1 month&#34;</span>, date_labels <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%b&#34;</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-11-1.png" alt="plot of chunk unnamed-chunk-11"></p>
-<p>Hey, in June there must have been some heavy raining. Let's zoom in.</p>
+<p>Hey, in June there must have been some heavy raining. Let&rsquo;s zoom in.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">filter</span>(month <span style="color:#f92672">==</span> <span style="color:#ae81ff">6</span>) <span style="color:#f92672">%&gt;%</span>
   ggplot <span style="color:#f92672">+</span>

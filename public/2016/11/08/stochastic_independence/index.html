@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.62.1" />
+<meta name="generator" content="Hugo 0.63.2" />
 
 
 <title>Some reflections on stochastic independence - Data Se</title>
@@ -70,11 +70,11 @@
 
     <div class="article-content">
       <!-- raw HTML omitted -->
-<p>We are often interested in the question whether two variables are &ldquo;associated&rdquo;, &ldquo;correlated&rdquo; (I mean the normal English term) or &ldquo;dependent&rdquo;. What exactly, or rather in normal words, does that mean? Let's look at some easy case.</p>
+<p>We are often interested in the question whether two variables are &ldquo;associated&rdquo;, &ldquo;correlated&rdquo; (I mean the normal English term) or &ldquo;dependent&rdquo;. What exactly, or rather in normal words, does that mean? Let&rsquo;s look at some easy case.</p>
 <p>NOTE: The example has been updated to reflect a more tangible and sensible scenario (find the old one in the previous commit at Github).</p>
 <h1 id="titanic-data">Titanic data</h1>
-<p>For example, let's look at survival rates of the Titanic disaster, to see whether the probability of survival (event A) depends on the whether you embarked for 1st class (event B).</p>
-<p>Let's load the data and have a look at them.</p>
+<p>For example, let&rsquo;s look at survival rates of the Titanic disaster, to see whether the probability of survival (event A) depends on the whether you embarked for 1st class (event B).</p>
+<p>Let&rsquo;s load the data and have a look at them.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">data</span>(titanic_train, package <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">titanic&#34;</span>)
 
 <span style="color:#a6e22e">library</span>(tidyverse)  <span style="color:#75715e"># plotting and data mungling</span>
@@ -97,7 +97,7 @@ data <span style="color:#f92672">&lt;-</span> titanic_train
 ## $ Cabin       &lt;chr&gt; &quot;&quot;, &quot;C85&quot;, &quot;&quot;, &quot;C123&quot;, &quot;&quot;, &quot;&quot;, &quot;E46&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, ...
 ## $ Embarked    &lt;chr&gt; &quot;S&quot;, &quot;C&quot;, &quot;S&quot;, &quot;S&quot;, &quot;S&quot;, &quot;Q&quot;, &quot;S&quot;, &quot;S&quot;, &quot;S&quot;, &quot;C&quot;, ...
 </code></pre><p>Look at the package description for some details on the variables.</p>
-<p>Let's look at the survival rate in general, that is to say to probability of A - irrespective of the the class (1st class or not 1st class).</p>
+<p>Let&rsquo;s look at the survival rate in general, that is to say to probability of A - irrespective of the the class (1st class or not 1st class).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">count</span>(Survived) <span style="color:#f92672">%&gt;%</span> 
   ggplot <span style="color:#f92672">+</span> 
@@ -106,7 +106,7 @@ data <span style="color:#f92672">&lt;-</span> titanic_train
   <span style="color:#a6e22e">ggtitle</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Number of Survivals&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">theme</span>(plot.title <span style="color:#f92672">=</span> <span style="color:#a6e22e">element_text</span>(hjust <span style="color:#f92672">=</span> <span style="color:#ae81ff">.5</span>))
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-08/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3"></p>
-<p>Maybe that's a better plot:</p>
+<p>Maybe that&rsquo;s a better plot:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">count</span>(Survived) <span style="color:#f92672">%&gt;%</span> 
   ggplot <span style="color:#f92672">+</span> 
@@ -146,7 +146,7 @@ data <span style="color:#f92672">&lt;-</span> titanic_train
 ## 2        0    not_1st   469
 ## 3        1        1st   136
 ## 4        1    not_1st   206
-</code></pre><p>So, that was warming up. Let's see what the probability (percentage) of survival is for both 1st class and non-first class.</p>
+</code></pre><p>So, that was warming up. Let&rsquo;s see what the probability (percentage) of survival is for both 1st class and non-first class.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">mutate</span>(Pclass_bin <span style="color:#f92672">=</span> <span style="color:#a6e22e">ifelse</span>(Pclass <span style="color:#f92672">==</span> <span style="color:#ae81ff">1</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">1st&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">not_1st&#34;</span>)) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">count</span>(Pclass_bin, Survived) <span style="color:#f92672">%&gt;%</span> 
@@ -218,7 +218,7 @@ we deduce</p>
 <p>Or more verbose in our Titanic example:</p>
 <p>$$p(Survival|1stClass) = p(Survival|1stclass) OR non1stCalss}) = p(Survial|non1stClass)$$.</p>
 <p>In words, whether someone survives is independent from the question of his or her passenger class: Survival probability is the the same in 1st class and in the other classes (&ldquo;non 1st class&rdquo;).</p>
-<p>Let's look at the data of our example:</p>
+<p>Let&rsquo;s look at the data of our example:</p>
 <p>$$p(A) = 342 / (549+342) = 0.38 \<br>
 p(nonA) = 549 / (549+342) = 0.62 \</p>
 <p>p(B) = 216 / (216 + 675) = 0.24 \</p>
@@ -249,7 +249,7 @@ p_diff <span style="color:#f92672">&lt;-</span> p_A_given_B <span style="color:#
 p_diff
 </code></pre></div><pre><code>## [1] 0.3244444
 </code></pre><p>The difference <code>p(A|B) - p(A|nonB)</code> is not zero. Actually it is quite far away: If you are in 1st, your survival rate is 32% higher if you were not in 1st class. Quite strong. However, note that this last step is subjective, no job for statistics.</p>
-<p>Finally, let's look for two variable which are not associated. For example: Shoe size (of adults) and their bank account number.</p>
+<p>Finally, let&rsquo;s look for two variable which are not associated. For example: Shoe size (of adults) and their bank account number.</p>
 <p>In our dataset, what about port of Embarkement: Southampton vs. not Southampton and Survival rate.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">mutate</span>(Embarked_bin <span style="color:#f92672">=</span> <span style="color:#a6e22e">ifelse</span>(Embarked <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">S&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">S&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">not_S&#34;</span>)) <span style="color:#f92672">%&gt;%</span> 
@@ -279,7 +279,7 @@ p_diff
   <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> Fare_odd, y <span style="color:#f92672">=</span> n, fill <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(Survived)) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_bar</span>(stat <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">identity&#34;</span>, position <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">fill&#34;</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-08/unnamed-chunk-14-1.png" alt="plot of chunk unnamed-chunk-14"></p>
-<p>Well, nearly equal, approximately independent, or independent enough for me (as said, that's subjective).</p>
+<p>Well, nearly equal, approximately independent, or independent enough for me (as said, that&rsquo;s subjective).</p>
 <h1 id="concluding-remarks">Concluding remarks</h1>
 <p>Of course there are numerous ways to &ldquo;measure&rdquo; the strength of assocation. Odds ratios, for example, a popular choice. The reason why I like or presented this version $$p(A|B)-p(A|nonB)$$ is that I find it intuitively appealing. In my teaching I found that the Odds Ratio was somewhat more difficult to grasp at first.</p>
 <p>Also note that we where looking at discrete events, not continuous.</p>

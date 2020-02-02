@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.62.1" />
+<meta name="generator" content="Hugo 0.63.2" />
 
 
 <title>Plotting survey results using `ggplot2` - Data Se</title>
@@ -69,23 +69,23 @@
     
 
     <div class="article-content">
-      <p>Plotting (and more generally, analyzing) survey results is a frequent endeavor in many business environments. Let's not think about arguments whether and when surveys are useful (for some recent criticism see <a href="http://www.springer.com/de/book/9783319397559">Briggs&rsquo; book</a>).</p>
-<p>Typically, respondents circle some option ranging from &ldquo;don't agree at all&rdquo; to &ldquo;completely agree&rdquo; for each question (or &ldquo;item&rdquo;). Typically, four to six boxes are given where one is expected to tick one.</p>
+      <p>Plotting (and more generally, analyzing) survey results is a frequent endeavor in many business environments. Let&rsquo;s not think about arguments whether and when surveys are useful (for some recent criticism see <a href="http://www.springer.com/de/book/9783319397559">Briggs&rsquo; book</a>).</p>
+<p>Typically, respondents circle some option ranging from &ldquo;don&rsquo;t agree at all&rdquo; to &ldquo;completely agree&rdquo; for each question (or &ldquo;item&rdquo;). Typically, four to six boxes are given where one is expected to tick one.</p>
 <p>In this tutorial, I will discuss some barplot type visualizations; the presentation is based on <code>ggplot2</code> (within the <code>R</code> environment) . Sure, much more can be done than will be presented here, but for the scope of this post, we will stick to the plain barplot (although some variations of it).</p>
-<p>Let's load some needed packages:</p>
+<p>Let&rsquo;s load some needed packages:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)
 </code></pre></div><hr>
 <p>EDIT: The preparation part of this post has been <em>excluded</em> and moved to an <a href="https://sebastiansauer.github.io/preparing_survey_data/">own post</a>, for clarity.</p>
 <hr>
 <h1 id="loading-data">Loading data</h1>
-<p>So, first, let's load some data. That's a data set of a survey on extraversion. Folks were asked a bunch of questions tapping at their &ldquo;psychometric extraversion&rdquo;, and some related behavior, that is, behavior <em>supposed to</em> be related such as &ldquo;number of Facebook friends&rdquo;, &ldquo;how often at a party&rdquo; etc. Note that college students form the sample.</p>
+<p>So, first, let&rsquo;s load some data. That&rsquo;s a data set of a survey on extraversion. Folks were asked a bunch of questions tapping at their &ldquo;psychometric extraversion&rdquo;, and some related behavior, that is, behavior <em>supposed to</em> be related such as &ldquo;number of Facebook friends&rdquo;, &ldquo;how often at a party&rdquo; etc. Note that college students form the sample.</p>
 <p>Data are available only (free as in free and free as in beer).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read.csv</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">https://osf.io/meyhp/?action=download&#34;</span>)
 
 
 data_backup <span style="color:#f92672">&lt;-</span> data <span style="color:#75715e"># backup just in case we screw something up</span>
-</code></pre></div><p>Here's the DOI of this piece of data: 10.17605/OSF.IO/4KGZH.</p>
-<p>OK, we got &lsquo;em; a dataset of dimension 501, 28. Let's glimpse at the data:</p>
+</code></pre></div><p>Here&rsquo;s the DOI of this piece of data: 10.17605/OSF.IO/4KGZH.</p>
+<p>OK, we got &lsquo;em; a dataset of dimension 501, 28. Let&rsquo;s glimpse at the data:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">glimpse</span>(data)
 </code></pre></div><pre><code>## Observations: 501
 ## Variables: 28
@@ -117,7 +117,7 @@ data_backup <span style="color:#f92672">&lt;-</span> data <span style="color:#75
 ## $ extra_mean         &lt;dbl&gt; 2.9, 2.1, 2.6, 2.9, 3.2, 2.8, 2.8, 2.5, 3.2...
 ## $ extra_median       &lt;dbl&gt; 3.0, 2.0, 3.0, 3.0, 3.5, 3.0, 3.0, 2.5, 3.5...
 ## $ client_freq        &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA,...
-</code></pre><p>Let's extract only the items, and exclude <code>NA</code>s (there are not many).</p>
+</code></pre><p>Let&rsquo;s extract only the items, and exclude <code>NA</code>s (there are not many).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">select</span>(i01<span style="color:#f92672">:</span>i10) <span style="color:#f92672">%&gt;%</span> nrow
 </code></pre></div><pre><code>## [1] 501
@@ -130,8 +130,8 @@ data_backup <span style="color:#f92672">&lt;-</span> data <span style="color:#75
   na.omit <span style="color:#f92672">-&gt;</span> data_items
 </code></pre></div><h1 id="plotting-item-distribution">Plotting item distribution</h1>
 <h2 id="typical-stacked-bar-plot">Typical stacked bar plot</h2>
-<p>The most obvious thing is to plot the distribution of the items (here: 10) of the survey. So let's do that with <code>ggplot</code>.</p>
-<p>On the x-axis we would like to have each item (i1, i2, &hellip;), and on the y-axis the frequency of each answer, in some stapled bar fashion. That means, on the x-axis is <em>one</em> variable only. That's why we need to &ldquo;melt&rdquo; the items to one &ldquo;long&rdquo; variable.</p>
+<p>The most obvious thing is to plot the distribution of the items (here: 10) of the survey. So let&rsquo;s do that with <code>ggplot</code>.</p>
+<p>On the x-axis we would like to have each item (i1, i2, &hellip;), and on the y-axis the frequency of each answer, in some stapled bar fashion. That means, on the x-axis is <em>one</em> variable only. That&rsquo;s why we need to &ldquo;melt&rdquo; the items to one &ldquo;long&rdquo; variable.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data_items <span style="color:#f92672">%&gt;%</span>  
   <span style="color:#a6e22e">gather</span>(key <span style="color:#f92672">=</span> items, value <span style="color:#f92672">=</span> answer) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">mutate</span>(answer <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(answer)) <span style="color:#f92672">%&gt;%</span> 
@@ -155,7 +155,7 @@ p1
 p2
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-6-1.png" alt="plot of chunk unnamed-chunk-6"></p>
 <h2 id="colors">Colors</h2>
-<p>The beauty of the colors lie in the eye of the beholder&hellip; Let's try a different palette.</p>
+<p>The beauty of the colors lie in the eye of the beholder&hellip; Let&rsquo;s try a different palette.</p>
 <p>Sequential color palettes.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p2 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_brewer</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Blues&#34;</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-7-1.png" alt="plot of chunk unnamed-chunk-7"></p>
@@ -214,8 +214,8 @@ p4
   <span style="color:#a6e22e">scale_color_manual</span>(values <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">NA&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">red&#34;</span>), guide <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">none&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">scale_fill_grey</span>()
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-13-1.png" alt="plot of chunk unnamed-chunk-13"></p>
-<p>To be honest, does really look nice. Let's try something different later.</p>
-<h2 id="barplot-with-geom-rect">Barplot with <code>geom_rect</code></h2>
+<p>To be honest, does really look nice. Let&rsquo;s try something different later.</p>
+<h2 id="barplot-with-geom_rect">Barplot with <code>geom_rect</code></h2>
 <p>This section and code is inspired by <a href="http://rnotr.com/likert/ggplot/barometer/likert-plotly/">this post</a>.</p>
 <p>The goal is to produce a more flexible bar plot, such as a &ldquo;waterfall plot&rdquo;, where y= 0 is centered at the middle bar height, we need to change the <code>geom</code>. No more <code>geom_bar</code> but the more versatile <code>geom_rect</code>. This geom plots, surprisingly, rectangles. Hence, we need to know the start and the end value (for the y-axis, the width of the bar is just 1).</p>
 <p>First, we need to prepare the dataset for that task.</p>
@@ -384,7 +384,7 @@ data7 <span style="color:#f92672">%&gt;%</span> head <span style="color:#f92672"
 </tr>
 </tbody>
 </table>
-<p>Now let's plot the bar graph with the rectangle plot.</p>
+<p>Now let&rsquo;s plot the bar graph with the rectangle plot.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data7<span style="color:#f92672">$</span>answer <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">factor</span>(data7<span style="color:#f92672">$</span>answer)
 
 <span style="color:#a6e22e">ggplot</span>(data7) <span style="color:#f92672">+</span>
@@ -411,7 +411,7 @@ p6
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-18-1.png" alt="plot of chunk unnamed-chunk-18"></p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p4
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-18-2.png" alt="plot of chunk unnamed-chunk-18"></p>
-<p>Let's try to highlight the most frequent answer category for each item.</p>
+<p>Let&rsquo;s try to highlight the most frequent answer category for each item.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data7 <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">mutate</span>(n <span style="color:#f92672">=</span> end <span style="color:#f92672">-</span> start) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">group_by</span>(items) <span style="color:#f92672">%&gt;%</span> 
@@ -446,10 +446,10 @@ data7 <span style="color:#f92672">%&gt;%</span>
 </code></pre></div><pre><code>## Warning: Ignoring unknown aesthetics: x
 </code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p8 <span style="color:#f92672">+</span> <span style="color:#a6e22e">coord_flip</span>()
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-19-1.png" alt="plot of chunk unnamed-chunk-19"></p>
-<p><a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">Here's</a> a cheat sheet on colors and palettes; and <a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">here</a> you'll find an overview on colors (with names and hex codes).</p>
+<p><a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">Here&rsquo;s</a> a cheat sheet on colors and palettes; and <a href="https://www.nceas.ucsb.edu/~frazier/RSpatialGuides/colorPaletteCheatsheet.pdf">here</a> you&rsquo;ll find an overview on colors (with names and hex codes).</p>
 <p>Mrs. Brewer <a href="http://colorbrewer2.org/#type=sequential&amp;scheme=BuGn&amp;n=3">site</a> is a great place to come up with your own palette and learn more about colors.</p>
 <h1 id="rainbow-diagram">Rainbow diagram</h1>
-<p>Let's try to &ldquo;move&rdquo; the bars to our wishes. Precisely, it would be nice if the bars were aligned at the &ldquo;Rubicon&rdquo; between &ldquo;do <em>not</em> agree&rdquo; and &ldquo;<em>do</em> agree&rdquo;. Then we could see better how many persons agree and not.</p>
+<p>Let&rsquo;s try to &ldquo;move&rdquo; the bars to our wishes. Precisely, it would be nice if the bars were aligned at the &ldquo;Rubicon&rdquo; between &ldquo;do <em>not</em> agree&rdquo; and &ldquo;<em>do</em> agree&rdquo;. Then we could see better how many persons agree and not.</p>
 <p>More practically, if we knew that 104+212 = 316 persons basically disagree, then 316 could be our &ldquo;zero line&rdquo; (item 10). Repeat that for each item.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data8 <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">group_by</span>(items) <span style="color:#f92672">%&gt;%</span> 
@@ -477,7 +477,7 @@ data9 <span style="color:#f92672">%&gt;%</span>
 </code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p9
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-20-1.png" alt="plot of chunk unnamed-chunk-20"></p>
 <p>Looks quite cool.</p>
-<p>Now let's add the numbers to that plot.</p>
+<p>Now let&rsquo;s add the numbers to that plot.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data4 <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">mutate</span>(items_num <span style="color:#f92672">=</span> <span style="color:#a6e22e">parse_number</span>(items)) <span style="color:#f92672">%&gt;%</span> 
   dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">select</span>(<span style="color:#f92672">-</span>items) <span style="color:#f92672">%&gt;%</span> 
@@ -497,7 +497,7 @@ p9 <span style="color:#f92672">+</span>
 
 p11
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-21-1.png" alt="plot of chunk unnamed-chunk-21"></p>
-<p>And now let's highlight the most frequent answer category.</p>
+<p>And now let&rsquo;s highlight the most frequent answer category.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(ggrepel)
 
 data11 <span style="color:#f92672">%&gt;%</span> 
@@ -525,7 +525,7 @@ data11 <span style="color:#f92672">%&gt;%</span>
 ## Warning: Ignoring unknown aesthetics: x
 </code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p12
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-22-1.png" alt="plot of chunk unnamed-chunk-22"></p>
-<p>OK, that's about it for today. May turn the waterfall by 90°.</p>
+<p>OK, that&rsquo;s about it for today. May turn the waterfall by 90°.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p12 <span style="color:#f92672">+</span> <span style="color:#a6e22e">coord_flip</span>()
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-12/unnamed-chunk-23-1.png" alt="plot of chunk unnamed-chunk-23"></p>
 <p>And change the direction of the now numeric items-axis.</p>

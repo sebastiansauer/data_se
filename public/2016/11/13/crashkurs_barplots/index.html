@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.62.1" />
+<meta name="generator" content="Hugo 0.63.2" />
 
 
 <title>Crashkurs zur Erstellung von Barplots für Umfrage-Daten - Data Se</title>
@@ -125,11 +125,11 @@
 </ul>
 <p>Statt dessen gehen wir davon aus, dass alles passt :-)</p>
 <p>Eine ausführlichere Beschreibung der Aufbereitung dieser Daten findet sich <a href="https://sebastiansauer.github.io/plotting_surveys/">hier</a>.</p>
-<h1 id="daten-umstellen-fr-das-plotten">Daten umstellen für das Plotten</h1>
+<h1 id="daten-umstellen-für-das-plotten">Daten umstellen für das Plotten</h1>
 <p>Wir haben ein Diagramm vor Augen (s.u.), bei dem auf der X-Achse die Items stehen (1,2,&hellip;,n) und auf der Y-Achse die Anzahl der Kreuze nach Kategorien.</p>
 <p>Viele Grafik-Funktionen sind nun so aufgebaut, dass auf der X-Achsen nur <em>eine</em> Variable steht. <code>ggplot2</code>, das wir hier verwenden, ist da keine Ausnahme. Wir müssen also die &ldquo;breite&rdquo; Tabelle (10 Spalten, pro Item eine) in eine &ldquo;lange Spalte&rdquo; umbauen: Eine Spalte heißt dann &ldquo;Itemnummer&rdquo; und die zweite &ldquo;Wert des Items&rdquo; oder so ähnlich.</p>
 <p>Eine ausführliche Beschreibung findet sich z.B. <a href="https://sebastiansauer.github.io/gather-long-to-wide-format/">hier</a>.</p>
-<p>Also, los geht's:</p>
+<p>Also, los geht&rsquo;s:</p>
 <p>Zuerst wählen wir aus der Fülle der Daten, die Spalten, die uns interessieren: Die 10 Extraversions-Items, in diesem Fall.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data_items <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">select</span>(data, i01<span style="color:#f92672">:</span>i10)
 </code></pre></div><p>Dann stellen wir die Daten von &ldquo;breit&rdquo; nach &ldquo;lang&rdquo; um, so dass die Items eine Variable bilden und damit für <code>ggplot2</code> gut zu verarbeiten sind.</p>
@@ -169,7 +169,7 @@ data_long<span style="color:#f92672">$</span>Antwort <span style="color:#f92672"
   <span style="color:#a6e22e">geom_bar</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> Antwort), position <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">fill&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">coord_flip</span>()
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-13-02/unnamed-chunk-9-1.png" alt="plot of chunk unnamed-chunk-9"></p>
-<h1 id="text-labels-fr-die-items">Text-Labels für die Items</h1>
+<h1 id="text-labels-für-die-items">Text-Labels für die Items</h1>
 <p>Wir definieren die Texte (&ldquo;Labels&rdquo;) für die Items:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">item_labels <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Ich bin das erste Item&#34;</span>,
                  <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Das zweite Item&#34;</span>,
@@ -197,7 +197,7 @@ data_long<span style="color:#f92672">$</span>Antwort <span style="color:#f92672"
   <span style="color:#a6e22e">scale_x_discrete</span>(labels <span style="color:#f92672">=</span> item_labels, name <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Extraversionsitems&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">scale_y_continuous</span>(name <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Anteile&#34;</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2016-11-13-02/unnamed-chunk-13-1.png" alt="plot of chunk unnamed-chunk-13"></p>
-<h1 id="diagramm-mit-hufigkeiten-nicht-anteilen">Diagramm mit Häufigkeiten, nicht Anteilen</h1>
+<h1 id="diagramm-mit-häufigkeiten-nicht-anteilen">Diagramm mit Häufigkeiten, nicht Anteilen</h1>
 <p>Ach so, schön wäre noch die echten Zahlen an der Y-Achse, nicht Anteile. Dafür müssen wir unseren Diagrammtyp ändern, bzw. die Art der Anordnung ändern. Mit <code>position = &quot;fill&quot;</code> wird der Anteil (also mit einer Summe von 100%) dargestellt. Wir können auch einfach die Zahlen/Häufigkeiten anzeigen, in dem wir die Kategorien &ldquo;aufeinander stapeln&rdquo;</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">ggplot</span>(data <span style="color:#f92672">=</span> data_long) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> items)  <span style="color:#f92672">+</span>

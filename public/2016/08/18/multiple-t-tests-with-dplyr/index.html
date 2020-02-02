@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.62.1" />
+<meta name="generator" content="Hugo 0.63.2" />
 
 
 <title>Multiple t-Tests with dplyr - Data Se</title>
@@ -72,7 +72,7 @@
       <h2 id="t-test-on-multiple-columns">t-Test on multiple columns</h2>
 <p>Suppose you have a data set where you want to perform a t-Test on multiple columns with some grouping variable. As an example, say you a data frame where each column depicts the score on some test (1st, 2nd, 3rd assignment&hellip;). In each row is a different student. So you glance at the grading list (OMG!) of a teacher!</p>
 <p>How to do do that in R? Probably, the most &ldquo;natural&rdquo; solution would be some <code>lapply()</code> call.</p>
-<p>But I like <code>dplyr</code> (see <a href="https://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html">intro here</a>); so, is there some nice way to perform that with <code>dplyr</code>? The short answer is: no. <code>dplyr</code> basically wants to deliver back a data frame, and the t-test does not output a single value, so you cannot use the t-test (right away) for <code>dplyr</code>'s <code>summarise</code>. One way out is using list-columns&hellip; Let's see.</p>
+<p>But I like <code>dplyr</code> (see <a href="https://cran.rstudio.com/web/packages/dplyr/vignettes/introduction.html">intro here</a>); so, is there some nice way to perform that with <code>dplyr</code>? The short answer is: no. <code>dplyr</code> basically wants to deliver back a data frame, and the t-test does not output a single value, so you cannot use the t-test (right away) for <code>dplyr</code>'s <code>summarise</code>. One way out is using list-columns&hellip; Let&rsquo;s see.</p>
 <p>Load some <code>dplyr</code>, <code>tidyr</code> and some data:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(dplyr)
 <span style="color:#a6e22e">library</span>(tidyr)
@@ -87,7 +87,7 @@
 ## $ day        &lt;fctr&gt; Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, Sun, ...
 ## $ time       &lt;fctr&gt; Dinner, Dinner, Dinner, Dinner, Dinner, Dinner, Di...
 ## $ size       &lt;int&gt; 2, 3, 3, 2, 4, 4, 2, 4, 2, 2, 2, 4, 2, 4, 2, 2, 3, ...
-</code></pre><p>Well, it looks crude, but that's a way:</p>
+</code></pre><p>Well, it looks crude, but that&rsquo;s a way:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tips <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">select</span>(tip, total_bill, sex) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">gather</span>(key <span style="color:#f92672">=</span> variable, value <span style="color:#f92672">=</span> value, <span style="color:#f92672">-</span>sex) <span style="color:#f92672">%&gt;%</span> 
@@ -104,7 +104,7 @@
 ##        &lt;chr&gt;     &lt;list&gt;      &lt;list&gt;      &lt;dbl&gt;     &lt;dbl&gt;
 ## 1        tip &lt;dbl [87]&gt; &lt;dbl [157]&gt; 0.13780684 -1.489536
 ## 2 total_bill &lt;dbl [87]&gt; &lt;dbl [157]&gt; 0.01857339 -2.373398
-</code></pre><p>Let's go through this code step by step. First, this bit</p>
+</code></pre><p>Let&rsquo;s go through this code step by step. First, this bit</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tips <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">select</span>(tip, total_bill, sex) <span style="color:#f92672">%&gt;%</span> head
 </code></pre></div><pre><code>##    tip total_bill    sex
@@ -141,7 +141,7 @@
 ## 2 Female total_bill  &lt;dbl [87]&gt;
 ## 3   Male        tip &lt;dbl [157]&gt;
 ## 4   Male total_bill &lt;dbl [157]&gt;
-</code></pre><p>Now it get's interesting. We put all the <code>values</code> per group (e.g., male-tip or female-total_bill&hellip;) in one cell. Yes, that's right. In each cell of column <code>value</code> there is now a list (a bunch) of values. That's what is called a &ldquo;list-column&rdquo;. We will now use this list column for the t-test.</p>
+</code></pre><p>Now it get&rsquo;s interesting. We put all the <code>values</code> per group (e.g., male-tip or female-total_bill&hellip;) in one cell. Yes, that&rsquo;s right. In each cell of column <code>value</code> there is now a list (a bunch) of values. That&rsquo;s what is called a &ldquo;list-column&rdquo;. We will now use this list column for the t-test.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">tips <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">select</span>(tip, total_bill, sex) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">gather</span>(key <span style="color:#f92672">=</span> variable, value <span style="color:#f92672">=</span> value, <span style="color:#f92672">-</span>sex) <span style="color:#f92672">%&gt;%</span> 
@@ -174,7 +174,7 @@
 ##        &lt;chr&gt;     &lt;list&gt;      &lt;list&gt;      &lt;dbl&gt;     &lt;dbl&gt;
 ## 1        tip &lt;dbl [87]&gt; &lt;dbl [157]&gt; 0.13780684 -1.489536
 ## 2 total_bill &lt;dbl [87]&gt; &lt;dbl [157]&gt; 0.01857339 -2.373398
-</code></pre><p>That's it.</p>
+</code></pre><p>That&rsquo;s it.</p>
 <h2 id="you-can-have-it-very-simple">You can have it very simple</h2>
 <p>That was quite cumbersome for something which could have been achieved very simple with</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">t.test</span>(tip <span style="color:#f92672">~</span> sex, data <span style="color:#f92672">=</span> tips)<span style="color:#f92672">$</span>p.value

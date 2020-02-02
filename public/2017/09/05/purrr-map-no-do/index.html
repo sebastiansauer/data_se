@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.62.1" />
+<meta name="generator" content="Hugo 0.63.2" />
 
 
 <title>Replacing dplyr::do by purrr:map. Some considerations - Data Se</title>
@@ -75,7 +75,7 @@
 </code></pre></div><p>We will use <code>mtcars</code> as a sample dataframe (boring, I know, but convenient).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">data</span>(mtcars)
 </code></pre></div><h1 id="cor-is-a-function-that-takes-a-dataframe-as-its-input"><code>Cor</code> is a function that takes a dataframe as its input</h1>
-<p>As in the last post, assume we would like to conduct a correlation test. First, let's start simple using <code>cor</code>.</p>
+<p>As in the last post, assume we would like to conduct a correlation test. First, let&rsquo;s start simple using <code>cor</code>.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">select_if</span>(is.numeric) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">select</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">3</span>) <span style="color:#f92672">%&gt;%</span>   <span style="color:#75715e"># to make it smaller</span>
@@ -84,9 +84,9 @@
 <span style="color:#75715e">#&gt; mpg   1.0000000 -0.8521620 -0.8475514</span>
 <span style="color:#75715e">#&gt; cyl  -0.8521620  1.0000000  0.9020329</span>
 <span style="color:#75715e">#&gt; disp -0.8475514  0.9020329  1.0000000</span>
-</code></pre></div><p>Here's no need for <code>purrr:map</code>. <code>map</code> is essentially a looping device, taking a list as input. However, <code>cor</code> does not takes lists as input. It takes a whole dataframe (consisting of many lists). That's even more practical than a looping function such as <code>map</code>.</p>
+</code></pre></div><p>Here&rsquo;s no need for <code>purrr:map</code>. <code>map</code> is essentially a looping device, taking a list as input. However, <code>cor</code> does not takes lists as input. It takes a whole dataframe (consisting of many lists). That&rsquo;s even more practical than a looping function such as <code>map</code>.</p>
 <h1 id="cortest-via-do-and-via-map"><code>cor.test</code> via <code>do</code> and via <code>map</code></h1>
-<p>Now let's see where <code>map</code> makes sense. Consider <code>cor.test</code> from the last post. <code>cor.test</code> does not accept a dataframe as input, hence the <code>dplyr</code> logic does not apply well. Instead we have to build a workaround using <code>do</code>:</p>
+<p>Now let&rsquo;s see where <code>map</code> makes sense. Consider <code>cor.test</code> from the last post. <code>cor.test</code> does not accept a dataframe as input, hence the <code>dplyr</code> logic does not apply well. Instead we have to build a workaround using <code>do</code>:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">do</span>(<span style="color:#a6e22e">cor.test</span>(.$hp, .$cyl) <span style="color:#f92672">%&gt;%</span> tidy)
 <span style="color:#75715e">#&gt;    estimate statistic      p.value parameter  conf.low conf.high</span>
@@ -138,7 +138,7 @@
 <span style="color:#75715e">#&gt; 1 Pearson&#39;s product-moment correlation   two.sided</span>
 <span style="color:#75715e">#&gt; 2 Pearson&#39;s product-moment correlation   two.sided</span>
 <span style="color:#75715e">#&gt; 3 Pearson&#39;s product-moment correlation   two.sided</span>
-</code></pre></div><p><code>map_df</code> maps the function (that's what comes after &ldquo;~&rdquo;) to each list (ie., column) of <code>mtcars</code>. If possible, the resulting elements will be row-binded to a dataframe. To make the output of <code>cor.test</code> nice (ie., tidy) we again use <code>tidy</code>.</p>
+</code></pre></div><p><code>map_df</code> maps the function (that&rsquo;s what comes after &ldquo;~&rdquo;) to each list (ie., column) of <code>mtcars</code>. If possible, the resulting elements will be row-binded to a dataframe. To make the output of <code>cor.test</code> nice (ie., tidy) we again use <code>tidy</code>.</p>
 <h1 id="extract-elements-from-a-list-using-map">Extract elements from a list using <code>map</code></h1>
 <p>Say, we are only interest in the p-value (OMG). How to extract each of the 3 p-values in our example?</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">mtcars <span style="color:#f92672">%&gt;%</span> 
@@ -186,7 +186,7 @@ x <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">list</spa
 x[1]
 <span style="color:#75715e">#&gt; [[1]]</span>
 <span style="color:#75715e">#&gt; [1] 1</span>
-</code></pre></div><p>Maybe more convenient, there is a function called <code>magrittr:extractor</code>. It's a wrapper aroung <code>[</code>:</p>
+</code></pre></div><p>Maybe more convenient, there is a function called <code>magrittr:extractor</code>. It&rsquo;s a wrapper aroung <code>[</code>:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(magrittr)
 mtcars <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">select</span>(hp, cyl, mpg) <span style="color:#f92672">%&gt;%</span>  <span style="color:#75715e"># only three for the sake of demonstration</span>

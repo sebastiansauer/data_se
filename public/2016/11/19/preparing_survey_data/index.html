@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.62.1" />
+<meta name="generator" content="Hugo 0.63.2" />
 
 
 <title>Preparing survey results data - Data Se</title>
@@ -69,21 +69,21 @@
     
 
     <div class="article-content">
-      <p>Analyzing survey results is a frequent endeavor (for some including me). Let's not think about arguments whether and when surveys are useful or not (for some recent criticism see <a href="http://www.springer.com/de/book/9783319397559">Briggs&rsquo; book</a>).</p>
-<p>Typically, respondents circle some option ranging from &ldquo;don't agree at all&rdquo; to &ldquo;completely agree&rdquo; for each question (or &ldquo;item&rdquo;). Typically, four to six boxes are given where one is expected to tick one.</p>
+      <p>Analyzing survey results is a frequent endeavor (for some including me). Let&rsquo;s not think about arguments whether and when surveys are useful or not (for some recent criticism see <a href="http://www.springer.com/de/book/9783319397559">Briggs&rsquo; book</a>).</p>
+<p>Typically, respondents circle some option ranging from &ldquo;don&rsquo;t agree at all&rdquo; to &ldquo;completely agree&rdquo; for each question (or &ldquo;item&rdquo;). Typically, four to six boxes are given where one is expected to tick one.</p>
 <p>In this tutorial, I will discuss some typical steps to prepare the data for subsequent analyses. The goal is that we have the dataset ready for analyzing with basic preparations (eg. recoding of reversed variables) already done.</p>
 <p>Some needed packages.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)
 <span style="color:#a6e22e">library</span>(forcats)  <span style="color:#75715e"># recoding</span>
 <span style="color:#a6e22e">library</span>(psych)  <span style="color:#75715e"># testing for internal consistency</span>
 </code></pre></div><h1 id="prepare-data">Prepare data</h1>
-<p>So, first, let's load some data. That's a data set of a survey on extraversion. Folks were asked a bunch of questions tapping at their &ldquo;psychometric extraversion&rdquo;, and some related behavior, that is, behavior <em>supposed to</em> be related such as &ldquo;number of Facebook friends&rdquo;, &ldquo;how often at a party&rdquo; etc. Note that college students form the sample.</p>
+<p>So, first, let&rsquo;s load some data. That&rsquo;s a data set of a survey on extraversion. Folks were asked a bunch of questions tapping at their &ldquo;psychometric extraversion&rdquo;, and some related behavior, that is, behavior <em>supposed to</em> be related such as &ldquo;number of Facebook friends&rdquo;, &ldquo;how often at a party&rdquo; etc. Note that college students form the sample.</p>
 <p>Data are available only (free as in free and free as in beer).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data_raw <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read.csv</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">https://sebastiansauer.github.io/data/extra_raw_WS16.csv&#34;</span>)
 
 data <span style="color:#f92672">&lt;-</span> data_raw  <span style="color:#75715e"># backup just in case</span>
-</code></pre></div><p>Here's the DOI of this data: 10.17605/OSF.IO/4KGZH.</p>
-<p>OK, we got &lsquo;em; a dataset of dimension 501, 24. Let's glimpse at the data:</p>
+</code></pre></div><p>Here&rsquo;s the DOI of this data: 10.17605/OSF.IO/4KGZH.</p>
+<p>OK, we got &lsquo;em; a dataset of dimension 501, 24. Let&rsquo;s glimpse at the data:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">glimpse</span>(data)
 </code></pre></div><pre><code>## Observations: 501
 ## Variables: 24
@@ -112,11 +112,11 @@ data <span style="color:#f92672">&lt;-</span> data_raw  <span style="color:#7571
 ## $ X                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      &lt;lgl&gt; ...
 ## $ Wie.sehr.treffen.die.folgenden.Aussagen.auf.Sie.zu..Bitte.denken.Sie.dabei.nicht.an.spezifische.Situationen..sondern.ganz.allgemein..wie.sehr.die.Aussagen.Sie.selbst.in.den.meisten.Bereichen.und.Situationen.in.Ihrem.Leben.beschreiben.Allgemein.wirke.ich.tendenziell.eher.wie.eine.Person..die......                                                                                                                                                                                                                                                                                                                                                                                                                                                                              &lt;int&gt; ...
 </code></pre><h2 id="renaming">Renaming</h2>
-<p>Looks like a jungle. Now what? Let's start with renaming the columns (variables).</p>
+<p>Looks like a jungle. Now what? Let&rsquo;s start with renaming the columns (variables).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">extra_colnames <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">names</span>(data)  <span style="color:#75715e"># save names in this vector</span>
 
 <span style="color:#a6e22e">names</span>(data)[3<span style="color:#f92672">:</span><span style="color:#ae81ff">12</span>] <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">paste</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">i&#34;</span>, <span style="color:#a6e22e">formatC</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">10</span>, width <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>, flag <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>), sep <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>) 
-</code></pre></div><p>There's a saying that naming variables/objects in one of the hardest things in computer stuff. One time I renamed the columns from &ldquo;i01&rdquo; to &ldquo;i26&rdquo; or so. That's <em>different</em> to the naming scheme we used now! This ambivalence can lead to confusion (happened to me). That's why I now follow this rule:</p>
+</code></pre></div><p>There&rsquo;s a saying that naming variables/objects in one of the hardest things in computer stuff. One time I renamed the columns from &ldquo;i01&rdquo; to &ldquo;i26&rdquo; or so. That&rsquo;s <em>different</em> to the naming scheme we used now! This ambivalence can lead to confusion (happened to me). That&rsquo;s why I now follow this rule:</p>
 <ul>
 <li>Renaming strange columns names -&gt; use <code>v01</code> to <code>v25</code> (or how many columns you have)</li>
 <li>Renaming <em>items</em> of e.g. some questionnaire -&gt; use <code>01</code> to <code>i10</code> etc.</li>
@@ -142,7 +142,7 @@ data<span style="color:#f92672">$</span>X <span style="color:#f92672">&lt;-</spa
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">extra_colnames<span style="color:#a6e22e">[c</span>(<span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">8</span>)]
 </code></pre></div><pre><code>## [1] &quot;Ich.bin.ein.Einzelgänger.....&quot;                    
 ## [2] &quot;Im.Grunde.bin.ich.oft.lieber.für.mich.allein.....&quot;
-</code></pre><p>Double check whether <em>still</em> nothing is recoded (I've run this code a couple of times already).</p>
+</code></pre><p>Double check whether <em>still</em> nothing is recoded (I&rsquo;ve run this code a couple of times already).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">identical</span>(data<span style="color:#f92672">$</span>i02, data_raw[[4]])
 </code></pre></div><pre><code>## [1] TRUE
 </code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">identical</span>(data<span style="color:#f92672">$</span>i06, data_raw[[8]])
@@ -155,7 +155,7 @@ data<span style="color:#f92672">$</span>X <span style="color:#f92672">&lt;-</spa
 data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">mutate</span>(i02r <span style="color:#f92672">=</span> <span style="color:#a6e22e">recode</span>(i02r, `1` <span style="color:#f92672">=</span> <span style="color:#ae81ff">4L</span>, `2` <span style="color:#f92672">=</span> <span style="color:#ae81ff">3L</span>, `3` <span style="color:#f92672">=</span> <span style="color:#ae81ff">2L</span>, `4` <span style="color:#f92672">=</span> <span style="color:#ae81ff">1L</span>),
          i06r <span style="color:#f92672">=</span> <span style="color:#a6e22e">recode</span>(i06r, `1` <span style="color:#f92672">=</span> <span style="color:#ae81ff">4L</span>, `2` <span style="color:#f92672">=</span> <span style="color:#ae81ff">3L</span>, `3` <span style="color:#f92672">=</span> <span style="color:#ae81ff">2L</span>, `4` <span style="color:#f92672">=</span> <span style="color:#ae81ff">1L</span>)) <span style="color:#f92672">-&gt;</span> data
-</code></pre></div><p>This may lead us too far afield, but let's see whether the items correlate with each other, and each with the rest. We can compute Cronbach's Alpha for that purpose</p>
+</code></pre></div><p>This may lead us too far afield, but let&rsquo;s see whether the items correlate with each other, and each with the rest. We can compute Cronbach&rsquo;s Alpha for that purpose</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">select</span>(i01<span style="color:#f92672">:</span>i10) <span style="color:#f92672">%&gt;%</span> 
   psych<span style="color:#f92672">::</span><span style="color:#a6e22e">alpha</span>() <span style="color:#f92672">%&gt;%</span> 
@@ -209,7 +209,7 @@ data <span style="color:#f92672">%&gt;%</span>
 ## i09  0.01 0.10 0.41 0.47 0.00
 ## i10  0.21 0.43 0.26 0.10 0.01
 </code></pre><p>Ok, looks good.</p>
-<p>I suspect there are rows with <em>no</em> values at, complete blank. Let's compute the proportion of NAs per row.</p>
+<p>I suspect there are rows with <em>no</em> values at, complete blank. Let&rsquo;s compute the proportion of NAs per row.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">rowSums</span>(<span style="color:#a6e22e">is.na</span>(data))
 </code></pre></div><pre><code>##   [1]  1  1  1  1  1  1  1  1  1  2  1  1  1  1  1  1  1  2  1  1  1  1  1
 ##  [24]  2  1  2  2  1  1  1  1  1  1  1  1  1  1  2  1  2  1  1  1  1  1  1
@@ -251,12 +251,12 @@ data <span style="color:#f92672">%&gt;%</span>
 ## 5      0.47826087     1
 ## 6      0.60869565     1
 </code></pre><h2 id="rowwise-means-for-survey-etc">Rowwise means for survey etc.</h2>
-<p>Let's compute the mean and the median extraversion.</p>
+<p>Let&rsquo;s compute the mean and the median extraversion.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">mutate</span>(extra_mean <span style="color:#f92672">=</span> <span style="color:#a6e22e">rowMeans</span>(.[3<span style="color:#f92672">:</span><span style="color:#ae81ff">12</span>], na.rm <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>),
          extra_median <span style="color:#f92672">=</span> <span style="color:#a6e22e">apply</span>(.[3<span style="color:#f92672">:</span><span style="color:#ae81ff">12</span>], <span style="color:#ae81ff">1</span>, median, na.rm <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>)) <span style="color:#f92672">-&gt;</span> data
 </code></pre></div><h2 id="cleaning-data">Cleaning data</h2>
-<p>The number of hangovers should be numeric, but it isn't. Let's see.</p>
+<p>The number of hangovers should be numeric, but it isn&rsquo;t. Let&rsquo;s see.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">count</span>(data, n_hangover) <span style="color:#f92672">%&gt;%</span> kable
 </code></pre></div><table>
 <thead>
@@ -400,7 +400,7 @@ data <span style="color:#f92672">%&gt;%</span>
 </tr>
 </tbody>
 </table>
-<p>OK, let's parse the numbers only; a typical problem in surveys is that respondent do not give numbers where you would like them to give numbers (some survey tools allow you to control what the respondent may put in the field).</p>
+<p>OK, let&rsquo;s parse the numbers only; a typical problem in surveys is that respondent do not give numbers where you would like them to give numbers (some survey tools allow you to control what the respondent may put in the field).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data<span style="color:#f92672">$</span>n_hangover <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">parse_number</span>(data<span style="color:#f92672">$</span>n_hangover)
 </code></pre></div><pre><code>## Warning: 2 parsing failures.
 ## row col expected actual
@@ -440,7 +440,7 @@ data <span style="color:#f92672">%&gt;%</span>
 ## 17                                          Nö     1
 ## 18                      täglich zwischen 20-50     1
 ## 19    Telfonisch täglich, Face to Face 1xWoche     1
-</code></pre><p>There are some values/words indicating that the respondent does not see any clients at all. Let's recode them to &ldquo;I am not having personal contact to clients&rdquo; (or, shorter <code>no</code>).</p>
+</code></pre><p>There are some values/words indicating that the respondent does not see any clients at all. Let&rsquo;s recode them to &ldquo;I am not having personal contact to clients&rdquo; (or, shorter <code>no</code>).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">mutate</span>(client_freq <span style="color:#f92672">=</span> <span style="color:#a6e22e">recode</span>(clients, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">gar nicht&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>,
                               <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">habe keine Kunden&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>,
@@ -494,13 +494,13 @@ data <span style="color:#f92672">%&gt;%</span>
 ## 5           2    30
 ## 6           1    51
 ## 7           5   227
-</code></pre><p>Finally, let's reorder the values from 0 to 5.</p>
+</code></pre><p>Finally, let&rsquo;s reorder the values from 0 to 5.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data<span style="color:#f92672">$</span>client_freq[data<span style="color:#f92672">$</span>client_freq <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">&lt;-</span> <span style="color:#66d9ef">NA</span>
 
 data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">mutate</span>(client_freq <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(client_freq, levels <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">1&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">2&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">3&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">4&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">5&#34;</span>, <span style="color:#66d9ef">NA</span>))) <span style="color:#f92672">-&gt;</span> data
 </code></pre></div><p>Pooh, what a mess. Better force respondent to select from a given set of answers, than we do not have that hassle.</p>
-<h2 id="checking-nas-for-items">Checking NA's for items</h2>
+<h2 id="checking-nas-for-items">Checking NA&rsquo;s for items</h2>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">select</span>(i01<span style="color:#f92672">:</span>i10) <span style="color:#f92672">%&gt;%</span>
   gather <span style="color:#f92672">%&gt;%</span> 
@@ -510,7 +510,7 @@ data <span style="color:#f92672">%&gt;%</span>
 ##       n
 ##   &lt;int&gt;
 ## 1    24
-</code></pre><p>Hm, let's see in more detail.</p>
+</code></pre><p>Hm, let&rsquo;s see in more detail.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">select</span>(i01<span style="color:#f92672">:</span>i10) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">filter</span>(<span style="color:#f92672">!</span><span style="color:#a6e22e">complete.cases</span>(.))
@@ -523,7 +523,7 @@ data <span style="color:#f92672">%&gt;%</span>
 ## 6   3   NA   2   3   2    4   2   2   4   2
 ## 7  NA   NA  NA  NA  NA   NA  NA  NA  NA  NA
 ## 8  NA   NA   2   2  NA   NA  NA  NA  NA  NA
-</code></pre><p>Hm, not so many cases have NAs. Let's just exclude them, that's the easiest, and we will not lose much (many cases, that is).</p>
+</code></pre><p>Hm, not so many cases have NAs. Let&rsquo;s just exclude them, that&rsquo;s the easiest, and we will not lose much (many cases, that is).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">select</span>(i01<span style="color:#f92672">:</span>i10) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">filter</span>(<span style="color:#a6e22e">complete.cases</span>(.)) <span style="color:#f92672">%&gt;%</span> nrow
@@ -541,7 +541,7 @@ data <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">facet_wrap</span>(<span style="color:#f92672">~</span>key, ncol <span style="color:#f92672">=</span> <span style="color:#ae81ff">4</span>)
 </code></pre></div><p><img src="http://sebastiansauer.github.io/images/2016-11-19/unnamed-chunk-17-1.png" alt="plot of chunk unnamed-chunk-17"></p>
 <p>Appears ok!</p>
-<p>Ok, let's save the data file as the last step (here, we simple chose the working directory)</p>
+<p>Ok, let&rsquo;s save the data file as the last step (here, we simple chose the working directory)</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">write.csv</span>(data, file <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">extra.csv&#34;</span>)
 </code></pre></div>
     </div>
