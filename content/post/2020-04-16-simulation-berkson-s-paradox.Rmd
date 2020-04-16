@@ -1,0 +1,145 @@
+---
+title: Simulation Berkson's paradox
+author: Sebastian Sauer
+date: '2020-04-16'
+slug: simulation-berkson-s-paradox
+categories:
+  - rstats
+tags:
+  - rstats
+  - causality
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+This post was inspired by [this paper](https://www.tandfonline.com/doi/full/10.1080/10691898.2020.1752859) of Karsten Luebke and coauthors.
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(ggthemes)
+library(mosaic)
+library(dagitty)
+library(ggdag)
+```
+
+
+# Story and research question
+
+Is intelligenz (IQ) and dilligence (Fleiss, in German) correlated? We'll explore this question, or rather its causal nuances using simulated data.
+
+We'll stratify our sample into two groups: students (Studium) and non-students (kein Studium).
+
+
+# Structural causal model
+
+First, we define our causal model.
+
+
+```{r}
+set.seed(42)  # reproducibilty
+N <- 1e03
+IQ = rnorm(N)
+Fleiss = rnorm(N)
+Eignung = 1/2 * IQ + 1/2 * Fleiss + rnorm(N, 0, .1)
+```
+
+That is, aptitude (Eignung) is a function of intelligence (IQ) and dilligence (Fleiss), where the input variables have the same impact on the outcome variable (aptitude).
+
+Now put that into some dataframe:
+
+```{r}
+df = data.frame(
+  IQ = IQ,
+  Fleiss = Fleiss,
+  Eignung = Eignung,
+  Studium_bin = ifelse(Eignung > 0, "Studium", "kein Studium")
+)
+```
+
+
+We assume that only those with an high value of aptitude (Eignug) will enroll in some college degree (ie., Studium_bin == `Studium`).
+
+
+# First study: "Breaking: High IQ makes you lazy!"
+
+Suppose that a study (via its press release) informs the public about a negative correlation between intelligence and dilligence in a student sample.
+
+```{r}
+cor(IQ ~ Fleiss, data = df %>% filter(Studium_bin == "Studium"))
+tally(~ Studium_bin, data = df)
+```
+
+
+Here's the seductive plot:
+
+```{r}
+gf_point(IQ ~ Fleiss, data = df %>% filter(Studium_bin == "Studium")) %>% 
+  gf_refine(scale_colour_colorblind())  %>% 
+  gf_lm()
+```
+
+
+# Replication effort: Second study provides conflicting evidence: No assocation between IQ and dilligence
+
+A replication study, now endowed with an an larger (double) sample size, does not find any assocation. Noteworthy, they did not only include students, but non-students as well.
+
+
+```{r}
+cor(IQ ~ Fleiss, data = df)
+
+gf_point(IQ ~ Fleiss, data = df) %>% 
+  gf_refine(scale_colour_colorblind())  %>% 
+  gf_lm()
+```
+
+# Stratifying subgroups
+
+The seemingly paradox situation can be resolved once we stratify the larger (second) sample.
+
+```{r}
+gf_point(IQ ~ Fleiss, color = ~Studium_bin, data = df) %>% 
+  gf_refine(scale_colour_colorblind())  %>% 
+  gf_refine(theme(legend.position = "bottom")) %>% 
+  gf_labs(color = "") %>% 
+  gf_lm()
+```
+
+We see that there's indeed a negative correlation in each subgroup. However, there's no marginal assocation, ie., on the whole sample.
+
+
+# Causal interpretation
+
+This pattern is called a *collider bias* in causal inference. The underlying causal structure can be visualizes using this DAG:
+
+
+```{r}
+dag <- dagify(S ~ F + IQ,
+               outcome = "S",
+               labels = c("S" = "Studium",
+                          "IQ" = "Intelligenz",
+                          "F" = "Fleiss"))
+
+ggdag(dag, use_labels = "label")  + theme_dag_blank()
+
+```
+
+
