@@ -31,6 +31,26 @@ knitr::opts_chunk$set(
 
 This post was inspired by [this paper](https://www.tandfonline.com/doi/full/10.1080/10691898.2020.1752859) of Karsten Luebke and coauthors.
 
+
+
+
+
+
+```{r echo = FALSE}
+
+dag1 <- ggdag::dagify(S ~ F + IQ,
+               outcome = "S",
+               labels = c("S" = "Studium",
+                          "IQ" = "Intelligenz",
+                          "F" = "Fleiss"))
+
+dag1_p <- ggdag::ggdag(dag1, use_labels = "label")  + theme_dag_blank()
+
+```
+
+
+
+
 # Load packages
 
 ```{r load-libs, message = FALSE, warning = FALSE}
@@ -103,7 +123,7 @@ gf_point(IQ ~ Fleiss, data = df %>% filter(Studium_bin == "Studium")) %>%
 A replication study, now endowed with an an larger (double) sample size, does not find any assocation. Noteworthy, they did not only include students, but non-students as well.
 
 
-```{r}
+```{r eval = FALSE}
 cor(IQ ~ Fleiss, data = df)
 
 gf_point(IQ ~ Fleiss, data = df) %>% 
@@ -115,7 +135,7 @@ gf_point(IQ ~ Fleiss, data = df) %>%
 
 The seemingly paradox situation can be resolved once we stratify the larger (second) sample.
 
-```{r}
+```{r eval = FALSE}
 gf_point(IQ ~ Fleiss, color = ~Studium_bin, data = df) %>% 
   gf_refine(scale_colour_colorblind())  %>% 
   gf_refine(theme(legend.position = "bottom")) %>% 
@@ -131,15 +151,21 @@ We see that there's indeed a negative correlation in each subgroup. However, the
 This pattern is called a *collider bias* in causal inference. The underlying causal structure can be visualizes using this DAG:
 
 
-```{r}
-dag <- dagify(S ~ F + IQ,
+```{r eval = FALSE}
+detach(name = "package:mosaic", unload = TRUE)
+dag1 <- ggdag::dagify(S ~ F + IQ,
                outcome = "S",
                labels = c("S" = "Studium",
                           "IQ" = "Intelligenz",
                           "F" = "Fleiss"))
 
-ggdag(dag, use_labels = "label")  + theme_dag_blank()
+dag1_p <- ggdag(dag1, use_labels = "label")  + theme_dag_blank()
 
 ```
+
+```{r}
+dag1_p
+```
+
 
 
