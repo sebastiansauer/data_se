@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.63.2" />
+<meta name="generator" content="Hugo 0.67.0" />
 
 
 <title>Mapping foreigner ratio to AfD election results in the German Wahlkreise - Data Se</title>
@@ -83,7 +83,7 @@
 </code></pre></div><h1 id="geo-data">Geo data</h1>
 <p>:attention: The election ratios are <em>unequal</em> to the district areas (as far as I know, not complete identical to the very least). So will need to get some special geo data. This geo data is available <a href="https://www.bundeswahlleiter.de/dam/jcr/67e3e9b8-dbca-4bc9-8977-ac792665bbce/btw17_geometrie_wahlkreise_vg250_shp.zip">here</a> and the others links on that page.</p>
 <p>Download and unzip the data; store them in an appropriate folder. Adjust the path to your needs:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">my_path_wahlkreise <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp&#34;</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">my_path_wahlkreise <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;~/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp&#34;</span>
 <span style="color:#a6e22e">file.exists</span>(my_path_wahlkreise)
 <span style="color:#75715e">#&gt; [1] TRUE</span>
 wahlkreise_shp <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">st_read</span>(my_path_wahlkreise)
@@ -109,16 +109,16 @@ wahlkreise_shp <span style="color:#f92672">&lt;-</span> <span style="color:#a6e2
 <p>That was easy, right? The <code>sf</code> package fits nicely with the tidyverse. Hence not much to learn in that regard. I am not saying that geo data is simple, quite the contrary. But luckily the R functions fit in a well known schema.</p>
 <h1 id="foreign-nationals-ratios">Foreign nationals ratios</h1>
 <p>These data can as well be fetched from the <a href="https://www.bundeswahlleiter.de/dam/jcr/f7566722-a528-4b18-bea3-ea419371e300/btw17_strukturdaten.csv">same site as above</a>, as mentioned above, we need to make sure that we have the statistics according to the election areas, not the administrative areas.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">foreign_file <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Documents/datasets/Strukturdaten_De/btw17_Strukturdaten-utf8.csv&#34;</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">foreign_file <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;~/Documents/datasets/Strukturdaten_De/btw17_Strukturdaten-utf8.csv&#34;</span>
 
 <span style="color:#a6e22e">file.exists</span>(foreign_file)
 <span style="color:#75715e">#&gt; [1] TRUE</span>
 
 
 foreign_raw <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_delim</span>(foreign_file, 
-    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">;&#34;</span>, escape_double <span style="color:#f92672">=</span> <span style="color:#66d9ef">FALSE</span>, 
-    locale <span style="color:#f92672">=</span> <span style="color:#a6e22e">locale</span>(decimal_mark <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">,&#34;</span>, 
-        grouping_mark <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">.&#34;</span>), 
+    <span style="color:#e6db74">&#34;;&#34;</span>, escape_double <span style="color:#f92672">=</span> <span style="color:#66d9ef">FALSE</span>, 
+    locale <span style="color:#f92672">=</span> <span style="color:#a6e22e">locale</span>(decimal_mark <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;,&#34;</span>, 
+        grouping_mark <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;.&#34;</span>), 
     trim_ws <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>, 
     skip <span style="color:#f92672">=</span> <span style="color:#ae81ff">8</span>)  <span style="color:#75715e"># skipt the first 8 rows</span>
 
@@ -129,7 +129,7 @@ foreign_raw <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e"
 
 foreign_df <span style="color:#f92672">&lt;-</span> foreign_raw
 
-<span style="color:#a6e22e">names</span>(foreign_df) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">paste0</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">V&#34;</span>,<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#a6e22e">ncol</span>(foreign_df))
+<span style="color:#a6e22e">names</span>(foreign_df) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">paste0</span>(<span style="color:#e6db74">&#34;V&#34;</span>,<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#a6e22e">ncol</span>(foreign_df))
 </code></pre></div><p>The important columns are:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">foreign_df <span style="color:#f92672">&lt;-</span> foreign_df <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">rename</span>(state <span style="color:#f92672">=</span> V1,
@@ -142,7 +142,7 @@ foreign_df <span style="color:#f92672">&lt;-</span> foreign_raw
          unemp <span style="color:#f92672">=</span> V47)  <span style="color:#75715e"># total, as to March 2017</span>
 </code></pre></div><h1 id="afd-election-results">AfD election results</h1>
 <p>Again, we can access the data from the same source, the Bundeswahlleiter <a href="https://www.bundeswahlleiter.de/dam/jcr/72f186bb-aa56-47d3-b24c-6a46f5de22d0/btw17_kerg.csv">here</a>. I have prepared the column names of the data and the data structure, to render the file more accessible to machine parsing. Data points were not altered. You can access my version of the file <a href="https://sebastiansauer.github.io/data/btw17_election_results.csv">here</a>.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">elec_file <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Documents/datasets/Strukturdaten_De/btw17_election_results.csv&#34;</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">elec_file <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;~/Documents/datasets/Strukturdaten_De/btw17_election_results.csv&#34;</span>
 <span style="color:#a6e22e">file.exists</span>(elec_file)
 <span style="color:#75715e">#&gt; [1] TRUE</span>
 
@@ -167,8 +167,8 @@ afd_prop <span style="color:#f92672">&lt;-</span> elec_results <span style="colo
 </code></pre></div><p>In the previous step, we have selected the columns of interest, changed their name (shorter, English), and have computed the proportion of (valid) secondary votes in favor of the AfD.</p>
 <h1 id="match-foreign-national-rated-to-afd-votes-for-each-wahlkreis">Match foreign national rated to AfD votes for each Wahlkreis</h1>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">wahlkreise_shp <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">left_join</span>(foreign_df, by <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">WKR_NR&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">area_nr&#34;</span>)) <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">left_join</span>(afd_prop, by <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">area_name&#34;</span>) <span style="color:#f92672">-&gt;</span> chloro_data
+  <span style="color:#a6e22e">left_join</span>(foreign_df, by <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;WKR_NR&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;area_nr&#34;</span>)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">left_join</span>(afd_prop, by <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;area_name&#34;</span>) <span style="color:#f92672">-&gt;</span> chloro_data
 </code></pre></div><h1 id="plot-geo-map-with-afd-votes">Plot geo map with afd votes</h1>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
@@ -176,14 +176,14 @@ afd_prop <span style="color:#f92672">&lt;-</span> elec_results <span style="colo
 p1
 </code></pre></div><p><!-- raw HTML omitted --></p>
 <p>We might want to play with the fill color, or clean up the map (remove axis etc.)</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p1 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Spectral&#34;</span>) <span style="color:#f92672">+</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p1 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Spectral&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">theme_void</span>()
 </code></pre></div><p><!-- raw HTML omitted --></p>
 <h1 id="geo-map-of-election-areas-with-foreign-national-data">Geo map (of election areas) with foreign national data</h1>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> for_prop)) <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Spectral&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Spectral&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">theme_void</span>() <span style="color:#f92672">-&gt;</span> p2
 p2
 </code></pre></div><p><!-- raw HTML omitted --></p>
@@ -247,7 +247,7 @@ the trends for eastern and Western German electoral districts.</p>
 <span style="color:#75715e">#&gt; 16 Levels: Baden-Württemberg Bayern Berlin Brandenburg Bremen ... Thüringen</span>
 </code></pre></div><p>Being a German citizen, I know which is East; although I am unsure about Berlin.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">
-east <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Mecklenburg-Vorpommern&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Brandenburg&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Sachsen-Anhalt&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Sachsen&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Thüringen&#34;</span>)
+east <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;Mecklenburg-Vorpommern&#34;</span>, <span style="color:#e6db74">&#34;Brandenburg&#34;</span>, <span style="color:#e6db74">&#34;Sachsen-Anhalt&#34;</span>, <span style="color:#e6db74">&#34;Sachsen&#34;</span>, <span style="color:#e6db74">&#34;Thüringen&#34;</span>)
 
 chloro_data <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">mutate</span>(east <span style="color:#f92672">=</span> LAND_NAME <span style="color:#f92672">%in%</span> east) <span style="color:#f92672">-&gt;</span> chloro_data
@@ -287,7 +287,7 @@ chloro_data <span style="color:#f92672">%&gt;%</span>
   ggplot <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> for_prop, y <span style="color:#f92672">=</span> afd_prop) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_point</span>() <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">geom_smooth</span>(<span style="color:#a6e22e">aes</span>(color <span style="color:#f92672">=</span> east), method <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">lm&#34;</span>)
+  <span style="color:#a6e22e">geom_smooth</span>(<span style="color:#a6e22e">aes</span>(color <span style="color:#f92672">=</span> east), method <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;lm&#34;</span>)
 </code></pre></div><p><!-- raw HTML omitted --></p>
 <p>Quite remarkably, we see that the association in the West is weak;
 in the East it is (comparatively) strong. Many foreigners, fewer AfD votes.
@@ -297,7 +297,7 @@ East and West in this regard.</p>
 There are surely more variables in the play, so we cannot be sure what true influential (causal) patterns look like.
 Ilya suggested that some additional variable(s) with different distributions in East and West may explain the data (Simpson case).</p>
 <p>BTW: Data are now available in my package <code>pradadata</code> on Github, and can be installed via</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">devtools<span style="color:#f92672">::</span><span style="color:#a6e22e">install_github</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sebastiansauer/pradadata&#34;</span>)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">devtools<span style="color:#f92672">::</span><span style="color:#a6e22e">install_github</span>(<span style="color:#e6db74">&#34;sebastiansauer/pradadata&#34;</span>)
 </code></pre></div><hr>
 <h1 id="regression-residuals-of-predicting-foreigner-quote-by-afd_score">Regression residuals of predicting foreigner quote by afd_score</h1>
 <p>Let&rsquo;s predict the AfD vote score taking the unemployment as an predictor. Then let&rsquo;s plot the residuals to see how good the prediction is, ie., how close (or rather, far) the association of unemployment and AfD voting is.</p>

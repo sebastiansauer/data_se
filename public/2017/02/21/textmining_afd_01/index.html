@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.63.2" />
+<meta name="generator" content="Hugo 0.67.0" />
 
 
 <title>AfD Mining - basales Textmining zum AfD-Parteiprogramm - Data Se</title>
@@ -88,9 +88,9 @@
 <h2 id="grundlegende-analyse">Grundlegende Analyse</h2>
 <h3 id="text-daten-einlesen">Text-Daten einlesen</h3>
 <p>Nun lesen wir Text-Daten ein; das können beliebige Daten sein. Eine gewisse Reichhaltigkeit ist von Vorteil. Nehmen wir das Parteiprogramm der Partei AfD<sup id="fnref:2"><a href="#fn:2" class="footnote-ref" role="doc-noteref">2</a></sup><sup id="fnref:3"><a href="#fn:3" class="footnote-ref" role="doc-noteref">3</a></sup>. Die AfD schätzt die liberal-freiheitliche Demokratie gering, befürchte ich. Damit stellt die AfD die Grundlage von Frieden und Menschenwürde in Frage. Grund genug, sich ihre Themen näher anzuschauen; hier mittels einiger grundlegender Textmining-Analysen.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">afd_url <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">https://www.alternativefuer.de/wp-content/uploads/sites/7/2016/05/2016-06-27_afd-grundsatzprogramm_web-version.pdf&#34;</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">afd_url <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;https://www.alternativefuer.de/wp-content/uploads/sites/7/2016/05/2016-06-27_afd-grundsatzprogramm_web-version.pdf&#34;</span>
 
-afd_pfad <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">afd_programm.pdf&#34;</span>
+afd_pfad <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;afd_programm.pdf&#34;</span>
 
 <span style="color:#a6e22e">download</span>(afd_url, afd_pfad)
 
@@ -106,7 +106,7 @@ afd_df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">data
 
 afd_df <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">unnest_tokens</span>(token, afd_raw) <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">filter</span>(<span style="color:#a6e22e">str_detect</span>(token, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">[a-z]&#34;</span>)) <span style="color:#f92672">-&gt;</span> afd_df
+  <span style="color:#a6e22e">filter</span>(<span style="color:#a6e22e">str_detect</span>(token, <span style="color:#e6db74">&#34;[a-z]&#34;</span>)) <span style="color:#f92672">-&gt;</span> afd_df
 
 dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">count</span>(afd_df) 
 <span style="color:#75715e">#&gt; # A tibble: 1 × 1</span>
@@ -146,7 +146,7 @@ afd_count <span style="color:#f92672">%&gt;%</span>
 <!-- raw HTML omitted -->
 <p>Ganz interessant; aber es gibt mehrere Varianten des Themas &ldquo;deutsch&rdquo;. Es ist wohl sinnvoller, diese auf den gemeinsamen Wortstamm zurückzuführen und diesen nur einmal zu zählen. Dieses Verfahren nennt man &ldquo;stemming&rdquo; oder trunkieren.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">afd_df <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">mutate</span>(token_stem <span style="color:#f92672">=</span> <span style="color:#a6e22e">wordStem</span>(.$token, language <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">german&#34;</span>)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(token_stem <span style="color:#f92672">=</span> <span style="color:#a6e22e">wordStem</span>(.$token, language <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;german&#34;</span>)) <span style="color:#f92672">%&gt;%</span> 
   dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">count</span>(token_stem, sort <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>) <span style="color:#f92672">-&gt;</span> afd_count
 
 afd_count <span style="color:#f92672">%&gt;%</span> 
@@ -157,7 +157,7 @@ afd_count <span style="color:#f92672">%&gt;%</span>
 <p>Das ist schon informativer. Dem Befehl <code>wordStem</code> füttert man einen Vektor an Wörtern ein und gibt die Sprache an (Default ist Englisch<sup id="fnref:4"><a href="#fn:4" class="footnote-ref" role="doc-noteref">4</a></sup>). Das ist schon alles.</p>
 <h3 id="visualisierung-der-worthäufigkeiten">Visualisierung der Worthäufigkeiten</h3>
 <p>Zum Abschluss noch eine Visualisierung mit einer &ldquo;Wordcloud&rdquo; dazu.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">wordcloud</span>(words <span style="color:#f92672">=</span> afd_count<span style="color:#f92672">$</span>token_stem, freq <span style="color:#f92672">=</span> afd_count<span style="color:#f92672">$</span>n, max.words <span style="color:#f92672">=</span> <span style="color:#ae81ff">100</span>, scale <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">2</span>,<span style="color:#ae81ff">.5</span>), colors<span style="color:#f92672">=</span><span style="color:#a6e22e">brewer.pal</span>(<span style="color:#ae81ff">6</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Dark2&#34;</span>))
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">wordcloud</span>(words <span style="color:#f92672">=</span> afd_count<span style="color:#f92672">$</span>token_stem, freq <span style="color:#f92672">=</span> afd_count<span style="color:#f92672">$</span>n, max.words <span style="color:#f92672">=</span> <span style="color:#ae81ff">100</span>, scale <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">2</span>,<span style="color:#ae81ff">.5</span>), colors<span style="color:#f92672">=</span><span style="color:#a6e22e">brewer.pal</span>(<span style="color:#ae81ff">6</span>, <span style="color:#e6db74">&#34;Dark2&#34;</span>))
 </code></pre></div><p><!-- raw HTML omitted --></p>
 <p>Man kann die Anzahl der Wörter, Farben und einige weitere Formatierungen der Wortwolke beeinflussen<sup id="fnref:5"><a href="#fn:5" class="footnote-ref" role="doc-noteref">5</a></sup>.</p>
 <p>Weniger verspielt ist eine schlichte visualisierte Häufigkeitsauszählung dieser Art, z.B. mit Balkendiagrammen (gedreht).</p>
@@ -167,7 +167,7 @@ afd_count <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> <span style="color:#a6e22e">reorder</span>(token_stem, n), y <span style="color:#f92672">=</span> n) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_col</span>() <span style="color:#f92672">+</span> 
-  <span style="color:#a6e22e">labs</span>(title <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mit Trunkierung&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">labs</span>(title <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;mit Trunkierung&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">coord_flip</span>() <span style="color:#f92672">-&gt;</span> p1
 
 afd_df <span style="color:#f92672">%&gt;%</span> 
@@ -176,7 +176,7 @@ afd_df <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> <span style="color:#a6e22e">reorder</span>(token, n), y <span style="color:#f92672">=</span> n) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_col</span>() <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">labs</span>(title <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">ohne Trunkierung&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">labs</span>(title <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;ohne Trunkierung&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">coord_flip</span>() <span style="color:#f92672">-&gt;</span> p2
 
 <span style="color:#a6e22e">grid.arrange</span>(p1, p2, ncol <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>)
@@ -193,22 +193,22 @@ Liefere zum Schluss die Summenwerte pro Sentiment zurück.</p>
 </blockquote>
 <p>Es gibt Sentiment-Lexika, die lediglich einen Punkt für &ldquo;positive Konnotation&rdquo; bzw. &ldquo;negative Konnotation&rdquo; geben; andere Lexika weisen differenzierte Gefühlskonnotationen auf. Wir nutzen hier <a href="http://asv.informatik.uni-leipzig.de/download/sentiws.html">dieses</a> Lexikon. Der Einfachheit halber gehen wir im Folgenden davon aus, dass das Lexikon schon aufbereitet vorliegt. Die Aufbereitung kann <a href="https://sebastiansauer.github.io/sentiment_dictionary/">hier</a> zur Vertiefung nachgelesen werden.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">
-neg_df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_tsv</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Downloads/SentiWS_v1.8c_Negative.txt&#34;</span>, col_names <span style="color:#f92672">=</span> <span style="color:#66d9ef">FALSE</span>)
-<span style="color:#a6e22e">names</span>(neg_df) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Wort_POS&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Wert&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Inflektionen&#34;</span>)
+neg_df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_tsv</span>(<span style="color:#e6db74">&#34;~/Downloads/SentiWS_v1.8c_Negative.txt&#34;</span>, col_names <span style="color:#f92672">=</span> <span style="color:#66d9ef">FALSE</span>)
+<span style="color:#a6e22e">names</span>(neg_df) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;Wort_POS&#34;</span>, <span style="color:#e6db74">&#34;Wert&#34;</span>, <span style="color:#e6db74">&#34;Inflektionen&#34;</span>)
 
 neg_df <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">mutate</span>(Wort <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(Wort_POS, <span style="color:#ae81ff">1</span>, <span style="color:#a6e22e">regexpr</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\\|&#34;</span>, .$Wort_POS)<span style="color:#ae81ff">-1</span>),
-         POS <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(Wort_POS, start <span style="color:#f92672">=</span> <span style="color:#a6e22e">regexpr</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\\|&#34;</span>, .$Wort_POS)<span style="color:#ae81ff">+1</span>)) <span style="color:#f92672">-&gt;</span> neg_df
+  <span style="color:#a6e22e">mutate</span>(Wort <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(Wort_POS, <span style="color:#ae81ff">1</span>, <span style="color:#a6e22e">regexpr</span>(<span style="color:#e6db74">&#34;\\|&#34;</span>, .$Wort_POS)<span style="color:#ae81ff">-1</span>),
+         POS <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(Wort_POS, start <span style="color:#f92672">=</span> <span style="color:#a6e22e">regexpr</span>(<span style="color:#e6db74">&#34;\\|&#34;</span>, .$Wort_POS)<span style="color:#ae81ff">+1</span>)) <span style="color:#f92672">-&gt;</span> neg_df
 
 
-pos_df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_tsv</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Downloads/SentiWS_v1.8c_Positive.txt&#34;</span>, col_names <span style="color:#f92672">=</span> <span style="color:#66d9ef">FALSE</span>)
-<span style="color:#a6e22e">names</span>(pos_df) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Wort_POS&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Wert&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Inflektionen&#34;</span>)
+pos_df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_tsv</span>(<span style="color:#e6db74">&#34;~/Downloads/SentiWS_v1.8c_Positive.txt&#34;</span>, col_names <span style="color:#f92672">=</span> <span style="color:#66d9ef">FALSE</span>)
+<span style="color:#a6e22e">names</span>(pos_df) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;Wort_POS&#34;</span>, <span style="color:#e6db74">&#34;Wert&#34;</span>, <span style="color:#e6db74">&#34;Inflektionen&#34;</span>)
 
 pos_df <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">mutate</span>(Wort <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(Wort_POS, <span style="color:#ae81ff">1</span>, <span style="color:#a6e22e">regexpr</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\\|&#34;</span>, .$Wort_POS)<span style="color:#ae81ff">-1</span>),
-         POS <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(Wort_POS, start <span style="color:#f92672">=</span> <span style="color:#a6e22e">regexpr</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\\|&#34;</span>, .$Wort_POS)<span style="color:#ae81ff">+1</span>)) <span style="color:#f92672">-&gt;</span> pos_df
+  <span style="color:#a6e22e">mutate</span>(Wort <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(Wort_POS, <span style="color:#ae81ff">1</span>, <span style="color:#a6e22e">regexpr</span>(<span style="color:#e6db74">&#34;\\|&#34;</span>, .$Wort_POS)<span style="color:#ae81ff">-1</span>),
+         POS <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_sub</span>(Wort_POS, start <span style="color:#f92672">=</span> <span style="color:#a6e22e">regexpr</span>(<span style="color:#e6db74">&#34;\\|&#34;</span>, .$Wort_POS)<span style="color:#ae81ff">+1</span>)) <span style="color:#f92672">-&gt;</span> pos_df
 
-<span style="color:#a6e22e">bind_rows</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">neg&#34;</span> <span style="color:#f92672">=</span> neg_df, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pos&#34;</span> <span style="color:#f92672">=</span> pos_df, .id <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">neg_pos&#34;</span>) <span style="color:#f92672">-&gt;</span> sentiment_df
+<span style="color:#a6e22e">bind_rows</span>(<span style="color:#e6db74">&#34;neg&#34;</span> <span style="color:#f92672">=</span> neg_df, <span style="color:#e6db74">&#34;pos&#34;</span> <span style="color:#f92672">=</span> pos_df, .id <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;neg_pos&#34;</span>) <span style="color:#f92672">-&gt;</span> sentiment_df
 sentiment_df <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22e">select</span>(neg_pos, Wort, Wert, Inflektionen, <span style="color:#f92672">-</span>Wort_POS) <span style="color:#f92672">-&gt;</span> sentiment_df
 </code></pre></div><p>Unser Sentiment-Lexikon sieht so aus:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">htmlTable</span>(<span style="color:#a6e22e">head</span>(sentiment_df))
@@ -216,10 +216,10 @@ sentiment_df <span style="color:#f92672">%&gt;%</span> <span style="color:#a6e22
 <!-- raw HTML omitted -->
 <h3 id="ungewichtete-sentiment-analyse">Ungewichtete Sentiment-Analyse</h3>
 <p>Nun können wir jedes Token des Textes mit dem Sentiment-Lexikon abgleichen; dabei zählen wir die Treffer für positive bzw. negative Terme. Besser wäre noch: Wir könnten die Sentiment-Werte pro Treffer addieren (und nicht für jeden Term 1 addieren). Aber das heben wir uns für später auf.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">sentiment_neg <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">match</span>(afd_df<span style="color:#f92672">$</span>token, <span style="color:#a6e22e">filter</span>(sentiment_df, neg_pos <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">neg&#34;</span>)<span style="color:#f92672">$</span>Wort)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">sentiment_neg <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">match</span>(afd_df<span style="color:#f92672">$</span>token, <span style="color:#a6e22e">filter</span>(sentiment_df, neg_pos <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;neg&#34;</span>)<span style="color:#f92672">$</span>Wort)
 neg_score <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">sum</span>(<span style="color:#f92672">!</span><span style="color:#a6e22e">is.na</span>(sentiment_neg))
 
-sentiment_pos <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">match</span>(afd_df<span style="color:#f92672">$</span>token, <span style="color:#a6e22e">filter</span>(sentiment_df, neg_pos <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pos&#34;</span>)<span style="color:#f92672">$</span>Wort)
+sentiment_pos <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">match</span>(afd_df<span style="color:#f92672">$</span>token, <span style="color:#a6e22e">filter</span>(sentiment_df, neg_pos <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;pos&#34;</span>)<span style="color:#f92672">$</span>Wort)
 pos_score <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">sum</span>(<span style="color:#f92672">!</span><span style="color:#a6e22e">is.na</span>(sentiment_pos))
 
 <span style="color:#a6e22e">round</span>(pos_score<span style="color:#f92672">/</span>neg_score, <span style="color:#ae81ff">1</span>)
@@ -299,7 +299,7 @@ afd_df <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">rename</span>(token <span style="color:#f92672">=</span> Wort) <span style="color:#f92672">-&gt;</span> sentiment_df
 
 afd_df <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">left_join</span>(sentiment_df, by <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">token&#34;</span>) <span style="color:#f92672">-&gt;</span> afd_df 
+  <span style="color:#a6e22e">left_join</span>(sentiment_df, by <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;token&#34;</span>) <span style="color:#f92672">-&gt;</span> afd_df 
 
 afd_df <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">filter</span>(<span style="color:#f92672">!</span><span style="color:#a6e22e">is.na</span>(Wert)) <span style="color:#f92672">%&gt;%</span> 
@@ -319,7 +319,7 @@ afd_sentiment_summe<span style="color:#f92672">$</span>Sentimentwert
 <h3 id="tokens-mit-den-extremsten-sentimentwerten">Tokens mit den extremsten Sentimentwerten</h3>
 <p>Schauen wir uns die intensivsten Wörter mal an.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">afd_df <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">filter</span>(neg_pos <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">pos&#34;</span>) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">filter</span>(neg_pos <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;pos&#34;</span>) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">distinct</span>(token, .keep_all <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">arrange</span>(<span style="color:#f92672">-</span>Wert) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">filter</span>(<span style="color:#a6e22e">row_number</span>() <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">11</span>) <span style="color:#f92672">%&gt;%</span> 
@@ -329,7 +329,7 @@ afd_sentiment_summe<span style="color:#f92672">$</span>Sentimentwert
 <!-- raw HTML omitted -->
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">
 afd_df <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">filter</span>(neg_pos <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">neg&#34;</span>) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">filter</span>(neg_pos <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;neg&#34;</span>) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">distinct</span>(token, .keep_all <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">arrange</span>(Wert) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">filter</span>(<span style="color:#a6e22e">row_number</span>() <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">11</span>) <span style="color:#f92672">%&gt;%</span> 

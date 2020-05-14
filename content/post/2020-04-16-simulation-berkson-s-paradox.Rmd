@@ -1,5 +1,5 @@
 ---
-title: Simulation Berkson's paradox
+title: Simulating Berkson's paradox
 author: Sebastian Sauer
 date: '2020-04-16'
 slug: simulation-berkson-s-paradox
@@ -36,42 +36,12 @@ This post was inspired by [this paper](https://www.tandfonline.com/doi/full/10.1
 
 
 
-```{r echo = FALSE}
-
-dag1 <- ggdag::dagify(S ~ F + IQ,
-               outcome = "S",
-               labels = c("S" = "Studium",
-                          "IQ" = "Intelligenz",
-                          "F" = "Fleiss"))
-
-dag1_p <- ggdag::ggdag(dag1, use_labels = "label")  + theme_dag_blank()
-
-```
-
-
-
-
-# Load packages
-
-```{r load-libs, message = FALSE, warning = FALSE}
-library(tidyverse)
-library(ggthemes)
-library(mosaic)
-library(dagitty)
-library(ggdag)
-```
-
-
-# Story and research question
-
-Is intelligenz (IQ) and dilligence (Fleiss, in German) correlated? We'll explore this question, or rather its causal nuances using simulated data.
-
 We'll stratify our sample into two groups: students (Studium) and non-students (kein Studium).
 
 
 # Structural causal model
 
-First, we define our causal model.
+First, we define the structure of our causal model.
 
 
 ```{r}
@@ -82,7 +52,7 @@ Fleiss = rnorm(N)
 Eignung = 1/2 * IQ + 1/2 * Fleiss + rnorm(N, 0, .1)
 ```
 
-That is, aptitude (Eignung) is a function of intelligence (IQ) and dilligence (Fleiss), where the input variables have the same impact on the outcome variable (aptitude).
+That is, aptitude (Eignung) is a function of intelligence (IQ) and dilligence (Fleiss), where the input variables have the same impact on the outcome variable (aptitude). Throw in some Gaussian noise.
 
 Now put that into some dataframe:
 
@@ -91,9 +61,12 @@ df = data.frame(
   IQ = IQ,
   Fleiss = Fleiss,
   Eignung = Eignung,
-  Studium_bin = ifelse(Eignung > 0, "Studium", "kein Studium")
+  Studium_bin = ifelse(Eignung > 0, 
+                       "Studium", "kein Studium")
 )
 ```
+
+
 
 
 We assume that only those with an high value of aptitude (Eignug) will enroll in some college degree (ie., Studium_bin == `Studium`).
@@ -104,15 +77,17 @@ We assume that only those with an high value of aptitude (Eignug) will enroll in
 Suppose that a study (via its press release) informs the public about a negative correlation between intelligence and dilligence in a student sample.
 
 ```{r}
-cor(IQ ~ Fleiss, data = df %>% filter(Studium_bin == "Studium"))
+cor(IQ ~ Fleiss, data = df %>% 
+      filter(Studium_bin == "Studium"))
 tally(~ Studium_bin, data = df)
 ```
 
 
 Here's the seductive plot:
-
+  
 ```{r}
-gf_point(IQ ~ Fleiss, data = df %>% filter(Studium_bin == "Studium")) %>% 
+gf_point(IQ ~ Fleiss, data = df %>% 
+           filter(Studium_bin == "Studium")) %>% 
   gf_refine(scale_colour_colorblind())  %>% 
   gf_lm()
 ```
@@ -123,7 +98,7 @@ gf_point(IQ ~ Fleiss, data = df %>% filter(Studium_bin == "Studium")) %>%
 A replication study, now endowed with an an larger (double) sample size, does not find any assocation. Noteworthy, they did not only include students, but non-students as well.
 
 
-```{r eval = FALSE}
+```{r eval = TRUE}
 cor(IQ ~ Fleiss, data = df)
 
 gf_point(IQ ~ Fleiss, data = df) %>% 
@@ -135,7 +110,7 @@ gf_point(IQ ~ Fleiss, data = df) %>%
 
 The seemingly paradox situation can be resolved once we stratify the larger (second) sample.
 
-```{r eval = FALSE}
+```{r eval = TRUE}
 gf_point(IQ ~ Fleiss, color = ~Studium_bin, data = df) %>% 
   gf_refine(scale_colour_colorblind())  %>% 
   gf_refine(theme(legend.position = "bottom")) %>% 
@@ -149,15 +124,15 @@ We see that there's indeed a negative correlation in each subgroup. However, the
 # Causal interpretation
 
 This pattern is called a *collider bias* in causal inference. The underlying causal structure can be visualizes using this DAG:
-
-
-```{r eval = FALSE}
+  
+  
+```{r eval = TRUE}
 detach(name = "package:mosaic", unload = TRUE)
 dag1 <- ggdag::dagify(S ~ F + IQ,
-               outcome = "S",
-               labels = c("S" = "Studium",
-                          "IQ" = "Intelligenz",
-                          "F" = "Fleiss"))
+                      outcome = "S",
+                      labels = c("S" = "Studium",
+                                 "IQ" = "Intelligenz",
+                                 "F" = "Fleiss"))
 
 dag1_p <- ggdag(dag1, use_labels = "label")  + theme_dag_blank()
 

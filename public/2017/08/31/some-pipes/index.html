@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.63.2" />
+<meta name="generator" content="Hugo 0.67.0" />
 
 
 <title>Comparing the pipe with base methods - Data Se</title>
@@ -75,16 +75,16 @@
 <span style="color:#f92672">?</span>mtcars
 </code></pre></div><p>Say, we would like to compute the correlation between gasoline consumption (<code>mpg</code>) and horsepower (<code>hp</code>).</p>
 <h2 id="base-approach-1">Base approach 1</h2>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">cor</span>(mtcars[, <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mpg&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">hp&#34;</span>)])
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">cor</span>(mtcars[, <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;mpg&#34;</span>, <span style="color:#e6db74">&#34;hp&#34;</span>)])
 </code></pre></div><pre><code>##            mpg         hp
 ## mpg  1.0000000 -0.7761684
 ## hp  -0.7761684  1.0000000
 </code></pre><p>We use the <code>[</code>-operator (function) to select the columns; note that <code>df[, c(col1, col2)]</code> sees dataframes as matrices, and spits out a dataframe, not a vector:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">class</span>(mtcars[, <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mpg&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">hp&#34;</span>)])
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">class</span>(mtcars[, <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;mpg&#34;</span>, <span style="color:#e6db74">&#34;hp&#34;</span>)])
 </code></pre></div><pre><code>## [1] &quot;data.frame&quot;
 </code></pre><p>That&rsquo;s ok, because <code>cor</code> expects a matrix or a dataframe as input. Alternatively, we can understand dataframes as lists as in the following example.</p>
 <h2 id="base-approach-2">Base approach 2</h2>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">cor.test</span>(x <span style="color:#f92672">=</span> mtcars[[<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mpg&#34;</span>]], y <span style="color:#f92672">=</span> mtcars[[<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">hp&#34;</span>]])
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">cor.test</span>(x <span style="color:#f92672">=</span> mtcars[[<span style="color:#e6db74">&#34;mpg&#34;</span>]], y <span style="color:#f92672">=</span> mtcars[[<span style="color:#e6db74">&#34;hp&#34;</span>]])
 </code></pre></div><pre><code>##
 ## 	Pearson's product-moment correlation
 ##
@@ -113,13 +113,13 @@ mtcars <span style="color:#f92672">%&gt;%</span>
 <p>We will need <code>broom</code> here, a package that renders some R output into a nice (ie, tidy) dataframe. For example, <code>cor.test</code> does not spit a nice dataframe when left in the wild. Applying <code>tidy()</code> from <code>broom</code> on the output, we will get a nice dataframe:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(broom)
 
-<span style="color:#a6e22e">cor.test</span>(x <span style="color:#f92672">=</span> mtcars[[<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mpg&#34;</span>]], y <span style="color:#f92672">=</span> mtcars[[<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">hp&#34;</span>]]) <span style="color:#f92672">%&gt;%</span> tidy
+<span style="color:#a6e22e">cor.test</span>(x <span style="color:#f92672">=</span> mtcars[[<span style="color:#e6db74">&#34;mpg&#34;</span>]], y <span style="color:#f92672">=</span> mtcars[[<span style="color:#e6db74">&#34;hp&#34;</span>]]) <span style="color:#f92672">%&gt;%</span> tidy
 </code></pre></div><pre><code>##     estimate statistic      p.value parameter   conf.low  conf.high
 ## 1 -0.7761684 -6.742389 1.787835e-07        30 -0.8852686 -0.5860994
 ##                                 method alternative
 ## 1 Pearson's product-moment correlation   two.sided
 </code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#75715e"># same:</span>
-<span style="color:#a6e22e">tidy</span>(<span style="color:#a6e22e">cor.test</span>(x <span style="color:#f92672">=</span> mtcars[[<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">mpg&#34;</span>]], y <span style="color:#f92672">=</span> mtcars[[<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">hp&#34;</span>]]))
+<span style="color:#a6e22e">tidy</span>(<span style="color:#a6e22e">cor.test</span>(x <span style="color:#f92672">=</span> mtcars[[<span style="color:#e6db74">&#34;mpg&#34;</span>]], y <span style="color:#f92672">=</span> mtcars[[<span style="color:#e6db74">&#34;hp&#34;</span>]]))
 </code></pre></div><pre><code>##     estimate statistic      p.value parameter   conf.low  conf.high
 ## 1 -0.7761684 -6.742389 1.787835e-07        30 -0.8852686 -0.5860994
 ##                                 method alternative

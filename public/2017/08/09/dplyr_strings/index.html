@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.63.2" />
+<meta name="generator" content="Hugo 0.67.0" />
 
 
 <title>Programming with dplyr: Part 03, working with strings - Data Se</title>
@@ -77,13 +77,13 @@
 <span style="color:#a6e22e">library</span>(stringr)
 </code></pre></div><h1 id="data-example">Data example</h1>
 <p>Say, we have a string where we search for a word stem. However this stem does not appear in its &ldquo;stem&rdquo; form, but always with some suffixes. Let our stem be &ldquo;spd&rdquo; (the name of the German Social-Democratic party), and (for simplicity), we&rsquo;ll assume two &ldquo;instances&rdquo; of &ldquo;spd&rdquo; that occurr <em>with</em> suffix, ie., &ldquo;spdbt&rdquo; and &ldquo;spdde&rdquo;. (I was just working on a text mining on Tweets of German politiicians, hence the example).</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">spdde&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sdf&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sdf&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">fdds&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">spdde&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">dsf&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">spdbt&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">df&#34;</span>) <span style="color:#f92672">%&gt;%</span> as_tibble
-stem <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">spd&#34;</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;spdde&#34;</span>, <span style="color:#e6db74">&#34;sdf&#34;</span>, <span style="color:#e6db74">&#34;sdf&#34;</span>, <span style="color:#e6db74">&#34;fdds&#34;</span>, <span style="color:#e6db74">&#34;spdde&#34;</span>, <span style="color:#e6db74">&#34;dsf&#34;</span>, <span style="color:#e6db74">&#34;spdbt&#34;</span>, <span style="color:#e6db74">&#34;df&#34;</span>) <span style="color:#f92672">%&gt;%</span> as_tibble
+stem <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;spd&#34;</span>
 </code></pre></div><h1 id="task-01-extract-the-spd-stem-out-of-the-data">Task 01: Extract the &ldquo;spd&rdquo; stem out of the data</h1>
 <p>Non-programmatically, ie., interactively, this is quite straight-forward. Some knowledge of Regex is helpful to render the task a bit more general:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">mutate</span>(is_instance <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_detect</span>(string <span style="color:#f92672">=</span> value, pattern <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">spd\\w+&#34;</span>),
-         instance <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_match</span>(value, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">spd\\w+&#34;</span>))
+  <span style="color:#a6e22e">mutate</span>(is_instance <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_detect</span>(string <span style="color:#f92672">=</span> value, pattern <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;spd\\w+&#34;</span>),
+         instance <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_match</span>(value, <span style="color:#e6db74">&#34;spd\\w+&#34;</span>))
 </code></pre></div><pre><code>## # A tibble: 8 x 3
 ##   value is_instance instance
 ##   &lt;chr&gt;       &lt;lgl&gt;    &lt;chr&gt;
@@ -106,13 +106,13 @@ stem <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;<
   stem_name <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">quo_name</span>(<span style="color:#a6e22e">enquo</span>(stem))
 
   df <span style="color:#f92672">%&gt;%</span> 
-    <span style="color:#a6e22e">mutate</span>(stemmed <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_extract</span>(string <span style="color:#f92672">=</span> <span style="color:#f92672">!</span><span style="color:#f92672">!</span>col,
-                                pattern <span style="color:#f92672">=</span> <span style="color:#a6e22e">paste0</span>(stem_name,<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\\w+&#34;</span>))) <span style="color:#f92672">-&gt;</span> output
+    <span style="color:#a6e22e">mutate</span>(stemmed <span style="color:#f92672">=</span> <span style="color:#a6e22e">str_extract</span>(string <span style="color:#f92672">=</span> <span style="color:#f92672">!!</span>col,
+                                pattern <span style="color:#f92672">=</span> <span style="color:#a6e22e">paste0</span>(stem_name,<span style="color:#e6db74">&#34;\\w+&#34;</span>))) <span style="color:#f92672">-&gt;</span> output
   
   <span style="color:#a6e22e">return</span>(output)
 }
 </code></pre></div><p>See whether it runs:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">stemm_col</span>(df <span style="color:#f92672">=</span> data, col <span style="color:#f92672">=</span> value, stem <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">spd&#34;</span>)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">stemm_col</span>(df <span style="color:#f92672">=</span> data, col <span style="color:#f92672">=</span> value, stem <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;spd&#34;</span>)
 </code></pre></div><pre><code>## # A tibble: 8 x 2
 ##   value stemmed
 ##   &lt;chr&gt;   &lt;chr&gt;

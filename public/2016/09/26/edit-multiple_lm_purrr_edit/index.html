@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.63.2" />
+<meta name="generator" content="Hugo 0.67.0" />
 
 
 <title>EDIT: Running multiple simple regressions with purrr - Data Se</title>
@@ -86,7 +86,7 @@
 <span style="color:#a6e22e">library</span>(dplyr)
 <span style="color:#a6e22e">library</span>(broom)
 <span style="color:#a6e22e">library</span>(knitr)  <span style="color:#75715e"># for kable</span>
-<span style="color:#a6e22e">data</span>(Fair, package <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Ecdat&#34;</span>) <span style="color:#75715e"># extramarital affairs dataset</span>
+<span style="color:#a6e22e">data</span>(Fair, package <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Ecdat&#34;</span>) <span style="color:#75715e"># extramarital affairs dataset</span>
 <span style="color:#a6e22e">glimpse</span>(Fair)
 </code></pre></div><pre><code>## Observations: 601
 ## Variables: 9
@@ -103,7 +103,7 @@
   dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">select</span>(<span style="color:#f92672">-</span>nbaffairs) <span style="color:#f92672">%&gt;%</span>  <span style="color:#75715e"># exclude outcome, leave only predictors </span>
   <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">lm</span>(Fair<span style="color:#f92672">$</span>nbaffairs <span style="color:#f92672">~</span> .x, data <span style="color:#f92672">=</span> Fair)) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">map</span>(summary) <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">map_dbl</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">r.squared&#34;</span>) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map_dbl</span>(<span style="color:#e6db74">&#34;r.squared&#34;</span>) <span style="color:#f92672">%&gt;%</span> 
   tidy <span style="color:#f92672">%&gt;%</span> 
   dplyr<span style="color:#f92672">::</span><span style="color:#a6e22e">arrange</span>(<span style="color:#a6e22e">desc</span>(x)) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">rename</span>(r.squared <span style="color:#f92672">=</span> x) <span style="color:#f92672">-&gt;</span> r2s
@@ -184,10 +184,10 @@
 </code></pre></div><pre><code>## [1] 8
 </code></pre><p>FWIW, let&rsquo;s plot the resulting values (and sort the predictors by descending values).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">ggplot</span>(r2s, <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> <span style="color:#a6e22e">reorder</span>(names, r.squared), y <span style="color:#f92672">=</span> r.squared)) <span style="color:#f92672">+</span> 
-  <span style="color:#a6e22e">geom_point</span>(size <span style="color:#f92672">=</span> <span style="color:#ae81ff">5</span>, color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">red&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_point</span>(size <span style="color:#f92672">=</span> <span style="color:#ae81ff">5</span>, color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;red&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">ylab</span>(<span style="color:#a6e22e">expression</span>(R^{<span style="color:#ae81ff">2</span>})) <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">xlab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">predictors&#34;</span>) <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">ggtitle</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Explained variance per predictor from simple regressions&#34;</span>)
+  <span style="color:#a6e22e">xlab</span>(<span style="color:#e6db74">&#34;predictors&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">ggtitle</span>(<span style="color:#e6db74">&#34;Explained variance per predictor from simple regressions&#34;</span>)
 </code></pre></div><p>![plot of chunk unnamed-chunk-4]({{ site.url}}/images/2016-09-23//unnamed-chunk-4-1.png)</p>
 <p>Wait, one more thing. Suppose we are not only interested in $$R^2$$, but in the p-values (OMG). How to get <em>both</em> values from <code>purrr</code>?.</p>
 <hr>
@@ -200,9 +200,9 @@
   <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">lm</span>(Fair<span style="color:#f92672">$</span>nbaffairs <span style="color:#f92672">~</span> .x, data <span style="color:#f92672">=</span> Fair)) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">map</span>(summary) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">map</span>(broom<span style="color:#f92672">::</span>tidy) <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">map_df</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">p.value&#34;</span>)  <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">map_df</span>(<span style="color:#e6db74">&#34;p.value&#34;</span>)  <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">round</span>(<span style="color:#ae81ff">3</span>) <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">mutate</span>(variable <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">intercept&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">predictor&#34;</span>)) <span style="color:#f92672">-&gt;</span> ps
+  <span style="color:#a6e22e">mutate</span>(variable <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;intercept&#34;</span>, <span style="color:#e6db74">&#34;predictor&#34;</span>)) <span style="color:#f92672">-&gt;</span> ps
 </code></pre></div><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(htmlTable)
 
 <span style="color:#a6e22e">htmlTable</span>(ps)

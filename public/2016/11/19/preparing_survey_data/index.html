@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.63.2" />
+<meta name="generator" content="Hugo 0.67.0" />
 
 
 <title>Preparing survey results data - Data Se</title>
@@ -79,7 +79,7 @@
 </code></pre></div><h1 id="prepare-data">Prepare data</h1>
 <p>So, first, let&rsquo;s load some data. That&rsquo;s a data set of a survey on extraversion. Folks were asked a bunch of questions tapping at their &ldquo;psychometric extraversion&rdquo;, and some related behavior, that is, behavior <em>supposed to</em> be related such as &ldquo;number of Facebook friends&rdquo;, &ldquo;how often at a party&rdquo; etc. Note that college students form the sample.</p>
 <p>Data are available only (free as in free and free as in beer).</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data_raw <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read.csv</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">https://sebastiansauer.github.io/data/extra_raw_WS16.csv&#34;</span>)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data_raw <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read.csv</span>(<span style="color:#e6db74">&#34;https://sebastiansauer.github.io/data/extra_raw_WS16.csv&#34;</span>)
 
 data <span style="color:#f92672">&lt;-</span> data_raw  <span style="color:#75715e"># backup just in case</span>
 </code></pre></div><p>Here&rsquo;s the DOI of this data: 10.17605/OSF.IO/4KGZH.</p>
@@ -115,26 +115,26 @@ data <span style="color:#f92672">&lt;-</span> data_raw  <span style="color:#7571
 <p>Looks like a jungle. Now what? Let&rsquo;s start with renaming the columns (variables).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">extra_colnames <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">names</span>(data)  <span style="color:#75715e"># save names in this vector</span>
 
-<span style="color:#a6e22e">names</span>(data)[3<span style="color:#f92672">:</span><span style="color:#ae81ff">12</span>] <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">paste</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">i&#34;</span>, <span style="color:#a6e22e">formatC</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">10</span>, width <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>, flag <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>), sep <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>) 
+<span style="color:#a6e22e">names</span>(data)[3<span style="color:#f92672">:</span><span style="color:#ae81ff">12</span>] <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">paste</span>(<span style="color:#e6db74">&#34;i&#34;</span>, <span style="color:#a6e22e">formatC</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">10</span>, width <span style="color:#f92672">=</span> <span style="color:#ae81ff">2</span>, flag <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;0&#34;</span>), sep <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;&#34;</span>) 
 </code></pre></div><p>There&rsquo;s a saying that naming variables/objects in one of the hardest things in computer stuff. One time I renamed the columns from &ldquo;i01&rdquo; to &ldquo;i26&rdquo; or so. That&rsquo;s <em>different</em> to the naming scheme we used now! This ambivalence can lead to confusion (happened to me). That&rsquo;s why I now follow this rule:</p>
 <ul>
 <li>Renaming strange columns names -&gt; use <code>v01</code> to <code>v25</code> (or how many columns you have)</li>
 <li>Renaming <em>items</em> of e.g. some questionnaire -&gt; use <code>01</code> to <code>i10</code> etc.</li>
 </ul>
 <p>Now columns 3 to 12 are now named &ldquo;i1&rdquo;, &ldquo;i2&rdquo;, etc. These columns reflect the items of a extraversion questionnaire.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">names</span>(data)[1] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">timestamp&#34;</span>
-<span style="color:#a6e22e">names</span>(data)[2] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">code&#34;</span>
-<span style="color:#a6e22e">names</span>(data)[13] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">n_facebook_friends&#34;</span> 
-<span style="color:#a6e22e">names</span>(data)[14] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">n_hangover&#34;</span> 
-<span style="color:#a6e22e">names</span>(data)[15] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">age&#34;</span>
-<span style="color:#a6e22e">names</span>(data)[16] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">sex&#34;</span> 
-<span style="color:#a6e22e">names</span>(data)[17] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">extra_single_item&#34;</span>
-<span style="color:#a6e22e">names</span>(data)[18] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">time_conversation&#34;</span>
-<span style="color:#a6e22e">names</span>(data)[19] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">presentation&#34;</span>
-<span style="color:#a6e22e">names</span>(data)[20] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">n_party&#34;</span>
-<span style="color:#a6e22e">names</span>(data)[21] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">clients&#34;</span>
-<span style="color:#a6e22e">names</span>(data)[22] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">extra_vignette&#34;</span> 
-<span style="color:#a6e22e">names</span>(data)[24] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">extra_description&#34;</span> 
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">names</span>(data)[1] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;timestamp&#34;</span>
+<span style="color:#a6e22e">names</span>(data)[2] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;code&#34;</span>
+<span style="color:#a6e22e">names</span>(data)[13] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;n_facebook_friends&#34;</span> 
+<span style="color:#a6e22e">names</span>(data)[14] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;n_hangover&#34;</span> 
+<span style="color:#a6e22e">names</span>(data)[15] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;age&#34;</span>
+<span style="color:#a6e22e">names</span>(data)[16] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;sex&#34;</span> 
+<span style="color:#a6e22e">names</span>(data)[17] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;extra_single_item&#34;</span>
+<span style="color:#a6e22e">names</span>(data)[18] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;time_conversation&#34;</span>
+<span style="color:#a6e22e">names</span>(data)[19] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;presentation&#34;</span>
+<span style="color:#a6e22e">names</span>(data)[20] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;n_party&#34;</span>
+<span style="color:#a6e22e">names</span>(data)[21] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;clients&#34;</span>
+<span style="color:#a6e22e">names</span>(data)[22] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;extra_vignette&#34;</span> 
+<span style="color:#a6e22e">names</span>(data)[24] <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;extra_description&#34;</span> 
 data<span style="color:#f92672">$</span>X <span style="color:#f92672">&lt;-</span> <span style="color:#66d9ef">NULL</span>
 </code></pre></div><h2 id="recoding">Recoding</h2>
 <p>Importantly, two items are negatively coded; we need to recode them (ie., &ldquo;yes&rdquo; gets &ldquo;no&rdquo;, and vice versa).</p>
@@ -442,15 +442,15 @@ data <span style="color:#f92672">%&gt;%</span>
 ## 19    Telfonisch täglich, Face to Face 1xWoche     1
 </code></pre><p>There are some values/words indicating that the respondent does not see any clients at all. Let&rsquo;s recode them to &ldquo;I am not having personal contact to clients&rdquo; (or, shorter <code>no</code>).</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">mutate</span>(client_freq <span style="color:#f92672">=</span> <span style="color:#a6e22e">recode</span>(clients, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">gar nicht&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">habe keine Kunden&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">keinen&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Nie&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Nö&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Ich habe keinen Kundenkontakt&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">ich arbeite ncht &#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">nie&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74"> &#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>)) <span style="color:#f92672">-&gt;</span> data
+  <span style="color:#a6e22e">mutate</span>(client_freq <span style="color:#f92672">=</span> <span style="color:#a6e22e">recode</span>(clients, <span style="color:#e6db74">&#34;gar nicht&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;0&#34;</span>,
+                              <span style="color:#e6db74">&#34;habe keine Kunden&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;0&#34;</span>,
+                              <span style="color:#e6db74">&#34;keinen&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;0&#34;</span>,
+                              <span style="color:#e6db74">&#34;Nie&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;0&#34;</span>,
+                              <span style="color:#e6db74">&#34;Nö&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;0&#34;</span>,
+                              <span style="color:#e6db74">&#34;Ich habe keinen Kundenkontakt&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;0&#34;</span>,
+                              <span style="color:#e6db74">&#34;ich arbeite ncht &#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;0&#34;</span>,
+                              <span style="color:#e6db74">&#34;nie&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;0&#34;</span>,
+                              <span style="color:#e6db74">&#34; &#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;0&#34;</span>)) <span style="color:#f92672">-&gt;</span> data
 
 data <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">count</span>(client_freq)
@@ -470,15 +470,15 @@ data <span style="color:#f92672">%&gt;%</span>
 ## 11    Telfonisch täglich, Face to Face 1xWoche     1
 </code></pre><p>Ok, looks good, but still a bit work left.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">mutate</span>(client_freq <span style="color:#f92672">=</span> <span style="color:#a6e22e">recode</span>(client_freq, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">100&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">3&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">im Schnitt 1 Mal pro Quartal (oder weniger)&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">1&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">im Schnitt 1 Mal pro Monat&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">2&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">im Schnitt 1 Mal pro Woche&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">3&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">im Schnitt 1 Mal pro Tag&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">4&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">im Schnitt mehrfach pro Tag&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">5&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">täglich zwischen 20-50&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">5&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Telfonisch täglich, Face to Face 1xWoche&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">5&#34;</span>,
-                              <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">3 Mal pro Woche&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">4&#34;</span>)) <span style="color:#f92672">-&gt;</span> data
+  <span style="color:#a6e22e">mutate</span>(client_freq <span style="color:#f92672">=</span> <span style="color:#a6e22e">recode</span>(client_freq, <span style="color:#e6db74">&#34;100&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;3&#34;</span>,
+                              <span style="color:#e6db74">&#34;im Schnitt 1 Mal pro Quartal (oder weniger)&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;1&#34;</span>,
+                              <span style="color:#e6db74">&#34;im Schnitt 1 Mal pro Monat&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;2&#34;</span>,
+                              <span style="color:#e6db74">&#34;im Schnitt 1 Mal pro Woche&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;3&#34;</span>,
+                              <span style="color:#e6db74">&#34;im Schnitt 1 Mal pro Tag&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;4&#34;</span>,
+                              <span style="color:#e6db74">&#34;im Schnitt mehrfach pro Tag&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;5&#34;</span>,
+                              <span style="color:#e6db74">&#34;täglich zwischen 20-50&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;5&#34;</span>,
+                              <span style="color:#e6db74">&#34;Telfonisch täglich, Face to Face 1xWoche&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;5&#34;</span>,
+                              <span style="color:#e6db74">&#34;3 Mal pro Woche&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;4&#34;</span>)) <span style="color:#f92672">-&gt;</span> data
 
 data<span style="color:#f92672">$</span>client_freq <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">factor</span>(data<span style="color:#f92672">$</span>client_freq)  <span style="color:#75715e"># drops unused levels</span>
 
@@ -495,10 +495,10 @@ data <span style="color:#f92672">%&gt;%</span>
 ## 6           1    51
 ## 7           5   227
 </code></pre><p>Finally, let&rsquo;s reorder the values from 0 to 5.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data<span style="color:#f92672">$</span>client_freq[data<span style="color:#f92672">$</span>client_freq <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">&#34;</span>] <span style="color:#f92672">&lt;-</span> <span style="color:#66d9ef">NA</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data<span style="color:#f92672">$</span>client_freq[data<span style="color:#f92672">$</span>client_freq <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;&#34;</span>] <span style="color:#f92672">&lt;-</span> <span style="color:#66d9ef">NA</span>
 
 data <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">mutate</span>(client_freq <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(client_freq, levels <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">0&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">1&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">2&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">3&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">4&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">5&#34;</span>, <span style="color:#66d9ef">NA</span>))) <span style="color:#f92672">-&gt;</span> data
+  <span style="color:#a6e22e">mutate</span>(client_freq <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(client_freq, levels <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;0&#34;</span>, <span style="color:#e6db74">&#34;1&#34;</span>, <span style="color:#e6db74">&#34;2&#34;</span>, <span style="color:#e6db74">&#34;3&#34;</span>, <span style="color:#e6db74">&#34;4&#34;</span>, <span style="color:#e6db74">&#34;5&#34;</span>, <span style="color:#66d9ef">NA</span>))) <span style="color:#f92672">-&gt;</span> data
 </code></pre></div><p>Pooh, what a mess. Better force respondent to select from a given set of answers, than we do not have that hassle.</p>
 <h2 id="checking-nas-for-items">Checking NA&rsquo;s for items</h2>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">data <span style="color:#f92672">%&gt;%</span> 
@@ -542,7 +542,7 @@ data <span style="color:#f92672">%&gt;%</span>
 </code></pre></div><p><img src="http://sebastiansauer.github.io/images/2016-11-19/unnamed-chunk-17-1.png" alt="plot of chunk unnamed-chunk-17"></p>
 <p>Appears ok!</p>
 <p>Ok, let&rsquo;s save the data file as the last step (here, we simple chose the working directory)</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">write.csv</span>(data, file <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">extra.csv&#34;</span>)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">write.csv</span>(data, file <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;extra.csv&#34;</span>)
 </code></pre></div>
     </div>
   </article>

@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.63.2" />
+<meta name="generator" content="Hugo 0.67.0" />
 
 
 <title>Mapping unemployment ratio to AfD election results in German Wahlkreise - Data Se</title>
@@ -88,7 +88,7 @@
 </ul>
 <p>:attention: The election ratios are <em>unequal</em> to the district areas (as far as I know, not complete identical to the very least). So will need to get some special geo data. This geo data is available <a href="https://www.bundeswahlleiter.de/dam/jcr/67e3e9b8-dbca-4bc9-8977-ac792665bbce/btw17_geometrie_wahlkreise_vg250_shp.zip">here</a> and the others links on that page.</p>
 <p>Download and unzip the data; store them in an appropriate folder. Adjust the path to your needs:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">my_path_wahlkreise <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp&#34;</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">my_path_wahlkreise <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;~/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp&#34;</span>
 <span style="color:#a6e22e">file.exists</span>(my_path_wahlkreise)
 </code></pre></div><pre><code>## [1] TRUE
 </code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">wahlkreise_shp <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">st_read</span>(my_path_wahlkreise)
@@ -115,20 +115,20 @@
 <p>For instance, let&rsquo;s remove the axis labels and let&rsquo;s fill the country with some different color. Hm, what&rsquo;s the color of Germany? Grey? Black (color of the leading party)? Black-red-gold?</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">wahlkreise_shp <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">geom_sf</span>(fill <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">grey40&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_sf</span>(fill <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;grey40&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">theme_void</span>()
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-4-1.png" alt="plot of chunk unnamed-chunk-4"></p>
 <p>Ok, that&rsquo;s complete. How many of those &ldquo;WahlKreise&rdquo; do we have? 318, it appears. At least (that&rsquo;s the number of rows in the dataframe). That&rsquo;s not exactly the number of administrative districts in Germany, which is 401.</p>
 <h1 id="unemployment-ratios">unemployment ratios</h1>
 <p>These data can as well be fetched from the <a href="https://www.bundeswahlleiter.de/dam/jcr/f7566722-a528-4b18-bea3-ea419371e300/btw17_strukturdaten.csv">same site as above</a>, as mentioned above, we need to make sure that we have the statistics according to the election aras, not the administrative areas.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">unemp_file <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Documents/datasets/Strukturdaten_De/btw17_Strukturdaten-utf8.csv&#34;</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">unemp_file <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;~/Documents/datasets/Strukturdaten_De/btw17_Strukturdaten-utf8.csv&#34;</span>
 
 <span style="color:#a6e22e">file.exists</span>(unemp_file)
 </code></pre></div><pre><code>## [1] TRUE
 </code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">unemp_de_raw <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_delim</span>(unemp_file,
-    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">;&#34;</span>, escape_double <span style="color:#f92672">=</span> <span style="color:#66d9ef">FALSE</span>,
-    locale <span style="color:#f92672">=</span> <span style="color:#a6e22e">locale</span>(decimal_mark <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">,&#34;</span>,
-        grouping_mark <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">.&#34;</span>),
+    <span style="color:#e6db74">&#34;;&#34;</span>, escape_double <span style="color:#f92672">=</span> <span style="color:#66d9ef">FALSE</span>,
+    locale <span style="color:#f92672">=</span> <span style="color:#a6e22e">locale</span>(decimal_mark <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;,&#34;</span>,
+        grouping_mark <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;.&#34;</span>),
     trim_ws <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>,
     skip <span style="color:#f92672">=</span> <span style="color:#ae81ff">8</span>)  <span style="color:#75715e"># skipt the first 8 rows</span>
 </code></pre></div><pre><code>## Parsed with column specification:
@@ -154,7 +154,7 @@
 
 unemp_de <span style="color:#f92672">&lt;-</span> unemp_de_raw
 
-<span style="color:#a6e22e">names</span>(unemp_de) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">paste0</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">V&#34;</span>,<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#a6e22e">ncol</span>(unemp_de))
+<span style="color:#a6e22e">names</span>(unemp_de) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">paste0</span>(<span style="color:#e6db74">&#34;V&#34;</span>,<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#a6e22e">ncol</span>(unemp_de))
 </code></pre></div><p>The important columns are:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">unemp_de <span style="color:#f92672">&lt;-</span> unemp_de <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">rename</span>(state <span style="color:#f92672">=</span> V1,
@@ -167,7 +167,7 @@ unemp_de <span style="color:#f92672">&lt;-</span> unemp_de_raw
          unemp <span style="color:#f92672">=</span> V47)  <span style="color:#75715e"># total, as to March 2017</span>
 </code></pre></div><h1 id="afd-election-results">AfD election results</h1>
 <p>Again, we can access the data from the same source, the Bundeswahlleiter <a href="https://www.bundeswahlleiter.de/dam/jcr/72f186bb-aa56-47d3-b24c-6a46f5de22d0/btw17_kerg.csv">here</a>. I have prepared the column names of the data and the data structure, to render the file more accessible to machine parsing. Data points were not altered. You can access my version of the file <a href="https://sebastiansauer.github.io/data/btw17_election_results.csv">here</a>.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">elec_file <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Documents/datasets/Strukturdaten_De/btw17_election_results.csv&#34;</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">elec_file <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;~/Documents/datasets/Strukturdaten_De/btw17_election_results.csv&#34;</span>
 <span style="color:#a6e22e">file.exists</span>(elec_file)
 </code></pre></div><pre><code>## [1] TRUE
 </code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">elec_results <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_csv</span>(elec_file)
@@ -217,8 +217,8 @@ afd_prop <span style="color:#f92672">&lt;-</span> elec_results <span style="colo
 </code></pre></div><p>In the previous step, we have selected the columns of interest, changed their name (shorter, English), and have computed the proportion of (valid) secondary votes in favor of the AfD.</p>
 <h1 id="match-unemployment-and-income-to-afd-votes-for-each-wahlkreis">Match unemployment and income to AfD votes for each Wahlkreis</h1>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">wahlkreise_shp <span style="color:#f92672">%&gt;%</span>
-  <span style="color:#a6e22e">left_join</span>(unemp_de, by <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">WKR_NR&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">area_nr&#34;</span>)) <span style="color:#f92672">%&gt;%</span>
-  <span style="color:#a6e22e">left_join</span>(afd_prop, by <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">area_name&#34;</span>) <span style="color:#f92672">-&gt;</span> chloro_data
+  <span style="color:#a6e22e">left_join</span>(unemp_de, by <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;WKR_NR&#34;</span> <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;area_nr&#34;</span>)) <span style="color:#f92672">%&gt;%</span>
+  <span style="color:#a6e22e">left_join</span>(afd_prop, by <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;area_name&#34;</span>) <span style="color:#f92672">-&gt;</span> chloro_data
 </code></pre></div><h1 id="plot-geo-map-with-afd-votes">Plot geo map with afd votes</h1>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
@@ -226,14 +226,14 @@ afd_prop <span style="color:#f92672">&lt;-</span> elec_results <span style="colo
 p1
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-11-1.png" alt="plot of chunk unnamed-chunk-11"></p>
 <p>We might want to play with the fill color, or clean up the map (remove axis etc.)</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p1 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Spectral&#34;</span>) <span style="color:#f92672">+</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">p1 <span style="color:#f92672">+</span> <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Spectral&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">theme_void</span>()
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-12-1.png" alt="plot of chunk unnamed-chunk-12"></p>
 <h1 id="geo-map-of-election-areas-with-unemployment-map">Geo map (of election areas) with unemployment map</h1>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> unemp)) <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Spectral&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Spectral&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">theme_void</span>() <span style="color:#f92672">-&gt;</span> p2
 p2
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-10-10/unnamed-chunk-13-1.png" alt="plot of chunk unnamed-chunk-13"></p>
@@ -355,9 +355,9 @@ p4
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">chloro_data <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">select</span>(afd_unemp_diff) <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">mutate</span>(afd_unemp_diff_3g <span style="color:#f92672">=</span> <span style="color:#a6e22e">cut_interval</span>(afd_unemp_diff, n <span style="color:#f92672">=</span> <span style="color:#ae81ff">3</span>,
-         labels <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">AFD &lt; Arbeitslosigkeit&#34;</span>,
-                    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">AFD = Arbeitslosigkeit&#34;</span>,
-                    <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">AFD &gt; Arbeitslosigkeit&#34;</span>))) <span style="color:#f92672">%&gt;%</span>
+         labels <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;AFD &lt; Arbeitslosigkeit&#34;</span>,
+                    <span style="color:#e6db74">&#34;AFD = Arbeitslosigkeit&#34;</span>,
+                    <span style="color:#e6db74">&#34;AFD &gt; Arbeitslosigkeit&#34;</span>))) <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">ggplot</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> afd_unemp_diff_3g)) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">labs</span>(fill) <span style="color:#f92672">+</span>

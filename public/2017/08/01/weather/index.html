@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.63.2" />
+<meta name="generator" content="Hugo 0.67.0" />
 
 
 <title>Precipitation - It never rains in Southern Nuremberg (?). Working with dates/times. - Data Se</title>
@@ -74,7 +74,7 @@
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(tidyverse)  <span style="color:#75715e"># data reading and wrangling</span>
 <span style="color:#a6e22e">library</span>(lubridate)  <span style="color:#75715e"># working with dates/times</span>
 </code></pre></div><p>First, let&rsquo;s import some precipitation data:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">file_name <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">~/Downloads/export-sun-nuremberg--flugfeld--airport--precipitation-data--1-hour--individuell.csv&#34;</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">file_name <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;~/Downloads/export-sun-nuremberg--flugfeld--airport--precipitation-data--1-hour--individuell.csv&#34;</span>
 rain <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_csv2</span>(file_name,
                  skip <span style="color:#f92672">=</span> <span style="color:#ae81ff">13</span>,
                  col_names <span style="color:#f92672">=</span> <span style="color:#66d9ef">FALSE</span>)
@@ -84,10 +84,10 @@ rain <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read_c
 ## row # A tibble: 5 x 5 col     row   col expected actual expected   &lt;int&gt; &lt;chr&gt;    &lt;chr&gt;  &lt;chr&gt; actual 1  1643    X2 a double      - file 2  1644    X2 a double      - row 3  1645    X2 a double      - col 4  1646    X2 a double      - expected 5  1647    X2 a double      - actual # ... with 1 more variables: file &lt;chr&gt;
 ## ... ................. ... ............................. ........ ............................. ...... ............................. .... ............................. ... ............................. ... ............................. ........ ............................. ...... .......................................
 ## See problems(...) for more details.
-</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">colnames</span>(rain) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">date_time&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">precip&#34;</span>)
+</code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">colnames</span>(rain) <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;date_time&#34;</span>, <span style="color:#e6db74">&#34;precip&#34;</span>)
 </code></pre></div><p>As there was some strange, non-UTF8 character in line 12, we just skipped this line. As this was the row with the column names, we informed <code>read_csv</code> that there are no col_names (using <code>col_names = FALSE</code>). Also, some missing data occured. Luckily, <code>readr</code> takes care (despite of a lot of warning output).</p>
 <p>Unfortunately, R has not yet reckognized that the first column consists of a date/time object. So let&rsquo;s tell her:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain<span style="color:#f92672">$</span>dt <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">parse_date_time</span>(rain<span style="color:#f92672">$</span>date_time, orders<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;</span><span style="color:#e6db74">dmy HM&#34;</span>)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain<span style="color:#f92672">$</span>dt <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">parse_date_time</span>(rain<span style="color:#f92672">$</span>date_time, orders<span style="color:#f92672">=</span><span style="color:#e6db74">&#34;dmy HM&#34;</span>)
 </code></pre></div><p>The parameter <code>order</code> tell R, that the format of <code>date_time</code> is day month year (hence <code>dmy</code>), followed by hour and minute (hence <code>HM</code>). Now let&rsquo;s spread the date/time to several columns:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">select</span>(<span style="color:#f92672">-</span>date_time) <span style="color:#f92672">%&gt;%</span>
@@ -140,15 +140,15 @@ n_dry_days
   <span style="color:#a6e22e">geom_line</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_point</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">scale_x_continuous</span>(breaks <span style="color:#f92672">=</span> <span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">12</span>) <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">labs</span>(title <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Total precipitation in liter per square meter&#34;</span>)
+  <span style="color:#a6e22e">labs</span>(title <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Total precipitation in liter per square meter&#34;</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-10-1.png" alt="plot of chunk unnamed-chunk-10"></p>
 <p>For the fun of it, let&rsquo;s prepare a more nuanced picture.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain <span style="color:#f92672">%&gt;%</span>
   ggplot <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> date, y <span style="color:#f92672">=</span> hour, fill <span style="color:#f92672">=</span> precip) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_tile</span>() <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Spectral&#34;</span>) <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">scale_x_date</span>(date_breaks <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">1 month&#34;</span>, date_labels <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%b&#34;</span>)
+  <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Spectral&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_x_date</span>(date_breaks <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;1 month&#34;</span>, date_labels <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;%b&#34;</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-11-1.png" alt="plot of chunk unnamed-chunk-11"></p>
 <p>Hey, in June there must have been some heavy raining. Let&rsquo;s zoom in.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain <span style="color:#f92672">%&gt;%</span>
@@ -156,8 +156,8 @@ n_dry_days
   ggplot <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> date, y <span style="color:#f92672">=</span> hour, fill <span style="color:#f92672">=</span> precip) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_tile</span>() <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Spectral&#34;</span>) <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">scale_x_date</span>(date_breaks <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">1 day&#34;</span>, date_labels <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">%d&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_fill_distiller</span>(palette <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;Spectral&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">scale_x_date</span>(date_breaks <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;1 day&#34;</span>, date_labels <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;%d&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">scale_y_continuous</span>(breaks <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">4</span>, <span style="color:#ae81ff">8</span>, <span style="color:#ae81ff">12</span>, <span style="color:#ae81ff">16</span>, <span style="color:#ae81ff">20</span>, <span style="color:#ae81ff">24</span>))
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-12-1.png" alt="plot of chunk unnamed-chunk-12"></p>
 <p>Most of the days in June were dry, but on one day, heave rains occurred on the 12th or 13th in the late afternoon.</p>
@@ -181,7 +181,7 @@ n_dry_days
   <span style="color:#a6e22e">geom_line</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_errorbar</span>(<span style="color:#a6e22e">aes</span>(ymin <span style="color:#f92672">=</span> precip_mean_per_hour <span style="color:#f92672">-</span> precip_sd_per_hour,
                     ymax <span style="color:#f92672">=</span> precip_mean_per_hour <span style="color:#f92672">+</span> precip_sd_per_hour)) <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">geom_point</span>(color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">tomato4&#34;</span>)
+  <span style="color:#a6e22e">geom_point</span>(color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;tomato4&#34;</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-14-1.png" alt="plot of chunk unnamed-chunk-14"></p>
 <p>Hm, not much difference between the hours. But the variability seems to differ quite some bit. Would that picture change if we consider only days <em>with</em> precipation?</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain <span style="color:#f92672">%&gt;%</span>
@@ -194,7 +194,7 @@ n_dry_days
   <span style="color:#a6e22e">geom_line</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_errorbar</span>(<span style="color:#a6e22e">aes</span>(ymin <span style="color:#f92672">=</span> precip_mean_per_hour <span style="color:#f92672">-</span> precip_sd_per_hour,
                     ymax <span style="color:#f92672">=</span> precip_mean_per_hour <span style="color:#f92672">+</span> precip_sd_per_hour)) <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">geom_point</span>(color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">tomato4&#34;</span>)
+  <span style="color:#a6e22e">geom_point</span>(color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;tomato4&#34;</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-15-1.png" alt="plot of chunk unnamed-chunk-15"></p>
 <p>Not too much difference in the overall pattern. But what about if we look at the median and IQR, instead of mean and sd?</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">rain <span style="color:#f92672">%&gt;%</span>
@@ -207,8 +207,8 @@ n_dry_days
   <span style="color:#a6e22e">geom_line</span>() <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_errorbar</span>(<span style="color:#a6e22e">aes</span>(ymin <span style="color:#f92672">=</span> precip_median_per_hour <span style="color:#f92672">-</span> precip_iqr_per_hour,
                     ymax <span style="color:#f92672">=</span> precip_median_per_hour <span style="color:#f92672">+</span> precip_iqr_per_hour),
-                color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">grey60&#34;</span>) <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">geom_point</span>(color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">tomato4&#34;</span>)
+                color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;grey60&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_point</span>(color <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;tomato4&#34;</span>)
 </code></pre></div><p><img src="https://sebastiansauer.github.io/images/2017-08-01/figure/unnamed-chunk-16-1.png" alt="plot of chunk unnamed-chunk-16"></p>
 <p>That the pattern breaks down essentially. Not that much difference between the hours left. Maybe 10:00 is rather dry, but that may be sampling errror of this year.</p>
 

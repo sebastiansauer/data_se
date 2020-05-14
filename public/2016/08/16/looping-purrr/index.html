@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.63.2" />
+<meta name="generator" content="Hugo 0.67.0" />
 
 
 <title>Looping through dataframe columns using purrr::map() - Data Se</title>
@@ -72,7 +72,7 @@
       <p>Let&rsquo;s get purrr. Recently, I ran across this issue: A data frame with many columns; I wanted to select all numeric columns and submit them to a t-test with some grouping variables.</p>
 <p>As this is a quite common task, and the purrr-approach (package <a href="https://github.com/hadley/purrr">purrr</a> by @HadleyWickham) is quite elegant, I present the approach in this post.</p>
 <p>Let&rsquo;s load the data, the Affairs data set, and some packages:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">data</span>(Affairs, package <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">AER&#34;</span>)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">data</span>(Affairs, package <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;AER&#34;</span>)
 <span style="color:#a6e22e">library</span>(purrr)  <span style="color:#75715e"># functional programming</span>
 <span style="color:#a6e22e">library</span>(dplyr)  <span style="color:#75715e"># dataframe wrangling</span>
 <span style="color:#a6e22e">library</span>(ggplot2)  <span style="color:#75715e"># plotting</span>
@@ -140,7 +140,7 @@
 </code></pre><p>The <code>~</code> is just a convenient short hand for the normal way of writing anonymous functions. And the dot <code>.</code> is then again a shorthand for the column that is handed through the function (just as <code>x</code>in the normal <code>apply</code> call).</p>
 <p>Well, that&rsquo;s basically it! The <code>$p.value</code> bit just extracts the p-value statistic out of the t-test object.</p>
 <p>The more familiar, <code>lapply</code> approach would be something like:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">lapply</span>(Affairs<span style="color:#a6e22e">[c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">affairs&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">age&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">yearsmarried&#34;</span>)], <span style="color:#a6e22e">function</span>(x) <span style="color:#a6e22e">t.test</span>(x <span style="color:#f92672">~</span> Affairs<span style="color:#f92672">$</span>gender))
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">lapply</span>(Affairs<span style="color:#a6e22e">[c</span>(<span style="color:#e6db74">&#34;affairs&#34;</span>, <span style="color:#e6db74">&#34;age&#34;</span>, <span style="color:#e6db74">&#34;yearsmarried&#34;</span>)], <span style="color:#a6e22e">function</span>(x) <span style="color:#a6e22e">t.test</span>(x <span style="color:#f92672">~</span> Affairs<span style="color:#f92672">$</span>gender))
 </code></pre></div><pre><code>## $affairs
 ## 
 ## 	Welch Two Sample t-test
@@ -188,11 +188,11 @@
   <span style="color:#a6e22e">map</span>(<span style="color:#f92672">~</span><span style="color:#a6e22e">t.test</span>(. <span style="color:#f92672">~</span> Affairs<span style="color:#f92672">$</span>gender)<span style="color:#f92672">$</span>p.value) <span style="color:#f92672">%&gt;%</span> 
   as.data.frame <span style="color:#f92672">%&gt;%</span> 
   gather <span style="color:#f92672">%&gt;%</span> 
-  <span style="color:#a6e22e">mutate</span>(signif <span style="color:#f92672">=</span> <span style="color:#a6e22e">ifelse</span>(value <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">.05</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">significant&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">ns&#34;</span>)) <span style="color:#f92672">%&gt;%</span> 
+  <span style="color:#a6e22e">mutate</span>(signif <span style="color:#f92672">=</span> <span style="color:#a6e22e">ifelse</span>(value <span style="color:#f92672">&lt;</span> <span style="color:#ae81ff">.05</span>, <span style="color:#e6db74">&#34;significant&#34;</span>, <span style="color:#e6db74">&#34;ns&#34;</span>)) <span style="color:#f92672">%&gt;%</span> 
   <span style="color:#a6e22e">ggplot</span>(<span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> <span style="color:#a6e22e">reorder</span>(key, value), y <span style="color:#f92672">=</span> value)) <span style="color:#f92672">+</span> 
   <span style="color:#a6e22e">geom_point</span>(<span style="color:#a6e22e">aes</span>(color <span style="color:#f92672">=</span> signif)) <span style="color:#f92672">+</span> 
   <span style="color:#a6e22e">coord_flip</span>() <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">ylab</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">p value&#34;</span>)
+  <span style="color:#a6e22e">ylab</span>(<span style="color:#e6db74">&#34;p value&#34;</span>)
 </code></pre></div><p><img src="/images/purrr_1.png" alt="output"></p>
 
     </div>

@@ -1,0 +1,89 @@
+---
+title: Simulating Berkson's paradox
+author: Sebastian Sauer
+date: '2020-04-16'
+slug: simulation-berkson-s-paradox
+categories:
+  - rstats
+tags:
+  - rstats
+  - causality
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<p>This post was inspired by <a href="https://www.tandfonline.com/doi/full/10.1080/10691898.2020.1752859">this paper</a> of Karsten Luebke and coauthors.</p>
+<p>We’ll stratify our sample into two groups: students (Studium) and non-students (kein Studium).</p>
+<div id="structural-causal-model" class="section level1">
+<h1>Structural causal model</h1>
+<p>First, we define the structure of our causal model.</p>
+<pre class="r"><code>set.seed(42)  # reproducibilty
+N &lt;- 1e03
+IQ = rnorm(N)
+Fleiss = rnorm(N)
+Eignung = 1/2 * IQ + 1/2 * Fleiss + rnorm(N, 0, .1)</code></pre>
+<p>That is, aptitude (Eignung) is a function of intelligence (IQ) and dilligence (Fleiss), where the input variables have the same impact on the outcome variable (aptitude). Throw in some Gaussian noise.</p>
+<p>Now put that into some dataframe:</p>
+<pre class="r"><code>df = data.frame(
+  IQ = IQ,
+  Fleiss = Fleiss,
+  Eignung = Eignung,
+  Studium_bin = ifelse(Eignung &gt; 0, 
+                       &quot;Studium&quot;, &quot;kein Studium&quot;)
+)</code></pre>
+<p>We assume that only those with an high value of aptitude (Eignug) will enroll in some college degree (ie., Studium_bin == <code>Studium</code>).</p>
+</div>
+<div id="first-study-breaking-high-iq-makes-you-lazy" class="section level1">
+<h1>First study: “Breaking: High IQ makes you lazy!”</h1>
+<p>Suppose that a study (via its press release) informs the public about a negative correlation between intelligence and dilligence in a student sample.</p>
+<pre class="r"><code>cor(IQ ~ Fleiss, data = df %&gt;% 
+      filter(Studium_bin == &quot;Studium&quot;))
+#&gt; [1] -0.4335685
+tally(~ Studium_bin, data = df)
+#&gt; Studium_bin
+#&gt; kein Studium      Studium 
+#&gt;          509          491</code></pre>
+<p>Here’s the seductive plot:</p>
+<pre class="r"><code>gf_point(IQ ~ Fleiss, data = df %&gt;% 
+           filter(Studium_bin == &quot;Studium&quot;)) %&gt;% 
+  gf_refine(scale_colour_colorblind())  %&gt;% 
+  gf_lm()</code></pre>
+<p><img src="/post/2020-04-16-simulation-berkson-s-paradox_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="replication-effort-second-study-provides-conflicting-evidence-no-assocation-between-iq-and-dilligence" class="section level1">
+<h1>Replication effort: Second study provides conflicting evidence: No assocation between IQ and dilligence</h1>
+<p>A replication study, now endowed with an an larger (double) sample size, does not find any assocation. Noteworthy, they did not only include students, but non-students as well.</p>
+<pre class="r"><code>cor(IQ ~ Fleiss, data = df)
+#&gt; [1] 0.009981927
+
+gf_point(IQ ~ Fleiss, data = df) %&gt;% 
+  gf_refine(scale_colour_colorblind())  %&gt;% 
+  gf_lm()</code></pre>
+<p><img src="/post/2020-04-16-simulation-berkson-s-paradox_files/figure-html/unnamed-chunk-5-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="stratifying-subgroups" class="section level1">
+<h1>Stratifying subgroups</h1>
+<p>The seemingly paradox situation can be resolved once we stratify the larger (second) sample.</p>
+<pre class="r"><code>gf_point(IQ ~ Fleiss, color = ~Studium_bin, data = df) %&gt;% 
+  gf_refine(scale_colour_colorblind())  %&gt;% 
+  gf_refine(theme(legend.position = &quot;bottom&quot;)) %&gt;% 
+  gf_labs(color = &quot;&quot;) %&gt;% 
+  gf_lm()</code></pre>
+<p><img src="/post/2020-04-16-simulation-berkson-s-paradox_files/figure-html/unnamed-chunk-6-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>We see that there’s indeed a negative correlation in each subgroup. However, there’s no marginal assocation, ie., on the whole sample.</p>
+</div>
+<div id="causal-interpretation" class="section level1">
+<h1>Causal interpretation</h1>
+<p>This pattern is called a <em>collider bias</em> in causal inference. The underlying causal structure can be visualizes using this DAG:</p>
+<pre class="r"><code>detach(name = &quot;package:mosaic&quot;, unload = TRUE)
+dag1 &lt;- ggdag::dagify(S ~ F + IQ,
+                      outcome = &quot;S&quot;,
+                      labels = c(&quot;S&quot; = &quot;Studium&quot;,
+                                 &quot;IQ&quot; = &quot;Intelligenz&quot;,
+                                 &quot;F&quot; = &quot;Fleiss&quot;))
+
+dag1_p &lt;- ggdag(dag1, use_labels = &quot;label&quot;)  + theme_dag_blank()</code></pre>
+<pre class="r"><code>dag1_p</code></pre>
+<p><img src="/post/2020-04-16-simulation-berkson-s-paradox_files/figure-html/unnamed-chunk-8-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>

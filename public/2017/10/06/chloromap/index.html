@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.63.2" />
+<meta name="generator" content="Hugo 0.67.0" />
 
 
 <title>Drawing a country map - Data Se</title>
@@ -89,8 +89,8 @@
 <p><a href="http://gadm.org/country">This site</a> also looks great to get geospatial data.</p>
 <p>These data are PD as stated <a href="http://arnulf.us/PLZ">here</a>. Download and unpack the data. Let&rsquo;s assume that the data are stored in a path called <code>my_path</code>. See for instance in my case:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#75715e"># replace the following path with your path:</span>
-my_path <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">/Users/sebastiansauer/Documents/Datensaetze/plz/&#34;</span>
-my_shape <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">post_pl.shp&#34;</span>
+my_path <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;/Users/sebastiansauer/Documents/Datensaetze/plz/&#34;</span>
+my_shape <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;post_pl.shp&#34;</span>
 
 shape_dest <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">paste0</span>(my_path, my_shape)
 <span style="color:#a6e22e">file.exists</span>(shape_dest)
@@ -125,14 +125,14 @@ de_shape<span style="color:#f92672">$</span>PLZORT99 <span style="color:#f92672"
 </code></pre></div><p>Note that the file contains semantic data, too (zip code, town names).</p>
 <p>Some encoding problems. More often than not, text data is in the wrong format. Blind guessing: Data was stored on a Windows machine, hence in Latin1. My system assumes UTF-8, so culture clash is to expected. Let&rsquo;s try to fix.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">de_shape<span style="color:#f92672">$</span>PLZORT99 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">as.character</span>(de_shape<span style="color:#f92672">$</span>PLZORT99)
-<span style="color:#a6e22e">Encoding</span>(de_shape<span style="color:#f92672">$</span>PLZORT99) <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">latin1&#34;</span>
+<span style="color:#a6e22e">Encoding</span>(de_shape<span style="color:#f92672">$</span>PLZORT99) <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;latin1&#34;</span>
 <span style="color:#a6e22e">slice</span>(de_shape<span style="color:#f92672">$</span>PLZORT99, <span style="color:#ae81ff">90</span><span style="color:#f92672">:</span><span style="color:#ae81ff">100</span>)
 <span style="color:#75715e">#&gt; Error in UseMethod(&#34;slice_&#34;): no applicable method for &#39;slice_&#39; applied to an object of class &#34;character&#34;</span>
 </code></pre></div><p>Ok, fixed.</p>
 <h2 id="shape-semantics">Shape semantics</h2>
 <p>&ldquo;Shape semantics&rdquo; is a rather fancy word for the county/community/town names. We can access the data <a href="http://download.geonames.org/export/zip/DE.zip">here</a>.</p>
 <p>Download and unzip the data, then move it to <code>my_path</code>. The German word for &ldquo;zip code&rdquo; is &ldquo;PLZ&rdquo;, so that&rsquo;s why I call it <code>my_plz</code>:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">my_plz <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">PLZ_Ort_Long_Lat_Land_DE.txt&#34;</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">my_plz <span style="color:#f92672">&lt;-</span> <span style="color:#e6db74">&#34;PLZ_Ort_Long_Lat_Land_DE.txt&#34;</span>
 de_plz <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">paste0</span>(my_path, my_plz)
 <span style="color:#a6e22e">file.exists</span>(de_plz)
 <span style="color:#75715e">#&gt; [1] TRUE</span>
@@ -172,12 +172,12 @@ plz_df <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">read
 </code></pre></div><h2 id="test-it">Test it</h2>
 <p>Now, enough of grey theory! Unfortunately, I don&rsquo;t know any nice Hamlet citation here, which would certainly be impressive.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">my_col <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">sample</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">7</span>, <span style="color:#a6e22e">length</span>(de_shape), replace <span style="color:#f92672">=</span> T)
-<span style="color:#a6e22e">plot</span>(de_shape<span style="color:#a6e22e">[c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">PLZ99&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">geometry&#34;</span>)],
-     col <span style="color:#f92672">=</span> <span style="color:#a6e22e">brewer.pal</span>(<span style="color:#ae81ff">7</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Greens&#34;</span>)[my_col], border <span style="color:#f92672">=</span> F)
+<span style="color:#a6e22e">plot</span>(de_shape<span style="color:#a6e22e">[c</span>(<span style="color:#e6db74">&#34;PLZ99&#34;</span>, <span style="color:#e6db74">&#34;geometry&#34;</span>)],
+     col <span style="color:#f92672">=</span> <span style="color:#a6e22e">brewer.pal</span>(<span style="color:#ae81ff">7</span>, <span style="color:#e6db74">&#34;Greens&#34;</span>)[my_col], border <span style="color:#f92672">=</span> F)
 </code></pre></div><p><!-- raw HTML omitted --></p>
 <h2 id="filter-bavaria">Filter Bavaria</h2>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">plz_bavaria <span style="color:#f92672">&lt;-</span> plz_df <span style="color:#f92672">%&gt;%</span>
-  <span style="color:#a6e22e">filter</span>(state <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Bayern&#34;</span>)
+  <span style="color:#a6e22e">filter</span>(state <span style="color:#f92672">==</span> <span style="color:#e6db74">&#34;Bayern&#34;</span>)
 
 plz_bavaria_vec <span style="color:#f92672">&lt;-</span> plz_bavaria<span style="color:#f92672">$</span>postal_code
 </code></pre></div><p>Easy; ~2259 zip codes in Bavaria.</p>
@@ -186,13 +186,13 @@ plz_bavaria_vec <span style="color:#f92672">&lt;-</span> plz_bavaria<span style=
 </code></pre></div><p>And plot Bavaria:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">my_col <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">sample</span>(<span style="color:#ae81ff">1</span><span style="color:#f92672">:</span><span style="color:#ae81ff">7</span>, <span style="color:#a6e22e">length</span>(de_shape), replace <span style="color:#f92672">=</span> T)
 
-bav_data <span style="color:#f92672">&lt;-</span> de_shape[my_rows,<span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">PLZ99&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">geometry&#34;</span>)]
+bav_data <span style="color:#f92672">&lt;-</span> de_shape[my_rows,<span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;PLZ99&#34;</span>, <span style="color:#e6db74">&#34;geometry&#34;</span>)]
 <span style="color:#a6e22e">plot</span>(bav_data,
-     col <span style="color:#f92672">=</span> <span style="color:#a6e22e">brewer.pal</span>(<span style="color:#ae81ff">7</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">Oranges&#34;</span>)[my_col], border <span style="color:#f92672">=</span> F)
+     col <span style="color:#f92672">=</span> <span style="color:#a6e22e">brewer.pal</span>(<span style="color:#ae81ff">7</span>, <span style="color:#e6db74">&#34;Oranges&#34;</span>)[my_col], border <span style="color:#f92672">=</span> F)
 </code></pre></div><p><!-- raw HTML omitted --></p>
 <h2 id="now-plot-with-ggplot2">Now plot with ggplot2</h2>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">
-bav_data<span style="color:#f92672">$</span>PLZ2 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">str_extract</span>(bav_data<span style="color:#f92672">$</span>PLZ99, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\\d\\d&#34;</span>)
+bav_data<span style="color:#f92672">$</span>PLZ2 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">str_extract</span>(bav_data<span style="color:#f92672">$</span>PLZ99, <span style="color:#e6db74">&#34;\\d\\d&#34;</span>)
 
 
 <span style="color:#a6e22e">ggplot</span>(data <span style="color:#f92672">=</span> bav_data) <span style="color:#f92672">+</span>
@@ -221,7 +221,7 @@ p_bavaria2
                               size <span style="color:#f92672">=</span> <span style="color:#a6e22e">nrow</span>(bav_data),
                               prob <span style="color:#f92672">=</span> <span style="color:#a6e22e">c</span>(<span style="color:#ae81ff">.99</span>, <span style="color:#ae81ff">.01</span>),
                               replace <span style="color:#f92672">=</span> <span style="color:#66d9ef">TRUE</span>) <span style="color:#f92672">%&gt;%</span> factor
-my_pal <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">grey80&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">firebrick&#34;</span>)
+my_pal <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;grey80&#34;</span>, <span style="color:#e6db74">&#34;firebrick&#34;</span>)
 <span style="color:#a6e22e">ggplot</span>(data <span style="color:#f92672">=</span> bav_data) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> PLZ_sample)) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">scale_fill_manual</span>(values <span style="color:#f92672">=</span> my_pal) <span style="color:#f92672">+</span>
@@ -230,9 +230,9 @@ p_bavaria3
 </code></pre></div><p><!-- raw HTML omitted --></p>
 <h1 id="bigger-visual-chunks">Bigger visual chunks</h1>
 <p>Let&rsquo;s cut the polygons in bigger chunks, say, according to the first digit in the zip code.</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">bav_data<span style="color:#f92672">$</span>PLZ1 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">str_extract</span>(bav_data<span style="color:#f92672">$</span>PLZ99, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">\\d&#34;</span>)
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">bav_data<span style="color:#f92672">$</span>PLZ1 <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">str_extract</span>(bav_data<span style="color:#f92672">$</span>PLZ99, <span style="color:#e6db74">&#34;\\d&#34;</span>)
 
-my_pal <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;</span><span style="color:#e6db74">grey80&#34;</span>, <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">firebrick&#34;</span>)
+my_pal <span style="color:#f92672">&lt;-</span> <span style="color:#a6e22e">c</span>(<span style="color:#e6db74">&#34;grey80&#34;</span>, <span style="color:#e6db74">&#34;firebrick&#34;</span>)
 <span style="color:#a6e22e">ggplot</span>(data <span style="color:#f92672">=</span> bav_data) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">geom_sf</span>(<span style="color:#a6e22e">aes</span>(fill <span style="color:#f92672">=</span> PLZ1)) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">scale_fill_viridis_d</span>() <span style="color:#f92672">-&gt;</span> p_bavaria4

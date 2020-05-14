@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.63.2" />
+<meta name="generator" content="Hugo 0.67.0" />
 
 
 <title>Cross-tabulate multiple variables - Data Se</title>
@@ -74,7 +74,7 @@
 <p>I wanted to know whether each of these (10 or so) comorbidities was associated with the outcome (treatment success, yes vs. no).</p>
 <p>Of course, an easy solution would be to “half-manually” check the association, eg. using table() in R. But I wanted a more reproducible, more automated solution (ok, I confess, I justed wanted it to be cooler, probably…).</p>
 <p>As a starter, consider the old question of the Titanic disaster: Did class correlate with survival? Let’s see:</p>
-<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">data</span>(titanic, package <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">COUNT&#34;</span>)  <span style="color:#75715e"># package need be installed</span>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">data</span>(titanic, package <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;COUNT&#34;</span>)  <span style="color:#75715e"># package need be installed</span>
 <span style="color:#a6e22e">attach</span>(titanic)  <span style="color:#75715e"># save some typing</span>
 <span style="color:#a6e22e">table</span>(class, survived)<span style="color:#75715e"># tabulate the two variables</span>
 </code></pre></div><pre><code>##            survived
@@ -115,14 +115,14 @@
 ## 
 ##     intersect, setdiff, setequal, union
 </code></pre><div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r"><span style="color:#a6e22e">library</span>(ggplot2)
-<span style="color:#a6e22e">data</span>(Wage, package <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">ISLR&#34;</span>)
+<span style="color:#a6e22e">data</span>(Wage, package <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;ISLR&#34;</span>)
 </code></pre></div><p>Now,  here comes dplyr:</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-r" data-lang="r">Wage <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">mutate</span>(wage_f <span style="color:#f92672">=</span> <span style="color:#a6e22e">ntile</span>(wage, <span style="color:#ae81ff">2</span>)) <span style="color:#f92672">%&gt;%</span>  <span style="color:#75715e"># bin it</span>
   <span style="color:#a6e22e">group_by</span>(wage_f, health, race) <span style="color:#f92672">%&gt;%</span>
   <span style="color:#a6e22e">summarise</span>(count <span style="color:#f92672">=</span> <span style="color:#a6e22e">n</span>()) <span style="color:#f92672">%&gt;%</span>  <span style="color:#75715e"># summarise by each group</span>
   <span style="color:#a6e22e">ggplot</span>(<span style="color:#a6e22e">aes</span>(x <span style="color:#f92672">=</span> <span style="color:#a6e22e">factor</span>(wage_f), y <span style="color:#f92672">=</span> count, fill <span style="color:#f92672">=</span> race)) <span style="color:#f92672">+</span>
-  <span style="color:#a6e22e">geom_bar</span>(stat <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;</span><span style="color:#e6db74">identity&#34;</span>) <span style="color:#f92672">+</span>
+  <span style="color:#a6e22e">geom_bar</span>(stat <span style="color:#f92672">=</span> <span style="color:#e6db74">&#34;identity&#34;</span>) <span style="color:#f92672">+</span>
   <span style="color:#a6e22e">facet_wrap</span>(<span style="color:#f92672">~</span>health)
 </code></pre></div><p><img src="/images/cross-tabulate-1.png" alt=""></p>
 <p>Let’s discuss the code a bit (not every bit), looking briefly the lines:</p>
