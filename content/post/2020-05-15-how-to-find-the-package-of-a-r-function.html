@@ -1,0 +1,93 @@
+---
+title: How to find the package of a R function
+author: Sebastian Sauer
+date: '2020-05-15'
+slug: how-to-find-the-package-of-a-r-function
+categories:
+  - rstats
+tags:
+  - stats
+  - tutorial
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)</code></pre>
+</div>
+<div id="where-does-my-function-reside" class="section level1">
+<h1>Where does my function reside?</h1>
+<p>Finding the package of a given R function is some hassle. I am not aware of a quick built-in way in R to find the package of a function.</p>
+<p>That’s why I came up with my own function, check it out:</p>
+<div id="install-package" class="section level2">
+<h2>Install package</h2>
+<p>Speaking of packages of function, that’s the package where this function stays:</p>
+<pre class="r"><code>library(devtools)
+install_github(&quot;sebastiansauer/prada&quot;)</code></pre>
+</div>
+<div id="example" class="section level2">
+<h2>Example</h2>
+<pre class="r"><code>library(prada)</code></pre>
+<pre class="r"><code>find_funs(&quot;select&quot;)
+#&gt; # A tibble: 11 x 3
+#&gt;    package_name builtin_pckage loaded
+#&gt;    &lt;chr&gt;        &lt;lgl&gt;          &lt;lgl&gt; 
+#&gt;  1 BDgraph      FALSE          FALSE 
+#&gt;  2 dplyr        FALSE          TRUE  
+#&gt;  3 jmvcore      FALSE          FALSE 
+#&gt;  4 jqr          FALSE          FALSE 
+#&gt;  5 MASS         TRUE           FALSE 
+#&gt;  6 plotly       FALSE          FALSE 
+#&gt;  7 raster       FALSE          FALSE 
+#&gt;  8 rstatix      FALSE          FALSE 
+#&gt;  9 tidygraph    FALSE          FALSE 
+#&gt; 10 tidylog      FALSE          FALSE 
+#&gt; 11 VGAM         FALSE          FALSE</code></pre>
+<pre class="r"><code>find_funs(&quot;tidy&quot;)
+#&gt; # A tibble: 14 x 3
+#&gt;    package_name  builtin_pckage loaded
+#&gt;    &lt;chr&gt;         &lt;lgl&gt;          &lt;lgl&gt; 
+#&gt;  1 broom         FALSE          FALSE 
+#&gt;  2 broom.mixed   FALSE          FALSE 
+#&gt;  3 broomExtra    FALSE          FALSE 
+#&gt;  4 geepack       FALSE          FALSE 
+#&gt;  5 generics      FALSE          FALSE 
+#&gt;  6 huxtable      FALSE          FALSE 
+#&gt;  7 parsnip       FALSE          FALSE 
+#&gt;  8 recipes       FALSE          FALSE 
+#&gt;  9 rsample       FALSE          FALSE 
+#&gt; 10 rstatix       FALSE          FALSE 
+#&gt; 11 tidyposterior FALSE          FALSE 
+#&gt; 12 tidypredict   FALSE          FALSE 
+#&gt; 13 tidytext      FALSE          FALSE 
+#&gt; 14 yardstick     FALSE          FALSE</code></pre>
+<p>Note that his may take a while (up to a few seconds in some cases).</p>
+</div>
+</div>
+<div id="code" class="section level1">
+<h1>Code</h1>
+<pre class="r"><code>find_funs
+#&gt; function (f) 
+#&gt; {
+#&gt;     help_installed &lt;- utils::help.search(paste0(&quot;^&quot;, f, &quot;$&quot;), 
+#&gt;         agrep = FALSE)
+#&gt;     pckg_hits &lt;- help_installed$matches[, &quot;Package&quot;]
+#&gt;     if (length(pckg_hits) == 0) 
+#&gt;         pckg_hits &lt;- &quot;No_results_found&quot;
+#&gt;     pckgs &lt;- utils::installed.packages()
+#&gt;     pckgs &lt;- tibble::as_tibble(pckgs)
+#&gt;     pckgs &lt;- dplyr::filter(pckgs, Priority == &quot;base&quot; | Priority == 
+#&gt;         &quot;recommended&quot;)
+#&gt;     pckgs &lt;- dplyr::select(pckgs, Package)
+#&gt;     builtin_pckgs_df &lt;- dplyr::distinct(pckgs)
+#&gt;     results &lt;- tibble::data_frame(package_name = pckg_hits, builtin_pckage = match(pckg_hits, 
+#&gt;         builtin_pckgs_df$Package, nomatch = 0) &gt; 0, loaded = match(paste(&quot;package:&quot;, 
+#&gt;         pckg_hits, sep = &quot;&quot;), search(), nomatch = 0) &gt; 0)
+#&gt;     base::return(results)
+#&gt; }
+#&gt; &lt;bytecode: 0x7fb6ebd09b90&gt;
+#&gt; &lt;environment: namespace:prada&gt;</code></pre>
+<p>Enjoy!</p>
+</div>
