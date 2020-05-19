@@ -1,0 +1,91 @@
+---
+title: Adjustment set exercise from Elwert 2013
+author: Sebastian Sauer
+date: '2020-05-19'
+slug: adjustment-set-exercise-from-elwert-2013
+categories:
+  - causal
+  - DAG
+tags:
+  - rstats
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)
+library(ggdag)
+library(dagitty)</code></pre>
+</div>
+<div id="define-dag" class="section level1">
+<h1>Define DAG</h1>
+<p>I’ve drawn the DAG in <a href="http://dagitty.net/dags.html">dagitty.net</a>, that’s why the coordinates look weird.</p>
+<pre class="r"><code>dag3_str &lt;- &#39;
+dag {
+bb=&quot;-2.865,-5.146,2.956,4.896&quot;
+U [latet, pos=&quot;2.456,-0.958&quot;]
+X [exposure, pos=&quot;-2.365,-4.309&quot;]
+Y [outcome, pos=&quot;-0.271,4.059&quot;]
+Z1 [pos=&quot;-0.491,-1.925&quot;]
+Z2 [pos=&quot;-0.915,1.269&quot;]
+Z3 [pos=&quot;1.713,1.984&quot;]
+U -&gt; Z1
+U -&gt; Z3
+X -&gt; Z1
+Z2 -&gt; Y
+Z2 -&gt; Z1
+Z2 -&gt; Z3
+Z3 -&gt; Y
+}&#39;</code></pre>
+<p>Then tidify:</p>
+<pre class="r"><code>dag3 &lt;- dagitty(dag3_str)
+
+dag3_tidy &lt;- tidy_dagitty(dag3)
+
+dag3_tidy
+#&gt; # A DAG with 6 nodes and 7 edges
+#&gt; #
+#&gt; # Exposure: X
+#&gt; # Outcome: Y
+#&gt; #
+#&gt; # A tibble: 9 x 8
+#&gt;   name       x      y direction to      xend  yend circular
+#&gt;   &lt;chr&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;   
+#&gt; 1 U      2.46  -0.958 -&gt;        Z1    -0.491 -1.92 FALSE   
+#&gt; 2 U      2.46  -0.958 -&gt;        Z3     1.71   1.98 FALSE   
+#&gt; 3 X     -2.37  -4.31  -&gt;        Z1    -0.491 -1.92 FALSE   
+#&gt; 4 Z2    -0.915  1.27  -&gt;        Y     -0.271  4.06 FALSE   
+#&gt; 5 Z2    -0.915  1.27  -&gt;        Z1    -0.491 -1.92 FALSE   
+#&gt; 6 Z2    -0.915  1.27  -&gt;        Z3     1.71   1.98 FALSE   
+#&gt; 7 Z3     1.71   1.98  -&gt;        Y     -0.271  4.06 FALSE   
+#&gt; 8 Z1    -0.491 -1.92  &lt;NA&gt;      &lt;NA&gt;  NA     NA    FALSE   
+#&gt; 9 Y     -0.271  4.06  &lt;NA&gt;      &lt;NA&gt;  NA     NA    FALSE</code></pre>
+</div>
+<div id="plot" class="section level1">
+<h1>Plot</h1>
+<pre class="r"><code>ggdag(dag3_tidy) + theme_dag()</code></pre>
+<p><img src="/post/2020-05-19-adjustment-set-exercise-from-elwert-2013_files/figure-html/unnamed-chunk-3-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="find-adjustment-sets" class="section level1">
+<h1>Find adjustment sets</h1>
+<p>Which paths need be closed in order to get the causal effect of <span class="math inline">\(X\)</span> on <span class="math inline">\(Y\)</span>?</p>
+<pre class="r"><code>ggdag_adjustment_set(dag3_tidy, node_size = 14) + 
+  theme_dag(legend.position = &quot;bottom&quot;)</code></pre>
+<p><img src="/post/2020-05-19-adjustment-set-exercise-from-elwert-2013_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>No need to control for any variable!</p>
+</div>
+<div id="controlling-for-z1" class="section level1">
+<h1>Controlling for Z1</h1>
+<pre class="r"><code>dag3_tidy %&gt;% 
+  ggdag_dseparated(from = &quot;X&quot;, to = &quot;Y&quot;, controlling_for = &quot;Z1&quot;)</code></pre>
+<p><img src="/post/2020-05-19-adjustment-set-exercise-from-elwert-2013_files/figure-html/unnamed-chunk-5-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>If we control for <span class="math inline">\(Z1\)</span>, a bunch of paths fom <span class="math inline">\(X\)</span> to <span class="math inline">\(Y\)</span> get openened, as can be seen in the DAG:</p>
+<ol style="list-style-type: decimal">
+<li>X - Z1 - U - Z3 - Y</li>
+<li>X - Z1 - Z2 - Y</li>
+<li>X - Z1 - Z2 - Y</li>
+</ol>
+<p>As a consequence, we have open backdoors from <span class="math inline">\(X\)</span> to <span class="math inline">\(Y\)</span>. The causal effect is now confounded by these additional back doors.</p>
+</div>

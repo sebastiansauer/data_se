@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.67.0" />
+
+
+<title>Adjustment set exercise from Elwert 2013 - Data Se</title>
+<meta property="og:title" content="Adjustment set exercise from Elwert 2013 - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">Adjustment set exercise from Elwert 2013</h1>
+
+    
+    <span class="article-date">2020/05/19</span>
+    
+
+    <div class="article-content">
+      
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)
+library(ggdag)
+library(dagitty)</code></pre>
+</div>
+<div id="define-dag" class="section level1">
+<h1>Define DAG</h1>
+<p>I’ve drawn the DAG in <a href="http://dagitty.net/dags.html">dagitty.net</a>, that’s why the coordinates look weird.</p>
+<pre class="r"><code>dag3_str &lt;- &#39;
+dag {
+bb=&quot;-2.865,-5.146,2.956,4.896&quot;
+U [latet, pos=&quot;2.456,-0.958&quot;]
+X [exposure, pos=&quot;-2.365,-4.309&quot;]
+Y [outcome, pos=&quot;-0.271,4.059&quot;]
+Z1 [pos=&quot;-0.491,-1.925&quot;]
+Z2 [pos=&quot;-0.915,1.269&quot;]
+Z3 [pos=&quot;1.713,1.984&quot;]
+U -&gt; Z1
+U -&gt; Z3
+X -&gt; Z1
+Z2 -&gt; Y
+Z2 -&gt; Z1
+Z2 -&gt; Z3
+Z3 -&gt; Y
+}&#39;</code></pre>
+<p>Then tidify:</p>
+<pre class="r"><code>dag3 &lt;- dagitty(dag3_str)
+
+dag3_tidy &lt;- tidy_dagitty(dag3)
+
+dag3_tidy
+#&gt; # A DAG with 6 nodes and 7 edges
+#&gt; #
+#&gt; # Exposure: X
+#&gt; # Outcome: Y
+#&gt; #
+#&gt; # A tibble: 9 x 8
+#&gt;   name       x      y direction to      xend  yend circular
+#&gt;   &lt;chr&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;   
+#&gt; 1 U      2.46  -0.958 -&gt;        Z1    -0.491 -1.92 FALSE   
+#&gt; 2 U      2.46  -0.958 -&gt;        Z3     1.71   1.98 FALSE   
+#&gt; 3 X     -2.37  -4.31  -&gt;        Z1    -0.491 -1.92 FALSE   
+#&gt; 4 Z2    -0.915  1.27  -&gt;        Y     -0.271  4.06 FALSE   
+#&gt; 5 Z2    -0.915  1.27  -&gt;        Z1    -0.491 -1.92 FALSE   
+#&gt; 6 Z2    -0.915  1.27  -&gt;        Z3     1.71   1.98 FALSE   
+#&gt; 7 Z3     1.71   1.98  -&gt;        Y     -0.271  4.06 FALSE   
+#&gt; 8 Z1    -0.491 -1.92  &lt;NA&gt;      &lt;NA&gt;  NA     NA    FALSE   
+#&gt; 9 Y     -0.271  4.06  &lt;NA&gt;      &lt;NA&gt;  NA     NA    FALSE</code></pre>
+</div>
+<div id="plot" class="section level1">
+<h1>Plot</h1>
+<pre class="r"><code>ggdag(dag3_tidy) + theme_dag()</code></pre>
+<p><img src="/post/2020-05-19-adjustment-set-exercise-from-elwert-2013_files/figure-html/unnamed-chunk-3-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="find-adjustment-sets" class="section level1">
+<h1>Find adjustment sets</h1>
+<p>Which paths need be closed in order to get the causal effect of <span class="math inline">\(X\)</span> on <span class="math inline">\(Y\)</span>?</p>
+<pre class="r"><code>ggdag_adjustment_set(dag3_tidy, node_size = 14) + 
+  theme_dag(legend.position = &quot;bottom&quot;)</code></pre>
+<p><img src="/post/2020-05-19-adjustment-set-exercise-from-elwert-2013_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>No need to control for any variable!</p>
+</div>
+<div id="controlling-for-z1" class="section level1">
+<h1>Controlling for Z1</h1>
+<pre class="r"><code>dag3_tidy %&gt;% 
+  ggdag_dseparated(from = &quot;X&quot;, to = &quot;Y&quot;, controlling_for = &quot;Z1&quot;)</code></pre>
+<p><img src="/post/2020-05-19-adjustment-set-exercise-from-elwert-2013_files/figure-html/unnamed-chunk-5-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>If we control for <span class="math inline">\(Z1\)</span>, a bunch of paths fom <span class="math inline">\(X\)</span> to <span class="math inline">\(Y\)</span> get openened, as can be seen in the DAG:</p>
+<ol style="list-style-type: decimal">
+<li>X - Z1 - U - Z3 - Y</li>
+<li>X - Z1 - Z2 - Y</li>
+<li>X - Z1 - Z2 - Y</li>
+</ol>
+<p>As a consequence, we have open backdoors from <span class="math inline">\(X\)</span> to <span class="math inline">\(Y\)</span>. The causal effect is now confounded by these additional back doors.</p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

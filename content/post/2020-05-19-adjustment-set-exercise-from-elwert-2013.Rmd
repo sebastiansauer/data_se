@@ -1,0 +1,117 @@
+---
+title: Adjustment set exercise from Elwert 2013
+author: Sebastian Sauer
+date: '2020-05-19'
+slug: adjustment-set-exercise-from-elwert-2013
+categories:
+  - causal
+  - DAG
+tags:
+  - rstats
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(ggdag)
+library(dagitty)
+```
+
+
+# Define DAG
+
+I've drawn the DAG in [dagitty.net](http://dagitty.net/dags.html), that's why the coordinates look weird.
+
+```{r}
+dag3_str <- '
+dag {
+bb="-2.865,-5.146,2.956,4.896"
+U [latet, pos="2.456,-0.958"]
+X [exposure, pos="-2.365,-4.309"]
+Y [outcome, pos="-0.271,4.059"]
+Z1 [pos="-0.491,-1.925"]
+Z2 [pos="-0.915,1.269"]
+Z3 [pos="1.713,1.984"]
+U -> Z1
+U -> Z3
+X -> Z1
+Z2 -> Y
+Z2 -> Z1
+Z2 -> Z3
+Z3 -> Y
+}'
+```
+
+Then tidify:
+
+```{r}
+dag3 <- dagitty(dag3_str)
+
+dag3_tidy <- tidy_dagitty(dag3)
+
+dag3_tidy
+```
+
+
+# Plot
+
+
+```{r}
+ggdag(dag3_tidy) + theme_dag()
+```
+
+
+# Find adjustment sets
+
+Which paths need be closed in order to get the causal effect of $X$ on $Y$?
+
+
+```{r}
+ggdag_adjustment_set(dag3_tidy, node_size = 14) + 
+  theme_dag(legend.position = "bottom")
+```
+
+
+No need to control for any variable!
+
+
+# Controlling for Z1
+
+
+
+```{r}
+dag3_tidy %>% 
+  ggdag_dseparated(from = "X", to = "Y", controlling_for = "Z1")
+```
+
+
+If we control for $Z1$, a bunch of paths fom $X$ to $Y$ get openened, as can be seen in the DAG:
+
+1. X - Z1 - U - Z3 - Y
+2. X - Z1 - Z2 - Y
+3. X - Z1 - Z2 - Y
+
+
+As a consequence, we have open backdoors from $X$ to $Y$. The causal effect is now confounded by these additional back doors.
+
