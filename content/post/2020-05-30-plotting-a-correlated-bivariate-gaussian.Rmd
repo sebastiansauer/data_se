@@ -1,0 +1,154 @@
+---
+title: Plotting a correlated bivariate Gaussian
+author: Sebastian Sauer
+date: '2020-05-30'
+slug: plotting-a-correlated-bivariate-gaussian
+categories:
+  - rstats
+tags:
+  - plotting
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(rockchalk)
+library(MASS)
+```
+
+
+
+# Defining the data
+
+
+```{r}
+myR <- lazyCor(X = 0.7, d = 2)
+mySD <- c(1, 1)
+myCov <- lazyCov(Rho = myR, Sd = mySD)
+```
+
+
+```{r}
+myR
+mySD
+myCov
+```
+
+
+# Drawing from the multivariate normal
+
+Let's draw 1000 cases. Met $\mu$ be zero.
+
+```{r}
+twogauss <- mvrnorm(n = 1000, 
+                    mu = c(0,0), 
+                    Sigma = myCov) %>% as_tibble()
+```
+
+
+
+# Estimate densities
+
+```{r}
+mydens <- kde2d(twogauss$V1, twogauss$V2)
+```
+
+
+# Plot it
+
+```{r}
+plotly::plot_ly(z = mydens$z, 
+                x=mydens$x, 
+                y=mydens$y, 
+                type = "surface")
+```
+
+
+
+# Bonus: Uncorrelated bivariate Gaussian
+
+This is simpler.
+
+First define a grid for the value range of $x$ and $y$.
+
+```{r}
+x <- y <- seq(-6, 6, .1)
+```
+
+
+Define the density function (here Gaussian)
+
+Say, $\sigma=2$.
+
+```{r}
+s <- 2
+f <- function(x,y){exp(-(y^2+x^2)/(2*s^2))}
+```
+
+
+Compute density for each x-y combination. That is, apply function `f` on each x-y combination. `outer` will do that for us.
+
+```{r}
+z <- outer(x,y,FUN = f)
+```
+
+
+Plot it:
+
+```{r}
+plotly::plot_ly(z = z, x=x, y=y, type = "surface")
+```
+
+
+
+# Simpler (and maybe more appropriate) alternative
+
+Plotting in 3D may appear cool, but a simple heat map may be more appropriate.
+
+Check this out:
+
+
+First, let's come up with some noisy data:
+
+```{r}
+myR <- lazyCor(X = 0.3, d = 2)
+mySD <- c(1, 1)
+myCov <- lazyCov(Rho = myR, Sd = mySD)
+
+twogauss <- mvrnorm(n = 1000, 
+                    mu = c(0,0), 
+                    Sigma = myCov) %>% as_tibble()
+
+head(twogauss)
+```
+
+
+
+```{r}
+
+myplot1 <- ggplot(twogauss, aes(x = V1, y = V2))
+
+myplot1 + geom_bin2d() + scale_fill_viridis_c()
+```
+
