@@ -1,0 +1,178 @@
+---
+title: Plot for mean comparison
+author: Sebastian Sauer
+date: '2020-06-02'
+slug: plot-for-mean-comparison
+categories:
+  - rstats
+tags:
+  - plotting
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)
+library(reshape2)  # for data
+library(mosaic)
+library(sjmisc)
+library(skimr)</code></pre>
+</div>
+<div id="data-setup" class="section level1">
+<h1>Data setup</h1>
+<pre class="r"><code>data(tips)</code></pre>
+</div>
+<div id="aggregate-data-per-group" class="section level1">
+<h1>Aggregate data per group</h1>
+<pre class="r"><code>tips_aggr &lt;- tips %&gt;% 
+  group_by(smoker) %&gt;% 
+  summarise(tip_avg = mean(tip),
+            tip_md = median(tip),
+            tip_sd = sd(tip),
+            tip_iqr = IQR(tip))
+
+tips_aggr
+#&gt; # A tibble: 2 x 5
+#&gt;   smoker tip_avg tip_md tip_sd tip_iqr
+#&gt;   &lt;fct&gt;    &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt;
+#&gt; 1 No        2.99   2.74   1.38    1.50
+#&gt; 2 Yes       3.01   3      1.40    1.68</code></pre>
+<p>The same lines, more concisely:</p>
+<pre class="r"><code>tips_descr &lt;- tips %&gt;% 
+  group_by(smoker) %&gt;% 
+  descr(tip)
+
+tips_descr
+#&gt; 
+#&gt; ## Basic descriptive statistics
+#&gt; 
+#&gt; 
+#&gt; Grouped by: No
+#&gt; 
+#&gt;  var    type label   n NA.prc mean   sd   se   md trimmed   range   iqr skew
+#&gt;  tip numeric   tip 151      0 2.99 1.38 0.11 2.74    2.83 8 (1-9) 1.505 1.32
+#&gt; 
+#&gt; 
+#&gt; Grouped by: Yes
+#&gt; 
+#&gt;  var    type label  n NA.prc mean  sd   se md trimmed    range  iqr skew
+#&gt;  tip numeric   tip 93      0 3.01 1.4 0.15  3    2.86 9 (1-10) 1.68 1.72</code></pre>
+<p><code>descr</code> handles back a list, which may be not practical for further processing.</p>
+<p><code>skim</code> provides another alternative:</p>
+<pre class="r"><code>tips_skim &lt;- tips %&gt;% 
+  group_by(smoker) %&gt;% 
+  skim(tip)
+
+tips_skim</code></pre>
+<table>
+<caption><span id="tab:unnamed-chunk-4">Table 1: </span>Data summary</caption>
+<tbody>
+<tr class="odd">
+<td align="left">Name</td>
+<td align="left">Piped data</td>
+</tr>
+<tr class="even">
+<td align="left">Number of rows</td>
+<td align="left">244</td>
+</tr>
+<tr class="odd">
+<td align="left">Number of columns</td>
+<td align="left">7</td>
+</tr>
+<tr class="even">
+<td align="left">_______________________</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Column type frequency:</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">1</td>
+</tr>
+<tr class="odd">
+<td align="left">________________________</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Group variables</td>
+<td align="left">smoker</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: numeric</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="left">smoker</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">p0</th>
+<th align="right">p25</th>
+<th align="right">p50</th>
+<th align="right">p75</th>
+<th align="right">p100</th>
+<th align="left">hist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">tip</td>
+<td align="left">No</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">2.99</td>
+<td align="right">1.38</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">2.74</td>
+<td align="right">3.50</td>
+<td align="right">9</td>
+<td align="left">▇▆▂▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">tip</td>
+<td align="left">Yes</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">3.01</td>
+<td align="right">1.40</td>
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">3.00</td>
+<td align="right">3.68</td>
+<td align="right">10</td>
+<td align="left">▇▇▁▁▁</td>
+</tr>
+</tbody>
+</table>
+<p>This function gives back a tidy data frame. Nice.</p>
+<p>Alternative, using <code>mosaic</code>:</p>
+<pre class="r"><code>tips_fav &lt;- tips %&gt;% 
+  favstats(tip ~ smoker, data = .)
+tips_fav
+#&gt;   smoker min Q1 median    Q3 max     mean       sd   n missing
+#&gt; 1     No   1  2   2.74 3.505   9 2.991854 1.377190 151       0
+#&gt; 2    Yes   1  2   3.00 3.680  10 3.008710 1.401468  93       0</code></pre>
+</div>
+<div id="plot-1" class="section level1">
+<h1>Plot 1</h1>
+<pre class="r"><code>ggplot(tips_skim) +
+  aes(x = smoker, y = numeric.mean) +
+  geom_line(group = 1) +
+  geom_pointrange(aes(ymin = numeric.mean - numeric.sd,
+                    ymax = numeric.mean + numeric.sd),
+                  color = &quot;grey40&quot;) +
+  geom_point(size = 5) +
+  ylim(0, 5) +
+  labs(caption = &quot;Error bars represent standard deviation&quot;,
+       y = &quot;average tip&quot;)
+  </code></pre>
+<p><img src="/post/2020-06-02-plot-for-mean-comparison_files/figure-html/unnamed-chunk-6-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>

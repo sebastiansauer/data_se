@@ -1,0 +1,117 @@
+---
+title: Plot for mean comparison
+author: Sebastian Sauer
+date: '2020-06-02'
+slug: plot-for-mean-comparison
+categories:
+  - rstats
+tags:
+  - plotting
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(reshape2)  # for data
+library(mosaic)
+library(sjmisc)
+library(skimr)
+```
+
+
+# Data setup
+
+```{r}
+data(tips)
+```
+
+
+# Aggregate data per group
+
+
+```{r}
+tips_aggr <- tips %>% 
+  group_by(smoker) %>% 
+  summarise(tip_avg = mean(tip),
+            tip_md = median(tip),
+            tip_sd = sd(tip),
+            tip_iqr = IQR(tip))
+
+tips_aggr
+```
+
+The same lines, more concisely:
+
+```{r}
+tips_descr <- tips %>% 
+  group_by(smoker) %>% 
+  descr(tip)
+
+tips_descr
+```
+
+`descr` handles back a list, which may be not practical for further processing. 
+
+`skim` provides another alternative:
+
+```{r}
+tips_skim <- tips %>% 
+  group_by(smoker) %>% 
+  skim(tip)
+
+tips_skim
+```
+
+This function gives back a tidy data frame. Nice.
+
+
+
+Alternative, using `mosaic`:
+
+
+```{r}
+tips_fav <- tips %>% 
+  favstats(tip ~ smoker, data = .)
+tips_fav
+```
+
+
+
+# Plot 1
+
+
+```{r}
+ggplot(tips_skim) +
+  aes(x = smoker, y = numeric.mean) +
+  geom_line(group = 1) +
+  geom_pointrange(aes(ymin = numeric.mean - numeric.sd,
+                    ymax = numeric.mean + numeric.sd),
+                  color = "grey40") +
+  geom_point(size = 5) +
+  ylim(0, 5) +
+  labs(caption = "Error bars represent standard deviation",
+       y = "average tip")
+  
+```
+
