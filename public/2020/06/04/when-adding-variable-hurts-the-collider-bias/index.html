@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.67.0" />
+
+
+<title>When adding variable hurts – The collider bias - Data Se</title>
+<meta property="og:title" content="When adding variable hurts – The collider bias - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">8 min read</span>
+    
+
+    <h1 class="article-title">When adding variable hurts – The collider bias</h1>
+
+    
+    <span class="article-date">2020/06/04</span>
+    
+
+    <div class="article-content">
+      
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)
+library(conflicted)
+library(ggdag)
+library(broom)
+library(GGally)</code></pre>
+</div>
+<div id="motivation" class="section level1">
+<h1>Motivation</h1>
+<p>Assume there is some scientist with some theory. Her theory holds that X and Z are causes of Y. <code>dag1</code> shows her DAG (ie., her theory depicted as a causal diagram). Our scientist is concerned with the causal effect of X on Y, where X is a treatment variable (exposure) and Y is the dependent variable under scrutiny (outcome).</p>
+<p>See e.g,. <a href="https://journals.sagepub.com/doi/full/10.1177/2515245917745629">here</a> or <a href="https://amstat.tandfonline.com/doi/full/10.1080/10691898.2020.1752859">here</a> for intros to DAGs and causality.</p>
+</div>
+<div id="dags" class="section level1">
+<h1>DAGs</h1>
+<p>Let’s define this DAG, first as a plain string (text):</p>
+<pre class="r"><code>dag1_txt &lt;- &quot;dag {
+X -&gt; Y
+Z -&gt; Y
+X [exposure]
+Y [outcome]
+}&quot;</code></pre>
+<p>Define a DAG representation:</p>
+<pre class="r"><code>dag1 &lt;- dagitty::dagitty(dag1_txt)
+dag1
+#&gt; [1] &quot;dag {\nX [exposure]\nY [outcome]\nZ\nX -&gt; Y\nZ -&gt; Y\n}\n&quot;
+#&gt; attr(,&quot;class&quot;)
+#&gt; [1] &quot;dagitty&quot;</code></pre>
+<p>Make it tidy:</p>
+<pre class="r"><code>dag1_tidy &lt;- tidy_dagitty(dag1)
+dag1_tidy
+#&gt; # A DAG with 3 nodes and 2 edges
+#&gt; #
+#&gt; # Exposure: X
+#&gt; # Outcome: Y
+#&gt; #
+#&gt; # A tibble: 3 x 8
+#&gt;   name      x     y direction to     xend  yend circular
+#&gt;   &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;fct&gt;     &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;lgl&gt;   
+#&gt; 1 X      24.5  22.3 -&gt;        Y      25.6  21.9 FALSE   
+#&gt; 2 Z      26.6  21.5 -&gt;        Y      25.6  21.9 FALSE   
+#&gt; 3 Y      25.6  21.9 &lt;NA&gt;      &lt;NA&gt;   NA    NA   FALSE</code></pre>
+<p>And plot it:</p>
+<pre class="r"><code>ggdag(dag1_tidy) + theme_dag()</code></pre>
+<p><img src="/post/2020-06-04-when-adding-variables-hurt_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>So far, so good. Now, sadly, unbeknownst to our scientist, her theory is actually <em>wrong</em>. Wrong as in wrong. The true theory – only known by Paul Meehl – is depicted by the following dag:</p>
+<pre class="r"><code>dag2_txt &lt;- &quot;dag {
+X -&gt; Z
+Y -&gt; Z
+X [exposure]
+Y [outcome]
+}&quot;
+
+dag2_txt
+#&gt; [1] &quot;dag {\nX -&gt; Z\nY -&gt; Z\nX [exposure]\nY [outcome]\n}&quot;</code></pre>
+<pre class="r"><code>dag2_tidy &lt;- dag2_txt %&gt;% dagitty::dagitty() %&gt;% tidy_dagitty()</code></pre>
+<pre class="r"><code>ggdag(dag2_tidy) + theme_dag()</code></pre>
+<p><img src="/post/2020-06-04-when-adding-variables-hurt_files/figure-html/unnamed-chunk-7-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="simulate-some-data" class="section level1">
+<h1>Simulate some data</h1>
+<p>To make it more concrete, let’s come up with some simulated data according to the true model as depicted in DAG2.</p>
+<p>Let’s define this <em>structural causal model</em> as follows.</p>
+<p><span class="math display">\[
+X \sim Norm(0, 1)\\
+Y \sim Norm(0, 1)\\
+e \sim Norm(0,0.5)\\
+Z = 0.5 X + 0.5Y + e
+\]</span></p>
+<p>Here <code>Norm</code> means the Normal distribution.</p>
+<p>Now let’s draw say <span class="math inline">\(n=1000\)</span> observations from these distributions:</p>
+<pre class="r"><code>n &lt;- 1000
+X &lt;- rnorm(n, mean = 0, sd = 1)
+Y &lt;- rnorm(n, mean = 0, sd = 1)
+e &lt;- rnorm(n, mean = 0, sd = 0.5)
+Z = 0.5*X + 0.5*Y + e
+
+d &lt;- tibble(X = X, 
+            Y = Y, 
+            e = e, 
+            Z = Z)
+glimpse(d)
+#&gt; Rows: 1,000
+#&gt; Columns: 4
+#&gt; $ X &lt;dbl&gt; -0.51113078, -1.21233041, 0.83086598, -0.06873719, 0.14998073, 0.14…
+#&gt; $ Y &lt;dbl&gt; -0.6947284, -1.6471519, 3.2898458, -0.7054154, -0.3957868, 0.852144…
+#&gt; $ e &lt;dbl&gt; 0.34351579, 0.50544981, -0.91725635, -0.29838894, 0.31508335, 0.671…
+#&gt; $ Z &lt;dbl&gt; -0.25941379, -0.92429133, 1.14309954, -0.68546523, 0.19218033, 1.16…</code></pre>
+</div>
+<div id="regression-time" class="section level1">
+<h1>Regression time</h1>
+<p>Our scientist has proudly finished her data collection. Now, analysis time, here favorite passe temps.</p>
+<p>First, she checks the zero-order (marginal) correlations, ’cause we can:</p>
+<pre class="r"><code>cor(d)
+#&gt;             X           Y           e         Z
+#&gt; X  1.00000000  0.04503132 -0.01386236 0.5725275
+#&gt; Y  0.04503132  1.00000000 -0.03308330 0.5784015
+#&gt; e -0.01386236 -0.03308330  1.00000000 0.5788588
+#&gt; Z  0.57252753  0.57840154  0.57885881 1.0000000</code></pre>
+<pre class="r"><code>ggpairs(d)</code></pre>
+<p><img src="/post/2020-06-04-when-adding-variables-hurt_files/figure-html/unnamed-chunk-10-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Oh no - bad news. X and Y are not correlated. But, being a well trained data analyst, our scientist keeps the spirits up. She knows that a different way of analysis may well turn a previous result inside out (although sometimes you better not tell what you did in the first place, her supervisor kept on saying, behind closed doors at least).</p>
+<p>Here’s the regression of Y back on X:</p>
+<pre class="r"><code>lm0 &lt;- lm(Y ~ X, data = d)
+
+tidy(lm0)
+#&gt; # A tibble: 2 x 5
+#&gt;   term        estimate std.error statistic p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt;
+#&gt; 1 (Intercept) -0.00849    0.0312    -0.272   0.786
+#&gt; 2 X            0.0465     0.0327     1.42    0.155</code></pre>
+<p>Same story as with the marginal correlation above: No association of X and Y.</p>
+</div>
+<div id="now-stay-tuned-lm1" class="section level1">
+<h1>Now stay tuned: lm1</h1>
+<p>Here’s the regression according to her model:</p>
+<pre class="r"><code>lm1 &lt;- lm(Y ~ X + Z, data = d)
+
+tidy(lm1)
+#&gt; # A tibble: 3 x 5
+#&gt;   term        estimate std.error statistic   p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+#&gt; 1 (Intercept)  0.00404    0.0231     0.175 8.61e-  1
+#&gt; 2 X           -0.440      0.0294   -14.9   1.02e- 45
+#&gt; 3 Z            0.943      0.0327    28.9   1.19e-133</code></pre>
+<p>Yeah! There <em>is</em> a significant effect of X on Y! Success! Smelling tenure. Now she’ll write up the paper stating that there is “presumably” and “well supported by the data” an “effect” of X on Y. (She doesn’t explicitly calls it a “causal” effect, but hey, what’s an effect if not causal? Ask the next person you happen to run into on the street.)</p>
+</div>
+<div id="stop-for-a-while" class="section level1">
+<h1>Stop for a while</h1>
+<p>The story could be finished here. Alas, in most real cases the story <em>is</em> finished here: manuscript drafted, paper published, sometines tenured.</p>
+<p>However, as we know - because we defined it above - her model is wrong. So let’s pause for a while to reflect what happened.</p>
+<div id="take-home-message-1" class="section level2">
+<h2>Take home message 1</h2>
+<p>Don’t believe the results of <code>lm1</code>. They are wrong (by definition, or by verdict of Paul Meehl). See above.</p>
+<p>But how come that the association of X and Y did change so dramatically? The problem is that she included a <em>collider</em> in her regression. A collider is a variable where two (or more) arrows point to in a given path.</p>
+</div>
+<div id="take-home-message-2" class="section level2">
+<h2>Take home message 2</h2>
+<p>Do NOT include a collider Z in your regression if you are planning to estimate the causal effect of X on Y.</p>
+</div>
+</div>
+<div id="correct-regression" class="section level1">
+<h1>Correct regression</h1>
+<p>Here’s a (more) correct regression model:</p>
+<pre class="r"><code>lm2 &lt;- lm(Z ~ X + Y, data = d)
+
+tidy(lm2)
+#&gt; # A tibble: 3 x 5
+#&gt;   term        estimate std.error statistic   p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+#&gt; 1 (Intercept) -0.00919    0.0165    -0.557 5.78e-  1
+#&gt; 2 X            0.493      0.0173    28.5   1.85e-131
+#&gt; 3 Y            0.483      0.0167    28.9   1.19e-133</code></pre>
+<p>The coefficients in our sample turn out nicely just like we had defined the parameters before hand. As we know that DAG2 is true we can have confidence in this present regression model, lm2.</p>
+<p>That’s also a valid model:</p>
+<pre class="r"><code>lm3 &lt;- lm(Z ~ X, data = d)
+
+tidy(lm3)
+#&gt; # A tibble: 2 x 5
+#&gt;   term        estimate std.error statistic  p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+#&gt; 1 (Intercept)  -0.0133    0.0224    -0.594 5.52e- 1
+#&gt; 2 X             0.516     0.0234    22.1   3.71e-88</code></pre>
+<p>As can be seen, the coefficient of X did not change (substantially) in comparison to lm2.</p>
+<p>Similarly:</p>
+<pre class="r"><code>lm4 &lt;- lm(Z ~ Y, data = d)
+
+tidy(lm4)
+#&gt; # A tibble: 2 x 5
+#&gt;   term        estimate std.error statistic  p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+#&gt; 1 (Intercept) 0.000190    0.0222   0.00856 9.93e- 1
+#&gt; 2 Y           0.504       0.0225  22.4     2.37e-90</code></pre>
+</div>
+<div id="take-home-message-3" class="section level1">
+<h1>Take home message 3</h1>
+<p>Sometimes adding a predictor to a regression model hurts. Learn to let go.</p>
+</div>
+<div id="what-about-this-regression-model" class="section level1">
+<h1>What about this regression model?</h1>
+<pre class="r"><code>lm5 &lt;- lm(Y ~ X, data = d)
+
+tidy(lm5)
+#&gt; # A tibble: 2 x 5
+#&gt;   term        estimate std.error statistic p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt;
+#&gt; 1 (Intercept) -0.00849    0.0312    -0.272   0.786
+#&gt; 2 X            0.0465     0.0327     1.42    0.155</code></pre>
+<p>This model is O.K. too. Check the DAG: The DAG tells us that there’s no causal effect from X onto Y. The regression model supports that notion.</p>
+</div>
+<div id="debrief" class="section level1">
+<h1>Debrief</h1>
+<p>The story above only holds if one tries to estimate a <em>causal</em> effect. It’s a completely different story if someone “only” would like to predict some variable, say Y.</p>
+<p>Prediction has its value, of course. Call me if you are able to predict tomorrows DAX value.</p>
+<p>For science however, prediction is of little value in many times. Rather, we would like to understand <em>why</em> a correlation takes place. What do we learn by knowing that babies and storks are correlated? Nothing. Why not? And why is it easy to accept? Because we intuitively know that there’s no causation going on here. That’s the crucial point. Absent causal information, we do not learn much or maybe nothing from a correlation.</p>
+</div>
+<div id="a-last-example" class="section level1">
+<h1>A last example</h1>
+<p>Say you learn that chocolate consumption and (number of) Nobel laureates (per country) is correlated (see <a href="https://fabiandablander.com/r/Causal-Inference.html">this source</a> by Fabian Dablander). Interesting?! Of course, that’s again an example of “too strange to be true”. As a rule of thumb, if it’s too strange to be true it’s probably not true. One explanation could be that in “developed” countries (whatever that is) there’s a high chocolate consumption and a (relatively) high number of Nobel laureates. In not-so-developed countries the reverse is true. Hence, there’s a correlation of development status and chocolate consumption. And a correlation of development status and Nobel laureates. In fact, not only correlation but causation by virtue of this example. Now, as we are aware of the true “background” – the development status – as the driver of the “unreal” (spurious) correlation between chocolate and Nobel stuff, we know that this spurious correlation is of <em>ZERO</em> value (for understanding what’s going on). How do we know? Because we now know that there’s no causal association between chocolate and Nobel stuff. But there <em>is</em> a causal association between development status and the other two variables.</p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+
