@@ -1,0 +1,310 @@
+---
+title: When adding variable hurts – The collider bias
+author: Sebastian Sauer
+date: '2020-06-04'
+slug: when-adding-variable-hurts-the-collider-bias
+categories:
+  - rstats
+tags:
+  - causality
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(conflicted)
+library(ggdag)
+library(broom)
+library(GGally)
+```
+
+
+
+# Motivation
+
+Assume there is some scientist with some theory. Her theory holds that X and Z are causes of Y. `dag1` shows her DAG (ie., her theory depicted as a causal diagram). Our scientist is concerned with the causal effect of X on Y, where X is a treatment variable (exposure) and Y is the dependent variable under scrutiny (outcome).
+ 
+
+See e.g,. [here](https://journals.sagepub.com/doi/full/10.1177/2515245917745629) or [here](https://amstat.tandfonline.com/doi/full/10.1080/10691898.2020.1752859) for intros to DAGs and causality.
+
+
+# DAGs
+
+Let's define this DAG, first as a plain string (text):
+
+```{r}
+dag1_txt <- "dag {
+X -> Y
+Z -> Y
+X [exposure]
+Y [outcome]
+}"
+```
+
+
+
+Define a DAG representation:
+
+```{r}
+dag1 <- dagitty::dagitty(dag1_txt)
+dag1
+```
+
+
+Make it tidy:
+
+
+```{r}
+dag1_tidy <- tidy_dagitty(dag1)
+dag1_tidy
+```
+
+
+And plot it:
+
+
+```{r}
+ggdag(dag1_tidy) + theme_dag()
+```
+
+
+So far, so good. Now, sadly, unbeknownst to our scientist, her theory is actually *wrong*. Wrong as in wrong. The true theory -- only known by Paul Meehl -- is depicted by the following dag:
+
+
+```{r}
+dag2_txt <- "dag {
+X -> Z
+Y -> Z
+X [exposure]
+Y [outcome]
+}"
+
+dag2_txt
+```
+
+
+```{r}
+dag2_tidy <- dag2_txt %>% dagitty::dagitty() %>% tidy_dagitty()
+```
+
+
+```{r}
+ggdag(dag2_tidy) + theme_dag()
+```
+
+
+
+
+# Simulate some data
+
+
+To make it more concrete, let's come up with some simulated data according to the true model as depicted in DAG2.
+
+Let's define this *structural causal model* as follows.
+
+$$
+X \sim Norm(0, 1)\\
+Y \sim Norm(0, 1)\\
+e \sim Norm(0,0.5)\\
+Z = 0.5 X + 0.5Y + e
+$$
+
+Here `Norm` means the Normal distribution.
+
+Now let's draw say $n=1000$ observations from these distributions:
+
+
+```{r}
+n <- 1000
+X <- rnorm(n, mean = 0, sd = 1)
+Y <- rnorm(n, mean = 0, sd = 1)
+e <- rnorm(n, mean = 0, sd = 0.5)
+Z = 0.5*X + 0.5*Y + e
+
+d <- tibble(X = X, 
+            Y = Y, 
+            e = e, 
+            Z = Z)
+glimpse(d)
+```
+
+
+
+# Regression time
+
+Our scientist has proudly finished her data collection. Now, analysis time, here favorite passe temps.
+
+First, she checks the zero-order (marginal) correlations, 'cause we can:
+
+
+```{r}
+cor(d)
+```
+
+
+
+
+```{r}
+ggpairs(d)
+```
+
+
+
+
+Oh no - bad news. X and Y are not correlated. But, being a well trained data analyst, our scientist keeps the spirits up. She knows that a different way of analysis may well turn a previous result inside out (although sometimes you better not tell what you did in the first place, her supervisor kept on saying, behind closed doors at least).
+
+
+Here's the regression of Y back on X:
+
+```{r}
+lm0 <- lm(Y ~ X, data = d)
+
+tidy(lm0)
+```
+
+Same story as with the marginal correlation above: No association of X and Y.
+
+
+# Now stay tuned: lm1
+
+Here's the regression according to her model:
+
+```{r}
+lm1 <- lm(Y ~ X + Z, data = d)
+
+tidy(lm1)
+
+```
+
+
+Yeah! There *is* a significant effect of X on Y! Success! Smelling tenure. Now she'll write up the paper stating that there is "presumably" and "well supported by the data" an "effect" of X on Y. (She doesn't explicitly calls it a "causal" effect, but hey, what's an effect if not causal? Ask the next person you happen to run into on the street.)
+
+
+# Stop for a while
+
+The story could be finished here. Alas, in most real cases the story *is* finished here: manuscript drafted, paper published, sometines tenured.
+
+However, as we know - because we defined it above - her model is wrong. So let's pause for a while to reflect what happened.
+
+## Take home message 1
+
+Don't believe the results of `lm1`. They are wrong (by definition, or by verdict of Paul Meehl). See above.
+
+
+But how come that the association of X and Y did change so dramatically? The problem is that she included a *collider* in her regression. A collider is a variable where two (or more) arrows point to in a given path.
+
+
+## Take home message 2
+
+Do NOT include a collider Z in your regression if you are planning to estimate the causal effect of X on Y.
+
+
+# Correct regression
+
+
+Here's a (more) correct regression model:
+
+```{r}
+lm2 <- lm(Z ~ X + Y, data = d)
+
+tidy(lm2)
+```
+
+The coefficients in our sample turn out nicely just like we had defined the parameters before hand. As we know that DAG2 is true we can have confidence in this present regression model, lm2.
+
+
+That's also a valid model:
+
+
+```{r}
+lm3 <- lm(Z ~ X, data = d)
+
+tidy(lm3)
+```
+
+
+As can be seen, the coefficient of X did not change (substantially) in comparison to lm2.
+
+Similarly:
+
+```{r}
+lm4 <- lm(Z ~ Y, data = d)
+
+tidy(lm4)
+```
+
+
+# Take home message 3
+
+
+Sometimes adding a predictor to a regression model hurts. Learn to let go.
+
+
+
+
+
+# What about this regression model?
+
+
+```{r}
+lm5 <- lm(Y ~ X, data = d)
+
+tidy(lm5)
+```
+
+
+This model is O.K. too. Check the DAG: The DAG tells us that there's no causal effect from X onto Y. The regression model supports that notion.
+
+
+
+# Debrief
+
+
+The story above only holds if one tries to estimate a *causal* effect. It's a completely different story if someone "only" would like to predict some variable, say Y.
+
+Prediction has its value, of course. Call me if you are able to predict tomorrows DAX value.
+
+For science however, prediction is of little value in many times. Rather, we would like to understand *why* a correlation takes place. What do we learn by knowing that babies and storks are correlated? Nothing. Why not? And why is it easy to accept? Because we intuitively know that there's no causation going on here. That's the crucial point. Absent causal information, we do not learn much or maybe nothing from a correlation.
+
+
+
+# A last example
+
+
+Say you learn that chocolate consumption and (number of) Nobel laureates (per country) is correlated (see [this source](https://fabiandablander.com/r/Causal-Inference.html) by Fabian Dablander). Interesting?! Of course, that's again an example of "too strange to be true". As a rule of thumb, if it's too strange to be true it's probably not true. One explanation could be that in "developed" countries (whatever that is) there's a high chocolate consumption and a (relatively) high number of Nobel laureates. In not-so-developed countries the reverse is true. Hence, there's a correlation of development status and chocolate consumption. And a correlation of development status and Nobel laureates. In fact, not only correlation but causation by virtue of this example. Now, as we are aware of the true "background" -- the development status -- as the driver of the "unreal" (spurious) correlation between chocolate and Nobel stuff, we know that this spurious correlation is of *ZERO* value (for understanding what's going on). How do we know? Because we now know that there's no causal association between chocolate and Nobel stuff. But there *is* a causal association between development status and the other two variables.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
