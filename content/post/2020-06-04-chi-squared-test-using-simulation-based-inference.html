@@ -1,0 +1,112 @@
+---
+title: Chi-squared test using simulation based inference
+author: Sebastian Sauer
+date: '2020-06-04'
+slug: chi-squared-test-using-simulation-based-inference
+categories:
+  - rstats
+tags:
+  - simulation
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)</code></pre>
+</div>
+<div id="simulation-based-inference" class="section level1">
+<h1>Simulation based inference</h1>
+<p>Simulation based inference (SBI) is an elegant way of subsuming a wide array of statistical (inference) methods under one umbrella. In addition, its simple thereby helping learners getting to the grips.</p>
+<p><a href="https://allendowney.blogspot.com/2016/06/there-is-still-only-one-test.html">Here’s</a> a summary of the central ideas.</p>
+<p>However, this post does not aim at explaining simulation based inference, which is done <a href="http://mosaic-web.org/go/SM2-technique/">elsewhere</a>.</p>
+</div>
+<div id="testing-the-association-of-two-categorical-variables" class="section level1">
+<h1>Testing the association of two categorical variables</h1>
+<p>One application of statistical tests – simulation based or classical – is testing the association of two categorical variables.</p>
+<p>Let’s try that using SBI.</p>
+</div>
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>library(mosaic)
+data(tips, package = &quot;reshape2&quot;)</code></pre>
+</div>
+<div id="research-question-is-there-an-assocation-of-day-and-smoker" class="section level1">
+<h1>Research question: Is there an assocation of day and smoker</h1>
+<p>Let’s test whether there’s an association of <code>day</code> and <code>smoker</code>.</p>
+<p>First, the sample descriptives:</p>
+<pre class="r"><code>tally( sex ~ day, data = tips, format = &quot;proportion&quot;)
+#&gt;         day
+#&gt; sex            Fri       Sat       Sun      Thur
+#&gt;   Female 0.4736842 0.3218391 0.2368421 0.5161290
+#&gt;   Male   0.5263158 0.6781609 0.7631579 0.4838710</code></pre>
+<p>Interesting: On Saturday on Sunday, mostly men pay. On Friday and Thursday, there’s an equity of pay between the sexes. At least in our data. That brings us to the point: How about the population?</p>
+</div>
+<div id="chi-square-statistic" class="section level1">
+<h1>Chi-Square statistic</h1>
+<p>The <span class="math inline">\(\chi^2\)</span> statistic gives us a measure of deviation from expected value.</p>
+<pre class="r"><code>chi_value &lt;- chisq(sex ~ day, data = tips)</code></pre>
+<p>Alas, this value is not so intuitive. We can extract the p-value from the theoretical distribution like this:</p>
+<pre class="r"><code>pchisq(chi_value, 3, lower.tail=FALSE)
+#&gt;   X.squared 
+#&gt; 0.004180302</code></pre>
+<p>Let’s compare it to the result of the <span class="math inline">\(\chi^2\)</span> test:</p>
+<pre class="r"><code>x &lt;- xchisq.test(sex ~ day, data = tips)
+#&gt; 
+#&gt;  Pearson&#39;s Chi-squared test
+#&gt; 
+#&gt; data:  x
+#&gt; X-squared = 13.222, df = 3, p-value = 0.00418
+#&gt; 
+#&gt;     9       28       18       32   
+#&gt; ( 6.77)  (31.02)  (27.10)  (22.11) 
+#&gt;  [0.73]   [0.29]   [3.05]   [4.43] 
+#&gt; &lt; 0.86&gt;  &lt;-0.54&gt;  &lt;-1.75&gt;  &lt; 2.10&gt; 
+#&gt;        
+#&gt;    10       59       58       30   
+#&gt; (12.23)  (55.98)  (48.90)  (39.89) 
+#&gt;  [0.41]   [0.16]   [1.69]   [2.45] 
+#&gt; &lt;-0.64&gt;  &lt; 0.40&gt;  &lt; 1.30&gt;  &lt;-1.57&gt; 
+#&gt;        
+#&gt; key:
+#&gt;  observed
+#&gt;  (expected)
+#&gt;  [contribution to X-squared]
+#&gt;  &lt;Pearson residual&gt;</code></pre>
+<p>Which is (approximately) the same.</p>
+</div>
+<div id="chi2-via-sbi" class="section level1">
+<h1><span class="math inline">\(\chi^2\)</span> via SBI</h1>
+<p>This statistic can easily be submitted to SBI, ie., the permutation test:</p>
+<pre class="r"><code>null1 &lt;- do(1000) * chisq(sex ~ shuffle(day), data = tips)</code></pre>
+<p>Let’s check the distribution of the <span class="math inline">\(\chi^2\)</span> statistic:</p>
+<pre class="r"><code>gf_histogram(~ X.squared, data = null1)</code></pre>
+<p><img src="/post/2020-06-04-chi-squared-test-using-simulation-based-inference_files/figure-html/unnamed-chunk-7-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Now let’s add a marker for our empirical value:</p>
+<pre class="r"><code>x$statistic
+#&gt; X-squared 
+#&gt;    13.222</code></pre>
+</div>
+<div id="plot-it" class="section level1">
+<h1>Plot it</h1>
+<pre class="r"><code>gf_histogram(~ X.squared, data = null1) %&gt;%  gf_vline(xintercept = ~ x$statistic)</code></pre>
+<p><img src="/post/2020-06-04-chi-squared-test-using-simulation-based-inference_files/figure-html/unnamed-chunk-9-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>As can easily be seen, the empirical value is an infrequent event in the null distribution.</p>
+<p>More precisely:</p>
+<pre class="r"><code>p_value &lt;- prop(~ X.squared &gt;= x$statistic, data = null1)
+p_value
+#&gt; prop_TRUE 
+#&gt;         0</code></pre>
+<p>Incidentally, this simulated p-value is approximately the value we got from the theoretical distribuion.</p>
+<p>We might want to add the critical value to this graph:</p>
+<pre class="r"><code>crit_value &lt;- qchisq(.05, df = 3, lower.tail=FALSE)
+crit_value
+#&gt; [1] 7.814728</code></pre>
+<p><code>crit_value</code> gives us the critical value for a <span class="math inline">\(\chi^2\)</span>-distribution with <span class="math inline">\(df=3\)</span> degrees of freedom.</p>
+<pre class="r"><code>gf_histogram(~ X.squared, data = null1) %&gt;% 
+  gf_vline(xintercept = ~ x$statistic) %&gt;% 
+  gf_vline(xintercept = ~ crit_value, linetype = &quot;dashed&quot;)</code></pre>
+<p><img src="/post/2020-06-04-chi-squared-test-using-simulation-based-inference_files/figure-html/unnamed-chunk-13-1.png" width="70%" style="display: block; margin: auto;" />
+```</p>
+</div>

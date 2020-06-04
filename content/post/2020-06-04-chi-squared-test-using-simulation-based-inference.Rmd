@@ -1,0 +1,171 @@
+---
+title: Chi-squared test using simulation based inference
+author: Sebastian Sauer
+date: '2020-06-04'
+slug: chi-squared-test-using-simulation-based-inference
+categories:
+  - rstats
+tags:
+  - simulation
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+```
+
+
+# Simulation based inference 
+
+Simulation based inference (SBI) is an elegant way of subsuming a wide array of statistical (inference) methods under one umbrella. In addition, its simple thereby helping learners getting to the grips.
+
+
+[Here's](https://allendowney.blogspot.com/2016/06/there-is-still-only-one-test.html) a summary of the central ideas.
+
+However, this post does not aim at explaining simulation based inference, which is done [elsewhere](http://mosaic-web.org/go/SM2-technique/).
+
+
+# Testing the association of two categorical variables
+
+One application of statistical tests -- simulation based or classical -- is testing the association of two categorical variables.
+
+Let's try that using SBI.
+
+
+# Setup
+
+```{r}
+library(mosaic)
+data(tips, package = "reshape2")
+```
+
+
+# Research question: Is there an assocation of day and smoker
+
+
+Let's test whether there's an association of `day` and `smoker`.
+
+
+First, the sample descriptives:
+
+```{r}
+tally( sex ~ day, data = tips, format = "proportion")
+```
+
+
+Interesting: On Saturday on Sunday, mostly men pay. On Friday and Thursday, there's an equity of pay between the sexes. At least in our data. That brings us to the point: How about the population?
+
+
+# Chi-Square statistic
+
+The $\chi^2$ statistic gives us a measure of deviation from expected value.
+
+
+```{r}
+chi_value <- chisq(sex ~ day, data = tips)
+```
+
+Alas, this value is not so intuitive. We can extract the p-value from the theoretical distribution like this:
+
+```{r}
+pchisq(chi_value, 3, lower.tail=FALSE)
+```
+
+Let's compare it to the result of the $\chi^2$ test:
+
+
+```{r}
+x <- xchisq.test(sex ~ day, data = tips)
+```
+
+Which is (approximately) the same.
+
+
+
+# $\chi^2$ via SBI
+
+This statistic can easily be submitted to SBI, ie., the permutation test:
+
+```{r}
+null1 <- do(1000) * chisq(sex ~ shuffle(day), data = tips)
+``` 
+
+Let's check the distribution of the $\chi^2$ statistic:
+
+```{r}
+gf_histogram(~ X.squared, data = null1)
+```
+
+
+Now let's add a marker for our empirical value:
+
+
+```{r}
+x$statistic
+```
+
+
+# Plot it
+
+```{r}
+gf_histogram(~ X.squared, data = null1) %>%  gf_vline(xintercept = ~ x$statistic)
+```
+
+As can easily be seen, the empirical value is an infrequent event in the null distribution.
+
+More precisely:
+
+```{r}
+p_value <- prop(~ X.squared >= x$statistic, data = null1)
+p_value
+```
+
+Incidentally, this simulated p-value is approximately the value we got from the theoretical distribuion.
+
+
+
+We might want to add the critical value to this graph:
+
+```{r}
+crit_value <- qchisq(.05, df = 3, lower.tail=FALSE)
+crit_value
+```
+
+
+`crit_value` gives us the critical value for a $\chi^2$-distribution with $df=3$ degrees of freedom.
+
+
+
+
+```{r}
+```{r}
+gf_histogram(~ X.squared, data = null1) %>% 
+  gf_vline(xintercept = ~ x$statistic) %>% 
+  gf_vline(xintercept = ~ crit_value, linetype = "dashed")
+```
+```
+
+
+
+
