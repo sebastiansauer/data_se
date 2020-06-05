@@ -1,0 +1,140 @@
+---
+title: simulating values according to some distribution
+author: Sebastian Sauer
+date: '2020-06-05'
+slug: simulating-values-according-to-some-distribution
+categories:
+  - rstats
+tags:
+  - simulation
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(mosaic)
+```
+
+
+# What's a Monte Carlo simulation?
+
+A [Monte Carlo Simulation](https://en.wikipedia.org/wiki/Monte_Carlo_method) is a numeric approach to solving difficult problems. Instead of having an analytic way of solving the problem, one just says "ok, let's try it out and see what happens".
+
+
+# Coin flip distribution
+
+
+Simalatin a single coin flip (Bernoulli) distribution can be achieved like this:
+
+
+```{r}
+rflip()
+```
+
+
+# Normal distribution
+
+```{r}
+rnorm(n = 10, mean = 0, sd = 1)
+```
+
+
+
+
+# And so on
+
+
+For example, the log-norm distribution
+
+```{r}
+rlnorm(n = 10)
+```
+
+
+
+# Sampling distribution
+
+
+Let's draw 1000 samples from a (standard) Normal of size $n=30$.
+
+```{r}
+samples1 <- do(1000) * rnorm(30)
+samples1
+```
+
+It's probably sufficient to store only the means:
+
+```{r}
+samples2 <- do(1000) * (rnorm(30) %>% mean())
+samples2
+```
+
+
+And plot it:
+
+```{r}
+gf_histogram( ~ result, data = samples2)
+```
+
+
+
+# Practical example
+
+Here's a dataset with the height and sex (and shoe size) of some students.
+
+```{r}
+data(wo_men, package = "pradadata")
+```
+
+According to this [source](https://en.wikipedia.org/wiki/Average_human_height_by_country), the average height among German men is about 1.75m. Unfortunately, there is no SD given, so we estimate from the SD from some other countries, at 0.07m (7cm).
+
+Now, if our sample were drawn from this "typial German" distribution, how likely would it be to observe our empirical value?
+
+
+```{r}
+wo_men %>% 
+  filter(sex == "man") %>% 
+  drop_na(height) %>% 
+  summarise(height_avg = mean(height),
+            n_men = n())
+```
+
+It may appear silly to draw samples in this case where the distribution is so simple and well-known. That's true. However, in more complex scenarios -- such as multivariate Normals -- it's a different story. What's more, in some cases, we will not know the shape of the distribution, but we may well draw samples form it.
+
+
+```{r}
+samples3 <- do(1000) * mean(rnorm(n = 18, mean = 175.4, sd = 7))
+```
+
+
+```{r}
+gf_histogram(~ mean, data = samples3) %>% 
+  gf_vline(xintercept = 183.11)
+```
+
+
+As can be seen, our value of 183cm occurs infrequently, hence we are in a position to reject the null.
+
+
+

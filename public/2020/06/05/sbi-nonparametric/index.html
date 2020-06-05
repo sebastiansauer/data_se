@@ -59,7 +59,7 @@
 
   <article class="article">
     
-    <span class="article-duration">5 min read</span>
+    <span class="article-duration">6 min read</span>
     
 
     <h1 class="article-title">Simulation based inference for non-parametric tests, and a trick</h1>
@@ -323,11 +323,47 @@ gf_histogram(~ F, data = null2,
            show.legend = FALSE) </code></pre>
 <p><img src="/post/2020-06-05-_files/figure-html/unnamed-chunk-18-1.png" width="70%" style="display: block; margin: auto;" /></p>
 <p>As can be seen, the F value is not significant.</p>
+<p>Some summary statistics to this distribution:</p>
+<pre class="r"><code>favstats(~ F, data = null2)
+#&gt;        min        Q1    median       Q3      max      mean        sd    n
+#&gt;  0.0092523 0.4050921 0.7621598 1.356379 5.611243 0.9925849 0.8319289 1000
+#&gt;  missing
+#&gt;        0</code></pre>
 </div>
 <div id="caution" class="section level1">
 <h1>Caution</h1>
 <p>Note that the <a href="https://amstat.tandfonline.com/doi/full/10.1080/00031305.2016.1154108">ASA</a> advises that the p-value should not be the (sole) basis of decision in any data analysis.</p>
 <p>Bayesian statistics is a neat alternative.</p>
+</div>
+<div id="anova" class="section level1">
+<h1>ANOVA</h1>
+<p>As can be seen, the Kruskal Wallis and the F tests yield different results. This is probably due to the fact that we tested median differences (Kruskall) and later on mean differences (F test).</p>
+<p>As a check, here’s a standard ANOVA:</p>
+<pre class="r"><code>aov1 &lt;- aov(tip ~ day, data = tips)
+summary(aov1)
+#&gt;              Df Sum Sq Mean Sq F value Pr(&gt;F)
+#&gt; day           3    9.5   3.175   1.672  0.174
+#&gt; Residuals   240  455.7   1.899</code></pre>
+<p>Replicating the F value decision from the SBI analysis above.</p>
+</div>
+<div id="plotting-medians-vs-means" class="section level1">
+<h1>Plotting medians vs means</h1>
+<p>As a further check, let’s plot median and mean differences for the sake of comparison.</p>
+<pre class="r"><code>gf_point(tip ~ day, 
+         data = tips,
+         stat = &quot;summary&quot;, 
+         fun = mean,
+         shape = 3,
+         size = 5,
+         color = &quot;blue&quot;) +
+  stat_summary(geom = &quot;point&quot;, 
+               fun = median,
+               color = &quot;red&quot;,
+               size = 5,
+               shape = 5) +
+  labs(caption = &quot;Crosses: Mean, diamonds: Median&quot;)</code></pre>
+<p><img src="/post/2020-06-05-_files/figure-html/unnamed-chunk-21-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>As ca be seen, the median values are more spread out, hence it appears sensible that the test would get significant whereas the more clustered mean values do not show a significant difference in our test.</p>
 </div>
 
     </div>
