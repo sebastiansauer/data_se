@@ -1,0 +1,258 @@
+---
+title: 'Simulation based inference for non-parametric tests, and a trick'
+author: Sebastian Sauer
+date: '2020-06-05'
+slug: 'sbi-nonparametric'
+categories:
+  - rstats
+tags:
+  - simulation
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(mosaic)
+```
+
+
+# Data
+
+```{r}
+data("tips", package = "reshape2")
+```
+
+
+# Non-parametric tests and simulation based inference
+
+Simulation-based inference (SBI) is an old tool that has seen a surge in research interest in recent years probably due to the large amount of computational powers at the hands of researchers.
+
+
+SBI is less prone to violations of assumptions, particularly with distributional assumptions. This is because inference is not based on the idea that some variable follows a -- for example -- normal distribution.
+
+
+As a consequence there is much less need to seek shelter at nonparametric tests in case distributional assumptions are violated.
+
+In this post, I'll show how the Kurskal-Wallis test can be applied using SBI and how to translate it to a linear model.
+
+
+# Research question
+
+Is there a difference in mean tip across different days?
+
+
+# Kruskall test the classic way
+
+
+```{r}
+k_test <- kruskal.test(tip ~ day, data = tips)
+k_test
+```
+
+Let's have a closer look to the resulting object:
+
+```{r}
+str(k_test)
+```
+
+We can extract the statistic in this way:
+
+```{r}
+k_test$statistic
+pluck(k_test, "statistic")
+```
+
+Or, alternatively:
+
+```{r}
+kruskal.test(tip ~ day, data = tips)$statistic
+```
+
+
+The statistic is defined as shown [here](https://en.wikipedia.org/wiki/Kruskal%E2%80%93Wallis_one-way_analysis_of_variance):
+
+$$
+H = (N-1)\frac{\sum_{i=1}^g n_i(\bar{r}_{i\cdot} - \bar{r})^2}{\sum_{i=1}^g\sum_{j=1}^{n_i}(r_{ij} - \bar{r})^2}
+$$
+
+And this statistic is asymptotically $\chi^2$ distributed.
+
+
+# Kruskall test via SBI
+
+
+```{r}
+null1 <- do(1000) * kruskal.test(tip ~ shuffle(day), 
+                                 data = tips)
+```
+
+Let's check the results:
+
+```{r}
+null1 %>% 
+  head() %>% 
+  knitr::kable()
+```
+
+
+
+# Plot it
+
+Let's add the empirical value as a vertical line.
+
+```{r}
+gf_histogram( ~ Kruskal.Wallis.chi.squared, data = null1) %>% 
+  gf_vline(xintercept = ~ k_test$statistic)
+```
+
+Let's color the top-5 percent red, to highlight the critical value.
+
+
+```{r}
+null1 <- null1 %>% 
+  mutate(is_top5percent = percent_rank(Kruskal.Wallis.chi.squared)  > .95)
+```
+
+
+```{r}
+gf_histogram( ~ Kruskal.Wallis.chi.squared, 
+              data = null1,
+              fill = ~ is_top5percent) %>% 
+  gf_vline(xintercept = ~ k_test$statistic)
+```
+
+
+
+# Nice, but ...
+
+As outlined above, there may be no need to bypass the test of the mean. Using SBI one does not have to assume normal distribution of the variable tested if one would like to compute p-values.
+
+
+
+# Linear model for comparing means
+
+
+```{r}
+lm1 <- lm(tip ~ day, data = tips)
+lm1_sum <- summary(lm1)
+
+lm1_sum
+```
+
+As can be seen, the $F$ value is not significant thereby questioning the difference in means hypothesis. Put differently: The models sees no strong evidence for rejecting the null.
+
+The F value, along with its 3 df values, can be plucked out like this:
+
+```{r}
+emp_F_value <- pluck(lm1_sum, "fstatistic")
+emp_F_value
+```
+
+
+Note that this is a vector of three 3 elements.
+
+# Linear model using SBI
+
+Now the trick.
+
+
+```{r}
+boot1 <- do(1000) * lm(tip ~ day, data = resample(tips))
+
+confint(boot1)
+```
+
+
+# Pluck the r-squared from the lm object
+
+Here's a way to pluck the R squared value from the lm object:
+
+```{r}
+lm(tip ~ day, data = tips) %>% 
+  summary() %>% 
+  pluck("r.squared")
+```
+
+
+# Plot the results
+
+```{r}
+gf_histogram(~ r.squared, data = boot1) %>% 
+  gf_vline( xintercept = ~ lm(tip ~ day, data = tips) %>% 
+              summary() %>% 
+              pluck("r.squared"))
+```
+
+
+
+Interestingly, the R squeared distribution is not normally distributed. In sum, the R squared are really small.
+
+
+# Test the null using lm and SBI
+
+
+```{r}
+null2 <- do(1000) * lm(tip ~ shuffle(day), data = tips)
+```
+
+
+
+Let's check the $F$ statistic. The critical value of the $F$ statistic is, given 3 and 240 degrees of freedom (as shown by the lm output):
+
+
+
+```{r}
+crit_f <- qf(p = 0.95, 
+             df1 = 3,
+             df2 = 240)
+crit_f
+```
+
+
+Plot it:
+
+```{r}
+null2 <- null2 %>% 
+  mutate(top_5percent = percent_rank(F) > 0.95)
+
+gf_histogram(~ F, data = null2,
+             fill =~top_5percent) %>% 
+  gf_vline(xintercept = ~emp_F_value[1]) %>% 
+  gf_label(label = ~ paste0("F: ",
+                            emp_F_value[1] %>% round(2)),  
+           x = ~ emp_F_value[1], 
+           y = 0,
+           show.legend = FALSE) 
+```
+
+As can be seen, the F value is not significant.
+
+
+# Caution
+
+Note that the [ASA](https://amstat.tandfonline.com/doi/full/10.1080/00031305.2016.1154108) advises that the p-value should not be the (sole) basis of decision in any data analysis.
+
+Bayesian statistics is a neat alternative.
+
+
