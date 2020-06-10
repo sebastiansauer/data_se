@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.67.0" />
+
+
+<title>Absolute vs. relative Covid cases in modelling - Data Se</title>
+<meta property="og:title" content="Absolute vs. relative Covid cases in modelling - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">4 min read</span>
+    
+
+    <h1 class="article-title">Absolute vs. relative Covid cases in modelling</h1>
+
+    
+    <span class="article-date">2020/06/10</span>
+    
+
+    <div class="article-content">
+      
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>
+library(tidyverse)
+library(mosaic)
+require(scales)
+library(directlabels)
+library(ggrepel)
+library(ggthemes)
+library(hrbrthemes)
+
+options(scipen = 8)</code></pre>
+</div>
+<div id="covid-19-growth-rate" class="section level1">
+<h1>Covid-19 growth rate</h1>
+<p>We are in the <del>decline</del> <del>midst</del> <del>wake</del> <del>onset</del> SOMEHWERE in the Corona crisis. A lot of <del>hasty</del> more or less useful research is being conducted.</p>
+<p>One of the circulating claims is: “There Corona growth rate in country X is higher than in country Y!”</p>
+<p>Let’s assume some doubling (growth) rate:</p>
+<pre class="r"><code>double_rates &lt;- 5
+double_rate_chosen &lt;- 5 # sample(double_rates, size = 1)</code></pre>
+</div>
+<div id="two-countries-with-equal-covid-19-growth-rate" class="section level1">
+<h1>Two countries with equal Covid-19 growth rate</h1>
+<p>Consider two countries, A und B, with the <em>same</em> Covid-19 growth rate. Let’s assume the doubling rate amounts to <code>double_rate_chosen</code> which is 5. In other words, the number of cases doubles after this number of days. For the sake of simplicity, let’s stick to this simple model for the purpose of the following argument.</p>
+<p>Here are two countries, A and B, one small (A), and one larger (B).</p>
+<pre class="r"><code>s_a &lt;- 1e04
+s_b &lt;- 1e06
+
+s_a
+#&gt; [1] 10000
+s_b
+#&gt; [1] 1e+06</code></pre>
+<p>See the growth process in this diagram (both countries):</p>
+<p><img src="fig1-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="relative-vs.-absolute-case-numbers" class="section level1">
+<h1>Relative vs. absolute case numbers</h1>
+<p>Some press releases talk about about the <em>relative</em> case number (<span class="math inline">\(n_{rel}\)</span>), instead of the <em>absolute</em> case numbers (<span class="math inline">\(n_{abs}\)</span>), see the <a href="https://twitter.com/CT_Bergstrom/status/1249480343968575488">discussion here</a>.</p>
+<p>To arrive at the relative case number, the absolute case number is divided by the population size <span class="math inline">\(s\)</span>:</p>
+<p><span class="math display">\[n_{rel} = n_{abs}/s\]</span>.</p>
+<p>The relative number is shown in the following figure:</p>
+<pre class="r"><code>d &lt;- d %&gt;%
+  mutate(n_rel_a = cases/s_a,
+         n_rel_b = cases/s_a) %&gt;% 
+  mutate(pop_a = n_rel_a,
+         pop_b = n_rel_b,
+         pop_a_jit = pop_a + pop_a*.1,
+         pop_b_jit = pop_b + pop_b*.1)
+
+d_long &lt;- d %&gt;% 
+  pivot_longer(cols = c(pop_a_jit, pop_b_jit),
+               names_to = &quot;population&quot;,
+               values_to = &quot;rel_size&quot;)
+
+
+ggplot(d_long) +
+  aes(x = days, y = rel_size, color = population) +
+  geom_line(size = 2, alpha = .4) + 
+  scale_y_continuous(labels = scales::comma) +
+  scale_color_colorblind() +
+  labs(x = &quot;Days&quot;, &quot;proportion of cases&quot;) +
+  theme_ipsum_rc()</code></pre>
+<p><img src="/post/2020-06-10-absolute-vs-relative-covid-cases-in-modelling_files/figure-html/fig2-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>As can (not) be seen: the two curves lie <em>exactly</em> on each other. They are (practically) identical.</p>
+</div>
+<div id="what-the-heck" class="section level1">
+<h1>What the heck?!</h1>
+<p>Surprisingly, we see that the <em>larger</em> country (the population size being higher), ie., <span class="math inline">\(s_A &gt; s_B\)</span>, shows a <em>lower</em> growth rate! The <em>less steep</em> curve appears to imply this conclusion.</p>
+<p>However, this is not entirely correct.</p>
+<p>Of course, the growth rates are equal, by definition, see above. The danger is that someone might claim “See the flat curve. In our country we are much better off. The warnings are exagerated!” Such a claim would be ill advised, as the (absolute) growth rates are in fact identical. T</p>
+</div>
+<div id="now-what" class="section level1">
+<h1>Now what?</h1>
+<p>To better conceive the differences, one could make use of a logarithmic Y axis:</p>
+<pre class="r"><code>gf_line(n_rel_a ~ days, data = d, color = &quot;blue&quot;) %&gt;%
+  gf_line(n_rel_b ~ days, color = &quot;red&quot;) %&gt;% 
+  gf_labs(x = &quot;days&quot;, y = &quot;LOG2 proportion of cases&quot;) + 
+  scale_y_continuous(labels = scales::comma, trans = &quot;log2&quot;)  +
+  theme_ipsum_rc()</code></pre>
+<p><img src="unnamed-chunk-3-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Another solutions consists of calibrating the curves such that they start <em>not</em> showing the first cases, but rather that they start with the day of equal proportion of cases. Then the curves show again the different trajectories.</p>
+<pre class="r"><code>
+d &lt;- d %&gt;% 
+  mutate (n_rel_b_later =  2^((1/double_rate_chosen)*days+3.3) / s_b)
+
+
+gf_line(n_rel_a ~ days, data = d, color = &quot;blue&quot;) %&gt;%
+  gf_line(n_rel_b_later ~ days, color = &quot;red&quot;) %&gt;% 
+  gf_labs(x = &quot;days since p=1/1e05 cases&quot;, 
+          y = &quot;proportion cases&quot;) + 
+  scale_y_continuous(labels = scales::comma)  +
+  theme_ipsum_rc()</code></pre>
+<p><img src="fig-kalibriert-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="when-to-use-relative-cases" class="section level1">
+<h1>When to use relative cases?</h1>
+<p>There are situations when using the relative case number pays off. That’s when we are trying to compare the health-system burden. For example, a country where 90% ICU units are in use faces a higher burden than a country where 1% ICU units are in use. Similarly, a higher <em>proportion</em> of cases presents a higher societal burden. Modelling that burden would profit from comparing relative numbers.</p>
+</div>
+<div id="a-intuitive-approach-of-cheese-and-mice" class="section level1">
+<h1>A intuitive approach: Of cheese and mice</h1>
+<p>Consider two rooms, in each room there’s a nice piece of cheese. Yes, cheese. Now a mouse comes to each room, eating away some part of the cheese. Now, in which case would you claim a <em>worse</em> infestation with vermin?</p>
+<div class="figure">
+<img src="/post/2020-06-10-absolute-vs-relative-covid-cases-in-modelling_files/Cheese2.png" alt="" />
+<p class="caption">cheese and mice</p>
+</div>
+<p>We would say that <em>B</em> is the more severe case, as the mice have eaten away more cheese from cheese <em>B</em>. We would not argue for <em>A</em>; in <em>A</em> the <em>proportion</em> is higher, but normally we would care about the <em>real</em>, that is <em>absolute</em> harm done.</p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

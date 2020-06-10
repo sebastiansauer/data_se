@@ -1,0 +1,301 @@
+---
+title: Spell out your model explicitly
+author: Sebastian Sauer
+date: '2020-06-10'
+slug: spell-out-your-model-explicitly
+categories:
+  - rstats
+tags:
+  - modeling
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(hrbrthemes)
+library(MASS)
+library(moments)
+```
+
+
+
+
+# Why you should spell out your model explicitly
+
+
+Often, assumptions of widely used models, such as linear models, appear opaque. Why is heteroscedasticity important? Where is a list of the model assumptions I need to consider?
+
+As it turns out, there are straight forward answers to these (and similar) questions. The solution is to explicitly spell out your model. All "assumptions" can easily read off from these model specifications.
+
+
+# Example for explicit (and complex) model
+
+
+Say, we would like to model Covid-19 cases ($C$) as a function of tests applied in some population. We could specify our model like this:
+
+
+$$
+C  \sim \mathcal{P}(\lambda_i) \\
+\text{log}\lambda_i = \alpha + \beta_1\,x_{i}^{s} \\
+\alpha \sim \mathcal{E}(.5) \\
+\beta_1 \sim \mathcal{E}(0.1)
+$$
+
+
+Here, we model $C$ as Poisson ($\mathcal{P}$) distribution variable, because $C$ is a count variable, and Poisson is a maximum entropy variable for counts. However, this is a apriori reasoning; after seeing the data we might want to consider different model despite the danger of overfitting.
+
+Recall that $\lambda$ must be positive or null. That's why we put a "log" before the likelihood (the linear model specification) line. Similarly, we can only take the log of a positive number, so we need to make sure that $(\alpha + \beta_1 \, X )> 0$. Here, the Exponential distribution ($\mathcal{E}$) is handy, as it makes sure that $\alpha$ or $\beta$ ist positive.
+
+It's helpful to use standardized predictors, $x_i^s$, because that allows us to model the intercept $\alpha$ as the mean value of $C$, among other things. It would be a fruitful discussion to contemplate the usefulness of the mean for long-tail distributions, see [Taleb Incerto](https://nassimtaleb.org/2020/01/final-version-fat-tails/), but that's beyond the scope of this post.
+
+We must take care of the log-normal ($\mathcal{LN}$), because log-normal are fat-tailed so the mean will be large. Seeing is believing, so let's consider $A \sim \mathcal{LN}(0, 10)$. Draw some samples from that population:
+
+```{r}
+set.seed(42)
+a <- rlnorm(n = 1000, meanlog = 0, sdlog = 10)
+options(scipen = 3)
+mean(a)
+
+format(mean(a), scientific = T)
+```
+
+For a smaller sd:
+
+```{r}
+set.seed(42)
+a <- rlnorm(n = 1000, meanlog = 4, sdlog = 1)
+options(scipen = 3)
+mean(a)
+
+format(mean(a), scientific = T)
+```
+
+
+Let's apply the same reasoning for $\beta_{1}$.
+
+
+
+# Read off modelling assumptions
+
+Some of the "assumptions" implied by the above model are:
+
+- Certain distributions of the variables involved
+- Certain function forms map the input variable to the output variable
+- The conditional errors (conditional to $\hat{Y}$) are iid - independent and identically distributed, that is, at each value of $\hat{Y}$ the errors are drawn from the same distribution, and they are drawn without correlation (eg., drawn randomly from an infinite population). This fact incorporated heteroscedasticity, as the residuals have the same variance irrespective to $\hat{Y}$.
+- Our ignorance according to the "true" value of some variable is incorporated. For example, we are not sure about the true value of $\beta_1$, there is uncertainty involved, which is reflected by the fact that $\beta_1$ is drawn from a probability distribution.
+
+
+
+# Simulate data
+
+Say, $n=1000$
+
+According to our model:
+
+```{r}
+set.seed(42)
+n <- 1000
+alpha <- rexp(n = 1000, rate = 1)
+beta <- rexp(n = 1000, rate = 0.1)
+```
+
+See:
+
+```{r}
+ggplot(data.frame(alpha)) +
+  aes(x = alpha) +
+  geom_density()
+```
+
+```{r}
+ggplot(data.frame(beta)) +
+  aes(x = beta) +
+  geom_density()
+```
+
+
+
+As we do not have real data $X$, we need to simulate it. Assuming that $X$ is again exponentially distributed (to avoid negative values):
+
+
+```{r}
+set.seed(42)
+X <- rexp(1000, rate = .5)
+```
+
+```{r}
+ggplot(data.frame(X)) +
+  aes(x = X) +
+  geom_density() +
+  theme_ipsum_rc()
+```
+
+
+
+
+
+# Compute the likelihood
+
+
+```{r}
+lambda_log <- (alpha + beta*X) %>% log()
+
+lambda <- exp(lambda_log)
+```
+
+
+```{r}
+ggplot(data.frame(lambda)) +
+  aes(x = lambda) +
+  geom_density()
+```
+
+Oh my, that's a long tail.
+
+# Estimate $C$
+
+
+```{r}
+set.seed(42)
+C <- rpois(n = 1000, lambda = lambda)
+```
+
+
+# Put the data together
+
+```{r}
+C_df <- tibble(
+  C = C,
+  lambda = lambda,
+  lambda_log = lambda_log,
+  X = X,
+  alpha = alpha,
+  beta = beta)
+```
+
+
+
+```{r}
+ggplot(C_df) +
+  aes(x= C) +
+  geom_density() +
+  theme_ipsum_rc(grid = "Y")
+```
+
+
+# Fit distributions
+
+
+```{r}
+pois_param <- fitdistr(C_df$C, 
+                       densfun = "poisson")$estimate
+str(pois_param)
+
+pois_param
+```
+
+Supported distributions are:
+
+>    "beta", "cauchy", "chi-squared", "exponential", "gamma", "geometric", "log-normal", "lognormal", "logistic", "negative binomial", "normal", "Poisson", "t" and "weibull" 
+
+
+
+
+For comparison, let's fit another distribution, say a log-normal.
+
+```{r}
+lnorm_param <- fitdistr(C_df$C[C_df$C > 0], 
+                        densfun = "lognormal")$estimate
+lnorm_param
+```
+
+
+... or a Gamma:
+
+
+```{r}
+gamma_param <- fitdistr(C_df$C[C_df$C > 0], 
+                        densfun = "gamma")$estimate
+gamma_param
+```
+
+# Compare fit
+
+To compare fit, a qqplot can be helpful.
+
+
+## Poisson
+
+```{r}
+C_df %>% 
+  ggplot(aes(sample = C)) +
+  geom_qq(distribution = qpois, 
+          dparams = as.list(pois_param),
+          color = "dodgerblue") +
+  stat_qq_line(distribution = qpois, 
+               dparams = as.list(pois_param),
+               color = "dodgerblue") +
+  theme_ipsum_rc()
+
+```
+
+## Gamma
+
+```{r}
+C_df %>% 
+  ggplot(aes(sample = C)) +
+  geom_qq(distribution = qgamma, 
+          dparams = as.list(gamma_param),
+          color = "darkseagreen") +
+  stat_qq_line(distribution = qgamma, 
+               dparams = as.list(gamma_param),
+               color = "darkseagreen") +
+  theme_ipsum_rc()
+
+```
+
+
+## Log-normal
+
+```{r}
+C_df %>% 
+  ggplot(aes(sample = C)) +
+  geom_qq(distribution = qlnorm, 
+          dparams = as.list(lnorm_param),
+          color = "firebrick") +
+  stat_qq_line(distribution = qlnorm, 
+               dparams = as.list(lnorm_param),
+               color = "firebrick")  +
+  theme_ipsum_rc()
+```
+
+
+
+As can be seen, our distributions do not fit well, even given the fact that we simulated the data to be Poisson distributed. This may be due to the fact that we have induced such a long tail. Maybe there are other things going on. Any ideas? Let me know.
+
+
+
+
+
+
