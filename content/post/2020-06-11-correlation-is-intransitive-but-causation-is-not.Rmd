@@ -1,0 +1,186 @@
+---
+title: Correlation is intransitive -- a simulation
+author: Sebastian Sauer
+date: '2020-06-11'
+draft: TRUE
+slug: correlation-is-intransitive-simulation
+categories:
+  - rstats
+tags:
+  - causality
+  - simulation
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(MASS)
+library(rockchalk)
+```
+
+
+
+# Correlation is not transitive
+
+It has probably been known since a long time that correlation is not transitive. However, in practice the error of assuming that correlation would be transitive is some times committed.
+
+For example, [Nassim Taleb](https://www.youtube.com/watch?v=hgXda891uNw) has pointed out that (some or all) psychologists would commit such an error when they state "genes are correlated with IQ, IQ is correlated with performance, hence genes are correlated with performance". I'm not aware on an exact example of this claim but it appears to me that such a claim may easily be posited.
+
+As demonstrated in several places, it can be proven that correlation is not transitive. See [here](https://stats.stackexchange.com/questions/181376/is-correlation-transitive) for an explanation.
+
+A nice intuition is given by [Terence Tao](https://terrytao.wordpress.com/2014/06/05/when-is-correlation-transitive/):
+
+
+>    it is generally true that good exam scores are correlated with a deep understanding of the course material, and memorising from flash cards are correlated with good exam scores, but this does not imply that memorising flash cards is correlated with deep understanding of the course material.
+
+
+
+Nice too [source](https://stats.stackexchange.com/questions/5747/if-a-and-b-are-correlated-with-c-why-are-a-and-b-not-necessarily-correlated?noredirect=1&lq=1):
+
+
+>   I'm on an annual fishing trip right now. There is a correlation between the time of day I fish and the amount of fish I catch. There is also a correlation between the size of the bait I use and the amount of fish I catch. There is no correlation between the size of the bait and the time of day.
+
+
+# No proof, just simulation
+
+In this post, we are not looking at proofs, but only to simulation.
+
+
+
+Let X, Y, and Z be standard normal Gaussians:
+
+$$
+X,Y,Z \sim \mathcal{N}(0,1)
+$$
+
+
+Now, define the correlations as $\rho_1$ for X,Y, $\rho_2$ for X,Z and $rho_3$ for Y,Z. We will set the correlations to different values, simulate data, and observe if the the correlation is transitive or not.
+
+```{r}
+rho_range <- seq(-1, 1, by = 0.1)
+rho_range
+```
+
+
+Define a function that simulates a multivariate normal of 3 variables:
+
+```{r}
+sim_cor_xyz <- function(rho1, rho2, rho3, n = 1000){
+  
+  myR <- c(rho1, rho2, rho3)
+  myR %>% 
+    map(~ stopifnot(. <= 1))
+ 
+   myR %>% 
+    map(~ stopifnot(. >= -1))
+  
+  mySD <- c(1, 1, 1)
+  myCov <- lazyCov(Rho = myR, Sd = mySD)
+  
+  d <- try(mvrnorm(n = n, mu = rep(0, 3), Sigma = myCov))
+  
+  cor_d <- try(cor(d))
+  
+  attr(cor_d, "rhos") <- myR
+  
+  return(cor_d)
+}
+```
+
+
+Test it:
+
+```{r}
+set.seed(42)
+sim_cor_xyz(0.3, 0.3, 0.3)
+```
+
+
+Stress test it:
+
+```{r}
+crazy_rho <- c(0.9, 0.9, -0.9)
+myR <- try(lazyCor(crazy_rho))
+```
+
+
+OK, the error is catched.
+
+
+Define a function that checks for transitivity of correlation of the three variables X, Y, Z:
+
+```{r eval = FALSE}
+is_cor_transitive <- function(rho){
+  is_trans <- if ()
+}
+```
+
+
+
+To apply it to all values of `rho_range`, that's how many runs?
+
+```{r}
+l <- length(rho_range)
+l*l*l
+```
+
+
+Maybe just run a couple of samples?
+
+
+
+
+
+```{r}
+
+d <- list()
+
+for (i in seq_along(rho_range)) {
+  for (j in seq_along(rho_range)) {
+    for (k in seq_along(rho_range)){
+      myString <- c("i: ", i, " - j: ", j, " - k : ", k, "\n")
+      d[[i+j+k]] <- try(sim_cor_xyz(rho_range[i], rho_range[j], rho_range[k]))
+      attr(d[[i+j+k]], "run") <- myString
+
+    }
+  }
+}
+
+
+
+```
+
+
+```{r eval = FALSE}
+
+d <- rho_range %>% 
+  map(~ sim_cor_xyz(., ., .))
+
+
+d <- pmap(
+  list(rho_range, rho_range, rho_range),
+  sim_cor_xyz)
+
+```
+

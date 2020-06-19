@@ -1,0 +1,141 @@
+---
+title: Birth Weight Paradoxon -- A simulation for intuition
+author: Sebastian Sauer
+draft: TRUE
+date: '2020-06-11'
+slug: birth-weight-paradoxon-a-simulation-for-intuition
+categories:
+  - rstats
+tags:
+  - simulation
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(ggdag)
+library(gt)
+library(dagitty)
+```
+
+
+# The Birth Weight Paradoxon
+
+The Birth Weight Paradoxon have kept on puzzling researchers for decades, as [Pearl notes here]().
+
+In [Wikipedia], this paradox is characterized as such:
+
+
+>    Traditionally, babies weighing less than a certain amount (which varies between countries) have been classified as having low birth weight. In a given population, low birth weight babies have a significantly higher mortality rate than others; thus, populations with a higher rate of low birth weights typically also have higher rates of child mortality than other populations.
+
+>    Based on prior research, the children of smoking mothers are more likely to be of low birth weight than children of non-smoking mothers. Thus, by extension the child mortality rate should be higher among children of smoking mothers. So it is a surprising real-world observation that low birth weight babies of smoking mothers have a lower child mortality than low birth weight babies of non-smokers.
+
+
+# Birth Weight Paradoxon through the lens of causal inference
+
+
+Pearl proposes the following DAG to explain the seeming paradox; 
+in its essence, it can be described as a collider bias effect.
+
+Consider this DAG, taken from [Pearl's Book of Why]():
+
+
+```{r}
+dag1_str <- '
+dag {
+smoke [exposure]
+bw [outcome]
+smoke -> bw 
+defect -> bw
+bw -> mort
+smoke -> mort
+defect -> mort
+}'
+```
+
+
+```{r}
+dag1 <- dag1_str %>% dagitty() %>% tidy_dagitty()
+dag1 
+```
+
+
+```{r}
+ggdag(dag1) + theme_dag_blank()
+```
+
+
+
+```{r}
+ggdag_adjustment_set(dag1, node_size = 14) + 
+  theme_dag(legend.position = "bottom")
+```
+
+If no variable is controlled for, then the association of `smoke` to `bw` shows the true causal effect (given this DAG).
+
+Let's check the causal effect from `smoke` with `mort` as the outcome variable.
+
+
+```{r}
+dag1 %>% 
+  ggdag_adjustment_set(exposure = "smoke", outcome = "mort") +
+  theme_dag()
+```
+
+Again, the backdoors are closed. The association of `smoke` with `mort` denotes the true causal effect (given this DAG).
+
+
+# Controlling for birht weight
+
+Assume a study that solely includes baby with low birth weights. In other words, this study stratifies on `bw`, or controls for `bw`. 
+
+Let's check the consequences for identifying the causal effect from smoke to mortality.
+
+
+
+
+```{r}
+dag1 %>% 
+  ggdag_dseparated(from = "smoke", to = "mort", controlling_for = "bw")
+```
+
+
+```{r}
+dag_paths(dag1, from = "smoke", to = "mort", 
+          adjust_for = "bw",
+          paths_only = TRUE) 
+```
+
+```{r}
+ggdag_paths(dag1, from = "smoke", to = "mort",
+            shadow = FALSE) +
+  theme(legend.position = "bottom",)
+```
+
+
+```{r}
+node_dconnected(dag1)
+```
+
+

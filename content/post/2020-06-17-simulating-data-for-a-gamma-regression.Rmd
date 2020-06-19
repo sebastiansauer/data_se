@@ -1,0 +1,112 @@
+---
+title: 'Simulating data for a Gamma regression '
+author: Sebastian Sauer
+date: '2020-06-17'
+slug: simulating-data-for-a-gamma-regression
+categories:
+  - rstats
+tags:
+  - modelling
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+```
+
+
+
+# Intro
+
+A Gamma distribution is useful for modeling positive, right skewed data such as waiting times; it is a continuous function.
+
+
+In this post, we'll illustrate some properties of the Gamma distribution by simulating a toy example.
+
+
+
+# Simulate data and define structural model
+
+
+Let $X$ be a discrete variable following uniform distribution, and  $x_i \in \{1,2,3\}$.
+
+```{r}
+set.seed(42)
+
+n <- 1000
+X <- sample(x = c(1,2,3), size = n, replace = TRUE)
+
+hist(X)
+```
+
+
+Let $y_i = 0.1 + 1x_i$, by extension let $\hat{y_i} = 0.1 + 0.1x_i + \epsilon_i$, where $\epsilon_i \sim \Gamma(m = 0.1, \, s= 1/m)$, and $\Gamma$ refers to the Gamma distribution with location $m$ and shape $s$.
+
+
+```{r}
+e <- rgamma(n, shape = 0.1, scale = 1/0.1)
+```
+
+
+Compute $Y$ and $\hat(Y)$:
+
+
+```{r}
+Y = 0.1 + 1 * X
+```
+
+
+```{r}
+Y_hat = Y + e
+```
+
+
+```{r}
+hist(Y_hat)
+```
+
+
+```{r}
+plot(X, Y_hat)
+```
+
+
+# Regression
+
+
+```{r}
+glm1 <- glm(Y_hat ~ X, Gamma(link = "log"))
+summary(glm1)
+```
+
+# Coefficients, delogged
+
+```{r}
+exp(coef(glm1))
+```
+
+
+
+
+
