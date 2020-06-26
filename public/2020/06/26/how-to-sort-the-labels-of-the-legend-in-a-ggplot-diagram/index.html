@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.67.0" />
+
+
+<title>How to sort the labels of the legend in a ggplot-diagram - Data Se</title>
+<meta property="og:title" content="How to sort the labels of the legend in a ggplot-diagram - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">4 min read</span>
+    
+
+    <h1 class="article-title">How to sort the labels of the legend in a ggplot-diagram</h1>
+
+    
+    <span class="article-date">2020/06/26</span>
+    
+
+    <div class="article-content">
+      
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)
+library(forcats)
+library(hrbrthemes)</code></pre>
+</div>
+<div id="what-we-want-to-achieve-barplot-ggplot2-diagram-where-bars-and-legend-labels-are-sorted" class="section level1">
+<h1>What we want to achieve: barplot ggplot2-diagram where bars and legend labels are sorted</h1>
+<p>Say we would like to plot frequencies, and would like to use <code>ggplot2</code> for that purpose. How can we get a decent graph? This post shows some ways.</p>
+</div>
+<div id="some-data" class="section level1">
+<h1>Some data</h1>
+<pre class="r"><code>data(diamonds)</code></pre>
+</div>
+<div id="a-glimpse-to-the-data" class="section level1">
+<h1>A glimpse to the data</h1>
+<pre class="r"><code>glimpse(diamonds)
+#&gt; Rows: 53,940
+#&gt; Columns: 10
+#&gt; $ carat   &lt;dbl&gt; 0.23, 0.21, 0.23, 0.29, 0.31, 0.24, 0.24, 0.26, 0.22, 0.23, 0…
+#&gt; $ cut     &lt;ord&gt; Ideal, Premium, Good, Premium, Good, Very Good, Very Good, Ve…
+#&gt; $ color   &lt;ord&gt; E, E, E, I, J, J, I, H, E, H, J, J, F, J, E, E, I, J, J, J, I…
+#&gt; $ clarity &lt;ord&gt; SI2, SI1, VS1, VS2, SI2, VVS2, VVS1, SI1, VS2, VS1, SI1, VS1,…
+#&gt; $ depth   &lt;dbl&gt; 61.5, 59.8, 56.9, 62.4, 63.3, 62.8, 62.3, 61.9, 65.1, 59.4, 6…
+#&gt; $ table   &lt;dbl&gt; 55, 61, 65, 58, 58, 57, 57, 55, 61, 61, 55, 56, 61, 54, 62, 5…
+#&gt; $ price   &lt;int&gt; 326, 326, 327, 334, 335, 336, 336, 337, 337, 338, 339, 340, 3…
+#&gt; $ x       &lt;dbl&gt; 3.95, 3.89, 4.05, 4.20, 4.34, 3.94, 3.95, 4.07, 3.87, 4.00, 4…
+#&gt; $ y       &lt;dbl&gt; 3.98, 3.84, 4.07, 4.23, 4.35, 3.96, 3.98, 4.11, 3.78, 4.05, 4…
+#&gt; $ z       &lt;dbl&gt; 2.43, 2.31, 2.31, 2.63, 2.75, 2.48, 2.47, 2.53, 2.49, 2.39, 2…</code></pre>
+</div>
+<div id="plot-1-basic-bar-plot" class="section level1">
+<h1>Plot 1: Basic bar plot</h1>
+<pre class="r"><code>diamonds %&gt;% 
+  ggplot(aes(cut)) +
+  geom_bar()</code></pre>
+<p><img src="/post/2020-06-26-how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram_files/figure-html/unnamed-chunk-3-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>It may seem that the bars are sorted (in increasing frequency) out of the box. Unfortunately, they are not. <code>cut</code> is an *ordered factor`, where the order is pre-defined:</p>
+<pre class="r"><code>str(diamonds$cut)
+#&gt;  Ord.factor w/ 5 levels &quot;Fair&quot;&lt;&quot;Good&quot;&lt;..: 5 4 2 4 2 3 3 3 1 3 ...</code></pre>
+<p>Ggplot takes the order of the factor level and orders the bars accordingly; that’s the general behavior one has to bear in mind.</p>
+</div>
+<div id="plot-2-bar-plot-unsorted-is-default" class="section level1">
+<h1>Plot 2: Bar plot, unsorted is default</h1>
+<p>For the sake of demonstration, consider the following plot:</p>
+<pre class="r"><code>diamonds %&gt;% 
+  ggplot(aes(x = color)) +
+  geom_bar()</code></pre>
+<p><img src="/post/2020-06-26-how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram_files/figure-html/unnamed-chunk-5-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>As can be seen, the abscissa is ordered <em>alphabetically</em> which means in turn that the bars are not sorted by height (ie., frequency of the levels). That’s the ggplot2 default. Let’s change that.</p>
+</div>
+<div id="plot-3-sorted-bar-plot" class="section level1">
+<h1>Plot 3: sorted bar plot</h1>
+<p>There are multiple ways of sorting the bars, see <a href="https://sebastiansauer.github.io/ordering-bars/">here</a> or <a href="https://stackoverflow.com/questions/5208679/order-bars-in-ggplot2-bar-graph">here</a> for examples.</p>
+<p>One particular simple way is the helper function <code>fct_infreq</code> from <code>forcats</code>. From the help:</p>
+<pre class="r"><code>f &lt;- factor(c(&quot;b&quot;, &quot;b&quot;, &quot;a&quot;, &quot;c&quot;, &quot;c&quot;, &quot;c&quot;))
+f
+#&gt; [1] b b a c c c
+#&gt; Levels: a b c
+fct_infreq(f)
+#&gt; [1] b b a c c c
+#&gt; Levels: c b a</code></pre>
+<p>Using this function, sorting becomes easy:</p>
+<pre class="r"><code>diamonds %&gt;% 
+  ggplot(aes(x = fct_infreq(color))) +
+  geom_bar()</code></pre>
+<p><img src="/post/2020-06-26-how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram_files/figure-html/unnamed-chunk-7-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="plot-4-adding-the-legend" class="section level1">
+<h1>Plot 4: Adding the legend</h1>
+<p>Suppose we would like to add a legend. Why would we do so in the first place? One reason could be that the level names are quite long, so we do not want to print them underneath.</p>
+<pre class="r"><code>diamonds %&gt;% 
+  ggplot(aes(x = fct_infreq(color), fill = fct_infreq(color))) +
+  geom_bar() </code></pre>
+<p><img src="/post/2020-06-26-how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram_files/figure-html/unnamed-chunk-8-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Note that the legend is sorted accordingly.</p>
+<p>Plot 5: Alternative to printing a legend</p>
+<p>Note that a legend is suboptimal here, because the eye has to flip back and forth: from the bar to the legend and back again. Let’s try to put it differently:</p>
+<pre class="r"><code>diamonds %&gt;% 
+  ggplot(aes(x = fct_infreq(color), fill = fct_infreq(color))) +
+  geom_bar() +
+  coord_flip() +
+  scale_fill_viridis_d(guide = FALSE)</code></pre>
+<p><img src="/post/2020-06-26-how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram_files/figure-html/unnamed-chunk-9-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="plot-6-reverse-order" class="section level1">
+<h1>Plot 6: Reverse order</h1>
+<p>For the flipped bar graph we might want to reverse the order of the bars. To that end, we need to reverse the factor levels. One comfortable way is using the function <code>fct_rev()</code>:</p>
+<pre class="r"><code>f &lt;- factor(c(&quot;a&quot;, &quot;b&quot;, &quot;c&quot;))
+fct_rev(f)
+#&gt; [1] a b c
+#&gt; Levels: c b a</code></pre>
+<p>(Taken from the help)</p>
+<pre class="r"><code>diamonds %&gt;% 
+  ggplot(aes(x = fct_rev(fct_infreq(color)), fill = fct_rev(fct_infreq(color)))) +
+  geom_bar() +
+  coord_flip() +
+  scale_fill_viridis_d(guide = FALSE)</code></pre>
+<p><img src="/post/2020-06-26-how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram_files/figure-html/unnamed-chunk-11-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="plot-7-final-polishment" class="section level1">
+<h1>Plot 7: Final polishment</h1>
+<pre class="r"><code>diamonds %&gt;% 
+  ggplot(aes(x = fct_rev(fct_infreq(color)))) +
+  geom_bar() +
+  coord_flip() +
+  scale_fill_viridis_d(guide = FALSE) +
+  theme_ipsum_rc() +
+  labs(x = &quot;Color&quot;,
+       y = &quot;Count&quot;)</code></pre>
+<p><img src="/post/2020-06-26-how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram_files/figure-html/unnamed-chunk-12-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>There’s probably no need for color in this (flipped version of the) plot. According to Tufte, we should not spoil ink if no (nonredundant) information is transmitted.</p>
+</div>
+<div id="debrief" class="section level1">
+<h1>Debrief</h1>
+<p>Of course there many other ways to get going; <code>geom_col</code> is another option, where we should prepopulate the frequencies.</p>
+<p>Happy plotting!</p>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

@@ -1,0 +1,200 @@
+---
+title: How to sort the labels of the legend in a ggplot-diagram
+author: Sebastian Sauer
+date: '2020-06-26'
+slug: how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram
+categories:
+  - rstats
+tags:
+  - plotting
+  - ggplot2
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(forcats)
+library(hrbrthemes)
+```
+
+
+# What we want to achieve: barplot ggplot2-diagram where bars and legend labels are sorted
+
+Say we would like to plot frequencies, and would like to use `ggplot2` for that purpose. How can we get a decent graph? This post shows some ways.
+
+
+
+# Some data
+
+```{r}
+data(diamonds)
+```
+
+
+# A glimpse to the data
+
+```{r}
+glimpse(diamonds)
+```
+
+
+
+# Plot 1: Basic bar plot
+
+
+```{r}
+diamonds %>% 
+  ggplot(aes(cut)) +
+  geom_bar()
+```
+
+
+It may seem that the bars are sorted (in increasing frequency) out of the box. Unfortunately, they are not. `cut` is an *ordered factor`, where the order is pre-defined:
+
+```{r}
+str(diamonds$cut)
+```
+
+Ggplot takes the order of the factor level and orders the bars accordingly; that's the general behavior one has to bear in mind.
+
+# Plot 2: Bar plot, unsorted is default
+
+For the sake of demonstration, consider the following plot:
+
+```{r}
+diamonds %>% 
+  ggplot(aes(x = color)) +
+  geom_bar()
+```
+
+As can be seen, the abscissa is ordered *alphabetically* which means in turn that the bars are not sorted by height (ie., frequency of the levels). That's the ggplot2 default. Let's change that.
+
+
+# Plot 3: sorted bar plot
+
+There are multiple ways of sorting the bars, see [here](https://sebastiansauer.github.io/ordering-bars/) or [here](https://stackoverflow.com/questions/5208679/order-bars-in-ggplot2-bar-graph) for examples.
+
+One particular simple way is the helper function `fct_infreq` from `forcats`. From the help:
+
+```{r}
+f <- factor(c("b", "b", "a", "c", "c", "c"))
+f
+fct_infreq(f)
+```
+
+
+Using this function, sorting becomes easy:
+
+
+
+```{r}
+diamonds %>% 
+  ggplot(aes(x = fct_infreq(color))) +
+  geom_bar()
+```
+
+
+# Plot 4: Adding the legend
+
+Suppose we would like to add a legend. Why would we do so in the first place? One reason could be that the level names are quite long, so we do not want to print them underneath.
+
+```{r}
+diamonds %>% 
+  ggplot(aes(x = fct_infreq(color), fill = fct_infreq(color))) +
+  geom_bar() 
+````
+
+
+Note that the legend is sorted accordingly.
+
+
+Plot 5: Alternative to printing a legend
+
+Note that a legend is suboptimal here, because the eye has to flip back and forth: from the bar to the legend and back again. Let's try to put it differently:
+
+
+```{r}
+diamonds %>% 
+  ggplot(aes(x = fct_infreq(color), fill = fct_infreq(color))) +
+  geom_bar() +
+  coord_flip() +
+  scale_fill_viridis_d(guide = FALSE)
+````
+
+
+# Plot 6: Reverse order
+
+
+For the flipped bar graph we might want to reverse the order of the bars. To that end, we need to reverse the factor levels. One comfortable way is using the function `fct_rev()`:
+
+```{r}
+f <- factor(c("a", "b", "c"))
+fct_rev(f)
+```
+
+(Taken from the help)
+
+
+
+
+
+```{r}
+diamonds %>% 
+  ggplot(aes(x = fct_rev(fct_infreq(color)), fill = fct_rev(fct_infreq(color)))) +
+  geom_bar() +
+  coord_flip() +
+  scale_fill_viridis_d(guide = FALSE)
+````
+
+
+
+
+# Plot 7: Final polishment
+
+
+
+```{r}
+diamonds %>% 
+  ggplot(aes(x = fct_rev(fct_infreq(color)))) +
+  geom_bar() +
+  coord_flip() +
+  scale_fill_viridis_d(guide = FALSE) +
+  theme_ipsum_rc() +
+  labs(x = "Color",
+       y = "Count")
+```
+
+There's probably no need for color in this (flipped version of the) plot. According to Tufte, we should not spoil ink if no (nonredundant) information is transmitted.
+
+
+# Debrief
+
+
+Of course there many other ways to get going; `geom_col` is another option, where we should prepopulate the frequencies.
+
+
+Happy plotting!
+
+
+
