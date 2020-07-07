@@ -1,0 +1,141 @@
+---
+title: First grade math exercise
+author: Sebastian Sauer
+date: '2020-07-03'
+draft: FALSE
+slug: first-grade-math-exercise
+categories:
+  - rstats
+tags:
+  - linear-algebra
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+
+# Problem statement
+
+My son, being a first grader, just struggled with this piece of math:
+
+
+
+
+```{r echo = FALSE}
+library(here)
+mypath <- here::here("static", "images", "math-grade1.jpg")
+knitr::include_graphics(mypath)
+```
+
+
+
+
+Consider this system of equations:
+
+
+$$ a + b + c = 20\\
+d + e + f = 14\\
+g + h + i = 11\\
+a + d + g = 15\\
+b + e + h = 10\\
+c + f + i = 20\\
+a + e + i = 20\\
+g + e + c = 10$$
+
+
+In R:
+
+Let $A$ be the LHS of the equation system:
+
+```{r}
+A <- tibble::tribble(
+  ~a, ~b, ~c, ~d, ~e, ~f, ~g, ~h, ~i,
+  1L, 1L, 1L, 0L, 0L, 0L, 0L, 0L, 0L,
+  0L, 0L, 0L, 1L, 1L, 1L, 0L, 0L, 0L,
+  0L, 0L, 0L, 0L, 0L, 0L, 1L, 1L, 1L,
+  1L, 0L, 0L, 1L, 0L, 0L, 1L, 0L, 0L,
+  0L, 1L, 0L, 0L, 1L, 0L, 0L, 1L, 0L,
+  0L, 0L, 1L, 0L, 0L, 1L, 0L, 0L, 1L,
+  0L, 0L, 1L, 0L, 1L, 0L, 1L, 0L, 0L,
+  1L, 0L, 0L, 0L, 1L, 0L, 0L, 0L, 1L
+  )
+
+A
+```
+
+As matrix:
+
+```{r}
+Am <- as.matrix(A)
+Am
+```
+
+
+```{r}
+dim(Am)
+```
+
+
+So we have a system of 8 rows and 9 coefficients, that's a underdetermined system, hence there are more than 1 solution.
+
+
+Let $X$ be the vector of coefficients.
+
+
+Let $Y$ be the RHS of the system:
+
+
+```{r}
+Y <- c(20, 14, 11, 15, 10, 20, 10, 20)
+
+Ym <- matrix(Y, ncol = 1)
+
+Ym
+```
+
+
+
+# Solve it
+
+Drawing from [this source](https://stackoverflow.com/questions/53009467/solving-underdetermined-linear-systems-with-r), we can solve underdetermined systems of equations like this:
+
+```{r}
+X <- qr.coef(qr(Am), Ym)
+X[is.na(X)] <- 0
+
+X
+```
+
+
+# Not a solution
+
+I forgot to implement that only positive integers are allowed. Sigh.
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,415 @@
+---
+title: Randomization in presence of an interaction effect
+author: Sebastian Sauer
+date: '2020-07-07'
+slug: randomization-in-presence-of-an-interaction-effect
+categories:
+  - rstats
+tags:
+  - simulation
+---
+
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)
+library(rockchalk)
+library(MASS)
+library(ggdag)</code></pre>
+</div>
+<div id="problem-statement" class="section level1">
+<h1>Problem statement</h1>
+<p>Assume that <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span> are correlated contingent on some third variable, <span class="math inline">\(Z\)</span>. For simplicity, assume that, if <span class="math inline">\(z=0\)</span>, <span class="math inline">\(_0=0.7\)</span>, and if <span class="math inline">\(z=1\)</span>, then <span class="math inline">\(r_1=-0.7\)</span>. This is not a causal statement.</p>
+</div>
+<div id="simulate-data" class="section level1">
+<h1>Simulate data</h1>
+<p>Let the sample size amount to <span class="math inline">\(n=1000\)</span>.</p>
+<pre class="r"><code>n &lt;- 1e03</code></pre>
+<p>Group A, <span class="math inline">\(z=0\)</span>:</p>
+<pre class="r"><code>myR &lt;- lazyCor(X = 0.7, d = 2)
+mySD &lt;- c(1, 1)
+myCov &lt;- lazyCov(Rho = myR, Sd = mySD)
+
+set.seed(12345)
+x_z0 &lt;- MASS::mvrnorm(n=n, mu = rep(0, 2), Sigma = myCov)
+
+
+head(x_z0)
+#&gt;            [,1]       [,2]
+#&gt; [1,] -0.1098666  1.1895284
+#&gt; [2,]  0.6233152  0.6848755
+#&gt; [3,]  0.2309203 -0.4324656
+#&gt; [4,] -0.1164846 -0.7197229
+#&gt; [5,]  0.7061365  0.4110647
+#&gt; [6,] -0.9412289 -2.4109163</code></pre>
+<pre class="r"><code>cor(x_z0)
+#&gt;           [,1]      [,2]
+#&gt; [1,] 1.0000000 0.6953559
+#&gt; [2,] 0.6953559 1.0000000</code></pre>
+<p>Group B, <span class="math inline">\(z=1\)</span>:</p>
+<pre class="r"><code>myR &lt;- lazyCor(X = -0.7, d = 2)
+mySD &lt;- c(1, 1)
+myCov &lt;- lazyCov(Rho = myR, Sd = mySD)
+
+set.seed(54321)
+x_z1 &lt;- MASS::mvrnorm(n=n, mu = rep(0, 2), Sigma = myCov)
+
+
+head(x_z1)
+#&gt;            [,1]       [,2]
+#&gt; [1,] 0.11798164 -0.2118950
+#&gt; [2,] 1.34148393 -0.3697449
+#&gt; [3,] 1.68763031  0.2419436
+#&gt; [4,] 1.27139286 -1.7721640
+#&gt; [5,] 0.09414412 -0.6582934
+#&gt; [6,] 0.60327601 -1.4167803</code></pre>
+<pre class="r"><code>cor(x_z1)
+#&gt;            [,1]       [,2]
+#&gt; [1,]  1.0000000 -0.6982262
+#&gt; [2,] -0.6982262  1.0000000</code></pre>
+</div>
+<div id="enframe" class="section level1">
+<h1>Enframe</h1>
+<pre class="r"><code>x_z0_df &lt;- data.frame(x_z0)
+x_z1_df &lt;- data.frame(x_z1)
+
+
+
+mydata_raw &lt;- bind_rows(x_z0_df, x_z1_df)
+
+mydata &lt;- mydata_raw %&gt;% rename(x = X1, y = X2)
+
+head(mydata)
+#&gt;            x          y
+#&gt; 1 -0.1098666  1.1895284
+#&gt; 2  0.6233152  0.6848755
+#&gt; 3  0.2309203 -0.4324656
+#&gt; 4 -0.1164846 -0.7197229
+#&gt; 5  0.7061365  0.4110647
+#&gt; 6 -0.9412289 -2.4109163</code></pre>
+<p>Add group information:</p>
+<pre class="r"><code>mydata &lt;- mydata %&gt;% 
+  mutate(z = c(rep(0,n), rep(1, n)))
+
+head(mydata)
+#&gt;            x          y z
+#&gt; 1 -0.1098666  1.1895284 0
+#&gt; 2  0.6233152  0.6848755 0
+#&gt; 3  0.2309203 -0.4324656 0
+#&gt; 4 -0.1164846 -0.7197229 0
+#&gt; 5  0.7061365  0.4110647 0
+#&gt; 6 -0.9412289 -2.4109163 0</code></pre>
+</div>
+<div id="marginal-correlation" class="section level1">
+<h1>Marginal correlation</h1>
+<p>We know the conditional correlation, because we simulated it. Now let’s look at the marginal (unconditional) correlation:</p>
+<pre class="r"><code>mydata %&gt;% 
+  dplyr::select(x, y) %&gt;% 
+  cor()
+#&gt;              x            y
+#&gt; x  1.000000000 -0.008160122
+#&gt; y -0.008160122  1.000000000</code></pre>
+<p>In sum, we have zero correlation.</p>
+</div>
+<div id="moderation-framework" class="section level1">
+<h1>Moderation framework</h1>
+<p><span class="math inline">\(Z\)</span> can be seen as a moderator in a regression framework:</p>
+<pre class="r"><code>lm1 &lt;- lm(y ~ x * z, data = mydata)
+
+summary(lm1)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = y ~ x * z, data = mydata)
+#&gt; 
+#&gt; Residuals:
+#&gt;      Min       1Q   Median       3Q      Max 
+#&gt; -2.72085 -0.48517 -0.00496  0.49473  2.76392 
+#&gt; 
+#&gt; Coefficients:
+#&gt;              Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept) -0.008049   0.023002  -0.350    0.726    
+#&gt; x            0.715018   0.023301  30.686   &lt;2e-16 ***
+#&gt; z           -0.002579   0.032532  -0.079    0.937    
+#&gt; x:z         -1.413871   0.032580 -43.397   &lt;2e-16 ***
+#&gt; ---
+#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+#&gt; 
+#&gt; Residual standard error: 0.7263 on 1996 degrees of freedom
+#&gt; Multiple R-squared:  0.4864, Adjusted R-squared:  0.4856 
+#&gt; F-statistic:   630 on 3 and 1996 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>We see that <span class="math inline">\(Z\)</span> is itself <em>not</em> associated with the outcome, <span class="math inline">\(Y\)</span>, but it changes the association of <span class="math inline">\(X\)</span> with <span class="math inline">\(Y\)</span>.</p>
+<pre class="r"><code>mydata %&gt;% 
+  ggplot(aes(x = x, y = y, color = factor(z))) +
+  geom_point() +
+  geom_smooth(methode = &quot;lm&quot;, se = FALSE)</code></pre>
+<p><img src="/post/2020-07-07-randomization-in-presence-of-an-interaction-effect_files/figure-html/unnamed-chunk-10-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Compare that to this model, which does not take the moderator into account:</p>
+<pre class="r"><code>lm2 &lt;- lm(y ~ x, data = mydata)
+
+summary(lm2)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = y ~ x, data = mydata)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -3.2100 -0.6867 -0.0082  0.6775  3.8245 
+#&gt; 
+#&gt; Coefficients:
+#&gt;              Estimate Std. Error t value Pr(&gt;|t|)
+#&gt; (Intercept) -0.009931   0.022684  -0.438    0.662
+#&gt; x           -0.008284   0.022711  -0.365    0.715
+#&gt; 
+#&gt; Residual standard error: 1.013 on 1998 degrees of freedom
+#&gt; Multiple R-squared:  6.659e-05,  Adjusted R-squared:  -0.0004339 
+#&gt; F-statistic: 0.1331 on 1 and 1998 DF,  p-value: 0.7153</code></pre>
+<pre class="r"><code>ggplot(mydata, aes(x = x, y = y)) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;, se = FALSE)</code></pre>
+<p><img src="/post/2020-07-07-randomization-in-presence-of-an-interaction-effect_files/figure-html/unnamed-chunk-12-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>No (marginal) association, as can be seen in the above diagram.</p>
+</div>
+<div id="causal-explanation" class="section level1">
+<h1>Causal explanation</h1>
+<p>One causal model explaining this interaction could be:</p>
+<pre class="r"><code>dag1 &lt;- dagitty::dagitty(&quot;dag{
+x -&gt; z
+y -&gt; z
+}&quot;)
+
+dag1
+#&gt; [1] &quot;dag {\nx\ny\nz\nx -&gt; z\ny -&gt; z\n}\n&quot;
+#&gt; attr(,&quot;class&quot;)
+#&gt; [1] &quot;dagitty&quot;</code></pre>
+<pre class="r"><code>dag1_tidy &lt;- tidy_dagitty(dag1)
+ggdag(dag1) +
+  theme_dag_blank()</code></pre>
+<p><img src="/post/2020-07-07-randomization-in-presence-of-an-interaction-effect_files/figure-html/unnamed-chunk-14-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>This causal setting is called a <em>Collider Bias</em>, see e.g. <a href="https://rdrr.io/cran/ggdag/f/vignettes/intro-to-dags.Rmd">this source</a>.</p>
+<pre class="r"><code>collider_triangle() %&gt;% 
+  ggdag_dseparated(controlling_for = &quot;m&quot;) +
+  theme_dag()</code></pre>
+<p><img src="/post/2020-07-07-randomization-in-presence-of-an-interaction-effect_files/figure-html/unnamed-chunk-15-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Controlling for <em>m</em> (<span class="math inline">\(Z\)</span> in our notation) introduces a bias, that is a spurious association between x and y.</p>
+</div>
+<div id="regression-according-to-collider-model" class="section level1">
+<h1>Regression according to Collider model</h1>
+<pre class="r"><code>lm_collider &lt;- lm(z ~ x*y, data = mydata)
+
+summary(lm_collider)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = z ~ x * y, data = mydata)
+#&gt; 
+#&gt; Residuals:
+#&gt;      Min       1Q   Median       3Q      Max 
+#&gt; -0.87261 -0.45349  0.02151  0.45476  1.18418 
+#&gt; 
+#&gt; Coefficients:
+#&gt;              Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)  0.498183   0.009657  51.587   &lt;2e-16 ***
+#&gt; x            0.002695   0.009669   0.279    0.780    
+#&gt; y           -0.005104   0.009541  -0.535    0.593    
+#&gt; x:y         -0.182551   0.006954 -26.252   &lt;2e-16 ***
+#&gt; ---
+#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+#&gt; 
+#&gt; Residual standard error: 0.4312 on 1996 degrees of freedom
+#&gt; Multiple R-squared:  0.2579, Adjusted R-squared:  0.2568 
+#&gt; F-statistic: 231.2 on 3 and 1996 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>However, there’s no association (marginally) between <span class="math inline">\(X\)</span> and <span class="math inline">\(Y\)</span>:</p>
+<pre class="r"><code>lm_xy &lt;- lm(y ~ x, data = mydata)
+
+summary(lm_xy)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = y ~ x, data = mydata)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -3.2100 -0.6867 -0.0082  0.6775  3.8245 
+#&gt; 
+#&gt; Coefficients:
+#&gt;              Estimate Std. Error t value Pr(&gt;|t|)
+#&gt; (Intercept) -0.009931   0.022684  -0.438    0.662
+#&gt; x           -0.008284   0.022711  -0.365    0.715
+#&gt; 
+#&gt; Residual standard error: 1.013 on 1998 degrees of freedom
+#&gt; Multiple R-squared:  6.659e-05,  Adjusted R-squared:  -0.0004339 
+#&gt; F-statistic: 0.1331 on 1 and 1998 DF,  p-value: 0.7153</code></pre>
+</div>
+<div id="effect-of-randomization-of-z" class="section level1">
+<h1>Effect of randomization of <span class="math inline">\(Z\)</span></h1>
+<p>Now let’s randomize (permutate) <span class="math inline">\(Z\)</span> to see what happens.</p>
+<pre class="r"><code>mydata &lt;- mydata %&gt;% 
+  mutate(z_permutated = sample(z, size = length(z)))
+
+head(mydata)
+#&gt;            x          y z z_permutated
+#&gt; 1 -0.1098666  1.1895284 0            1
+#&gt; 2  0.6233152  0.6848755 0            1
+#&gt; 3  0.2309203 -0.4324656 0            0
+#&gt; 4 -0.1164846 -0.7197229 0            1
+#&gt; 5  0.7061365  0.4110647 0            0
+#&gt; 6 -0.9412289 -2.4109163 0            0</code></pre>
+<pre class="r"><code>mydata %&gt;% 
+  dplyr::select(x, y, z, z_permutated) %&gt;% 
+  cor()
+#&gt;                         x            y            z z_permutated
+#&gt; x             1.000000000 -0.008160122  0.002151602  -0.05724464
+#&gt; y            -0.008160122  1.000000000 -0.040716742  -0.03281496
+#&gt; z             0.002151602 -0.040716742  1.000000000  -0.00200000
+#&gt; z_permutated -0.057244638 -0.032814956 -0.002000000   1.00000000</code></pre>
+</div>
+<div id="unconditional-correlated-remains-unchanged" class="section level1">
+<h1>Unconditional correlated remains unchanged</h1>
+<pre class="r"><code>mydata %&gt;% 
+  dplyr::select(x, y, z) %&gt;% 
+  group_by(z) %&gt;% 
+  summarise(r_marginal = cor(x,y))
+#&gt; # A tibble: 2 x 2
+#&gt;       z r_marginal
+#&gt;   &lt;dbl&gt;      &lt;dbl&gt;
+#&gt; 1     0      0.695
+#&gt; 2     1     -0.698</code></pre>
+</div>
+<div id="the-permutation-deleted-the-correlation" class="section level1">
+<h1>The permutation deleted the correlation</h1>
+<p>Within each group, that is, <span class="math inline">\(z=0\)</span> and <span class="math inline">\(z=1\)</span>, there’s no correlation left.</p>
+<pre class="r"><code>mydata %&gt;% 
+  group_by(z_permutated) %&gt;% 
+  summarise(r_marginal = cor(x,y))
+#&gt; # A tibble: 2 x 2
+#&gt;   z_permutated r_marginal
+#&gt;          &lt;dbl&gt;      &lt;dbl&gt;
+#&gt; 1            0    -0.0448
+#&gt; 2            1     0.0271</code></pre>
+</div>
+<div id="pause-and-ponder" class="section level1">
+<h1>Pause and ponder</h1>
+<p>Permutating (randomizing) a group variable that acts as a moderator <em>as in the case above</em> will erase the moderator effect.</p>
+<p>This is due to the fact that a randomized experiment will have all the paths going into the to-be randomized variable having cut. This in turn means that the randomized variable, <span class="math inline">\(Z\)</span> will not be biased/influenced by any other variable.</p>
+</div>
+<div id="can-a-fork-be-a-moderator" class="section level1">
+<h1>Can a fork be a moderator?</h1>
+<p>Assume the following DAG:</p>
+<pre class="r"><code>dag_fork &lt;- dagitty::dagitty(&quot;dag{
+x &lt;- z
+y &lt;- z
+}&quot;)
+
+dag_fork
+#&gt; [1] &quot;dag {\nx\ny\nz\nz -&gt; x\nz -&gt; y\n}\n&quot;
+#&gt; attr(,&quot;class&quot;)
+#&gt; [1] &quot;dagitty&quot;</code></pre>
+<pre class="r"><code>dag_fork_tidy &lt;- tidy_dagitty(dag_fork)
+ggdag(dag_fork) +
+  theme_dag_blank()</code></pre>
+<p><img src="/post/2020-07-07-randomization-in-presence-of-an-interaction-effect_files/figure-html/unnamed-chunk-23-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="simulate-data-accordingly" class="section level1">
+<h1>Simulate data accordingly</h1>
+<pre class="r"><code>z &lt;- sample(x = c(0,1), size = n, replace = TRUE)
+
+
+x &lt;- z + 0.3 * rnorm(n = n)
+y &lt;- z + 0.3 * rnorm(n = n)</code></pre>
+</div>
+<div id="put-the-data-together" class="section level1">
+<h1>Put the data together</h1>
+<pre class="r"><code>mydata2 &lt;- tibble(
+  z = z,
+  x = x,
+  y = y,
+  z_permuated = sample(z, size = n)
+)</code></pre>
+</div>
+<div id="regression-time" class="section level1">
+<h1>Regression time</h1>
+<pre class="r"><code>lm_fork &lt;- lm(y ~ x * z, data = mydata2)
+
+summary(lm_fork)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = y ~ x * z, data = mydata2)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -0.9181 -0.2069  0.0067  0.1972  0.8498 
+#&gt; 
+#&gt; Coefficients:
+#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept) -0.01526    0.01334  -1.144    0.253    
+#&gt; x           -0.03727    0.04334  -0.860    0.390    
+#&gt; z            1.02056    0.04901  20.824   &lt;2e-16 ***
+#&gt; x:z          0.04079    0.06255   0.652    0.514    
+#&gt; ---
+#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+#&gt; 
+#&gt; Residual standard error: 0.2952 on 996 degrees of freedom
+#&gt; Multiple R-squared:  0.7512, Adjusted R-squared:  0.7504 
+#&gt; F-statistic:  1002 on 3 and 996 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>No, it appears that this is not a way a fork can act as a moderator.</p>
+</div>
+<div id="can-achain-act-as-a-moderator" class="section level1">
+<h1>Can achain act as a moderator?</h1>
+<p>Assume the following DAG:</p>
+<pre class="r"><code>dag_chain &lt;- dagitty::dagitty(&quot;dag{
+z -&gt; x -&gt; y
+}&quot;)
+
+dag_chain
+#&gt; [1] &quot;dag {\nx\ny\nz\nx -&gt; y\nz -&gt; x\n}\n&quot;
+#&gt; attr(,&quot;class&quot;)
+#&gt; [1] &quot;dagitty&quot;</code></pre>
+<pre class="r"><code>dag_chain_tidy &lt;- tidy_dagitty(dag_chain)
+ggdag(dag_chain_tidy) +
+  theme_dag_blank()</code></pre>
+<p><img src="/post/2020-07-07-randomization-in-presence-of-an-interaction-effect_files/figure-html/unnamed-chunk-28-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="simulate-data-1" class="section level1">
+<h1>Simulate data</h1>
+<pre class="r"><code>z1 &lt;- sample(c(0,1), size = n, replace = TRUE, prob = c(0.3, .7))
+z2 &lt;- sample(c(0,1), size = n, replace = TRUE, prob = c(0.7, .3))
+
+
+mydata3 &lt;- tibble(
+  z = c(z1, z2),
+  x = z + 0.1 * rnorm(n=n),
+  y = x + 0.1 * rnorm(n=n)
+)</code></pre>
+</div>
+<div id="regression-time-1" class="section level1">
+<h1>Regression time</h1>
+<pre class="r"><code>lm_chain &lt;- lm(y ~ x*z, data = mydata3)
+
+summary(lm_chain)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = y ~ x * z, data = mydata3)
+#&gt; 
+#&gt; Residuals:
+#&gt;      Min       1Q   Median       3Q      Max 
+#&gt; -0.26374 -0.07260  0.00033  0.06069  0.37606 
+#&gt; 
+#&gt; Coefficients:
+#&gt;              Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept) -0.003637   0.003102  -1.172    0.241    
+#&gt; x            0.987410   0.031431  31.415   &lt;2e-16 ***
+#&gt; z            0.030316   0.032242   0.940    0.347    
+#&gt; x:z         -0.018902   0.044884  -0.421    0.674    
+#&gt; ---
+#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+#&gt; 
+#&gt; Residual standard error: 0.09965 on 1996 degrees of freedom
+#&gt; Multiple R-squared:  0.9632, Adjusted R-squared:  0.9631 
+#&gt; F-statistic: 1.74e+04 on 3 and 1996 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>Given this DAG, we cannot expect to see a moderator effect.</p>
+</div>
+<div id="debrief" class="section level1">
+<h1>Debrief</h1>
+<p>It appears that a moderator is only compatible with a limited number of causal models. Secondly, we see that randomizing (permutating) erases the association, as should be expected.</p>
+<p>There can be said much more to the relation of moderation (interaction) and causality, see eg., <a href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2235194/">this paper</a>, or <a href="https://academic.oup.com/ije/article/45/6/1904/2670330">this</a> or <a href="https://journals.lww.com/epidem/Fulltext/2009/11000/Four_Types_of_Effect_Modification__A.16.aspx">this</a></p>
+</div>

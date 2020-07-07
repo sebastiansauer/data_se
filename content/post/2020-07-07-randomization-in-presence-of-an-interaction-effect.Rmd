@@ -1,0 +1,433 @@
+---
+title: Randomization in presence of an interaction effect
+author: Sebastian Sauer
+date: '2020-07-07'
+slug: randomization-in-presence-of-an-interaction-effect
+categories:
+  - rstats
+tags:
+  - simulation
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(rockchalk)
+library(MASS)
+library(ggdag)
+```
+
+
+
+# Problem statement
+
+Assume that $X$ and $Y$ are correlated contingent on some third variable, $Z$. For simplicity, assume that, if $z=0$, $_0=0.7$, and if $z=1$, then $r_1=-0.7$. This is not a causal statement.
+
+
+# Simulate data
+
+Let the sample size amount to $n=1000$.
+
+```{r}
+n <- 1e03
+```
+
+
+
+Group A, $z=0$:
+
+```{r}
+myR <- lazyCor(X = 0.7, d = 2)
+mySD <- c(1, 1)
+myCov <- lazyCov(Rho = myR, Sd = mySD)
+
+set.seed(12345)
+x_z0 <- MASS::mvrnorm(n=n, mu = rep(0, 2), Sigma = myCov)
+
+
+head(x_z0)
+```
+
+
+
+```{r}
+cor(x_z0)
+```
+
+
+
+
+
+Group B, $z=1$:
+
+```{r}
+myR <- lazyCor(X = -0.7, d = 2)
+mySD <- c(1, 1)
+myCov <- lazyCov(Rho = myR, Sd = mySD)
+
+set.seed(54321)
+x_z1 <- MASS::mvrnorm(n=n, mu = rep(0, 2), Sigma = myCov)
+
+
+head(x_z1)
+```
+
+
+
+```{r}
+cor(x_z1)
+```
+
+
+
+
+# Enframe
+
+
+```{r}
+x_z0_df <- data.frame(x_z0)
+x_z1_df <- data.frame(x_z1)
+
+
+
+mydata_raw <- bind_rows(x_z0_df, x_z1_df)
+
+mydata <- mydata_raw %>% rename(x = X1, y = X2)
+
+head(mydata)
+```
+
+Add group information:
+
+
+```{r}
+mydata <- mydata %>% 
+  mutate(z = c(rep(0,n), rep(1, n)))
+
+head(mydata)
+```
+
+
+
+# Marginal correlation
+
+
+We know the conditional correlation, because we simulated it. Now let's look at the marginal (unconditional) correlation:
+
+
+
+```{r}
+mydata %>% 
+  dplyr::select(x, y) %>% 
+  cor()
+```
+
+In sum, we have zero correlation.
+
+
+
+# Moderation framework
+
+$Z$ can be seen as a moderator in a regression framework:
+
+
+```{r}
+lm1 <- lm(y ~ x * z, data = mydata)
+
+summary(lm1)
+```
+
+We see that $Z$ is itself *not* associated with the outcome, $Y$, but it changes the association of $X$ with $Y$.
+
+```{r}
+mydata %>% 
+  ggplot(aes(x = x, y = y, color = factor(z))) +
+  geom_point() +
+  geom_smooth(methode = "lm", se = FALSE)
+```
+
+
+Compare that to this model, which does not take the moderator into account:
+
+```{r}
+lm2 <- lm(y ~ x, data = mydata)
+
+summary(lm2)
+
+```
+
+
+```{r}
+ggplot(mydata, aes(x = x, y = y)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+No (marginal) association, as can be seen in the above diagram.
+
+
+
+# Causal explanation
+
+
+One causal model explaining this interaction could be:
+
+
+```{r}
+dag1 <- dagitty::dagitty("dag{
+x -> z
+y -> z
+}")
+
+dag1
+```
+
+
+
+```{r}
+dag1_tidy <- tidy_dagitty(dag1)
+ggdag(dag1) +
+  theme_dag_blank()
+```
+
+
+This causal setting is called a *Collider Bias*, see e.g. [this source](https://rdrr.io/cran/ggdag/f/vignettes/intro-to-dags.Rmd).
+
+
+```{r}
+collider_triangle() %>% 
+  ggdag_dseparated(controlling_for = "m") +
+  theme_dag()
+```
+
+
+Controlling for *m* ($Z$ in our notation) introduces a bias, that is a spurious association between x and y.
+
+
+# Regression according to Collider model
+
+
+```{r}
+lm_collider <- lm(z ~ x*y, data = mydata)
+
+summary(lm_collider)
+```
+
+
+However, there's no association (marginally) between $X$ and $Y$:
+
+```{r}
+lm_xy <- lm(y ~ x, data = mydata)
+
+summary(lm_xy)
+```
+
+
+
+
+
+
+# Effect of randomization of $Z$
+
+Now let's randomize (permutate) $Z$ to see what happens.
+
+
+```{r}
+mydata <- mydata %>% 
+  mutate(z_permutated = sample(z, size = length(z)))
+
+head(mydata)
+```
+
+
+
+```{r}
+mydata %>% 
+  dplyr::select(x, y, z, z_permutated) %>% 
+  cor()
+```
+
+
+
+# Unconditional correlated remains unchanged
+
+
+```{r}
+mydata %>% 
+  dplyr::select(x, y, z) %>% 
+  group_by(z) %>% 
+  summarise(r_marginal = cor(x,y))
+```
+
+
+
+# The permutation deleted the correlation 
+
+Within each group, that is, $z=0$ and $z=1$, there's no correlation left.
+
+
+```{r}
+mydata %>% 
+  group_by(z_permutated) %>% 
+  summarise(r_marginal = cor(x,y))
+```
+
+
+
+# Pause and ponder
+
+
+Permutating (randomizing) a group variable that acts as a moderator *as in the case above* will erase the moderator effect.
+
+This is due to the fact that a randomized experiment will have all the paths going into the to-be randomized variable having cut. This in turn means that the randomized variable, $Z$ will not be biased/influenced by any other variable.
+
+
+
+
+# Can a fork be a moderator?
+
+
+Assume the following DAG:
+
+
+
+
+```{r}
+dag_fork <- dagitty::dagitty("dag{
+x <- z
+y <- z
+}")
+
+dag_fork
+```
+
+
+
+```{r}
+dag_fork_tidy <- tidy_dagitty(dag_fork)
+ggdag(dag_fork) +
+  theme_dag_blank()
+```
+
+# Simulate data accordingly
+
+
+```{r}
+z <- sample(x = c(0,1), size = n, replace = TRUE)
+
+
+x <- z + 0.3 * rnorm(n = n)
+y <- z + 0.3 * rnorm(n = n)
+```
+
+
+
+# Put the data together
+
+
+```{r}
+mydata2 <- tibble(
+  z = z,
+  x = x,
+  y = y,
+  z_permuated = sample(z, size = n)
+)
+```
+
+
+
+# Regression time
+
+
+```{r}
+lm_fork <- lm(y ~ x * z, data = mydata2)
+
+summary(lm_fork)
+```
+
+No, it appears that this is not a way a fork can act as a moderator.
+
+
+
+# Can achain act as a moderator?
+
+
+Assume the following DAG:
+
+
+```{r}
+dag_chain <- dagitty::dagitty("dag{
+z -> x -> y
+}")
+
+dag_chain
+```
+
+
+
+```{r}
+dag_chain_tidy <- tidy_dagitty(dag_chain)
+ggdag(dag_chain_tidy) +
+  theme_dag_blank()
+```
+
+
+# Simulate data
+
+
+```{r}
+z1 <- sample(c(0,1), size = n, replace = TRUE, prob = c(0.3, .7))
+z2 <- sample(c(0,1), size = n, replace = TRUE, prob = c(0.7, .3))
+
+
+mydata3 <- tibble(
+  z = c(z1, z2),
+  x = z + 0.1 * rnorm(n=n),
+  y = x + 0.1 * rnorm(n=n)
+)
+```
+
+
+
+
+# Regression time
+
+
+```{r}
+lm_chain <- lm(y ~ x*z, data = mydata3)
+
+summary(lm_chain)
+```
+
+
+Given this DAG, we cannot expect to see a moderator effect.
+
+
+# Debrief
+
+It appears that a moderator is only compatible with a limited number of causal models. Secondly, we see that randomizing (permutating) erases the association, as should be expected.
+
+There can be said much more to the relation of moderation (interaction) and causality, see eg., [this paper](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2235194/), or [this](https://academic.oup.com/ije/article/45/6/1904/2670330) or [this](https://journals.lww.com/epidem/Fulltext/2009/11000/Four_Types_of_Effect_Modification__A.16.aspx)
+
+
