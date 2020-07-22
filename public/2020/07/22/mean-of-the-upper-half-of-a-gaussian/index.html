@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Hugo 0.73.0" />
+
+
+<title>Mean of the upper half of a Gaussian - Data Se</title>
+<meta property="og:title" content="Mean of the upper half of a Gaussian - Data Se">
+
+
+
+  
+
+
+
+
+
+
+
+
+<link href='//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css' rel='stylesheet' type='text/css' />
+
+
+
+<link rel="stylesheet" href="/css/fonts.css" media="all">
+<link rel="stylesheet" href="/css/main.css" media="all">
+
+
+
+  </head>
+  <body>
+    <div class="wrapper">
+      <header class="header">
+        <nav class="nav">
+  <a href="/" class="nav-logo">
+    <img src="/images/logo-data-se.png"
+         width="50"
+         height="50"
+         alt="Logo">
+  </a>
+
+  <ul class="nav-links">
+    
+    <li><a href="/about/">About</a></li>
+    
+    <li><a href="/">Blog</a></li>
+    
+    <li><a href="/privacy/">Data privacy</a></li>
+    
+  </ul>
+</nav>
+
+      </header>
+
+
+<main class="content" role="main">
+
+  <article class="article">
+    
+    <span class="article-duration">2 min read</span>
+    
+
+    <h1 class="article-title">Mean of the upper half of a Gaussian</h1>
+
+    
+    <span class="article-date">2020/07/22</span>
+    
+
+    <div class="article-content">
+      
+<script src="/rmarkdown-libs/header-attrs/header-attrs.js"></script>
+
+
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)
+library(lsr)</code></pre>
+</div>
+<div id="motivation" class="section level1">
+<h1>Motivation</h1>
+<p>Recently, I listened to the great Paul Meehl in the audioscripts of some lectures of him. There, he asked the students</p>
+<blockquote>
+<p>what’s the mean value of the upper half of a Gaussian distribution?</p>
+</blockquote>
+<p>Let’s explore that using simulation techniques.</p>
+</div>
+<div id="simulation-time" class="section level1">
+<h1>Simulation time</h1>
+<p>Let’s draw some instances from a standard Normal distribution, <span class="math inline">\(X\)</span>.</p>
+<pre class="r"><code>n &lt;- 1e05
+x &lt;- rnorm(n)</code></pre>
+<p>Mean and SD in our sample are quite close to what can be expected:</p>
+<pre class="r"><code>mean(x)
+#&gt; [1] -0.03428717
+sd(x)
+#&gt; [1] 0.979225
+aad(x)
+#&gt; [1] 0.782511</code></pre>
+<p>Note that the aad is 0.8 in a standard normal distribution.</p>
+</div>
+<div id="upper-half" class="section level1">
+<h1>Upper half</h1>
+<p>Let’s put the data into a tibble.</p>
+<pre class="r"><code>df &lt;- tibble(x = x,
+             upper_half = ifelse(x &gt;= 0, TRUE, FALSE))</code></pre>
+<pre class="r"><code>df %&gt;% 
+  group_by(upper_half) %&gt;% 
+  summarise(avg_half = mean(x),
+            sd_half = sd(x),
+            var_half = var(x),
+            md_half = median(x),
+            iqr_half = IQR(x),
+            aad_half = aad(x),
+            n_hlaf = n())
+#&gt; # A tibble: 2 x 8
+#&gt;   upper_half avg_half sd_half var_half md_half iqr_half aad_half n_hlaf
+#&gt;   &lt;lgl&gt;         &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;  &lt;int&gt;
+#&gt; 1 FALSE        -0.798   0.607    0.368  -0.674    0.832    0.487    512
+#&gt; 2 TRUE          0.767   0.569    0.324   0.654    0.771    0.450    488</code></pre>
+<p>As can be seen the average in the halves is about 0.8 standard units away from the cut point (zero).</p>
+</div>
+<div id="some-theory-half-normal-distribution" class="section level1">
+<h1>Some theory: Half normal distribution</h1>
+<p>The <a href="https://en.wikipedia.org/wiki/Half-normal_distribution">half-normal distribution</a> has this expected value: <span class="math inline">\(E[Y]=\mu ={\frac {\sigma {\sqrt {2}}}{\sqrt {\pi }}}\)</span>.</p>
+<p>From the Wikipedia page:</p>
+<p><img src="https://en.wikipedia.org/wiki/Half-normal_distribution#/media/File:Half_normal_pdf.svg" /></p>
+<p>In more simple terms, we have this expected value:</p>
+<pre class="r"><code>
+E = 1 * sqrt(2) / sqrt(pi)
+E
+#&gt; [1] 0.7978846</code></pre>
+<p>In other words, about 0.8 standard units, just as we saw above.</p>
+<p>Note that <code>1</code> refers to the variance of <span class="math inline">\(X\)</span> which is 1.</p>
+<p>Regarding the variance, according to the Wikipedia page sited above, <span class="math inline">\((Y)=\sigma ^{2}\left(1-{\frac {2}{\pi }}\right)\)</span></p>
+<pre class="r"><code>Var = 1 * (1 - (2/pi))
+Var
+#&gt; [1] 0.3633802</code></pre>
+<p>Note that this parameter is proportional to the Variance of <span class="math inline">\(X\)</span>.</p>
+<p>This value does match nicely the simulated value from above.</p>
+<p>However, according to <a href="https://reference.wolfram.com/language/ref/HalfNormalDistribution.html">Math Wolfram</a>,
+<span class="math inline">\(V = \frac{-2 + \pi}{2 \theta^2}\)</span>.</p>
+<p>Wikipedia states that Wolfram Math uses this parametrization:</p>
+<p><span class="math display">\[\theta = \sqrt{\pi/2}\]</span>.</p>
+<p>That is,</p>
+<pre class="r"><code>theta = sqrt(pi/2)
+theta
+#&gt; [1] 1.253314</code></pre>
+<pre class="r"><code>Var2 = (-2+pi) / (2 * theta^2)
+Var2
+#&gt; [1] 0.3633802</code></pre>
+</div>
+<div id="parameter-estimation" class="section level1">
+<h1>Parameter estimation</h1>
+<p>According to <a href="https://en.wikipedia.org/wiki/Half-normal_distribution">Wikipedia</a>, the <span class="math inline">\(\sigma\)</span> can be estimated as such:</p>
+<pre class="r"><code>sigma_hat = sqrt((1/n) * sum(x^2))
+sigma_hat
+#&gt; [1] 1.002571</code></pre>
+</div>
+
+    </div>
+  </article>
+
+  
+<section id="comments">
+  <div id="disqus_thread"></div>
+  <script>
+  var disqus_config = function () {
+  
+  };
+  (function() {
+    var inIFrame = function() {
+      var iframe = true;
+      try { iframe = window.self !== window.top; } catch (e) {}
+      return iframe;
+    };
+    if (inIFrame()) return;
+    var d = document, s = d.createElement('script');
+    s.src = '//https-data-se-netlify-com.disqus.com/embed.js'; s.async = true;
+    s.setAttribute('data-timestamp', +new Date());
+    (d.head || d.body).appendChild(s);
+  })();
+  </script>
+  <noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</section>
+
+
+
+</main>
+
+      <footer class="footer">
+        <ul class="footer-links">
+          <li>
+            <a href="/index.xml" type="application/rss+xml" target="_blank">RSS feed</a>
+          </li>
+          <li>
+            <a href="https://gohugo.io/" class="footer-links-kudos">Made with <img src="/images/hugo-logo.png" width="22" height="22"></a>
+          </li>
+        </ul>
+      </footer>
+
+    </div>
+    
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js"></script>
+
+
+
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js"></script>
+<script src="//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js"></script>
+<script>hljs.configure({languages: []}); hljs.initHighlightingOnLoad();</script>
+
+
+
+    
+<script src="/js/math-code.js"></script>
+<script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script>
+
+
+    
+  </body>
+</html>
+

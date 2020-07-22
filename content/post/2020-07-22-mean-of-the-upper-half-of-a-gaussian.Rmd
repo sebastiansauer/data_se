@@ -1,0 +1,171 @@
+---
+title: Mean of the upper half of a Gaussian
+author: Sebastian Sauer
+date: '2020-07-22'
+slug: mean-of-the-upper-half-of-a-gaussian
+categories:
+  - rstats
+tags:
+  - simulation
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(lsr)
+```
+
+
+
+# Motivation
+
+Recently, I listened to the great Paul Meehl in the audioscripts of some lectures of him. There, he asked the students 
+
+>   what's the mean value of the upper half of a Gaussian distribution?
+
+
+Let's explore that using simulation techniques.
+
+
+# Simulation time
+
+Let's draw some instances from a standard Normal distribution, $X$.
+
+
+```{r}
+n <- 1e05
+x <- rnorm(n)
+```
+
+
+Mean and SD in our sample are quite close to what can be expected:
+
+
+```{r}
+mean(x)
+sd(x)
+aad(x)
+```
+
+Note that the aad is 0.8 in a standard normal distribution.
+
+# Upper half
+
+
+Let's put the data into a tibble.
+
+```{r}
+df <- tibble(x = x,
+             upper_half = ifelse(x >= 0, TRUE, FALSE))
+```
+
+
+
+```{r}
+df %>% 
+  group_by(upper_half) %>% 
+  summarise(avg_half = mean(x),
+            sd_half = sd(x),
+            var_half = var(x),
+            md_half = median(x),
+            iqr_half = IQR(x),
+            aad_half = aad(x),
+            n_hlaf = n())
+```
+
+
+As can be seen the average in the halves is about 0.8 standard units away from the cut point (zero).
+
+
+
+# Some theory: Half normal distribution
+
+The [half-normal distribution](https://en.wikipedia.org/wiki/Half-normal_distribution) has this expected value: $E[Y]=\mu ={\frac {\sigma {\sqrt {2}}}{\sqrt {\pi }}}$.
+
+From the Wikipedia page:
+
+![](https://en.wikipedia.org/wiki/Half-normal_distribution#/media/File:Half_normal_pdf.svg)
+
+
+
+In more simple terms, we have this expected value:
+
+```{r}
+
+E = 1 * sqrt(2) / sqrt(pi)
+E
+```
+
+In other words, about 0.8 standard units, just as we saw above.
+
+Note that `1` refers to the variance of $X$ which is 1.
+
+
+
+Regarding the variance, according to the Wikipedia page sited above, $(Y)=\sigma ^{2}\left(1-{\frac {2}{\pi }}\right)$
+
+```{r}
+Var = 1 * (1 - (2/pi))
+Var
+
+```
+
+
+Note that this parameter is proportional to the Variance of $X$.
+
+This value does match nicely the simulated value from above. 
+
+However, according to [Math Wolfram](https://reference.wolfram.com/language/ref/HalfNormalDistribution.html),
+$V = \frac{-2 + \pi}{2 \theta^2}$.
+
+Wikipedia states that Wolfram Math uses this parametrization:
+
+$$\theta = \sqrt{\pi/2}$$.
+
+That is,
+
+```{r}
+theta = sqrt(pi/2)
+theta
+```
+
+
+```{r}
+Var2 = (-2+pi) / (2 * theta^2)
+Var2
+```
+
+
+# Parameter estimation
+
+According to [Wikipedia](https://en.wikipedia.org/wiki/Half-normal_distribution), the $\sigma$ can be estimated as such:
+
+
+```{r}
+sigma_hat = sqrt((1/n) * sum(x^2))
+sigma_hat
+```
+
+
+

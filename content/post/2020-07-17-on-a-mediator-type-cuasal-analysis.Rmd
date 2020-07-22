@@ -1,0 +1,141 @@
+---
+title: On a mediator-type causal analysis
+author: Sebastian Sauer
+date: '2020-07-17'
+draft: TRUE
+slug: on-a-mediator-type-cuasal-analysis
+categories:
+  - rstats
+tags:
+  - causality
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(ggdag)
+library(GGally)
+```
+
+
+
+# A DAG
+
+
+Consider this DAG:
+
+```{r}
+dag1 <- dagitty::dagitty("dag{
+x -> y -> z
+}")
+
+dag1
+```
+
+
+```{r}
+ggdag(dag1) +
+  theme_dag_blank()
+```
+
+
+Let's asume that's some causal pathway of the next study you happen to tap into.
+
+
+Would it be sensible to run this regression:
+
+
+`````
+y ~ x + z
+````
+
+
+Let's simulate that.
+
+
+# Simulation time
+
+
+Simulate variables:
+
+
+```{r}
+n <- 1000
+x <- rnorm(n)
+
+e_y <- rnorm(n)
+e_z <- rnorm(n)
+```
+
+
+
+
+Compute structural causal model:
+
+
+```{r}
+e_prop <- 1
+y <- x + e_prop*e_y
+z <- y + e_prop*e_z
+
+d <- tibble(x, y, z)
+glimpse(d)
+```
+
+
+
+# Plot it
+
+
+```{r}
+ggpairs(d)
+```
+
+
+Nice. So far so good. Now on to regression.
+
+
+
+# Regression time
+
+
+```{r}
+lm1 <- lm(y ~ x + z)
+
+coef(lm1)
+```
+
+
+
+
+
+
+# Alternative DAGs
+
+
+
+```{r}
+ggdag_equivalent_dags(dag1)
+```
+
