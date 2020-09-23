@@ -1,4 +1,11 @@
 # data_se
+
+
+[![Netlify Status](https://api.netlify.com/api/v1/badges/00d2a649-b026-4169-9df1-87ff10c1c49c/deploy-status)](https://app.netlify.com/sites/data-se/deploys)
+
+
+		
+
 Data Science Blog by Sebastian Sauer
 
 
