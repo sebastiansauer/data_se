@@ -1,0 +1,92 @@
+---
+title: Visualizing decision trees
+author: Sebastian Sauer
+date: '2020-10-17'
+slug: visualizing-decision-trees
+categories:
+  - rstats
+tags:
+  - visualization
+  - machine-learning
+  - trees
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)
+#remotes::install_github("grantmcdermott/parttree")
+library(parttree)
+library(rpart)
+library(rpart.plot)
+library(parsnip)
+library(titanic) 
+library(tidyverse)
+```
+
+
+
+# Train learner
+
+Build the tree using parsnip with rpart as the model engine:
+
+
+```{r}
+set.seed(123) 
+
+titanic_train$Survived = as.factor(titanic_train$Survived)
+
+
+ti_tree =
+  decision_tree() %>%
+  set_engine("rpart") %>%
+  set_mode("classification") %>%
+  fit(Survived ~ Pclass + Age, data = titanic_train)
+```
+
+
+
+# Plot the model partitions
+
+
+```{r}
+titanic_train %>%
+  ggplot(aes(x=Pclass, y=Age)) +
+  geom_jitter(aes(col=Survived), alpha=0.7) +
+  geom_parttree(data = ti_tree, aes(fill=Survived), alpha = 0.1) +
+  theme_minimal()
+```
+
+
+Plot the tree
+
+
+```{r}
+rpart.plot(ti_tree[["fit"]], box.palette="RdBu", shadow.col="gray", nn=TRUE)
+```
+
+
+
+# Sources
+
+The [recursive partitioning plot](https://www.r-bloggers.com/2020/03/visualizing-decision-tree-partition-and-decision-boundaries/) was designed by Grant McDermott. The tree plot is from the [rpart.plot](https://cran.r-project.org/web/packages/rpart.plot/index.html) package written by Stephen Milborrow.  
