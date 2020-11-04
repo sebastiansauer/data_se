@@ -56,13 +56,15 @@ Get the sample:
 
 ```{r}
 set.seed(42)
-flights_sample <- sample_n(drop_na(flights, arr_delay), size = 30)
+flights_sample <- sample_n(drop_na(flights, arr_delay), 
+                           size = 30)
 ```
 
 Compute the descriptives:
 
 ```{r}
-favstats(~ arr_delay, data = flights_sample)
+favstats(~ arr_delay, 
+         data = flights_sample)
 ```
 
 In more tidyverse terms:
@@ -98,14 +100,27 @@ flights_summary
 
 # Plot the CI
 
+Define some constants for the sake of brevity:
+
+```{r}
+flights_avg <- flights_summary$delay_avg
+flights_sem <- flights_summary$delay_sem
+```
+
+
 ```{r}
 ggplot(data.frame(x = c(-7,10)), aes(x = x)) +
 stat_function(fun = dnorm, n = 1000,
-              args = c(mean = flights_summary$delay_avg,
-                       sd = flights_summary$delay_sem)) +
+              args = c(mean = flights_avg,
+                       sd = flights_sem)) +
   labs(title = "Distribution based confidence interval",
-    subtitle = paste0("Mean: ", round(flights_summary$delay_avg, 2),
-                                   ",\nSE: ", round(flights_summary$delay_sem, 2)))
+    subtitle = paste0("Mean: ", 
+                      round(flights_avg, 2),
+                                   ",\nSE: ", round(flights_sem, 2)),
+    caption = "Vertical dashed bars indicate the confidence interval borders") +
+  geom_vline(xintercept = c(flights_avg + 2* flights_sem,
+             flights_avg - 2* flights_sem), 
+             color = "blue", linetype = "dashed")
 ```
 
 
@@ -131,10 +146,15 @@ boot_sd
 ggplot(data.frame(x = c(-7,10)), aes(x = x)) +
 stat_function(fun = dnorm, n = 1000,
               args = c(mean = boot_mean,
-                       sd = boot_mean)) +
+                       sd = boot_sd)) +
   labs(subtitle = paste0("Mean: ", round(boot_mean, 2),
-                                   ",\nSE: ", round(boot_mean, 2)),
-       title = "Distribution based CI with boostrapped SD")
+                                   ",\nSE: ", 
+                         round(boot_sd, 2)),
+       title = "Distribution based CI with boostrapped SD",
+        caption = "Vertical dashed bars indicate the confidence interval borders") +
+  geom_vline(xintercept = c(boot_mean + 2* boot_sd,
+             boot_mean - 2* boot_sd), 
+             color = "blue", linetype = "dashed")
 ```
 
 
@@ -154,14 +174,20 @@ ggplot(boot1, aes(x = mean)) +
   geom_density() +
   labs(subtitle = paste0("Mean: ", round(boot_mean, 2),
                                    ",\nSE: ", round(boot_mean, 2)),
-       title = "Simulation based (bootstrap) CI") +
-  geom_vline(aes(xintercept = confint(boot1)$lower[1]), color = "grey60") +
-  geom_vline(aes(xintercept = confint(boot1)$upper[1]), color = "grey60")
+       title = "Simulation based (bootstrap) CI",
+        caption = "Vertical dashed bars indicate the confidence interval borders") +
+  geom_vline(aes(xintercept = confint(boot1)$lower[1]), 
+             color = "blue", linetype = "dashed") +
+  geom_vline(aes(xintercept = confint(boot1)$upper[1]), 
+             color = "blue", linetype = "dashed")
 ```
 
 # Myth time
 
-Some one claims: "A CI is the interval where 95% of all possible sample means fall into". 
+Some one claims: 
+
+
+>    "A CI is the interval where 95% of all possible sample means fall into". 
 
 Let's check that.
 
@@ -172,11 +198,11 @@ Let's check that.
 Taking `flights` as the population, let's draw many samples from it, say 100.
 
 ```{r}
-flights %>% 
+flights_many_samples <- flights %>% 
   select(arr_delay) %>% 
   drop_na(arr_delay) %>% 
   sample_n(100*100) %>% 
-  mutate(sample_id = rep(1:100, times = 100)) -> flights_many_samples
+  mutate(sample_id = rep(1:100, times = 100)) 
   
 flights_many_samples
 ```
@@ -221,7 +247,7 @@ ggplot(boot1, aes(x = mean)) +
 
 # Myth is wrong
 
-Clearly, it is *not* true that the bulk (95%) of the samples fell inside our original 95% CI.
+Clearly, it is *not* true that the bulk (95%) of the samples (in blue) fell inside our original 95% CI (in black).
 
 This is clearly spelled out by Danial Kaplan in [his book](https://dtkaplan.github.io/SM2-bookdown/confidence-intervals.html#the-sampling-distribution) *Statistical Modelling*:
 
@@ -244,6 +270,6 @@ Well, some critics say that the CI is rather useless. In fact, Danial Kaplan adv
 >   Treat the confidence interval just as an indication of the precision of the measurement. If you do a study that finds a statistic of 17 ± 6 and someone else does a study that gives 23 ± 5, then there is little reason to think that the two studies are inconsistent. On the other hand, if your study gives 17 ± 2 and the other study is 23 ± 1, then something seems to be going on; you have a genuine disagreement on your hands.
 
 
-# Now what
+# Now what?
 
 Seek shelter in Bayesian inference where a "confidence" interval is actually what everybody would expect it is: The interval where the parameter ($\mu$) is with a probability of 95% (assuming the model is correct).
