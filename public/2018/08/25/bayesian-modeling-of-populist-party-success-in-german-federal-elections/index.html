@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="generator" content="Hugo 0.75.1" />
+<meta name="generator" content="Hugo 0.77.0" />
 
 
 <title>Bayesian modeling of populist party success in German federal elections - A notebook from the lab - Data Se</title>
@@ -94,7 +94,8 @@ library(viridis)</code></pre>
 </code></pre>
 <p>These data will be used as predictors for modeling the election results.</p>
 <p>Third, we will make use of geo data in order to geoplot the modeling results. The Bundeswahlleiter provides such data (again via <code>pradadata</code>):</p>
-<pre class="r"><code>data(&quot;wahlkreise_shp&quot;)</code></pre>
+<pre class="r"><code>data(&quot;wahlkreise_shp&quot;)
+</code></pre>
 <p>Note: Data objects can also be downloaded <a href="https://osf.io/2yhr9/">from this source</a>.</p>
 </div>
 <div id="data-preparation" class="section level1">
@@ -270,7 +271,7 @@ d_short_z %&gt;%
 <h1>Helper functions</h1>
 <p>The traceplot function from <code>rethinking</code> appears to have a bug, or does not work as I expected. Here’s a helper function:</p>
 <pre class="r"><code>my_traceplot &lt;- function(model) {
-  rstan::traceplot(model@stanfit, pars=names(model@start[[1]]))
+  rstan::traceplot( model@stanfit, pars=names(model@start[[1]]))
 }</code></pre>
 </div>
 <div id="m9-some-metric-linear-models-with-eastwest-foreigner-unemp-as-predictors" class="section level1">
@@ -420,7 +421,6 @@ models_stan[[&quot;m11d_stan&quot;]] &lt;- m11d_stan</code></pre>
 <div id="area-as-multilevel" class="section level2">
 <h2>area as multilevel</h2>
 <pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;,  &quot;area_nr&quot;)]
-#&gt; Error in eval(expr, envir, enclos): object &#39;d_short_z&#39; not found
 
 m12_stan &lt;- map2stan(
   alist(
@@ -435,7 +435,8 @@ m12_stan &lt;- map2stan(
   chains = 2,
   cores = 2
 )
-#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[area_nr], : could not find function &quot;map2stan&quot;</code></pre>
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[area_nr], : Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.
+#&gt; argument is of length zero</code></pre>
 <pre class="r"><code>precis(m12_stan, depth = 2) %&gt;% head()
 #coeftab(m12_stan)
 my_traceplot(m12_stan)
@@ -446,7 +447,6 @@ models_stan[[&quot;m12_stan&quot;]] &lt;- m12_stan</code></pre>
 <h2>state as multilevel</h2>
 <pre class="r"><code>
 d &lt;- d_short_z[, c(&quot;afd_prop&quot;,  &quot;state_id&quot;)]
-#&gt; Error in eval(expr, envir, enclos): object &#39;d_short_z&#39; not found
 
 m13_stan &lt;- map2stan(
   alist(
@@ -460,7 +460,8 @@ m13_stan &lt;- map2stan(
   cores = 2,
   chains = 2
 )
-#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[state_id], : could not find function &quot;map2stan&quot;</code></pre>
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[state_id], : Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.
+#&gt; argument is of length zero</code></pre>
 <pre class="r"><code>precis(m13_stan, depth = 2)
 coeftab(m13_stan)
 WAIC(m13_stan)
@@ -471,7 +472,6 @@ models_stan[[&quot;m13_stan&quot;]] &lt;- m13_stan</code></pre>
 <div id="east-for_prop-unemp_prop" class="section level2">
 <h2>east + for_prop + unemp_prop</h2>
 <pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;east&quot;)]
-#&gt; Error in eval(expr, envir, enclos): object &#39;d_short_z&#39; not found
 
 m14_stan &lt;- map2stan(
   alist(
@@ -487,7 +487,8 @@ m14_stan &lt;- map2stan(
   chains = 2,
   cores = 2
 )
-#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[east] + : could not find function &quot;map2stan&quot;</code></pre>
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[east] + : Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.
+#&gt; argument is of length zero</code></pre>
 <pre class="r"><code>precis(m14_stan, depth = 2)
 coeftab(m14_stan)
 my_traceplot(m14_stan)
@@ -497,7 +498,6 @@ models_stan[[&quot;m14_stan&quot;]] &lt;- m14_stan
 <div id="state-for_prop-unemp_prop" class="section level2">
 <h2>state + for_prop + unemp_prop</h2>
 <pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;, &quot;for_prop_z&quot;, &quot;unemp_prop_z&quot;, &quot;state_id&quot;)]
-#&gt; Error in eval(expr, envir, enclos): object &#39;d_short_z&#39; not found
 
 m15_stan &lt;- map2stan(
   alist(
@@ -513,7 +513,8 @@ m15_stan &lt;- map2stan(
   chains = 2,
   cores  = 2
 )
-#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[state_id] + : could not find function &quot;map2stan&quot;</code></pre>
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- beta0[state_id] + : Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.
+#&gt; argument is of length zero</code></pre>
 <pre class="r"><code>precis(m15_stan, depth = 2)
 coeftab(m15_stan)
 my_traceplot(m15_stan)
@@ -524,7 +525,6 @@ models_stan[[&quot;m15_stan&quot;]] &lt;- m15_stan
 <div id="normal-null-model" class="section level1">
 <h1>Normal null model</h1>
 <pre class="r"><code>d &lt;- d_short_z[, c(&quot;afd_prop&quot;), drop = FALSE]
-#&gt; Error in eval(expr, envir, enclos): object &#39;d_short_z&#39; not found
 
 m16_stan &lt;- map2stan(
   alist(
@@ -536,7 +536,8 @@ m16_stan &lt;- map2stan(
   data = d,
   chains = 2
 )
-#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha, alpha ~ : could not find function &quot;map2stan&quot;</code></pre>
+#&gt; Error in map2stan(alist(afd_prop ~ dnorm(mu, sigma), mu &lt;- alpha, alpha ~ : Something went wrong, when calling Stan. Check any debug messages for clues, detective.
+#&gt; argument is of length zero</code></pre>
 <pre class="r"><code>precis(m16_stan, depth = 2)
 coeftab(m16_stan)
 my_traceplot(m16_stan)
@@ -601,14 +602,12 @@ save(stan_model_comparison, file = &quot;stan_model_comparison.Rda&quot;)</code>
 <pre class="r"><code>wahlkreise_shp %&gt;% 
   left_join(select(d_short, area_nr, afd_prop), by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;% 
   ggplot() +
-  geom_sf(aes(fill = afd_prop)) +
+  geom_sf(aes(fill = afd_prop)) + 
   theme_void() +
   scale_fill_viridis() +
   labs(fill=&quot;Afd votes\n(Zweitstimme)&quot;,
        caption = &quot;Data provided by the Bundeswahlleiter 2017&quot;) -&gt; p_afd
-p_afd
-
-# ggsave(&quot;img/p-afd.pdf&quot;)</code></pre>
+p_afd</code></pre>
 <p>Unemployment rates in Germany per district:</p>
 <pre class="r"><code>wahlkreise_shp %&gt;% 
   left_join(select(d_short, area_nr, unemp_n, total_n), by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;% 
@@ -620,8 +619,7 @@ p_afd
   labs(fill=&quot;unemployment rate&quot;,
        caption = &quot;Data provided by the Bundeswahlleiter 2017&quot;) -&gt; p_unemp
 p_unemp
-
-# ggsave(&quot;img/p-unemp.pdf&quot;)</code></pre>
+</code></pre>
 <p>Foreigner rates:</p>
 <pre class="r"><code>wahlkreise_shp %&gt;% 
   left_join(select(d_short, area_nr, for_prop, total_n), by = c(&quot;WKR_NR&quot; = &quot;area_nr&quot;)) %&gt;% 
@@ -633,8 +631,7 @@ p_unemp
        caption = &quot;Data provided by the Bundeswahlleiter 2017&quot;) -&gt; p_foreign
 
 p_foreign
-
-# ggsave(&quot;img/p-foreigners.pdf&quot;)</code></pre>
+</code></pre>
 <p>Joint diagrams</p>
 <pre class="r"><code>library(gridExtra)
 
@@ -671,8 +668,7 @@ md_abs_error_all_models
 best_model_name &lt;- md_abs_error_all_models[which.min(md_abs_error_all_models)] %&gt;% names()
 </code></pre>
 <p>Also, compute the IQR of the errors:</p>
-<pre class="r"><code>modell_error_IQR &lt;- lapply(stan_normal_models, comp_error, fun = IQR)
-</code></pre>
+<pre class="r"><code>modell_error_IQR &lt;- lapply(stan_normal_models, comp_error, fun = IQR)</code></pre>
 </div>
 <div id="visualizing-prediction-error" class="section level1">
 <h1>Visualizing prediction error</h1>
@@ -750,20 +746,15 @@ model_error_md_iqr %&gt;%
   geom_hline(aes(yintercept = value), data = md_abs_error_all_models) +
     geom_errorbar(aes(ymin = error - (iqr/2),
                     ymax = error + (iqr/2)),
-                alpha = .3,
+                alpha = .8,
                 color = &quot;gray40&quot;) +
-  geom_point(aes(y = error), alpha = .1) +
+  geom_point(aes(y = error)) +
   geom_label(aes(label = round(value, 3),
                  color = best_model), x = 1, y = .2, 
             data = md_abs_error_all_models, 
             hjust = 0) +
   guides(color=FALSE) +
-  theme_classic() +
-  labs(x = &quot;ID of electorial district&quot;,
-       y = &quot;(absolute) prediction error&quot;)
-  scale_color_manual(values = c(&quot;red&quot;, &quot;darkgreen&quot;))
-
-# ggsave(filename = &quot;img/model-error-comp.pdf&quot;)</code></pre>
+  scale_color_manual(values = c(&quot;red&quot;, &quot;darkgreen&quot;))</code></pre>
 </div>
 <div id="plotting-prediction-error-against-observed-values" class="section level1">
 <h1>Plotting prediction error against observed values</h1>
@@ -801,10 +792,7 @@ d_short_w_pred_err %&gt;%
   labs(x = &quot;Observed AfD votes (proportion)&quot;,
        y = &quot;Estimated AfD votes (proportion)&quot;,
        caption = &quot;n=299 electoral districts; data provided by Bundeswahlleiter 2017&quot;) +
-  guides(fill = FALSE) +
-  theme_classic()
-
-ggsave(&quot;img/modelest-vs-obs.pdf&quot;, width = 10, height = 5)
+  guides(fill = FALSE)
 </code></pre>
 </div>
 <div id="sensecheck" class="section level1">
@@ -855,13 +843,11 @@ best_model_pred_err %&gt;%
   geom_hline(yintercept = quantile(best_model_pred_err$error, .025),
              color = &quot;grey80&quot;, , linetype = &quot;dashed&quot;) +
   geom_point() +
-  theme_classic() +
   labs(title = best_model_name,
        xlab = &quot;Model predictions&quot;,
        ylab = &quot;Model error&quot;,
        caption = &quot;Note. Horizontal lines denote .025, .5, and .975 quantiles, respectively&quot;) 
-  
-# ggsave(&quot;best-model-pred-err.pdf&quot;)</code></pre>
+  </code></pre>
 </div>
 <div id="check-posterior-distribution-of-predictors" class="section level1">
 <h1>Check posterior distribution of predictors</h1>
@@ -907,12 +893,9 @@ head(post_best_model_df_sum)</code></pre>
             alpha = .2) +
   theme(axis.text.y=element_blank(),
         axis.ticks.y = element_blank()) +
-  theme_classic() + 
   labs(title = best_model_name,
        y = &quot;&quot;,
-       caption = &quot;Note. Shaded areas demark 90% mass intervals&quot;)
-
-ggsave(&quot;img/p-post-best-model.pdf&quot;)</code></pre>
+       caption = &quot;Note. Shaded areas demark 90% mass intervals&quot;)</code></pre>
 </div>
 
     </div>
