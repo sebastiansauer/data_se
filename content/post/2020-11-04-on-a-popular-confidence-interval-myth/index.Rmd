@@ -1,0 +1,279 @@
+---
+title: On a popular confidence interval myth
+author: Sebastian Sauer
+date: '2020-06-05'
+slug: on-a-popular-confidence-interval-myth
+categories:
+  - rstats
+tags:
+  - inference
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+library(mosaic)
+```
+
+
+# Setup
+
+```{r}
+data(flights, package = "nycflights13")
+```
+
+
+# A story about data
+
+Say we have a decent sample of $n=100$, and we would like to compute a standard, plain vanilla confidence interval (95% CI).
+
+For the sake of having a story, assume you are the boss of the NYC airports and you are investigating the 2013 "typical" arrival delays.
+
+OK, here we go.
+
+Get the sample:
+
+```{r}
+set.seed(42)
+flights_sample <- sample_n(drop_na(flights, arr_delay), 
+                           size = 30)
+```
+
+Compute the descriptives:
+
+```{r}
+favstats(~ arr_delay, 
+         data = flights_sample)
+```
+
+In more tidyverse terms:
+
+
+```{r}
+flights_sample %>% 
+  drop_na(arr_delay) %>% 
+  summarise(delay_avg = mean(arr_delay),
+            delay_sd = sd(arr_delay)) -> flights_summary
+
+flights_summary
+```
+
+Wonderful. Now walk on to the CI.
+
+
+
+# Confidence interval around the mean
+
+
+```{r}
+flights_summary %>% 
+  mutate(delay_n = nrow(flights_sample),
+         delay_sem = delay_sd / sqrt(delay_n),
+         delay_95ci_lower = delay_avg - 2 * delay_sem,
+         delay_95ci_upper = delay_avg + 2 * delay_sem) -> flights_summary
+
+flights_summary
+```
+
+
+
+# Plot the CI
+
+Define some constants for the sake of brevity:
+
+```{r}
+flights_avg <- flights_summary$delay_avg
+flights_sem <- flights_summary$delay_sem
+```
+
+
+```{r}
+ggplot(data.frame(x = c(-7,10)), aes(x = x)) +
+stat_function(fun = dnorm, n = 1000,
+              args = c(mean = flights_avg,
+                       sd = flights_sem)) +
+  labs(title = "Distribution based confidence interval",
+    subtitle = paste0("Mean: ", 
+                      round(flights_avg, 2),
+                                   ",\nSE: ", round(flights_sem, 2)),
+    caption = "Vertical dashed bars indicate the confidence interval borders") +
+  geom_vline(xintercept = c(flights_avg + 2* flights_sem,
+             flights_avg - 2* flights_sem), 
+             color = "blue", linetype = "dashed")
+```
+
+
+# CI using simulation
+
+
+```{r cache = TRUE}
+boot1 <- do(1000) * mean(~ arr_delay, na.rm = T, 
+                         data = resample(flights_sample))
+```
+
+```{r}
+boot_mean <- mean(~mean, data = boot1)
+boot_mean
+
+boot_sd = sd(~ mean, data = boot1)
+boot_sd
+```
+
+
+
+```{r}
+ggplot(data.frame(x = c(-7,10)), aes(x = x)) +
+stat_function(fun = dnorm, n = 1000,
+              args = c(mean = boot_mean,
+                       sd = boot_sd)) +
+  labs(subtitle = paste0("Mean: ", round(boot_mean, 2),
+                                   ",\nSE: ", 
+                         round(boot_sd, 2)),
+       title = "Distribution based CI with boostrapped SD",
+        caption = "Vertical dashed bars indicate the confidence interval borders") +
+  geom_vline(xintercept = c(boot_mean + 2* boot_sd,
+             boot_mean - 2* boot_sd), 
+             color = "blue", linetype = "dashed")
+```
+
+
+And for the sake of completeness, here are the limits of the boostrapped CI:
+
+```{r}
+confint(boot1)
+```
+
+
+And here's the pure non-parametric bootstrap interval:
+
+
+
+```{r}
+ggplot(boot1, aes(x = mean)) +
+  geom_density() +
+  labs(subtitle = paste0("Mean: ", round(boot_mean, 2),
+                                   ",\nSE: ", round(boot_mean, 2)),
+       title = "Simulation based (bootstrap) CI",
+        caption = "Vertical dashed bars indicate the confidence interval borders") +
+  geom_vline(aes(xintercept = confint(boot1)$lower[1]), 
+             color = "blue", linetype = "dashed") +
+  geom_vline(aes(xintercept = confint(boot1)$upper[1]), 
+             color = "blue", linetype = "dashed")
+```
+
+# Myth time
+
+Some one claims: 
+
+
+>    "A CI is the interval where 95% of all possible sample means fall into". 
+
+Let's check that.
+
+
+# Draw many samples from the population
+
+
+Taking `flights` as the population, let's draw many samples from it, say 100.
+
+```{r}
+flights_many_samples <- flights %>% 
+  select(arr_delay) %>% 
+  drop_na(arr_delay) %>% 
+  sample_n(100*100) %>% 
+  mutate(sample_id = rep(1:100, times = 100)) 
+  
+flights_many_samples
+```
+
+
+```{r}
+flights_many_samples %>% 
+  group_by(sample_id) %>% 
+  summarise(delay_sample_avg = mean(arr_delay)) -> flights_many_samples_summary
+
+flights_many_samples_summary
+```
+
+
+Plot the sample means in comparison to the CI.
+
+
+```{r}
+ggplot(boot1, aes(x = mean)) +
+  geom_density() +
+  labs(subtitle = paste0("Mean: ", round(boot_mean, 2),
+                                   ",\nSE: ", round(boot_mean, 2)),
+       title = "Simulation based (bootstrap) CI and sample means",
+       caption = "Vertical dashed lines indicate the interval borders. The dots indicate samples means.") +
+  geom_vline(aes(xintercept = confint(boot1)$lower[1]), 
+             color = "grey60", 
+             linetype = "dashed") +
+  geom_vline(aes(xintercept = confint(boot1)$upper[1]), 
+             color = "grey60",
+             linetype = "dashed") +
+  geom_point(data = flights_many_samples_summary,
+             aes(x = delay_sample_avg),
+             y = 0,
+             alpha  = .6,
+             color = "blue") +
+  geom_density(data = flights_many_samples_summary,
+                 aes(x = delay_sample_avg),
+               color = "blue") +
+  annotate(geom = "label", x = 12, y = 0.05, 
+           label = "sample means",
+           color = "blue") +
+  annotate(geom = "label", x = -2 , y= 0.10,
+           label = "CI")
+```
+
+
+# Myth is wrong
+
+Clearly, it is *not* true that the bulk (95%) of the samples (in blue) fell inside our original 95% CI (in black).
+
+This is clearly spelled out by Danial Kaplan in [his book](https://dtkaplan.github.io/SM2-bookdown/confidence-intervals.html#the-sampling-distribution) *Statistical Modelling*:
+
+
+>    Another tempting statement is, “If I repeated my study with a different random sample, the new result would be within the margin of error of the original result.” But that statement isn’t correct mathematically, unless your point estimate happens to align perfectly with the population parameter – and there’s no reason to think this is the case.
+
+
+# What is actually true
+
+It is true, however, that - given the assumptions of the model are met - that 95% percent of an infinity of sample CIs will cover the real $\mu$ (mean) of the population.
+
+
+
+
+# Does this information help?
+
+Well, some critics say that the CI is rather useless. In fact, Danial Kaplan advises us to nothing more than to interpret the confidence interval in this matter (same page as above):
+
+
+>   Treat the confidence interval just as an indication of the precision of the measurement. If you do a study that finds a statistic of 17 ± 6 and someone else does a study that gives 23 ± 5, then there is little reason to think that the two studies are inconsistent. On the other hand, if your study gives 17 ± 2 and the other study is 23 ± 1, then something seems to be going on; you have a genuine disagreement on your hands.
+
+
+# Now what?
+
+Seek shelter in Bayesian inference where a "confidence" interval is actually what everybody would expect it is: The interval where the parameter ($\mu$) is with a probability of 95% (assuming the model is correct).
