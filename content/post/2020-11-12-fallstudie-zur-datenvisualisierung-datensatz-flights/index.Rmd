@@ -1,0 +1,245 @@
+---
+title: 'Fallstudie zur Datenvisualisierung -- Datensatz "flights"'
+author: Sebastian Sauer
+date: '2020-11-12'
+slug: fallstudie-zur-datenvisualisierung-datensatz-flights
+categories:
+  - rstats
+tags:
+  - tutorial
+  - visualization
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+
+
+
+# Vorbereitung
+
+Wie immer -- zuerst Pakete und Daten laden:
+
+```{r message = FALSE}
+library(tidyverse)
+library(nycflights13)
+
+data("flights")
+```
+
+
+
+# Aufgaben zur Datenvisualisierung 
+
+Die folgenden Aufgaben beziehen sich auf den Datensatz `flights` aus dem R-Paket `nycflights13`.
+
+
+1. Visualisieren Sie die Verteilung der Verspätungen der Flüge.
+
+2. Visualisieren Sie die Verteilung der Verspätung der Flüge pro Abflugsort.
+
+3. Visualisieren Sie den Zusammenhang von Verspätung und Tageszeit. Reduzieren Sie dabei Overplotting. *Tipp:* Anstelle von `geom_point()` mal `geom_bin2d()` ausprobieren.
+
+4. Visualisieren Sie den Zusammenhang von Verspätung und Tageszeit -- aufgeteilt nach Abflugsort und nach Stunde. Reduzieren Sie dabei Overplotting. 
+
+5. Visualisieren Sie den Zusammenhang von Verspätung und Tageszeit -- für die drei Airlines mit der höchsten Durchschnittsverspätung. Reduzieren Sie dabei Overplotting.
+
+6. Visualisieren Sie den Anteil der verspäteten Flüge nach Abflugsort.
+
+7. Visualisieren Sie den Anteil der verspäteten Flüge nach Uhrzeit.
+
+8. Visualisieren Sie den Anteil der verspäteten Flüge nach Monat.
+
+
+
+# Lösungen
+
+## 1. Visualisieren Sie die Verteilung der Verspätungen der Flüge.
+
+
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = dep_delay) +
+  geom_histogram()
+```
+
+Alternativ:
+
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = dep_delay) +
+  geom_density()
+```
+
+
+## 2. Visualisieren Sie die Verteilung der Verspätung der Flüge pro Abflugsort.
+
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = dep_delay) +
+  geom_density() +
+  facet_wrap(~ origin)
+```
+
+
+
+
+## 3. Visualisieren Sie den Zusammenhang von Verspätung und Tageszeit. Reduzieren Sie dabei Overplotting. 
+
+*Tipp:* Anstelle von `geom_point()` mal `geom_bin2d()` ausprobieren.
+
+
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = dep_time, dep_delay) +
+  geom_density2d()
+```
+
+
+
+## 4. Visualisieren Sie den Zusammenhang von Verspätung und Tageszeit -- aufgeteilt nach Abflugsort und nach Stunde! 
+
+Reduzieren Sie dabei Overplotting. 
+
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = dep_time, dep_delay) +
+  geom_density2d() +
+  facet_grid(origin ~ hour)
+```
+
+
+
+## 5. Visualisieren Sie den Zusammenhang von Verspätung und Tageszeit -- für die drei Airlines mit der höchsten Durchschnittsverspätung. 
+
+Reduzieren Sie dabei Overplotting.
+
+Airlines mit der höchsten Verspätung identifizieren:
+
+
+```{r}
+flights %>% 
+  group_by(carrier) %>% 
+  summarise(dep_delay_carrier = mean(dep_delay, na.rm = TRUE)) %>% 
+  arrange(-dep_delay_carrier) %>% 
+  slice(1:3)
+```
+
+```{r}
+flights %>% 
+  filter(carrier %in% c("F9", "EV", "YV")) %>% 
+  ggplot() +
+  aes(x = dep_time, dep_delay) +
+  geom_density2d()
+```
+
+
+
+
+
+## 6. Visualisieren Sie den Anteil der verspäteten Flüge nach Abflugsort.
+
+
+```{r}
+flights %>% 
+  mutate(is_delayed = dep_delay > 0) %>% 
+  group_by(origin) %>% 
+  summarise(delay_n = sum(is_delayed == TRUE, na.rm = TRUE),
+            delay_prop = delay_n / n()) %>% 
+  ggplot() +
+  aes(x = origin, y = delay_prop) +
+  geom_col()
+  
+```
+
+Oder so:
+
+```{r}
+flights %>% 
+  mutate(is_delayed = dep_delay > 0) %>% 
+  group_by(origin) %>% 
+  ggplot() +
+  aes(x = origin, fill = is_delayed) +
+  geom_bar()
+```
+
+
+
+Oder so:
+
+
+```{r}
+flights %>% 
+  mutate(is_delayed = dep_delay > 0) %>% 
+  group_by(origin) %>% 
+  ggplot() +
+  aes(x = origin, fill = is_delayed) +
+  geom_bar(position = "fill")
+```
+
+## 7. Visualisieren Sie den Anteil der verspäteten Flüge nach Uhrzeit.
+
+
+
+```{r}
+flights %>% 
+  mutate(is_delayed = dep_delay > 0) %>% 
+  group_by(origin) %>% 
+  drop_na(is_delayed, origin) %>% 
+  ggplot() +
+  aes(x = origin, fill = is_delayed) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ hour) +
+  scale_fill_viridis_d()  # d wie "discrete"
+```
+
+
+
+## 8. Visualisieren Sie den Anteil der verspäteten Flüge nach Monat.
+
+Es gibt ein Paket, das einem die Arbeit mit Datum und Uhrzeit vereinfacht: `lubridate` (eigentlich gibt's mehrere Pakete dieser Art).
+
+```{r}
+library(lubridate)
+```
+
+
+```{r}
+flights %>% 
+  mutate(is_delayed = dep_delay > 0) %>% 
+  mutate(month = month(time_hour)) %>% 
+  group_by(origin) %>% 
+  drop_na(is_delayed, origin) %>% 
+  ggplot() +
+  aes(x = origin, fill = is_delayed) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ month) +
+  scale_fill_viridis_d()  # d wie "discrete"
+```
