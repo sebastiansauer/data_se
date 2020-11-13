@@ -1,0 +1,985 @@
+---
+title: Fallstudie zur Regressionsanalyse -- ggplot2movies
+author: Sebastian Sauer
+date: '2020-11-13'
+slug: fallstudie-zur-regressionsanalyse-ggplot2movies
+categories:
+  - rstats
+tags:
+  - tutorial
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Pakete laden
+
+Mit dem Paket `tidyverse` laden wir die gängigen "Datenjudo-Befehle". Außerdem die Befehle zur Datenvisualisierung (d.h. das Paket `ggplot2` wird geladen).
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+
+library(broom)  # Überführt in Dataframes
+
+library(skimr)  # Gibt Überblick über deskriptive Statistiken
+
+library(ggstatsplot)  # schickeres Streudiagramm
+
+library(rsample)   # for data splitting
+
+library(cowplot)  # Um mehrere Diagramme zusammenzufügen
+
+library(corrr)  # Korrelationsmatrizen
+```
+
+
+Denken Sie daran, dass Pakete (einmalig) installiert sein müssen, bevor Sie sie laden können (mittels `library()`).
+
+# Daten laden
+
+Die Daten dieser Fallstudie "wohnen" in diesem Paket:
+
+```{r}
+library(ggplot2movies)
+```
+
+
+
+Um die Daten (aus einem geladenen Paket) zu laden, verwenden wir den Befehl `data()`:
+
+
+```{r}
+data("movies")
+```
+
+
+
+Werfen wir einen ersten Blick in die Daten, um zu sehen, dass sie korrekt in R importiert wurden:
+
+```{r}
+glimpse(movies)
+```
+
+Sieht alles gut aus.
+
+
+*Alternativ* könnten Sie die Daten mit `read.csv()` einlesen, z.B. von einem Server oder aber von Ihrem Computer.
+
+
+Die Namen der Variablen sind (wie so oft) nicht selbsterklärung. Werfen wir einen Blick in die Hilfe.
+
+
+```{r}
+help(movies)
+```
+
+
+
+# Forschungsfrage
+
+
+1. Wie gut kann man die Erfolg eines Filmes vorhersagen? Als Erfolg definieren wir die Höhe der Beurteilung (`rating`).
+
+2. Welche Faktoren sind nützlich für die Güte dieser Vorhersage?
+
+
+
+
+# Ihre salvatorische Klausel
+
+
+Es könnte sein, dass Sie in dieser Fallstudie auf Ideen (oder R-Syntax) treffen, die Sie nicht kennen. Lassen Sie sich nicht davon ins Boxhorn jagen. Verarbeiten Sie einfach die Teile, die Sie verstehen. Diese Fallstudie soll kein Lehrtext zu den theoretischen Hintergründen sein; daher habe ich auf Erklärungen und Theorie weitgehend verzichtet. Hier geht es um das praktische Tun. Ich wünsche Ihnen viel Freude und Erkenntnisse!
+
+
+
+# Überblick über die Kennzahlen
+
+
+```{r}
+skim(movies)
+```
+
+
+
+# Fehlende Werte
+
+Wichtig sind oft die Anzahl der fehlenden Werte, darum schauen wir da noch einmal genauer hin.
+
+
+```{r}
+movies %>% 
+  summarise(across(everything(), ~ sum(is.na(.))))
+```
+
+Der Code heißt sinngemäß etwa:
+
+>   Fasse zusammen (summarise) und zwar quer durch (across) alle Spalten (everything). Und zwar sollst du so zusammenfassen: Verwende die Funktion (~) "summiere alls fehlenden Werte (is.na)"
+
+
+Der Punkt bei `~ sum(is.na(.))` meine "alle angeprochenen Spalten", in diesem Fall sind das alle.
+
+
+Aha, beim Budget fehlen uns viele Informationen, eigentlich ein Großteil der Informationen:
+
+```{r}
+53573/nrow(movies)
+```
+
+
+Wir stehen also vor einer schwierigen Entscheidung: Wenn wir `budget` nutzen möchten, können wir ca. 91% der übrigen Variablen nicht für die Vorhersage nutzen.
+
+# Verteilung der Output-Variablen
+
+
+Die Output-Variable ist die Variable, die uns besonders interessiert. Ihre Werte wollen wir vorhersagen. Grund genug, uns diese Variable genauer anzuschauen.
+
+
+```{r}
+movies %>% 
+  ggplot() +
+  aes(x = rating) +
+  geom_histogram()
+```
+
+Übrigens kann man `aes()` auch in den `ggplot()`-Befehl wickeln:
+
+
+```{r}
+movies %>% 
+  ggplot(aes(x = rating)) +
+  geom_histogram()
+```
+
+
+Das ist das gleiche Ergebnis wie darüber.
+
+
+
+Nützlich ist auch, wenn man eine Dichtekurve über das Histogramm legt:
+
+```{r}
+movies %>% 
+ggplot(aes(x = rating)) + 
+  geom_histogram(aes(y = stat(density))) +
+  geom_density(col = "red")
+```
+
+Das Rating ist relativ normalverteilt. Das ist kaum überraschend, denn das Antwortformat von 1-10 erlaubt kaum Extremwerte und suggeriert damit eine Mitte. Ob damit die echte, psychologische Dimension "wie gut finde ich den Film" ("Gefallen") gemessen wird, steht auf einem anderen Blatt. Etwas Skepsis ist berechtigt. Wenn aber unsere Operationalisierung von *Gefallen* supoptimal ist, also verrauscht, so brauchen wir nicht erwarten, dass unsere Vorhersagen spitze sein werden.
+
+
+
+# Explorative Analyse
+
+
+Hier sind beispielhaft einige explorativen Analysen dargestellt.
+
+
+```{r}
+movies %>% 
+  ggplot() + 
+  aes(x = budget, y = rating) +
+  geom_point(alpha = .2)
+```
+
+# Budget logarithmieren
+
+Man sieht eine deutliche Konzentration im unteren Budget-Bereich. Das spricht für eine Transformation, um den Bereich zu "strecken".
+
+
+```{r}
+movies %>% 
+  mutate(budget_log10 = log10(budget)) -> movies2
+```
+
+
+Dafür entfernen wir jetzt die ursprüngliche Variable `budget`.
+
+
+```{r}
+movies2 %>% 
+  select(budget_log10, everything()) %>%   # "budget_log10" als erste Spalte
+  select(-budget) -> movies2
+```
+
+
+Betrachten wir das Streudiagramm noch einmal. Bei der Gelegenheit fügen wir einen "rollenden Mittelwert" hinzu ("Smoother"). Und wir ergänzen die univariaten Verteilungen der beiden Variablen.
+
+```{r}
+movies2 %>% 
+  ggplot() + 
+  aes(x = budget_log10, y = rating) +
+  geom_point(alpha = .2) +
+  geom_smooth() +
+  geom_rug()
+```
+
+
+Hier lässt sich vage ein linearer (schwacher) Trend erkennen.
+
+Die univariate Verteilung wird nur schlecht verdeutlicht durch die "Striche" auf den Achsen (`geom_rug`). Hier müssen wir uns noch etwas Schöneres überlegen.
+
+
+
+
+```{r}
+movies2 %>% 
+  ggscatterstats(x = budget_log10, y = rating)
+```
+
+
+[Hier](https://indrajeetpatil.github.io/ggstatsplot/articles/web_only/ggscatterstats.html) findet sich weitere Erklärung zu diesem Diagramm.
+
+
+
+Vielleicht unterscheidet sich dieser Zusammenhang nach dem Genre?
+
+Dazu müssen wir den Datensatz umbauen.
+
+
+
+
+
+# Datensatz umbauen (pivotieren): Moderierender Effekt von Genre
+
+
+```{r}
+movies2 %>% 
+  select(budget_log10, rating, Action:Short) %>% 
+  pivot_longer(cols = Action:Short, names_to = "genre") -> movies2_long
+```
+
+
+Anstelle von Punkten stellen wir jetzt den Zusammenhang mit "Fliesen" dar. Je heller die Fliese, desto mehr Punkte finden sich an dieser Stelle.
+
+Den Zusammenhang teilen wir nach Genre auf, denn das ist die Frage, die wir gerade aufgeworfen hatten.
+
+```{r}
+movies2_long %>% 
+  ggplot() +
+  aes(x = budget_log10, y = rating) +
+  geom_bin2d() +
+  facet_wrap(~ genre) +
+  geom_smooth() +
+  scale_fill_viridis_c()
+```
+
+
+Mit `scale_fill_viridis_c()` haben wir noch ein schickeres Farbschema ausgewählt.
+
+🏋️ Lassen Sie mal diese Zeile weg und vergleichen Sie das Ergebnis.
+
+👉 Insgesamt scheinen die Zusammenhänge in allen Genres ähnlich zu sein. Das heißt mit anderen Worten, dass wir keine/kaum Evidenz gefunden haben (in dieser Analyse), dass `genre` den Zusammenhang von Budget und Rating moderieren würde.
+
+
+
+# Einfluss von Genre
+
+
+Aber hat das Genre vielleicht einen generellen Effekt auf die Beurteilung? Werden vielleicht Actionfile generell besser bewertet als Kurzfilme?
+
+
+
+```{r}
+movies2_long %>% 
+  ggplot() + 
+  aes(x = genre, y = rating) +
+  geom_boxplot()
+```
+
+Nada. Da scheint's keine (starken) statistische Abhängigkeiten zu geben.
+
+
+
+# Datensatz vereinfachen
+
+
+Die Variable zum Titel ist ohne weitere Bearbeitung kaum nützlich (Stichwort "Feature Engineering"); besser wir entfernen sie der Einfachheit halber.
+
+
+```{r}
+movies2 %>% 
+  select(-title) -> movies2
+```
+
+
+Um die Fallstudie einfach zu halten, entfernen wir auch die Bewertungsperzentil-Variablen:
+
+
+```{r}
+movies2 %>% 
+  select(-c(r1:r10)) -> movies2
+```
+
+
+
+Die Variable `mpaa` sieht auch komisch aus. Wie viele unterschiedliche (distinkte) Werte gibt es?
+
+
+```{r}
+movies2 %>% 
+  summarise(n_distinct(mpaa))
+```
+
+Fünf. 
+
+
+Und wie viele fehlende Werte?
+
+```{r}
+movies2 %>% 
+  summarise(sum(is.na(mpaa)))
+```
+
+Moment, ich habe doch viele leere Zellen gesehen ... Vielleicht so:
+
+
+
+```{r}
+movies2 %>% 
+  filter(mpaa == "") %>% 
+  nrow() / nrow(movies)
+```
+
+
+Über 90% fehlende Werte also. Besser wir entfernen diese Variable.
+
+
+```{r}
+movies2 %>% 
+  select(-mpaa) -> movies2
+```
+
+
+# Datensatz aufteilen (Train- und Test)
+
+
+Möchte man eine Vorhersage machen, gehört es zum guten Ton, den Datensatz in einen Train- und einen Test-Teil aufzuteilen. Mit dem Train-Datensatz kann man nach Herzenslust rumbasteln (modellieren); der Test-Datensatz kommt nur einmal zum Schluss zum Einsatz, um die Güte des (besten) Modells zu überprüfen.
+
+
+Vielen Modelle können keine fehlenden Werte verdauen; daher entfernen wir hier jetzt pauschal alle fehlenden Werte.
+
+
+```{r}
+movies2 %>% 
+  drop_na() -> movies2_nona  # "no NA" soll das heißen
+```
+
+
+Wie viele Zeilen bleiben uns?
+
+```{r}
+nrow(movies2_nona)
+```
+
+Das ist schon schmerzlich. Ob das eine gute Idee war? Naja, bleiben wir erstmal auf dieser Route.
+
+
+```{r}
+set.seed(123)
+movies2_split <- initial_split(movies2_nona, prop = 0.7)
+movies2_train <- analysis(movies2_split)
+movies2_test <- assessment(movies2_split)
+
+dim(movies2_train)
+```
+
+
+Zum Vergleich, die Zeilenzahl im gesamten Datensatz:
+
+
+```{r}
+dim(movies)
+```
+
+
+
+Gibt es jetzt noch fehlende Werte im Train- oder Test-Datensatz?
+
+```{r}
+is.na(movies2_train) %>% sum()
+```
+
+Ok; keine fehlenden Werte mehr.
+
+# Modell 0 ("Nullmodell")
+
+
+Im Folgenden werden wir einige Modelle aufstellen und diese dann vergleichen. Zu Referenzzwecken erstellen wir zuerst ein "Nullmodell", das null (keine) Prädiktoren beinhaltet. Mit diesem Modell vergleichen wir dann die folgenden Modelle.
+
+
+```{r}
+m0 <- lm(rating ~ 1, data = movies2_train)
+```
+
+Wir nehmen lieben nicht die "Langform" (`movies3`), da dort die Beobachtungseinheit nicht mehr ein Film ist, im Gegensatz zur Tabelle `movies2`.  
+
+Schauen wir uns die Ergebnisse an:
+
+```{r}
+summary(m0)
+```
+
+Der Output ist nicht "aufgeräumt"; schöner wäre eine Ausgabe in Form eines Dataframes.
+
+
+Hier die Modellkoeffienten in "tidy" Form; in diesem Fall nur der Achsenabschnitt (Intercept):
+
+```{r}
+tidy(m0)
+```
+Und die Modellgüte ("model fit"):
+
+```{r}
+glance(m0)
+```
+
+
+$R^2$ ist hier per Definition gleich Null.
+
+
+# Modell 1: `budget_log10`
+
+
+
+```{r error = TRUE}
+movies2_train %>% 
+  drop_na(budget_log10, rating) %>% 
+  lm(rating ~ budget_log10, data = .)  -> m1
+```
+
+
+Upps, ein Fehler, was ist passiert? Die Fehlermeldung sagt uns, es gäbe unendliche Werte in unseren Daten. Gut, eine brave Maschine weiß dann nicht genau, was sie tun soll ...
+
+```{r}
+movies2_train %>% 
+  select(budget_log10, rating) %>% 
+  filter(budget_log10 == -Inf)
+```
+
+Da haben wir die Schuldigen. Eine Log-Transformation von null Budget liefert:
+
+```{r}
+log10(0)
+```
+
+Genau wie:
+
+```{r}
+log(0)
+```
+
+
+
+# Unendliche Werte entfernen
+
+
+Diese Null-Budgets hätten wir entfernen müssen. Na gut, dann machen wir es jetzt.
+
+
+```{r}
+movies2_train %>% 
+  filter(budget_log10 != -Inf) -> movies2_train
+```
+
+
+Evtl. wäre es besser, in einen neuen Datensatz abzuspeichern. Das ist manchmal eine schwierige Frage. 
+
+
+
+
+
+```{r error = TRUE}
+movies2_train %>% 
+  lm(rating ~ budget_log10, data = .) -> m1
+```
+
+
+# Model 1 Ergebnisse
+
+
+```{r}
+tidy(m1)
+```
+
+Die Modellgüte sieht so aus:
+
+```{r}
+glance(m1)
+```
+
+
+Also peinlich schlecht. 
+
+
+
+# Anzahl der Stimmen (`votes`)
+
+
+Vielleicht lässt die Anzahl der abgegebenen Stimmen (`votes`) einen Rückschluss auf die spätere Beurteilung zu? Nach dem Motto: Wenn viele Leute eine Beurteilung abgeben, dann sind die Gemüter erhitzt und der Film muss spalten. Wobei diese Behauptung eigentlich nichts über den Mittelwert der Beurteilung aussagt, sondern über die Streuung. Aber schauen wir einfach mal.
+
+
+
+```{r}
+p1 <- movies2_train %>% 
+  ggplot(aes(x = votes)) +
+  geom_histogram() +
+  labs(title = "Datensatz: movies2_train")
+
+p1
+```
+
+Ein ggplot-Diagramm ist auch nur ein Objekt, wie jedes andere R-Objekt auch. Daher kann man es auch in einer Variablen speichern. Ruft man diese Variable (`p1`, p wie plot) auf, so wird das Diagramm gezeigt.
+
+
+Oha! Das ist richtig schön schief.
+
+Vergleichen wir mal, ob es Unterschiede in der Verteilung gibt, in den verschiedenen Varianten des Datensatzes.
+
+
+
+```{r}
+p2 <- movies %>% 
+  ggplot(aes(x = votes)) +
+  geom_histogram() +
+  labs(title = "Datensatz: movies")
+
+p3 <- movies2_test %>% 
+  ggplot(aes(x = votes)) +
+  geom_histogram() +
+  labs(title = "Datensatz: movies2_test")
+```
+
+Möchte man mehrere Plots zusammenfügen, so kann man das so tun:
+
+```{r}
+plot_grid(p1, p2, p3)
+```
+
+
+
+Betrachten wir das Streudiagramm:
+
+
+```{r}
+movies2_train %>% 
+  ggplot(aes(x = votes, y = rating)) +
+  geom_point()
+```
+
+Die Schiefe kann man als Anlass sehen, `votes` zu logarithmieren.
+
+
+```{r}
+movies2_train %>% 
+  ggplot(aes(x = log10(votes), y = rating)) +
+  geom_point(alpha = .4) +
+  geom_smooth(method = "lm")
+```
+Hier haben wir gleich eine Regressionsgerade in den Punkteschwarm gelegt.
+
+
+Eine Variante:
+
+
+```{r}
+movies2_train %>% 
+  ggplot(aes(x = log10(votes), y = rating)) +
+  geom_point(alpha = .2) +
+  geom_smooth(method = "lm", color = "red") +
+  geom_density_2d()
+```
+
+
+
+# Modell 2: Anzahl der Stimmen, linear
+
+Erstellen wir die logarithmierte Version von `votes`: 
+
+
+```{r}
+movies2_train %>% 
+  mutate(votes_log10 = log10(votes)) %>% 
+  select(-votes) -> movies2_train
+```
+
+
+
+```{r}
+movies2_train %>% 
+   lm(rating ~ votes_log10, data = .) -> m2
+
+m2 %>% 
+  tidy()
+
+glance(m2)
+```
+
+Tja. Unsere Erklärungskraft bleibt bescheiden.
+
+
+# Modell 3: Anzahl der Stimmen als Polynomialmodell, quadratisch
+
+
+Betrachtet man das Streudiagramm mit den Anzahl der Stimmen, so könnte man auf die Idee kommen, der Zusammenhang sei durch ein Polynomialmodell gut zu beschreiben.
+
+
+Probieren wir ein quadratisches Modell (also zweiten Grades):
+
+
+
+```{r}
+m3 <- lm(rating ~ I(votes_log10^2) + votes_log10, data = movies2_train)
+```
+
+
+Das `I()` brauchen wir, weil in der Formel-Schreibweise ein Dach "^" nicht die normale algebraische Bedeutung hat. Mit `I` wird gesagt, dass die normale algebraische Bedeutung, trotz dem Formelschreibweisenumgebung, gelten soll.
+
+
+Die Ergebnisse:
+
+```{r}
+tidy(m3)
+```
+
+```{r}
+glance(m3)
+```
+
+Schon etwas besser.
+
+
+Schauen wir uns das Polynom 2. Grades einmal an:
+
+
+```{r}
+movies2_train %>% 
+  ggplot(aes(x = votes_log10, y = rating)) +
+  geom_point(alpha = .2) +
+  geom_smooth(method = "lm", se = FALSE,
+                formula = y ~ poly(x, 2))
+```
+
+
+# Modell 4: Anzahl der Stimmen als Polynomialmodell, 3. Grades
+
+
+Vielleicht ein Polynom 3. Grades?
+
+
+
+
+```{r}
+movies2_train %>% 
+  ggplot(aes(x = votes_log10, y = rating)) +
+  geom_point(alpha = .2) +
+  geom_smooth(method = "lm", se = FALSE,
+                formula = y ~ poly(x, 3))
+```
+
+
+Sieht nicht viel besser aus. Da ist einfach viel Rauschen in den Daten, scheint's.
+
+
+
+
+```{r}
+m4 <- lm(rating ~ poly(votes_log10, degree = 3), 
+         data = movies2_train)
+```
+
+Anstelle die Prädiktoren mit `I()` kann man auch -- einfacher -- mit `poly()` das Polynom vom Grad `degree` bestimmen.
+
+
+
+
+Die Ergebnisse:
+
+```{r}
+tidy(m4)
+glance(m4)
+```
+
+Es scheint keinen Unterschied zu machen, ob man ein Polynom 2. oder 3. Grades in die Daten anpasst.
+
+
+
+
+# Korrelationsmatrix (visualisieren)
+
+
+Vielleicht kann (nur) eine Kombination mehrerer Prädiktoren zu einer genauen Vorhersage führen? Probieren wir es aus.
+
+
+Zuerst betrachten wir die bivariaten Korrelation.
+
+
+
+```{r}
+movies_corr <- correlate(movies2_train) %>% 
+  rearrange() %>% # der Größe nach ordnen
+  mutate_if(is.numeric, ~ifelse(abs(.) > 0.2, ., NA)) %>% 
+  shave()  # redundantes Dreieck abrasieren
+
+
+
+
+fashion(movies_corr)  
+```
+
+Diese Zeile `mutate_if(is.numeric, ~ifelse(abs(.) > 0.2, ., NA))` heißt grob übersetzt:
+
+
+>    Verändere eine Spalte, wenn (if) sie numerisch ist. Und zwar folgendermaßen: wenn der Absolutwert in einer Zelle größer ist als 0.2, dann übernehme ihn, wie er ist (.), ansonsten ersetze durch NA.
+
+
+Scheuen wir uns nur die Korrelationen mit `rating` näher an:
+
+```{r}
+movies_corr %>% 
+  select(rowname, rating)
+```
+
+Tja, aus den bivariaten Korrelationen ist nicht viel rauszuholen. Bleibt als Hoffnung:
+
+- nicht lineare Zusammenhänge
+- Interaktionen, so dass nur mehrere Variablen gleichzeitig mit der Zielvariablen korrelieren
+- dass "Kleinvieh-macht-auch-Mist-Prinzip": Vielleicht läppert sich ein bisschen Korrelation pro Prädiktor zu einer ansehnlichen Gesamtvorhersagekraft.
+
+
+Visualisieren wir noch die Korrelationsmatrix:
+
+
+```{r}
+rplot(movies_corr)
+```
+
+
+
+
+
+# Modell 5: Multiple Regression
+
+Untersuchen wir ein Modell, das mehrere Prädiktoren vereint.
+
+
+```{r}
+m5 <- lm(rating ~ votes_log10 + budget_log10, data = movies2_train)
+```
+
+```{r}
+glance(m5)
+```
+
+# 3D-Visualisierung
+
+Verändern wir die Reihenfolge der Spalten, so dass die "wichtigen" Spalten vorne stehen:
+
+```{r}
+movies2_train %>% 
+  select(rating, votes_log10, budget_log10, everything()) -> movies2_train
+```
+
+
+In diesem Modell sind 3 Variablen involviert. Eine Visualisierung ist hier schon schwierig. [Hier](https://data-se.netlify.app/2019/10/21/some-ways-for-plotting-3d-linear-models/) finden sich dazu einige Anregungen.
+
+
+Das könnte eine Möglichkeit sein:
+
+
+
+```{r}
+rsm::contour.lm(m5, votes_log10 ~ budget_log10, image = TRUE)
+```
+
+
+Die Farbe gibt die "Höhe" des Wertes in der Output-Variablen wider.
+
+
+
+# Modell 6: Interaktionsmodell
+
+
+```{r}
+m6 <- lm(rating ~ votes_log10 + budget_log10 + votes_log10:budget_log10,
+         data = movies2_train)
+```
+
+
+```{r}
+glance(m6)
+```
+
+
+
+# Rohe Kraft: Schrittweise Regression
+
+
+Wir könnten jetzt sagen, wir geben es auf, nach einzelnen netten Prädiktoren zu suchen. Schön wäre natürlich, wir hätten eine Theorie, die uns (kausal) sagt, welche Prädiktoren eine Rolle spielten. In Ermangelung derselben können wir auch rein datengetrieben vorgehen.
+
+
+Einfach gesprochen sagen wir zu R: "Berechne ein Modell mit einem Prädiktor; dabei probiere aus, welcher Prädiktor zum besten Modell führt. Dann wiederhole das mit 2 Prädiktoren und so weiter  bis du zu einem Modell kommst, das alle Prädiktoren beinhaltet. Wenn aber irgendwann die Hinzunahme von einem Prädiktor nicht zu einem besseren Modell führt, dann brich ab."
+
+
+Wir brauchen ein Nullmodell, das haben wir oben schon definiert (`m0`). Hier noch mal:
+
+```{r}
+m0 <- lm(rating ~ 1, 
+         data = movies2_train)
+```
+
+
+
+Und wir brauchen ein "Vollmodell" (`m_all`), das alle Prädiktoren beinhaltet.
+
+```{r}
+m_all <- lm(rating ~ ., 
+            data = movies2_train)  # kann etwas Zeit brauchen
+```
+
+
+Dieses Vorgehen nennt man auch *schrittweise* (Vorwärts-)Regression.
+
+
+```{r forward-regression}
+forward <- step(object = m0, 
+                direction = 'forward', 
+                scope = formula(m_all), 
+                trace = 0)  # keine Zwischenschritte zeigen
+
+```
+
+
+Vorsicht! Bei nominalen Variablen mit vielen unterschiedlichen Werten kann diese Berechnung lange dauern.
+
+
+```{r}
+tidy(forward)
+```
+
+
+# Modellselektion (Modellwahl) -- anova
+
+
+Es gibt verschiedene Methoden, um ein hoffenltich bestes Modell auszuwählen.
+
+
+
+
+```{r}
+anova(m0,  m2, m3, m4)
+```
+
+
+Eine Varianzanalyse (anova) besteht im Kern aus einem $F$-Test. Der F-Test ist so definiert:
+
+
+$$F =\frac{(TSS-RSS)/p}{RSS/(n-p-1)}$$
+
+Dabei ist TSS die Gesamtstreuung, RSS die Streuung der Residuen; $n$ die Anzahl der Beobachtungen und $p$ die Anzahl der Prädiktoren; s. Witten et al. (2013), S. 75 (eq. 3.23).
+
+
+Man kann diese Formel verwenden, um die Residualstreuung eines einfacheren Modells ($RSS_0$) im Vergleich zu einem "verschachtelteren" (komplexeren) Modells ($RSS$) zu vergleichen:
+
+$$F =\frac{(RSS_0-RSS)/p}{RSS/(n-p-1)}$$
+
+s. Witten et al. (2013), S. 77 (eq. 3.24).
+
+
+Genau das wird mit `anova()` angezeigt.
+
+
+`m1` und `m2` sind nicht ineinander verschachtelt; `m2` ist genau komplex wie `m1`; daher wird hier kein Test durchgeführt bzw. würden keine Koeffizienten von `anova()` ausgegeben.
+
+
+
+# Modellselektion (Modellwahl) -- Prädiktion
+
+
+```{r}
+modellist <- list(m0, m1, m2, m3, m4, m5, m6, forward)
+```
+
+
+```{r error = TRUE}
+model_preds <- modellist %>% 
+  map( ~ predict(., movies2_test))
+```
+
+
+Mit `map()` wird die angegebene Funktion -- `predict()` auf jedes Element von `modellist` "gemapt", zugeordnet oder angewendet also.
+
+Oh, uns fehlen noch die Transformationen im Test-Sample...
+
+
+```{r}
+movies2_test %>% 
+  mutate(votes_log10 = log10(votes)) -> movies2_test
+```
+
+
+Noch einmal:
+
+```{r error = TRUE}
+model_preds <- modellist %>% 
+  map_dfc( ~ predict(., movies2_test))
+```
+
+
+Schauen wir uns das Ergebnisobjekt an: 
+
+```{r}
+glimpse(model_preds)
+```
+
+Eine Tabelle mit 8 Spalten Jede dieser 8 Spalten sind die Vorhersagen für eines der Modelle. Wie gut wohl jeweils die Vorhersagen sind?
+
+
+Geben wir zuerst schönere Namen an die Spalten:
+
+```{r}
+col_names <- paste0("model", 1:8)
+names(model_preds) <- col_names
+```
+
+
+
+Fügen wir zunächst die wahren Beurteilungswerte zur Tabelle mit den Vorhersagen hinzu:
+
+
+```{r}
+model_preds %>% 
+  bind_cols(select(movies2_test, rating)) -> model_preds
+```
+
+
+```{r}
+metrics(model_preds, truth = rating, estimate = model2)
+```
+
+
+```{r}
+metrics(model_preds, truth = rating, estimate = model3)
+```
+
+
+# Hm
+
+
+Wie kommt man jetzt elegant zu dem Modell mit den besten Modellkoeffizienten?
