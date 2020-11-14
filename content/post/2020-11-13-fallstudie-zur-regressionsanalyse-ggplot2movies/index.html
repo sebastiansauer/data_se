@@ -31,7 +31,9 @@ library(cowplot)  # Um mehrere Diagramme zusammenzufügen
 
 library(corrr)  # Korrelationsmatrizen
 
-library(yardstick)  # Modellgüte berechnen</code></pre>
+library(yardstick)  # Modellgüte berechnen
+
+library(ggfortify)  # Autoplot für Modellannahmen</code></pre>
 <p>Denken Sie daran, dass Pakete (einmalig) installiert sein müssen, bevor Sie sie laden können (mittels <code>library()</code>).</p>
 </div>
 <div id="daten-laden" class="section level1">
@@ -759,6 +761,56 @@ dim(movies2_train)
 #&gt; 1         0             0  1.55        NA      NA    NA -6734. 13472. 13484.
 #&gt; # … with 3 more variables: deviance &lt;dbl&gt;, df.residual &lt;int&gt;, nobs &lt;int&gt;</code></pre>
 <p><span class="math inline">\(R^2\)</span> ist hier per Definition gleich Null.</p>
+<p>Die Struktur des <code>lm-</code>Objekts kann man sich so anschauen:</p>
+<pre><code>#&gt; List of 11
+#&gt;  $ coefficients : Named num 6.13
+#&gt;   ..- attr(*, &quot;names&quot;)= chr &quot;(Intercept)&quot;
+#&gt;  $ residuals    : Named num [1:3629] -4.529 -1.329 -2.429 0.571 -0.529 ...
+#&gt;   ..- attr(*, &quot;names&quot;)= chr [1:3629] &quot;2&quot; &quot;3&quot; &quot;4&quot; &quot;5&quot; ...
+#&gt;  $ effects      : Named num [1:3629] -369.226 -1.255 -2.355 0.645 -0.455 ...
+#&gt;   ..- attr(*, &quot;names&quot;)= chr [1:3629] &quot;(Intercept)&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+#&gt;  $ rank         : int 1
+#&gt;  $ fitted.values: Named num [1:3629] 6.13 6.13 6.13 6.13 6.13 ...
+#&gt;   ..- attr(*, &quot;names&quot;)= chr [1:3629] &quot;2&quot; &quot;3&quot; &quot;4&quot; &quot;5&quot; ...
+#&gt;  $ assign       : int 0
+#&gt;  $ qr           :List of 5
+#&gt;   ..$ qr   : num [1:3629, 1] -60.2412 0.0166 0.0166 0.0166 0.0166 ...
+#&gt;   .. ..- attr(*, &quot;dimnames&quot;)=List of 2
+#&gt;   .. .. ..$ : chr [1:3629] &quot;2&quot; &quot;3&quot; &quot;4&quot; &quot;5&quot; ...
+#&gt;   .. .. ..$ : chr &quot;(Intercept)&quot;
+#&gt;   .. ..- attr(*, &quot;assign&quot;)= int 0
+#&gt;   ..$ qraux: num 1.02
+#&gt;   ..$ pivot: int 1
+#&gt;   ..$ tol  : num 1e-07
+#&gt;   ..$ rank : int 1
+#&gt;   ..- attr(*, &quot;class&quot;)= chr &quot;qr&quot;
+#&gt;  $ df.residual  : int 3628
+#&gt;  $ call         : language lm(formula = rating ~ 1, data = movies2_train)
+#&gt;  $ terms        :Classes &#39;terms&#39;, &#39;formula&#39;  language rating ~ 1
+#&gt;   .. ..- attr(*, &quot;variables&quot;)= language list(rating)
+#&gt;   .. ..- attr(*, &quot;factors&quot;)= int(0) 
+#&gt;   .. ..- attr(*, &quot;term.labels&quot;)= chr(0) 
+#&gt;   .. ..- attr(*, &quot;order&quot;)= int(0) 
+#&gt;   .. ..- attr(*, &quot;intercept&quot;)= int 1
+#&gt;   .. ..- attr(*, &quot;response&quot;)= int 1
+#&gt;   .. ..- attr(*, &quot;.Environment&quot;)=&lt;environment: R_GlobalEnv&gt; 
+#&gt;   .. ..- attr(*, &quot;predvars&quot;)= language list(rating)
+#&gt;   .. ..- attr(*, &quot;dataClasses&quot;)= Named chr &quot;numeric&quot;
+#&gt;   .. .. ..- attr(*, &quot;names&quot;)= chr &quot;rating&quot;
+#&gt;  $ model        :&#39;data.frame&#39;:   3629 obs. of  1 variable:
+#&gt;   ..$ rating: num [1:3629] 1.6 4.8 3.7 6.7 5.6 3.3 7.8 5.8 4.7 8.7 ...
+#&gt;   ..- attr(*, &quot;terms&quot;)=Classes &#39;terms&#39;, &#39;formula&#39;  language rating ~ 1
+#&gt;   .. .. ..- attr(*, &quot;variables&quot;)= language list(rating)
+#&gt;   .. .. ..- attr(*, &quot;factors&quot;)= int(0) 
+#&gt;   .. .. ..- attr(*, &quot;term.labels&quot;)= chr(0) 
+#&gt;   .. .. ..- attr(*, &quot;order&quot;)= int(0) 
+#&gt;   .. .. ..- attr(*, &quot;intercept&quot;)= int 1
+#&gt;   .. .. ..- attr(*, &quot;response&quot;)= int 1
+#&gt;   .. .. ..- attr(*, &quot;.Environment&quot;)=&lt;environment: R_GlobalEnv&gt; 
+#&gt;   .. .. ..- attr(*, &quot;predvars&quot;)= language list(rating)
+#&gt;   .. .. ..- attr(*, &quot;dataClasses&quot;)= Named chr &quot;numeric&quot;
+#&gt;   .. .. .. ..- attr(*, &quot;names&quot;)= chr &quot;rating&quot;
+#&gt;  - attr(*, &quot;class&quot;)= chr &quot;lm&quot;</code></pre>
 </div>
 <div id="modell-1-budget_log10" class="section level1">
 <h1>Modell 1: <code>budget_log10</code></h1>
@@ -813,7 +865,7 @@ dim(movies2_train)
   labs(title = &quot;Datensatz: movies2_train&quot;)
 
 p1</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-49-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-50-1.png" width="100%" style="display: block; margin: auto;" /></p>
 <p>Ein ggplot-Diagramm ist auch nur ein Objekt, wie jedes andere R-Objekt auch. Daher kann man es auch in einer Variablen speichern. Ruft man diese Variable (<code>p1</code>, p wie plot) auf, so wird das Diagramm gezeigt.</p>
 <p>Oha! Das ist richtig schön schief.</p>
 <p>Vergleichen wir mal, ob es Unterschiede in der Verteilung gibt, in den verschiedenen Varianten des Datensatzes.</p>
@@ -828,18 +880,18 @@ p3 &lt;- movies2_test %&gt;%
   labs(title = &quot;Datensatz: movies2_test&quot;)</code></pre>
 <p>Möchte man mehrere Plots zusammenfügen, so kann man das so tun:</p>
 <pre class="r"><code>plot_grid(p1, p2, p3)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-51-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-52-1.png" width="100%" style="display: block; margin: auto;" /></p>
 <p>Betrachten wir das Streudiagramm:</p>
 <pre class="r"><code>movies2_train %&gt;% 
   ggplot(aes(x = votes, y = rating)) +
   geom_point()</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-52-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-53-1.png" width="100%" style="display: block; margin: auto;" /></p>
 <p>Die Schiefe kann man als Anlass sehen, <code>votes</code> zu logarithmieren.</p>
 <pre class="r"><code>movies2_train %&gt;% 
   ggplot(aes(x = log10(votes), y = rating)) +
   geom_point(alpha = .4) +
   geom_smooth(method = &quot;lm&quot;)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-53-1.png" width="100%" style="display: block; margin: auto;" />
+<p><img src="index_files/figure-html/unnamed-chunk-54-1.png" width="100%" style="display: block; margin: auto;" />
 Hier haben wir gleich eine Regressionsgerade in den Punkteschwarm gelegt.</p>
 <p>Eine Variante:</p>
 <pre class="r"><code>movies2_train %&gt;% 
@@ -847,7 +899,7 @@ Hier haben wir gleich eine Regressionsgerade in den Punkteschwarm gelegt.</p>
   geom_point(alpha = .2) +
   geom_smooth(method = &quot;lm&quot;, color = &quot;red&quot;) +
   geom_density_2d()</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-54-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-55-1.png" width="100%" style="display: block; margin: auto;" /></p>
 </div>
 <div id="modell-2-anzahl-der-stimmen-linear" class="section level1">
 <h1>Modell 2: Anzahl der Stimmen, linear</h1>
@@ -901,7 +953,7 @@ glance(m2)
   geom_point(alpha = .2) +
   geom_smooth(method = &quot;lm&quot;, se = FALSE,
                 formula = y ~ poly(x, 2))</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-60-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-61-1.png" width="100%" style="display: block; margin: auto;" /></p>
 </div>
 <div id="modell-4-anzahl-der-stimmen-als-polynomialmodell-3.-grades" class="section level1">
 <h1>Modell 4: Anzahl der Stimmen als Polynomialmodell, 3. Grades</h1>
@@ -911,7 +963,7 @@ glance(m2)
   geom_point(alpha = .2) +
   geom_smooth(method = &quot;lm&quot;, se = FALSE,
                 formula = y ~ poly(x, 3))</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-61-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-62-1.png" width="100%" style="display: block; margin: auto;" /></p>
 <p>Sieht nicht viel besser aus. Da ist einfach viel Rauschen in den Daten, scheint’s.</p>
 <pre class="r"><code>m4 &lt;- lm(rating ~ poly(votes_log10, degree = 3), 
          data = movies2_train)</code></pre>
@@ -1005,7 +1057,7 @@ fashion(movies_corr)
 </ul>
 <p>Visualisieren wir noch die Korrelationsmatrix:</p>
 <pre class="r"><code>rplot(movies_corr)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-66-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-67-1.png" width="100%" style="display: block; margin: auto;" /></p>
 </div>
 <div id="modell-5-multiple-regression" class="section level1">
 <h1>Modell 5: Multiple Regression</h1>
@@ -1026,7 +1078,7 @@ fashion(movies_corr)
 <p>In diesem Modell sind 3 Variablen involviert. Eine Visualisierung ist hier schon schwierig. <a href="https://data-se.netlify.app/2019/10/21/some-ways-for-plotting-3d-linear-models/">Hier</a> finden sich dazu einige Anregungen.</p>
 <p>Das könnte eine Möglichkeit sein:</p>
 <pre class="r"><code>rsm::contour.lm(m5, votes_log10 ~ budget_log10, image = TRUE)</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-70-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-71-1.png" width="100%" style="display: block; margin: auto;" /></p>
 <p>Die Farbe gibt die “Höhe” des Wertes in der Output-Variablen wider.</p>
 </div>
 <div id="modell-6-interaktionsmodell" class="section level1">
@@ -1199,5 +1251,10 @@ names(model_preds) &lt;- col_names</code></pre>
   ggplot() +
   aes(x = reorder(model, -rmse), y = rmse) +
   geom_point()</code></pre>
-<p><img src="index_files/figure-html/unnamed-chunk-89-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p><img src="index_files/figure-html/unnamed-chunk-90-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="prüfung-der-voraussetzungen" class="section level1">
+<h1>Prüfung der Voraussetzungen</h1>
+<pre class="r"><code>ggplot2::autoplot(forward) + theme_minimal()</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-91-1.png" width="100%" style="display: block; margin: auto;" /></p>
 </div>
