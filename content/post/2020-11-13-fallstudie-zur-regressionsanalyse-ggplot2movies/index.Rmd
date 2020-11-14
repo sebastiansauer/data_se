@@ -72,6 +72,15 @@ data("movies")
 ```
 
 
+*Alternativ* kann man die Daten auch aus einer Datei einlesen:
+
+
+```{r}
+movies <- read.csv("https://vincentarelbundock.github.io/Rdatasets/csv/ggplot2movies/movies.csv")
+```
+
+
+(Tipp: [Diese Webseite](https://vincentarelbundock.github.io/Rdatasets/articles/data.html) speichert viele Datensätze.)
 
 Werfen wir einen ersten Blick in die Daten, um zu sehen, dass sie korrekt in R importiert wurden:
 
@@ -118,12 +127,24 @@ Es könnte sein, dass Sie in dieser Fallstudie auf Ideen (oder R-Syntax) treffen
 skim(movies)
 ```
 
+Der `skim`-Befehl zeigt uns auch die fehlenden Werte an.
 
 
 # Fehlende Werte
 
-Wichtig sind oft die Anzahl der fehlenden Werte, darum schauen wir da noch einmal genauer hin.
+Wichtig sind oft die Anzahl der fehlenden Werte, darum schauen wir da noch einmal genauer hin (wobei wir das oben mit `skim()` eigentlich auch schon gesehen haben).
 
+
+Man könnte jetzt für jede Spalte nach der Anzahl von `NA` suchen:
+
+```{r}
+movies %>% 
+  summarise(budget_na = sum(is.na(budget))) 
+```
+
+
+
+Oder gleich über alle Spalten hinweg suchen:
 
 ```{r}
 movies %>% 
@@ -186,6 +207,31 @@ ggplot(aes(x = rating)) +
 Das Rating ist relativ normalverteilt. Das ist kaum überraschend, denn das Antwortformat von 1-10 erlaubt kaum Extremwerte und suggeriert damit eine Mitte. Ob damit die echte, psychologische Dimension "wie gut finde ich den Film" ("Gefallen") gemessen wird, steht auf einem anderen Blatt. Etwas Skepsis ist berechtigt. Wenn aber unsere Operationalisierung von *Gefallen* supoptimal ist, also verrauscht, so brauchen wir nicht erwarten, dass unsere Vorhersagen spitze sein werden.
 
 
+# Verteilung der Input-Variablen
+
+So könnte man alle Verteilungen mit einem Aufruf darstellen:
+```{r fig.asp=4}
+movies %>% 
+  mutate(across(where(is.integer), as.numeric)) %>%  # Integervariable als numerisch deklarieren
+  select(where(is.numeric)) %>%  # alle numerischen Variablen auswählen
+  pivot_longer(everything(), names_to = "variable") %>%  # auf langes Format pivotieren
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(~ variable, scales = "free")
+
+```
+
+
+
+Oder so:
+
+```{r eval = FALSE}
+movies %>% 
+  mutate(across(where(is.integer), as.numeric)) %>% 
+  select(where(is.numeric)) %>% 
+  map( ~ {ggplot(movies, aes(x = .)) + geom_density()})
+```
+
 
 # Explorative Analyse
 
@@ -221,10 +267,19 @@ movies2 %>%
 ```
 
 
-Betrachten wir das Streudiagramm noch einmal. Bei der Gelegenheit fügen wir einen "rollenden Mittelwert" hinzu ("Smoother"). Und wir ergänzen die univariaten Verteilungen der beiden Variablen.
+Logarithmiert man die Zahl 0, so kommt `-Inf` heraus. Das ist keine Zahl und macht daher Problmee. Darum müssen wir uns noch kümmern.
 
 ```{r}
 movies2 %>% 
+  filter(!is.nan(budget_log10)) %>% 
+  filter(!is.infinite(budget_log10)) -> movies2a
+```
+
+
+Betrachten wir das Streudiagramm noch einmal. Bei der Gelegenheit fügen wir einen "rollenden Mittelwert" hinzu ("Smoother"). Und wir ergänzen die univariaten Verteilungen der beiden Variablen.
+
+```{r}
+movies2a %>% 
   ggplot() + 
   aes(x = budget_log10, y = rating) +
   geom_point(alpha = .2) +
@@ -241,7 +296,7 @@ Die univariate Verteilung wird nur schlecht verdeutlicht durch die "Striche" auf
 
 
 ```{r}
-movies2 %>% 
+movies2a %>% 
   ggscatterstats(x = budget_log10, y = rating)
 ```
 
@@ -262,7 +317,7 @@ Dazu müssen wir den Datensatz umbauen.
 
 
 ```{r}
-movies2 %>% 
+movies2a %>% 
   select(budget_log10, rating, Action:Short) %>% 
   pivot_longer(cols = Action:Short, names_to = "genre") -> movies2_long
 ```
@@ -274,12 +329,14 @@ Den Zusammenhang teilen wir nach Genre auf, denn das ist die Frage, die wir gera
 
 ```{r}
 movies2_long %>% 
+  filter(value == 1) %>% 
   ggplot() +
   aes(x = budget_log10, y = rating) +
   geom_bin2d() +
   facet_wrap(~ genre) +
   geom_smooth() +
   scale_fill_viridis_c()
+
 ```
 
 
@@ -289,6 +346,19 @@ Mit `scale_fill_viridis_c()` haben wir noch ein schickeres Farbschema ausgewähl
 
 👉 Insgesamt scheinen die Zusammenhänge in allen Genres ähnlich zu sein. Das heißt mit anderen Worten, dass wir keine/kaum Evidenz gefunden haben (in dieser Analyse), dass `genre` den Zusammenhang von Budget und Rating moderieren würde.
 
+
+
+
+# Korrelation zwischen den Gruppen
+
+
+```{r}
+movies2_long %>%
+  filter(value == 1) %>% 
+  drop_na(budget_log10, rating) %>% 
+  group_by(genre) %>% 
+  summarise(cor_group = cor(budget_log10, rating))
+```
 
 
 # Einfluss von Genre
@@ -305,7 +375,18 @@ movies2_long %>%
   geom_boxplot()
 ```
 
-Nada. Da scheint's keine (starken) statistische Abhängigkeiten zu geben.
+```{r}
+movies2_long %>% 
+  filter(value == 1) %>% 
+  drop_na(rating, genre) %>% 
+  group_by(genre) %>% 
+  summarise(rating_group_md = median(rating))
+```
+
+
+
+
+Da scheint's keine (starken) statistischen Abhängigkeiten zu geben.
 
 
 
@@ -316,8 +397,8 @@ Die Variable zum Titel ist ohne weitere Bearbeitung kaum nützlich (Stichwort "F
 
 
 ```{r}
-movies2 %>% 
-  select(-title) -> movies2
+movies2a %>% 
+  select(-title) -> movies2a
 ```
 
 
@@ -325,8 +406,8 @@ Um die Fallstudie einfach zu halten, entfernen wir auch die Bewertungsperzentil-
 
 
 ```{r}
-movies2 %>% 
-  select(-c(r1:r10)) -> movies2
+movies2a %>% 
+  select(-c(r1:r10)) -> movies2a
 ```
 
 
@@ -335,7 +416,7 @@ Die Variable `mpaa` sieht auch komisch aus. Wie viele unterschiedliche (distinkt
 
 
 ```{r}
-movies2 %>% 
+movies2a %>% 
   summarise(n_distinct(mpaa))
 ```
 
@@ -345,7 +426,7 @@ Fünf.
 Und wie viele fehlende Werte?
 
 ```{r}
-movies2 %>% 
+movies2a %>% 
   summarise(sum(is.na(mpaa)))
 ```
 
@@ -354,7 +435,7 @@ Moment, ich habe doch viele leere Zellen gesehen ... Vielleicht so:
 
 
 ```{r}
-movies2 %>% 
+movies2a %>% 
   filter(mpaa == "") %>% 
   nrow() / nrow(movies)
 ```
@@ -364,8 +445,8 @@ movies2 %>%
 
 
 ```{r}
-movies2 %>% 
-  select(-mpaa) -> movies2
+movies2a %>% 
+  select(-mpaa) -> movies2a
 ```
 
 
@@ -379,7 +460,7 @@ Vielen Modelle können keine fehlenden Werte verdauen; daher entfernen wir hier 
 
 
 ```{r}
-movies2 %>% 
+movies2a %>% 
   drop_na() -> movies2_nona  # "no NA" soll das heißen
 ```
 
