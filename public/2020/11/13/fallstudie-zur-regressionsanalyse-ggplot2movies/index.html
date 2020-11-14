@@ -1210,7 +1210,57 @@ names(model_preds) &lt;- col_names</code></pre>
 </div>
 <div id="hm" class="section level1">
 <h1>Hm</h1>
-<p>Wie kommt man jetzt elegant zu dem Modell mit den besten Modellkoeffizienten?</p>
+<p>Wie kommt man jetzt elegant zu dem Modell mit den besten Modellkoeffizienten? Jemand eine gute Idee?</p>
+</div>
+<div id="vielleicht-so-vergleich-der-modellgüten" class="section level1">
+<h1>Vielleicht so: Vergleich der Modellgüten</h1>
+<p>Hier ist eine Funktion, die die Modellgüten berechnet:</p>
+<pre class="r"><code>get_rmse &lt;- function(est) {
+  
+  rmse &lt;- sqrt(mean((model_preds$rating - est)^2))
+}</code></pre>
+<p>Die Funktion fässt einen Vektor zu einem Skalar zusammen, kann also gut mit <code>summarise()</code> verwendet werden.</p>
+<p>Wir wenden die Funktion über alle Spalten hinweg (<code>across everything</code>) an:</p>
+<pre class="r"><code>model_preds %&gt;% 
+  summarise(across(everything(), get_rmse)) -&gt; model_rmse</code></pre>
+<pre class="r"><code>knitr::kable(model_rmse)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">model1</th>
+<th align="right">model2</th>
+<th align="right">model3</th>
+<th align="right">model4</th>
+<th align="right">model5</th>
+<th align="right">model6</th>
+<th align="right">model7</th>
+<th align="right">model8</th>
+<th align="right">rating</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1.534907</td>
+<td align="right">1.530248</td>
+<td align="right">1.521506</td>
+<td align="right">1.433102</td>
+<td align="right">1.426455</td>
+<td align="right">1.46002</td>
+<td align="right">1.439986</td>
+<td align="right">1.299784</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>model_rmse %&gt;% 
+  pivot_longer(cols = everything(), 
+               names_to = &quot;model&quot;, 
+               values_to = &quot;rmse&quot;) %&gt;%
+  filter(model != &quot;rating&quot;) %&gt;% 
+  ggplot() +
+  aes(x = reorder(model, -rmse), y = rmse) +
+  geom_point()</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-89-1.png" width="100%" style="display: block; margin: auto;" /></p>
 </div>
 
     </div>
