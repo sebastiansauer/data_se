@@ -1067,8 +1067,52 @@ metrics(model_preds, truth = rating, estimate = model3)
 # Hm
 
 
-Wie kommt man jetzt elegant zu dem Modell mit den besten Modellkoeffizienten?
+Wie kommt man jetzt elegant zu dem Modell mit den besten Modellkoeffizienten? Jemand eine gute Idee?
 
+
+
+# Vielleicht so: Vergleich der Modellgüten
+
+
+
+Hier ist eine Funktion, die die Modellgüten berechnet:
+
+
+```{r}
+get_rmse <- function(est) {
+  
+  rmse <- sqrt(mean((model_preds$rating - est)^2))
+}
+
+```
+
+
+
+Die Funktion fässt einen Vektor zu einem Skalar zusammen, kann also gut mit `summarise()` verwendet werden.
+
+Wir wenden die Funktion über alle Spalten hinweg (`across everything`) an:
+
+
+```{r}
+model_preds %>% 
+  summarise(across(everything(), get_rmse)) -> model_rmse
+```
+
+
+```{r}
+knitr::kable(model_rmse)
+```
+
+```{r}
+model_rmse %>% 
+  pivot_longer(cols = everything(), 
+               names_to = "model", 
+               values_to = "rmse") %>%
+  filter(model != "rating") %>% 
+  ggplot() +
+  aes(x = reorder(model, -rmse), y = rmse) +
+  geom_point()
+```
 
 
 
