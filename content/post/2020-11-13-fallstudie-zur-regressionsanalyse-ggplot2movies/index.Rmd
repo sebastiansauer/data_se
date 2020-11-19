@@ -341,8 +341,16 @@ Dazu müssen wir den Datensatz umbauen.
 ```{r}
 movies2a %>% 
   select(budget_log10, rating, Action:Short) %>% 
-  pivot_longer(cols = Action:Short, names_to = "genre") -> movies2_long
+  pivot_longer(cols = Action:Short, 
+               names_to = "genre") %>% 
+  filter(value == 1) -> movies2_long
 ```
+
+
+Mit `pivot_longer()` pivotieren wir den Datensatz von der Breit- in die Langform (letzere wird auch als *tidy* bezeichnet).
+
+Mit `filter(value == 1)` filtern wir nur die Fälle, die einem Genre zugehören. Probieren Sie mal aus, was passiert, wenn Sie diese Zeile löschen.
+
 
 
 Anstelle von Punkten stellen wir jetzt den Zusammenhang mit "Fliesen" dar. Je heller die Fliese, desto mehr Punkte finden sich an dieser Stelle.
@@ -351,7 +359,6 @@ Den Zusammenhang teilen wir nach Genre auf, denn das ist die Frage, die wir gera
 
 ```{r}
 movies2_long %>% 
-  filter(value == 1) %>% 
   ggplot() +
   aes(x = budget_log10, y = rating) +
   geom_bin2d() +
@@ -362,9 +369,7 @@ movies2_long %>%
 ```
 
 
-Mit `scale_fill_viridis_c()` haben wir noch ein schickeres Farbschema ausgewählt.
-
-🏋️ Lassen Sie mal diese Zeile weg und vergleichen Sie das Ergebnis.
+Mit `scale_fill_viridis_c()` haben wir noch ein schickeres Farbschema ausgewählt. 🏋️ Lassen Sie mal diese Zeile weg und vergleichen Sie das Ergebnis.
 
 👉 Insgesamt scheinen die Zusammenhänge in allen Genres ähnlich zu sein. Das heißt mit anderen Worten, dass wir keine/kaum Evidenz gefunden haben (in dieser Analyse), dass `genre` den Zusammenhang von Budget und Rating moderieren würde.
 
@@ -376,7 +381,6 @@ Mit `scale_fill_viridis_c()` haben wir noch ein schickeres Farbschema ausgewähl
 
 ```{r}
 movies2_long %>%
-  filter(value == 1) %>% 
   drop_na(budget_log10, rating) %>% 
   group_by(genre) %>% 
   summarise(cor_group = cor(budget_log10, rating))
