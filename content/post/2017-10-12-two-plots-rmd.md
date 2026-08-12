@@ -147,7 +147,8 @@ No avail. Looking at the html code in the md-file which is produced by the knitr
 # Plain markdown works
 
 Try this code
-```![](https://sebastiansauer.github.io/images/2017-10-12/img1.png){ width=30% } ![](https://sebastiansauer.github.io/images/2017-10-12/img2.png){ width=40% }
+```
+![](https://sebastiansauer.github.io/images/2017-10-12/img1.png){ width=30% } ![](https://sebastiansauer.github.io/images/2017-10-12/img2.png){ width=40% }
 ```
 The two commands `![]...` need not appear in one row. However, no new paragraph may separate them (no blank line between, otherwise the images will appear one below the other).
 
