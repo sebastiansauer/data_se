@@ -1,0 +1,462 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Fallstudie zur Regressionsanalyse -- ggplot2movies - Data Se</title>
+<meta property="og:title" content="Fallstudie zur Regressionsanalyse -- ggplot2movies - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>27 min read</span><h1 class=article-title>Fallstudie zur Regressionsanalyse -- ggplot2movies</h1><span class=article-date>2020/11/13</span><div class=article-content><div id=pakete-laden class="section level1"><h1>Pakete laden</h1><p>Mit dem Paket <code>tidyverse</code> laden wir die gängigen “Datenjudo-Befehle”. Außerdem die Befehle zur Datenvisualisierung (d.h. das Paket <code>ggplot2</code> wird geladen).</p><pre class=r><code>library(tidyverse)
+
+library(broom)  # Überführt in Dataframes
+
+library(skimr)  # Gibt Überblick über deskriptive Statistiken
+
+library(ggstatsplot)  # schickeres Streudiagramm
+
+library(rsample)   # for data splitting
+
+library(cowplot)  # Um mehrere Diagramme zusammenzufügen
+
+library(corrr)  # Korrelationsmatrizen
+
+library(yardstick)  # Modellgüte berechnen
+
+library(ggfortify)  # Autoplot für Modellannahmen</code></pre><p>Denken Sie daran, dass Pakete (einmalig) installiert sein müssen, bevor Sie sie laden können (mittels <code>library()</code>).</p></div><div id=daten-laden class="section level1"><h1>Daten laden</h1><p>Die Daten dieser Fallstudie “wohnen” in diesem Paket:</p><pre class=r><code>library(ggplot2movies)</code></pre><p><a href=https://rdrr.io/cran/ggplot2movies/man/movies.html>Hier</a> finden Sie einige Erklärung zu dem Datensatz.</p><p>Um die Daten (aus einem geladenen Paket) zu laden, verwenden wir den Befehl <code>data()</code>:</p><pre class=r><code>data(&quot;movies&quot;)</code></pre><p><em>Alternativ</em> könnten Sie die Daten mit <code>read.csv()</code> einlesen, z.B. von einem Server oder aber von Ihrem Computer.</p><pre class=r><code>movies &lt;- read.csv(&quot;https://vincentarelbundock.github.io/Rdatasets/csv/ggplot2movies/movies.csv&quot;)</code></pre><p>(Tipp: <a href=https://vincentarelbundock.github.io/Rdatasets/articles/data.html>Diese Webseite</a> speichert viele Datensätze.)</p><p>Werfen wir einen ersten Blick in die Daten, um zu sehen, dass sie korrekt in R importiert wurden:</p><pre class=r><code>glimpse(movies)
+#&gt; Rows: 58,788
+#&gt; Columns: 25
+#&gt; $ rownames    &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,…
+#&gt; $ title       &lt;chr&gt; &quot;$&quot;, &quot;$1000 a Touchdown&quot;, &quot;$21 a Day Once a Month&quot;, &quot;$40,0…
+#&gt; $ year        &lt;int&gt; 1971, 1939, 1941, 1996, 1975, 2000, 2002, 2002, 1987, 1917…
+#&gt; $ length      &lt;int&gt; 121, 71, 7, 70, 71, 91, 93, 25, 97, 61, 99, 96, 10, 10, 10…
+#&gt; $ budget      &lt;int&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA…
+#&gt; $ rating      &lt;dbl&gt; 6.4, 6.0, 8.2, 8.2, 3.4, 4.3, 5.3, 6.7, 6.6, 6.0, 5.4, 5.9…
+#&gt; $ votes       &lt;int&gt; 348, 20, 5, 6, 17, 45, 200, 24, 18, 51, 23, 53, 44, 11, 12…
+#&gt; $ r1          &lt;dbl&gt; 4.5, 0.0, 0.0, 14.5, 24.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4…
+#&gt; $ r2          &lt;dbl&gt; 4.5, 14.5, 0.0, 0.0, 4.5, 4.5, 0.0, 4.5, 4.5, 0.0, 0.0, 0.…
+#&gt; $ r3          &lt;dbl&gt; 4.5, 4.5, 0.0, 0.0, 0.0, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5, 4.5…
+#&gt; $ r4          &lt;dbl&gt; 4.5, 24.5, 0.0, 0.0, 14.5, 14.5, 4.5, 4.5, 0.0, 4.5, 14.5,…
+#&gt; $ r5          &lt;dbl&gt; 14.5, 14.5, 0.0, 0.0, 14.5, 14.5, 24.5, 4.5, 0.0, 4.5, 24.…
+#&gt; $ r6          &lt;dbl&gt; 24.5, 14.5, 24.5, 0.0, 4.5, 14.5, 24.5, 14.5, 0.0, 44.5, 4…
+#&gt; $ r7          &lt;dbl&gt; 24.5, 14.5, 0.0, 0.0, 0.0, 4.5, 14.5, 14.5, 34.5, 14.5, 24…
+#&gt; $ r8          &lt;dbl&gt; 14.5, 4.5, 44.5, 0.0, 0.0, 4.5, 4.5, 14.5, 14.5, 4.5, 4.5,…
+#&gt; $ r9          &lt;dbl&gt; 4.5, 4.5, 24.5, 34.5, 0.0, 14.5, 4.5, 4.5, 4.5, 4.5, 14.5,…
+#&gt; $ r10         &lt;dbl&gt; 4.5, 14.5, 24.5, 45.5, 24.5, 14.5, 14.5, 14.5, 24.5, 4.5, …
+#&gt; $ mpaa        &lt;chr&gt; &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;R&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;&quot;, &quot;…
+#&gt; $ Action      &lt;int&gt; 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0…
+#&gt; $ Animation   &lt;int&gt; 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1…
+#&gt; $ Comedy      &lt;int&gt; 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1…
+#&gt; $ Drama       &lt;int&gt; 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0…
+#&gt; $ Documentary &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0…
+#&gt; $ Romance     &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0…
+#&gt; $ Short       &lt;int&gt; 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 1…</code></pre><p>Sieht alles gut aus.</p><p>Die Namen der Variablen sind (wie so oft) nicht selbsterklärend. Werfen wir einen Blick in die Hilfe.</p><pre class=r><code>help(movies)</code></pre></div><div id=forschungsfrage class="section level1"><h1>Forschungsfrage</h1><ol style=list-style-type:decimal><li><p>Wie gut kann man den Erfolg eines Films vorhersagen? Als Erfolg definieren wir die Höhe der Beurteilung (<code>rating</code>).</p></li><li><p>Welche Faktoren sind nützlich für die Güte dieser Vorhersage?</p></li></ol></div><div id=ihre-salvatorische-klausel class="section level1"><h1>Ihre salvatorische Klausel</h1><p>Es könnte sein, dass Sie in dieser Fallstudie auf Ideen (oder R-Syntax) treffen, die Sie nicht kennen. Lassen Sie sich nicht davon ins Boxhorn jagen. Verarbeiten Sie einfach die Teile, die Sie verstehen. Diese Fallstudie soll kein Lehrtext zu den theoretischen Hintergründen sein; daher habe ich auf Erklärungen und Theorie weitgehend verzichtet. Hier geht es um das praktische Tun. Ich wünsche Ihnen viel Freude und Erkenntnisse!</p></div><div id=überblick-über-die-kennzahlen class="section level1"><h1>Überblick über die Kennzahlen</h1><pre class=r><code>skim(movies)</code></pre><table><caption><span id=tab:unnamed-chunk-6>Table 1: </span>Data summary</caption><tbody><tr class=odd><td align=left>Name</td><td align=left>movies</td></tr><tr class=even><td align=left>Number of rows</td><td align=left>58788</td></tr><tr class=odd><td align=left>Number of columns</td><td align=left>25</td></tr><tr class=even><td align=left>_______________________</td><td align=left></td></tr><tr class=odd><td align=left>Column type frequency:</td><td align=left></td></tr><tr class=even><td align=left>character</td><td align=left>2</td></tr><tr class=odd><td align=left>numeric</td><td align=left>23</td></tr><tr class=even><td align=left>________________________</td><td align=left></td></tr><tr class=odd><td align=left>Group variables</td><td align=left>None</td></tr></tbody></table><p><strong>Variable type: character</strong></p><table><col width=19%><col width=13%><col width=19%><col width=5%><col width=5%><col width=8%><col width=12%><col width=15%><thead><tr class=header><th align=left>skim_variable</th><th align=right>n_missing</th><th align=right>complete_rate</th><th align=right>min</th><th align=right>max</th><th align=right>empty</th><th align=right>n_unique</th><th align=right>whitespace</th></tr></thead><tbody><tr class=odd><td align=left>title</td><td align=right>0</td><td align=right>1</td><td align=right>1</td><td align=right>121</td><td align=right>0</td><td align=right>56007</td><td align=right>0</td></tr><tr class=even><td align=left>mpaa</td><td align=right>0</td><td align=right>1</td><td align=right>0</td><td align=right>5</td><td align=right>53864</td><td align=right>5</td><td align=right>0</td></tr></tbody></table><p><strong>Variable type: numeric</strong></p><table><col width=11%><col width=8%><col width=11%><col width=10%><col width=10%><col width=4%><col width=8%><col width=8%><col width=10%><col width=10%><col width=5%><thead><tr class=header><th align=left>skim_variable</th><th align=right>n_missing</th><th align=right>complete_rate</th><th align=right>mean</th><th align=right>sd</th><th align=right>p0</th><th align=right>p25</th><th align=right>p50</th><th align=right>p75</th><th align=right>p100</th><th align=left>hist</th></tr></thead><tbody><tr class=odd><td align=left>rownames</td><td align=right>0</td><td align=right>1.00</td><td align=right>29394.50</td><td align=right>16970.78</td><td align=right>1</td><td align=right>14697.75</td><td align=right>29394.5</td><td align=right>44091.25</td><td align=right>58788.0</td><td align=left>▇▇▇▇▇</td></tr><tr class=even><td align=left>year</td><td align=right>0</td><td align=right>1.00</td><td align=right>1976.13</td><td align=right>23.74</td><td align=right>1893</td><td align=right>1958.00</td><td align=right>1983.0</td><td align=right>1997.00</td><td align=right>2005.0</td><td align=left>▁▁▃▃▇</td></tr><tr class=odd><td align=left>length</td><td align=right>0</td><td align=right>1.00</td><td align=right>82.34</td><td align=right>44.35</td><td align=right>1</td><td align=right>74.00</td><td align=right>90.0</td><td align=right>100.00</td><td align=right>5220.0</td><td align=left>▇▁▁▁▁</td></tr><tr class=even><td align=left>budget</td><td align=right>53573</td><td align=right>0.09</td><td align=right>13412513.25</td><td align=right>23350084.93</td><td align=right>0</td><td align=right>250000.00</td><td align=right>3000000.0</td><td align=right>15000000.00</td><td align=right>200000000.0</td><td align=left>▇▁▁▁▁</td></tr><tr class=odd><td align=left>rating</td><td align=right>0</td><td align=right>1.00</td><td align=right>5.93</td><td align=right>1.55</td><td align=right>1</td><td align=right>5.00</td><td align=right>6.1</td><td align=right>7.00</td><td align=right>10.0</td><td align=left>▁▃▇▆▁</td></tr><tr class=even><td align=left>votes</td><td align=right>0</td><td align=right>1.00</td><td align=right>632.13</td><td align=right>3829.62</td><td align=right>5</td><td align=right>11.00</td><td align=right>30.0</td><td align=right>112.00</td><td align=right>157608.0</td><td align=left>▇▁▁▁▁</td></tr><tr class=odd><td align=left>r1</td><td align=right>0</td><td align=right>1.00</td><td align=right>7.01</td><td align=right>10.94</td><td align=right>0</td><td align=right>0.00</td><td align=right>4.5</td><td align=right>4.50</td><td align=right>100.0</td><td align=left>▇▁▁▁▁</td></tr><tr class=even><td align=left>r2</td><td align=right>0</td><td align=right>1.00</td><td align=right>4.02</td><td align=right>5.96</td><td align=right>0</td><td align=right>0.00</td><td align=right>4.5</td><td align=right>4.50</td><td align=right>84.5</td><td align=left>▇▁▁▁▁</td></tr><tr class=odd><td align=left>r3</td><td align=right>0</td><td align=right>1.00</td><td align=right>4.72</td><td align=right>6.45</td><td align=right>0</td><td align=right>0.00</td><td align=right>4.5</td><td align=right>4.50</td><td align=right>84.5</td><td align=left>▇▁▁▁▁</td></tr><tr class=even><td align=left>r4</td><td align=right>0</td><td align=right>1.00</td><td align=right>6.37</td><td align=right>7.59</td><td align=right>0</td><td align=right>0.00</td><td align=right>4.5</td><td align=right>4.50</td><td align=right>100.0</td><td align=left>▇▁▁▁▁</td></tr><tr class=odd><td align=left>r5</td><td align=right>0</td><td align=right>1.00</td><td align=right>9.80</td><td align=right>9.73</td><td align=right>0</td><td align=right>4.50</td><td align=right>4.5</td><td align=right>14.50</td><td align=right>100.0</td><td align=left>▇▁▁▁▁</td></tr><tr class=even><td align=left>r6</td><td align=right>0</td><td align=right>1.00</td><td align=right>13.04</td><td align=right>10.98</td><td align=right>0</td><td align=right>4.50</td><td align=right>14.5</td><td align=right>14.50</td><td align=right>84.5</td><td align=left>▇▂▁▁▁</td></tr><tr class=odd><td align=left>r7</td><td align=right>0</td><td align=right>1.00</td><td align=right>15.55</td><td align=right>11.59</td><td align=right>0</td><td align=right>4.50</td><td align=right>14.5</td><td align=right>24.50</td><td align=right>100.0</td><td align=left>▇▃▁▁▁</td></tr><tr class=even><td align=left>r8</td><td align=right>0</td><td align=right>1.00</td><td align=right>13.88</td><td align=right>11.32</td><td align=right>0</td><td align=right>4.50</td><td align=right>14.5</td><td align=right>24.50</td><td align=right>100.0</td><td align=left>▇▃▁▁▁</td></tr><tr class=odd><td align=left>r9</td><td align=right>0</td><td align=right>1.00</td><td align=right>8.95</td><td align=right>9.44</td><td align=right>0</td><td align=right>4.50</td><td align=right>4.5</td><td align=right>14.50</td><td align=right>100.0</td><td align=left>▇▁▁▁▁</td></tr><tr class=even><td align=left>r10</td><td align=right>0</td><td align=right>1.00</td><td align=right>16.85</td><td align=right>15.65</td><td align=right>0</td><td align=right>4.50</td><td align=right>14.5</td><td align=right>24.50</td><td align=right>100.0</td><td align=left>▇▃▁▁▁</td></tr><tr class=odd><td align=left>Action</td><td align=right>0</td><td align=right>1.00</td><td align=right>0.08</td><td align=right>0.27</td><td align=right>0</td><td align=right>0.00</td><td align=right>0.0</td><td align=right>0.00</td><td align=right>1.0</td><td align=left>▇▁▁▁▁</td></tr><tr class=even><td align=left>Animation</td><td align=right>0</td><td align=right>1.00</td><td align=right>0.06</td><td align=right>0.24</td><td align=right>0</td><td align=right>0.00</td><td align=right>0.0</td><td align=right>0.00</td><td align=right>1.0</td><td align=left>▇▁▁▁▁</td></tr><tr class=odd><td align=left>Comedy</td><td align=right>0</td><td align=right>1.00</td><td align=right>0.29</td><td align=right>0.46</td><td align=right>0</td><td align=right>0.00</td><td align=right>0.0</td><td align=right>1.00</td><td align=right>1.0</td><td align=left>▇▁▁▁▃</td></tr><tr class=even><td align=left>Drama</td><td align=right>0</td><td align=right>1.00</td><td align=right>0.37</td><td align=right>0.48</td><td align=right>0</td><td align=right>0.00</td><td align=right>0.0</td><td align=right>1.00</td><td align=right>1.0</td><td align=left>▇▁▁▁▅</td></tr><tr class=odd><td align=left>Documentary</td><td align=right>0</td><td align=right>1.00</td><td align=right>0.06</td><td align=right>0.24</td><td align=right>0</td><td align=right>0.00</td><td align=right>0.0</td><td align=right>0.00</td><td align=right>1.0</td><td align=left>▇▁▁▁▁</td></tr><tr class=even><td align=left>Romance</td><td align=right>0</td><td align=right>1.00</td><td align=right>0.08</td><td align=right>0.27</td><td align=right>0</td><td align=right>0.00</td><td align=right>0.0</td><td align=right>0.00</td><td align=right>1.0</td><td align=left>▇▁▁▁▁</td></tr><tr class=odd><td align=left>Short</td><td align=right>0</td><td align=right>1.00</td><td align=right>0.16</td><td align=right>0.37</td><td align=right>0</td><td align=right>0.00</td><td align=right>0.0</td><td align=right>0.00</td><td align=right>1.0</td><td align=left>▇▁▁▁▂</td></tr></tbody></table><p>Der <code>skim</code>-Befehl zeigt uns auch die fehlenden Werte an.</p></div><div id=fehlende-werte class="section level1"><h1>Fehlende Werte</h1><p>Wichtig sind oft die Anzahl der fehlenden Werte, darum schauen wir da noch einmal genauer hin (wobei wir das oben mit <code>skim()</code> eigentlich auch schon gesehen haben).</p><p>Man könnte jetzt für jede Spalte nach der Anzahl von <code>NA</code> suchen:</p><pre class=r><code>movies %&gt;% 
+  summarise(budget_na = sum(is.na(budget))) 
+#&gt;   budget_na
+#&gt; 1     53573</code></pre><p>Oder gleich über alle Spalten hinweg suchen:</p><pre class=r><code>movies %&gt;% 
+  summarise(across(everything(), ~ sum(is.na(.))))
+#&gt;   rownames title year length budget rating votes r1 r2 r3 r4 r5 r6 r7 r8 r9 r10
+#&gt; 1        0     0    0      0  53573      0     0  0  0  0  0  0  0  0  0  0   0
+#&gt;   mpaa Action Animation Comedy Drama Documentary Romance Short
+#&gt; 1    0      0         0      0     0           0       0     0</code></pre><p>Der Code heißt sinngemäß etwa:</p><blockquote><p>Fasse zusammen (summarise) und zwar quer durch (across) alle Spalten (everything). Und zwar sollst du so zusammenfassen: Verwende die Funktion (~) “summiere alls fehlenden Werte (is.na)”</p></blockquote><p>Der Punkt bei <code>~ sum(is.na(.))</code> meint “alle angesprochenen Spalten”, in diesem Fall sind das alle.</p><p>Aha, beim Budget fehlen uns viele Informationen, eigentlich ein Großteil der Informationen:</p><pre class=r><code>53573/nrow(movies)
+#&gt; [1] 0.9112914</code></pre><p>Wir stehen also vor einer schwierigen Entscheidung: Wenn wir <code>budget</code> nutzen möchten, können wir ca. 91% der übrigen Variablen nicht für die Vorhersage nutzen.</p></div><div id=verteilung-der-output-variablen class="section level1"><h1>Verteilung der Output-Variablen</h1><p>Die Output-Variable ist die Variable, die uns besonders interessiert. Ihre Werte wollen wir vorhersagen. Grund genug, uns diese Variable genauer anzuschauen.</p><pre class=r><code>movies %&gt;% 
+  ggplot() +
+  aes(x = rating) +
+  geom_histogram()</code></pre><p><img src=index_files/figure-html/unnamed-chunk-10-1.png alt width=100% style=display:block;margin:auto></p><p>Übrigens kann man <code>aes()</code> auch in den <code>ggplot()</code>-Befehl wickeln:</p><pre class=r><code>movies %&gt;% 
+  ggplot(aes(x = rating)) +
+  geom_histogram()</code></pre><p><img src=index_files/figure-html/unnamed-chunk-11-1.png alt width=100% style=display:block;margin:auto></p><p>Das ist das gleiche Ergebnis wie darüber.</p><p>Nützlich ist auch, wenn man eine Dichtekurve über das Histogramm legt:</p><pre class=r><code>movies %&gt;% 
+ggplot(aes(x = rating)) + 
+  geom_histogram(aes(y = stat(density))) +
+  geom_density(col = &quot;red&quot;)</code></pre><p><img src=index_files/figure-html/unnamed-chunk-12-1.png alt width=100% style=display:block;margin:auto></p><p>Hier weisen wir der Y-Achse die Dichte (Wahrscheinlichkeit) der jeweiligen Werte auf der X-Achse (d.h. von Rating) zu. Das Histogramm soll also als “Balkenhöhen” der relativen Wahrscheinlichkeit der Balken entsprechen. Das ist im Prinzip das, was das Dichtediagramm zeigt.</p><p>Das Rating ist relativ normalverteilt. Das ist kaum überraschend, denn das Antwortformat von 1-10 erlaubt kaum Extremwerte und suggeriert damit eine Mitte. Ob damit die echte, psychologische Dimension “wie gut finde ich den Film” (“Gefallen”) gemessen wird, steht auf einem anderen Blatt. Etwas Skepsis ist berechtigt. Wenn aber unsere Operationalisierung von <em>Gefallen</em> supoptimal ist, also verrauscht, so brauchen wir nicht erwarten, dass unsere Vorhersagen spitze sein werden.</p></div><div id=verteilung-der-input-variablen class="section level1"><h1>Verteilung der Input-Variablen</h1><p>So könnte man alle Verteilungen mit einem Aufruf darstellen:</p><pre class=r><code>movies %&gt;% 
+  mutate(across(where(is.integer), as.numeric)) %&gt;%  # Integervariable als numerisch deklarieren
+  select(where(is.numeric)) %&gt;%  # alle numerischen Variablen auswählen
+  pivot_longer(everything(), names_to = &quot;variable&quot;) %&gt;%  # auf langes Format pivotieren
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(~ variable, scales = &quot;free&quot;)
+</code></pre><p><img src=index_files/figure-html/unnamed-chunk-13-1.png alt width=100% style=display:block;margin:auto></p><p>Auf Deutsch übersetzt:</p><blockquote><p>Hey R, nimm den Datensatz “movies” UN DANN<br>mutiere durch alle Spalten, wo die Variable vom Typ Integer ist, zum Typ numerisch UND DANN<br>wähle alle Spalten, wo sich der Typ numerisch findet UND DANN
+pivotiere die Tabelle ins Lang-Format UND DANN
+Eröffne einen GG-Plot UND DANN
+Male ein Histogramm UND DANN
+Male Facetten, nämlich für jede Variable eine.</p></blockquote><p>Oder so:</p><pre class=r><code>movies %&gt;% 
+  mutate(across(where(is.integer), as.numeric)) %&gt;% 
+  select(where(is.numeric)) %&gt;% 
+  map( ~ {ggplot(movies, aes(x = .)) + geom_density()})</code></pre></div><div id=explorative-analyse class="section level1"><h1>Explorative Analyse</h1><p>Hier sind beispielhaft einige explorativen Analysen dargestellt.</p><pre class=r><code>movies %&gt;% 
+  ggplot() + 
+  aes(x = budget, y = rating) +
+  geom_point(alpha = .2)</code></pre><p><img src=index_files/figure-html/unnamed-chunk-15-1.png alt width=100% style=display:block;margin:auto></p></div><div id=budget-logarithmieren class="section level1"><h1>Budget logarithmieren</h1><p>Man sieht eine deutliche Konzentration im unteren Budget-Bereich. Das spricht für eine Transformation, um den Bereich zu “strecken”.</p><pre class=r><code>movies %&gt;% 
+  mutate(budget_log10 = log10(budget)) -&gt; movies2</code></pre><p>Dafür entfernen wir jetzt die ursprüngliche Variable <code>budget</code>.</p><pre class=r><code>movies2 %&gt;% 
+  select(budget_log10, everything()) %&gt;%   # &quot;budget_log10&quot; als erste Spalte
+  select(-budget) -&gt; movies2</code></pre><p>Logarithmiert man die Zahl 0, so kommt <code>-Inf</code> heraus. Das ist keine Zahl und macht daher Probleme. Darum müssen wir uns noch kümmern.</p><pre class=r><code>movies2 %&gt;% 
+  filter(!is.nan(budget_log10)) %&gt;% 
+  filter(!is.infinite(budget_log10)) -&gt; movies2a</code></pre><p>Betrachten wir das Streudiagramm noch einmal. Bei der Gelegenheit fügen wir einen “rollenden Mittelwert” hinzu (“Smoother”). Und wir ergänzen die univariaten Verteilungen der beiden Variablen.</p><pre class=r><code>movies2a %&gt;% 
+  ggplot() + 
+  aes(x = budget_log10, y = rating) +
+  geom_point(alpha = .2) +
+  geom_smooth() +
+  geom_rug()</code></pre><p><img src=index_files/figure-html/unnamed-chunk-19-1.png alt width=100% style=display:block;margin:auto></p><p>Hier lässt sich vage ein linearer (schwacher) Trend erkennen.</p><p>Die univariate Verteilung wird nur schlecht verdeutlicht durch die “Striche” auf den Achsen (<code>geom_rug</code>). Hier müssen wir uns noch etwas Schöneres überlegen.</p><pre class=r><code>movies2a %&gt;% 
+  ggscatterstats(x = budget_log10, y = rating)</code></pre><p><img src=index_files/figure-html/unnamed-chunk-20-1.png alt width=100% style=display:block;margin:auto></p><p><a href=https://indrajeetpatil.github.io/ggstatsplot/articles/web_only/ggscatterstats.html>Hier</a> findet sich weitere Erklärung zu diesem Diagramm.</p><p>Vielleicht unterscheidet sich dieser Zusammenhang nach dem Genre?</p><p>Dazu müssen wir den Datensatz umbauen.</p></div><div id=datensatz-umbauen-pivotieren-moderierender-effekt-von-genre class="section level1"><h1>Datensatz umbauen (pivotieren): Moderierender Effekt von Genre</h1><pre class=r><code>movies2a %&gt;% 
+  select(budget_log10, rating, Action:Short) %&gt;% 
+  pivot_longer(cols = Action:Short, 
+               names_to = &quot;genre&quot;) %&gt;% 
+  filter(value == 1) -&gt; movies2_long</code></pre><p>Mit <code>pivot_longer()</code> pivotieren wir den Datensatz von der Breit- in die Langform (letzere wird auch als <em>tidy</em> bezeichnet).</p><p>Mit <code>filter(value == 1)</code> filtern wir nur die Fälle, die einem Genre zugehören. Probieren Sie mal aus, was passiert, wenn Sie diese Zeile löschen.</p><p>Anstelle von Punkten stellen wir jetzt den Zusammenhang mit “Fliesen” dar. Je heller die Fliese, desto mehr Punkte finden sich an dieser Stelle.</p><p>Den Zusammenhang teilen wir nach Genre auf, denn das ist die Frage, die wir gerade aufgeworfen hatten.</p><pre class=r><code>movies2_long %&gt;% 
+  ggplot() +
+  aes(x = budget_log10, y = rating) +
+  geom_bin2d() +
+  facet_wrap(~ genre) +
+  geom_smooth() +
+  scale_fill_viridis_c()
+</code></pre><p><img src=index_files/figure-html/unnamed-chunk-22-1.png alt width=100% style=display:block;margin:auto></p><p>Mit <code>scale_fill_viridis_c()</code> haben wir noch ein schickeres Farbschema ausgewählt. 🏋️ Lassen Sie mal diese Zeile weg und vergleichen Sie das Ergebnis.</p><p>👉 Insgesamt scheinen die Zusammenhänge in allen Genres ähnlich zu sein. Das heißt mit anderen Worten, dass wir keine/kaum Evidenz gefunden haben (in dieser Analyse), dass <code>genre</code> den Zusammenhang von Budget und Rating moderieren würde.</p></div><div id=korrelation-zwischen-den-gruppen class="section level1"><h1>Korrelation zwischen den Gruppen</h1><pre class=r><code>movies2_long %&gt;%
+  drop_na(budget_log10, rating) %&gt;% 
+  group_by(genre) %&gt;% 
+  summarise(cor_group = cor(budget_log10, rating))
+#&gt; # A tibble: 7 × 2
+#&gt;   genre       cor_group
+#&gt;   &lt;chr&gt;           &lt;dbl&gt;
+#&gt; 1 Action        0.0304 
+#&gt; 2 Animation    -0.205  
+#&gt; 3 Comedy       -0.202  
+#&gt; 4 Documentary  -0.0507 
+#&gt; 5 Drama        -0.0402 
+#&gt; 6 Romance      -0.161  
+#&gt; 7 Short         0.00966</code></pre></div><div id=einfluss-von-genre class="section level1"><h1>Einfluss von Genre</h1><p>Aber hat das Genre vielleicht einen generellen Effekt auf die Beurteilung? Werden vielleicht Actionfile generell besser bewertet als Kurzfilme?</p><pre class=r><code>movies2_long %&gt;% 
+  ggplot() + 
+  aes(x = genre, y = rating) +
+  geom_boxplot()</code></pre><p><img src=index_files/figure-html/unnamed-chunk-24-1.png alt width=100% style=display:block;margin:auto></p><pre class=r><code>movies2_long %&gt;% 
+  filter(value == 1) %&gt;% 
+  drop_na(rating, genre) %&gt;% 
+  group_by(genre) %&gt;% 
+  summarise(rating_group_md = median(rating))
+#&gt; # A tibble: 7 × 2
+#&gt;   genre       rating_group_md
+#&gt;   &lt;chr&gt;                 &lt;dbl&gt;
+#&gt; 1 Action                  5.4
+#&gt; 2 Animation               6.7
+#&gt; 3 Comedy                  6.1
+#&gt; 4 Documentary             6.9
+#&gt; 5 Drama                   6.3
+#&gt; 6 Romance                 6.3
+#&gt; 7 Short                   6.6</code></pre><p>Da scheint’s keine (starken) statistischen Abhängigkeiten zu geben.</p></div><div id=datensatz-vereinfachen class="section level1"><h1>Datensatz vereinfachen</h1><p>Die Variable zum Titel ist ohne weitere Bearbeitung kaum nützlich (Stichwort “Feature Engineering”); besser wir entfernen sie der Einfachheit halber.</p><pre class=r><code>movies2a %&gt;% 
+  select(-title) -&gt; movies2a</code></pre><p>Um die Fallstudie einfach zu halten, entfernen wir auch die Bewertungsperzentil-Variablen:</p><pre class=r><code>movies2a %&gt;% 
+  select(-c(r1:r10)) -&gt; movies2a</code></pre><p>Die Variable <code>mpaa</code> sieht auch komisch aus. Wie viele unterschiedliche (distinkte) Werte gibt es?</p><pre class=r><code>movies2a %&gt;% 
+  summarise(n_distinct(mpaa))
+#&gt;   n_distinct(mpaa)
+#&gt; 1                5</code></pre><p>Fünf.</p><p>Und wie viele fehlende Werte?</p><pre class=r><code>movies2a %&gt;% 
+  summarise(sum(is.na(mpaa)))
+#&gt;   sum(is.na(mpaa))
+#&gt; 1                0</code></pre><p>Moment, ich habe doch viele leere Zellen gesehen … Vielleicht so:</p><pre class=r><code>movies2a %&gt;% 
+  filter(mpaa == &quot;&quot;) %&gt;% 
+  nrow() / nrow(movies)
+#&gt; [1] 0.9156971</code></pre><p>Über 90% fehlende Werte also. Besser wir entfernen diese Variable.</p><pre class=r><code>movies2a %&gt;% 
+  select(-mpaa) -&gt; movies2a</code></pre></div><div id=datensatz-aufteilen-train--und-test class="section level1"><h1>Datensatz aufteilen (Train- und Test)</h1><p>Möchte man eine Vorhersage machen, gehört es zum guten Ton, den Datensatz in einen Train- und einen Test-Teil aufzuteilen. Mit dem Train-Datensatz kann man nach Herzenslust rumbasteln (modellieren); der Test-Datensatz kommt nur einmal zum Schluss zum Einsatz, um die Güte des (besten) Modells zu überprüfen.</p><p>Vielen Modelle können keine fehlenden Werte verdauen; daher entfernen wir hier jetzt pauschal alle fehlenden Werte.</p><pre class=r><code>movies2a %&gt;% 
+  drop_na() -&gt; movies2_nona  # &quot;no NA&quot; soll das heißen</code></pre><p>Wie viele Zeilen bleiben uns?</p><pre class=r><code>nrow(movies2_nona)
+#&gt; [1] 5183</code></pre><p>Das ist schon schmerzlich. Ob das eine gute Idee war? Naja, bleiben wir erstmal auf dieser Route.</p><pre class=r><code>set.seed(123)
+movies2_split &lt;- initial_split(movies2_nona, prop = 0.7)
+movies2_train &lt;- analysis(movies2_split)
+movies2_test &lt;- assessment(movies2_split)
+
+dim(movies2_train)
+#&gt; [1] 3628   13</code></pre><p>Zum Vergleich, die Zeilenzahl im gesamten Datensatz:</p><pre class=r><code>dim(movies)
+#&gt; [1] 58788    25</code></pre><p>Gibt es jetzt noch fehlende Werte im Train- oder Test-Datensatz?</p><pre class=r><code>is.na(movies2_train) %&gt;% sum()
+#&gt; [1] 0</code></pre><p>Ok; keine fehlenden Werte mehr.</p></div><div id=modell-0-nullmodell class="section level1"><h1>Modell 0 (“Nullmodell”)</h1><p>Im Folgenden werden wir einige Modelle aufstellen und diese dann vergleichen. Zu Referenzzwecken erstellen wir zuerst ein “Nullmodell”, das null (keine) Prädiktoren beinhaltet. Mit diesem Modell vergleichen wir dann die folgenden Modelle.</p><pre class=r><code>m0 &lt;- lm(rating ~ 1, data = movies2_train)</code></pre><p>Wir nehmen lieben nicht die “Langform” (<code>movies3</code>), da dort die Beobachtungseinheit nicht mehr ein Film ist, im Gegensatz zur Tabelle <code>movies2</code>.</p><p>Schauen wir uns die Ergebnisse an:</p><pre class=r><code>summary(m0)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = rating ~ 1, data = movies2_train)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -5.1275 -0.9275  0.1725  1.0725  3.7725 
+#&gt; 
+#&gt; Coefficients:
+#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)  6.12751    0.02565   238.9   &lt;2e-16 ***
+#&gt; ---
+#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+#&gt; 
+#&gt; Residual standard error: 1.545 on 3627 degrees of freedom</code></pre><p>Der Output ist nicht “aufgeräumt”; schöner wäre eine Ausgabe in Form eines Dataframes.</p><p>Hier die Modellkoeffienten in “tidy” Form; in diesem Fall nur der Achsenabschnitt (Intercept):</p><pre class=r><code>tidy(m0)
+#&gt; # A tibble: 1 × 5
+#&gt;   term        estimate std.error statistic p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt;
+#&gt; 1 (Intercept)     6.13    0.0256      239.       0</code></pre><p>Und die Modellgüte (“model fit”):</p><pre class=r><code>glance(m0)
+#&gt; # A tibble: 1 × 12
+#&gt;   r.squared adj.r.squared sigma statistic p.value    df logLik    AIC    BIC
+#&gt;       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+#&gt; 1         0             0  1.54        NA      NA    NA -6726. 13455. 13468.
+#&gt; # ℹ 3 more variables: deviance &lt;dbl&gt;, df.residual &lt;int&gt;, nobs &lt;int&gt;</code></pre><p><span class="math inline">\(R^2\)</span> ist hier per Definition gleich Null.</p><p>Die Struktur des <code>lm-</code>Objekts kann man sich so anschauen:</p><pre><code>#&gt; List of 11
+#&gt;  $ coefficients : Named num 6.13
+#&gt;   ..- attr(*, &quot;names&quot;)= chr &quot;(Intercept)&quot;
+#&gt;  $ residuals    : Named num [1:3628] -1.328 -0.328 0.172 0.972 1.272 ...
+#&gt;   ..- attr(*, &quot;names&quot;)= chr [1:3628] &quot;1&quot; &quot;2&quot; &quot;3&quot; &quot;4&quot; ...
+#&gt;  $ effects      : Named num [1:3628] -369.077 -0.306 0.194 0.994 1.294 ...
+#&gt;   ..- attr(*, &quot;names&quot;)= chr [1:3628] &quot;(Intercept)&quot; &quot;&quot; &quot;&quot; &quot;&quot; ...
+#&gt;  $ rank         : int 1
+#&gt;  $ fitted.values: Named num [1:3628] 6.13 6.13 6.13 6.13 6.13 ...
+#&gt;   ..- attr(*, &quot;names&quot;)= chr [1:3628] &quot;1&quot; &quot;2&quot; &quot;3&quot; &quot;4&quot; ...
+#&gt;  $ assign       : int 0
+#&gt;  $ qr           :List of 5
+#&gt;   ..$ qr   : num [1:3628, 1] -60.2329 0.0166 0.0166 0.0166 0.0166 ...
+#&gt;   .. ..- attr(*, &quot;dimnames&quot;)=List of 2
+#&gt;   .. .. ..$ : chr [1:3628] &quot;1&quot; &quot;2&quot; &quot;3&quot; &quot;4&quot; ...
+#&gt;   .. .. ..$ : chr &quot;(Intercept)&quot;
+#&gt;   .. ..- attr(*, &quot;assign&quot;)= int 0
+#&gt;   ..$ qraux: num 1.02
+#&gt;   ..$ pivot: int 1
+#&gt;   ..$ tol  : num 1e-07
+#&gt;   ..$ rank : int 1
+#&gt;   ..- attr(*, &quot;class&quot;)= chr &quot;qr&quot;
+#&gt;  $ df.residual  : int 3627
+#&gt;  $ call         : language lm(formula = rating ~ 1, data = movies2_train)
+#&gt;  $ terms        :Classes &#39;terms&#39;, &#39;formula&#39;  language rating ~ 1
+#&gt;   .. ..- attr(*, &quot;variables&quot;)= language list(rating)
+#&gt;   .. ..- attr(*, &quot;factors&quot;)= int(0) 
+#&gt;   .. ..- attr(*, &quot;term.labels&quot;)= chr(0) 
+#&gt;   .. ..- attr(*, &quot;order&quot;)= int(0) 
+#&gt;   .. ..- attr(*, &quot;intercept&quot;)= int 1
+#&gt;   .. ..- attr(*, &quot;response&quot;)= int 1
+#&gt;   .. ..- attr(*, &quot;.Environment&quot;)=&lt;environment: 0x5e3661de5e40&gt; 
+#&gt;   .. ..- attr(*, &quot;predvars&quot;)= language list(rating)
+#&gt;   .. ..- attr(*, &quot;dataClasses&quot;)= Named chr &quot;numeric&quot;
+#&gt;   .. .. ..- attr(*, &quot;names&quot;)= chr &quot;rating&quot;
+#&gt;  $ model        :&#39;data.frame&#39;:	3628 obs. of  1 variable:
+#&gt;   ..$ rating: num [1:3628] 4.8 5.8 6.3 7.1 7.4 5.6 7.5 4 6.2 7.5 ...
+#&gt;   ..- attr(*, &quot;terms&quot;)=Classes &#39;terms&#39;, &#39;formula&#39;  language rating ~ 1
+#&gt;   .. .. ..- attr(*, &quot;variables&quot;)= language list(rating)
+#&gt;   .. .. ..- attr(*, &quot;factors&quot;)= int(0) 
+#&gt;   .. .. ..- attr(*, &quot;term.labels&quot;)= chr(0) 
+#&gt;   .. .. ..- attr(*, &quot;order&quot;)= int(0) 
+#&gt;   .. .. ..- attr(*, &quot;intercept&quot;)= int 1
+#&gt;   .. .. ..- attr(*, &quot;response&quot;)= int 1
+#&gt;   .. .. ..- attr(*, &quot;.Environment&quot;)=&lt;environment: 0x5e3661de5e40&gt; 
+#&gt;   .. .. ..- attr(*, &quot;predvars&quot;)= language list(rating)
+#&gt;   .. .. ..- attr(*, &quot;dataClasses&quot;)= Named chr &quot;numeric&quot;
+#&gt;   .. .. .. ..- attr(*, &quot;names&quot;)= chr &quot;rating&quot;
+#&gt;  - attr(*, &quot;class&quot;)= chr &quot;lm&quot;</code></pre></div><div id=modell-1-budget_log10 class="section level1"><h1>Modell 1: <code>budget_log10</code></h1><pre class=r><code>movies2_train %&gt;% 
+  drop_na(budget_log10, rating) %&gt;% 
+  lm(rating ~ budget_log10, data = .)  -&gt; m1</code></pre><p>Upps, ein Fehler, was ist passiert? Die Fehlermeldung sagt uns, es gäbe unendliche Werte in unseren Daten. Gut, eine brave Maschine weiß dann nicht genau, was sie tun soll …</p><pre class=r><code>movies2_train %&gt;% 
+  select(budget_log10, rating) %&gt;% 
+  filter(budget_log10 == -Inf)
+#&gt; [1] budget_log10 rating      
+#&gt; &lt;0 Zeilen&gt; (oder row.names mit Länge 0)</code></pre><p>Da haben wir die Schuldigen. Eine Log-Transformation von null Budget liefert:</p><pre class=r><code>log10(0)
+#&gt; [1] -Inf</code></pre><p>Genau wie:</p><pre class=r><code>log(0)
+#&gt; [1] -Inf</code></pre></div><div id=unendliche-werte-entfernen class="section level1"><h1>Unendliche Werte entfernen</h1><p>Diese Null-Budgets hätten wir entfernen müssen. Na gut, dann machen wir es jetzt.</p><pre class=r><code>movies2_train %&gt;% 
+  filter(budget_log10 != -Inf) -&gt; movies2_train</code></pre><p>Evtl. wäre es besser, in einen neuen Datensatz abzuspeichern. Das ist manchmal eine schwierige Frage.</p><pre class=r><code>movies2_train %&gt;% 
+  lm(rating ~ budget_log10, data = .) -&gt; m1</code></pre></div><div id=model-1-ergebnisse class="section level1"><h1>Model 1 Ergebnisse</h1><pre class=r><code>tidy(m1)
+#&gt; # A tibble: 2 × 5
+#&gt;   term         estimate std.error statistic    p.value
+#&gt;   &lt;chr&gt;           &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;      &lt;dbl&gt;
+#&gt; 1 (Intercept)    6.73      0.135      49.8  0         
+#&gt; 2 budget_log10  -0.0962    0.0213     -4.52 0.00000640</code></pre><p>Die Modellgüte sieht so aus:</p><pre class=r><code>glance(m1)
+#&gt; # A tibble: 1 × 12
+#&gt;   r.squared adj.r.squared sigma statistic    p.value    df logLik    AIC    BIC
+#&gt;       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+#&gt; 1   0.00560       0.00533  1.54      20.4 0.00000640     1 -6715. 13437. 13455.
+#&gt; # ℹ 3 more variables: deviance &lt;dbl&gt;, df.residual &lt;int&gt;, nobs &lt;int&gt;</code></pre><p>Also peinlich schlecht.</p></div><div id=anzahl-der-stimmen-votes class="section level1"><h1>Anzahl der Stimmen (<code>votes</code>)</h1><p>Vielleicht lässt die Anzahl der abgegebenen Stimmen (<code>votes</code>) einen Rückschluss auf die spätere Beurteilung zu? Nach dem Motto: Wenn viele Leute eine Beurteilung abgeben, dann sind die Gemüter erhitzt und der Film muss spalten. Wobei diese Behauptung eigentlich nichts über den Mittelwert der Beurteilung aussagt, sondern über die Streuung. Aber schauen wir einfach mal.</p><pre class=r><code>p1 &lt;- movies2_train %&gt;% 
+  ggplot(aes(x = votes)) +
+  geom_histogram() +
+  labs(title = &quot;Datensatz: movies2_train&quot;)
+
+p1</code></pre><p><img src=index_files/figure-html/unnamed-chunk-50-1.png alt width=100% style=display:block;margin:auto></p><p>Ein ggplot-Diagramm ist auch nur ein Objekt, wie jedes andere R-Objekt auch. Daher kann man es auch in einer Variablen speichern. Ruft man diese Variable (<code>p1</code>, p wie plot) auf, so wird das Diagramm gezeigt.</p><p>Oha! Das ist richtig schön schief.</p><p>Vergleichen wir mal, ob es Unterschiede in der Verteilung gibt, in den verschiedenen Varianten des Datensatzes.</p><pre class=r><code>p2 &lt;- movies %&gt;% 
+  ggplot(aes(x = votes)) +
+  geom_histogram() +
+  labs(title = &quot;Datensatz: movies&quot;)
+
+p3 &lt;- movies2_test %&gt;% 
+  ggplot(aes(x = votes)) +
+  geom_histogram() +
+  labs(title = &quot;Datensatz: movies2_test&quot;)</code></pre><p>Möchte man mehrere Plots zusammenfügen, so kann man das so tun:</p><pre class=r><code>plot_grid(p1, p2, p3)</code></pre><p><img src=index_files/figure-html/unnamed-chunk-52-1.png alt width=100% style=display:block;margin:auto></p><p>Betrachten wir das Streudiagramm:</p><pre class=r><code>movies2_train %&gt;% 
+  ggplot(aes(x = votes, y = rating)) +
+  geom_point()</code></pre><p><img src=index_files/figure-html/unnamed-chunk-53-1.png alt width=100% style=display:block;margin:auto></p><p>Die Schiefe kann man als Anlass sehen, <code>votes</code> zu logarithmieren.</p><pre class=r><code>movies2_train %&gt;% 
+  ggplot(aes(x = log10(votes), y = rating)) +
+  geom_point(alpha = .4) +
+  geom_smooth(method = &quot;lm&quot;)</code></pre><p><img src=index_files/figure-html/unnamed-chunk-54-1.png alt width=100% style=display:block;margin:auto>
+Hier haben wir gleich eine Regressionsgerade in den Punkteschwarm gelegt.</p><p>Eine Variante:</p><pre class=r><code>movies2_train %&gt;% 
+  ggplot(aes(x = log10(votes), y = rating)) +
+  geom_point(alpha = .2) +
+  geom_smooth(method = &quot;lm&quot;, color = &quot;red&quot;) +
+  geom_density_2d()</code></pre><p><img src=index_files/figure-html/unnamed-chunk-55-1.png alt width=100% style=display:block;margin:auto></p></div><div id=modell-2-anzahl-der-stimmen-linear class="section level1"><h1>Modell 2: Anzahl der Stimmen, linear</h1><p>Erstellen wir die logarithmierte Version von <code>votes</code>:</p><pre class=r><code>movies2_train %&gt;% 
+  mutate(votes_log10 = log10(votes)) %&gt;% 
+  select(-votes) -&gt; movies2_train</code></pre><pre class=r><code>movies2_train %&gt;% 
+   lm(rating ~ votes_log10, data = .) -&gt; m2
+
+m2 %&gt;% 
+  tidy()
+#&gt; # A tibble: 2 × 5
+#&gt;   term        estimate std.error statistic  p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+#&gt; 1 (Intercept)    5.66     0.0677     83.6  0       
+#&gt; 2 votes_log10    0.171    0.0229      7.48 9.37e-14
+
+glance(m2)
+#&gt; # A tibble: 1 × 12
+#&gt;   r.squared adj.r.squared sigma statistic  p.value    df logLik    AIC    BIC
+#&gt;       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+#&gt; 1    0.0152        0.0149  1.53      55.9 9.37e-14     1 -6698. 13402. 13420.
+#&gt; # ℹ 3 more variables: deviance &lt;dbl&gt;, df.residual &lt;int&gt;, nobs &lt;int&gt;</code></pre><p>Tja. Unsere Erklärungskraft bleibt bescheiden.</p></div><div id=modell-3-anzahl-der-stimmen-als-polynomialmodell-quadratisch class="section level1"><h1>Modell 3: Anzahl der Stimmen als Polynomialmodell, quadratisch</h1><p>Betrachtet man das Streudiagramm mit den Anzahl der Stimmen, so könnte man auf die Idee kommen, der Zusammenhang sei durch ein Polynomialmodell gut zu beschreiben.</p><p>Probieren wir ein quadratisches Modell (also zweiten Grades):</p><pre class=r><code>m3 &lt;- lm(rating ~ I(votes_log10^2) + votes_log10, data = movies2_train)</code></pre><p>Das <code>I()</code> brauchen wir, weil in der Formel-Schreibweise ein Dach “^” nicht die normale algebraische Bedeutung hat. Mit <code>I</code> wird gesagt, dass die normale algebraische Bedeutung, trotz dem Formelschreibweisenumgebung, gelten soll.</p><p>Die Ergebnisse:</p><pre class=r><code>tidy(m3)
+#&gt; # A tibble: 3 × 5
+#&gt;   term             estimate std.error statistic  p.value
+#&gt;   &lt;chr&gt;               &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+#&gt; 1 (Intercept)         8.17     0.132       62.1 0       
+#&gt; 2 I(votes_log10^2)    0.434    0.0199      21.8 1.79e-99
+#&gt; 3 votes_log10        -2.13     0.108      -19.8 5.28e-83</code></pre><pre class=r><code>glance(m3)
+#&gt; # A tibble: 1 × 12
+#&gt;   r.squared adj.r.squared sigma statistic   p.value    df logLik    AIC    BIC
+#&gt;       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+#&gt; 1     0.130         0.129  1.44      270. 4.13e-110     2 -6473. 12955. 12980.
+#&gt; # ℹ 3 more variables: deviance &lt;dbl&gt;, df.residual &lt;int&gt;, nobs &lt;int&gt;</code></pre><p>Schon etwas besser.</p><p>Schauen wir uns das Polynom 2. Grades einmal an:</p><pre class=r><code>movies2_train %&gt;% 
+  ggplot(aes(x = votes_log10, y = rating)) +
+  geom_point(alpha = .2) +
+  geom_smooth(method = &quot;lm&quot;, se = FALSE,
+                formula = y ~ poly(x, 2))</code></pre><p><img src=index_files/figure-html/unnamed-chunk-61-1.png alt width=100% style=display:block;margin:auto></p></div><div id=modell-4-anzahl-der-stimmen-als-polynomialmodell-3.-grades class="section level1"><h1>Modell 4: Anzahl der Stimmen als Polynomialmodell, 3. Grades</h1><p>Vielleicht ein Polynom 3. Grades?</p><pre class=r><code>movies2_train %&gt;% 
+  ggplot(aes(x = votes_log10, y = rating)) +
+  geom_point(alpha = .2) +
+  geom_smooth(method = &quot;lm&quot;, se = FALSE,
+                formula = y ~ poly(x, 3))</code></pre><p><img src=index_files/figure-html/unnamed-chunk-62-1.png alt width=100% style=display:block;margin:auto></p><p>Sieht nicht viel besser aus. Da ist einfach viel Rauschen in den Daten, scheint’s.</p><pre class=r><code>m4 &lt;- lm(rating ~ poly(votes_log10, degree = 3), 
+         data = movies2_train)</code></pre><p>Anstelle die Prädiktoren mit <code>I()</code> kann man auch – einfacher – mit <code>poly()</code> das Polynom vom Grad <code>degree</code> bestimmen.</p><p>Die Ergebnisse:</p><pre class=r><code>tidy(m4)
+#&gt; # A tibble: 4 × 5
+#&gt;   term                           estimate std.error statistic   p.value
+#&gt;   &lt;chr&gt;                             &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+#&gt; 1 (Intercept)                        6.13    0.0239    257.   0        
+#&gt; 2 poly(votes_log10, degree = 3)1    11.5     1.44        7.97 2.11e- 15
+#&gt; 3 poly(votes_log10, degree = 3)2    31.5     1.44       21.9  8.00e-100
+#&gt; 4 poly(votes_log10, degree = 3)3    -5.56    1.44       -3.86 1.13e-  4
+glance(m4)
+#&gt; # A tibble: 1 × 12
+#&gt;   r.squared adj.r.squared sigma statistic   p.value    df logLik    AIC    BIC
+#&gt;       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+#&gt; 1     0.133         0.133  1.44      186. 4.52e-112     3 -6466. 12942. 12973.
+#&gt; # ℹ 3 more variables: deviance &lt;dbl&gt;, df.residual &lt;int&gt;, nobs &lt;int&gt;</code></pre><p>Es scheint keinen Unterschied zu machen, ob man ein Polynom 2. oder 3. Grades in die Daten anpasst.</p></div><div id=korrelationsmatrix-visualisieren class="section level1"><h1>Korrelationsmatrix (visualisieren)</h1><p>Vielleicht kann (nur) eine Kombination mehrerer Prädiktoren zu einer genauen Vorhersage führen? Probieren wir es aus.</p><p>Zuerst betrachten wir die bivariaten Korrelation.</p><pre class=r><code>movies_corr &lt;- correlate(movies2_train) %&gt;% 
+  rearrange() %&gt;% # der Größe nach ordnen
+  mutate_if(is.numeric, ~ifelse(abs(.) &gt; 0.2, ., NA)) %&gt;% 
+  shave()  # redundantes Dreieck abrasieren
+
+
+
+
+fashion(movies_corr)  
+#&gt;            term length budget_log10 votes_log10 Drama Action Romance rownames
+#&gt; 1        length                                                              
+#&gt; 2  budget_log10    .64                                                       
+#&gt; 3   votes_log10    .56          .77                                          
+#&gt; 4         Drama    .27                                                       
+#&gt; 5        Action                 .23         .21                              
+#&gt; 6       Romance                                                              
+#&gt; 7      rownames                                                              
+#&gt; 8          year                                                              
+#&gt; 9        Comedy                                  -.23                        
+#&gt; 10    Animation                                                              
+#&gt; 11       rating                                   .22                        
+#&gt; 12  Documentary                                                              
+#&gt; 13        Short   -.71         -.54        -.44                              
+#&gt;    year Comedy Animation rating Documentary Short
+#&gt; 1                                                
+#&gt; 2                                                
+#&gt; 3                                                
+#&gt; 4                                                
+#&gt; 5                                                
+#&gt; 6                                                
+#&gt; 7                                                
+#&gt; 8                                                
+#&gt; 9                                                
+#&gt; 10                                               
+#&gt; 11                                               
+#&gt; 12                                               
+#&gt; 13                          .23</code></pre><p>Diese Zeile <code>mutate_if(is.numeric, ~ifelse(abs(.) > 0.2, ., NA))</code> heißt grob übersetzt:</p><blockquote><p>Verändere eine Spalte, wenn (if) sie numerisch ist. Und zwar folgendermaßen: wenn der Absolutwert in einer Zelle größer ist als 0.2, dann übernehme ihn, wie er ist (.), ansonsten ersetze durch NA.</p></blockquote><p>Scheuen wir uns nur die Korrelationen mit <code>rating</code> näher an:</p><pre class=r><code>movies_corr %&gt;%
+  select(term, rating)
+#&gt; # A tibble: 13 × 2
+#&gt;    term         rating
+#&gt;    &lt;chr&gt;         &lt;dbl&gt;
+#&gt;  1 length       NA    
+#&gt;  2 budget_log10 NA    
+#&gt;  3 votes_log10  NA    
+#&gt;  4 Drama        NA    
+#&gt;  5 Action       NA    
+#&gt;  6 Romance      NA    
+#&gt;  7 rownames     NA    
+#&gt;  8 year         NA    
+#&gt;  9 Comedy       NA    
+#&gt; 10 Animation    NA    
+#&gt; 11 rating       NA    
+#&gt; 12 Documentary  NA    
+#&gt; 13 Short         0.233</code></pre><p>Tja, aus den bivariaten Korrelationen ist nicht viel rauszuholen. Bleibt als Hoffnung:</p><ul><li>nicht lineare Zusammenhänge</li><li>Interaktionen, so dass nur mehrere Variablen gleichzeitig mit der Zielvariablen korrelieren</li><li>dass “Kleinvieh-macht-auch-Mist-Prinzip”: Vielleicht läppert sich ein bisschen Korrelation pro Prädiktor zu einer ansehnlichen Gesamtvorhersagekraft.</li></ul><p>Visualisieren wir noch die Korrelationsmatrix:</p><pre class=r><code>rplot(movies_corr)</code></pre><p><img src=index_files/figure-html/unnamed-chunk-67-1.png alt width=100% style=display:block;margin:auto></p></div><div id=modell-5-multiple-regression class="section level1"><h1>Modell 5: Multiple Regression</h1><p>Untersuchen wir ein Modell, das mehrere Prädiktoren vereint.</p><pre class=r><code>m5 &lt;- lm(rating ~ votes_log10 + budget_log10, data = movies2_train)</code></pre><pre class=r><code>glance(m5)
+#&gt; # A tibble: 1 × 12
+#&gt;   r.squared adj.r.squared sigma statistic  p.value    df logLik    AIC    BIC
+#&gt;       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+#&gt; 1    0.0856        0.0851  1.48      170. 3.81e-71     2 -6563. 13135. 13159.
+#&gt; # ℹ 3 more variables: deviance &lt;dbl&gt;, df.residual &lt;int&gt;, nobs &lt;int&gt;</code></pre></div><div id=d-visualisierung class="section level1"><h1>3D-Visualisierung</h1><p>Verändern wir die Reihenfolge der Spalten, so dass die “wichtigen” Spalten vorne stehen:</p><pre class=r><code>movies2_train %&gt;% 
+  select(rating, votes_log10, budget_log10, everything()) -&gt; movies2_train</code></pre><p>In diesem Modell sind 3 Variablen involviert. Eine Visualisierung ist hier schon schwierig. <a href=https://data-se.netlify.app/2019/10/21/some-ways-for-plotting-3d-linear-models/>Hier</a> finden sich dazu einige Anregungen.</p><p>Das könnte eine Möglichkeit sein:</p><pre class=r><code>rsm::contour.lm(m5, votes_log10 ~ budget_log10, image = TRUE)</code></pre><p><img src=index_files/figure-html/unnamed-chunk-71-1.png alt width=100% style=display:block;margin:auto></p><p>Die Farbe gibt die “Höhe” des Wertes in der Output-Variablen wider.</p></div><div id=modell-6-interaktionsmodell class="section level1"><h1>Modell 6: Interaktionsmodell</h1><pre class=r><code>m6 &lt;- lm(rating ~ votes_log10 + budget_log10 + votes_log10:budget_log10,
+         data = movies2_train)</code></pre><pre class=r><code>glance(m6)
+#&gt; # A tibble: 1 × 12
+#&gt;   r.squared adj.r.squared sigma statistic  p.value    df logLik    AIC    BIC
+#&gt;       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+#&gt; 1     0.116         0.115  1.45      159. 1.06e-96     3 -6502. 13013. 13044.
+#&gt; # ℹ 3 more variables: deviance &lt;dbl&gt;, df.residual &lt;int&gt;, nobs &lt;int&gt;</code></pre></div><div id=rohe-kraft-schrittweise-regression class="section level1"><h1>Rohe Kraft: Schrittweise Regression</h1><p>Wir könnten jetzt sagen, wir geben es auf, nach einzelnen netten Prädiktoren zu suchen. Schön wäre natürlich, wir hätten eine Theorie, die uns (kausal) sagt, welche Prädiktoren eine Rolle spielten. In Ermangelung derselben können wir auch rein datengetrieben vorgehen.</p><p>Einfach gesprochen sagen wir zu R: “Berechne ein Modell mit einem Prädiktor; dabei probiere aus, welcher Prädiktor zum besten Modell führt. Dann wiederhole das mit 2 Prädiktoren und so weiter bis du zu einem Modell kommst, das alle Prädiktoren beinhaltet. Wenn aber irgendwann die Hinzunahme von einem Prädiktor nicht zu einem besseren Modell führt, dann brich ab.”</p><p>Wir brauchen ein Nullmodell, das haben wir oben schon definiert (<code>m0</code>). Hier noch mal:</p><pre class=r><code>m0 &lt;- lm(rating ~ 1, 
+         data = movies2_train)</code></pre><p>Und wir brauchen ein “Vollmodell” (<code>m_all</code>), das alle Prädiktoren beinhaltet.</p><pre class=r><code>m_all &lt;- lm(rating ~ ., 
+            data = movies2_train)  # kann etwas Zeit brauchen</code></pre><p>Dieses Vorgehen nennt man auch <em>schrittweise</em> (Vorwärts-)Regression.</p><pre class=r><code>forward &lt;- step(object = m0, 
+                direction = &#39;forward&#39;, 
+                scope = formula(m_all), 
+                trace = 0)  # keine Zwischenschritte zeigen
+</code></pre><p>Vorsicht! Bei nominalen Variablen mit vielen unterschiedlichen Werten kann diese Berechnung lange dauern.</p><pre class=r><code>tidy(forward)
+#&gt; # A tibble: 12 × 5
+#&gt;    term            estimate  std.error statistic   p.value
+#&gt;    &lt;chr&gt;              &lt;dbl&gt;      &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+#&gt;  1 (Intercept)  20.7        2.17            9.53 2.82e- 21
+#&gt;  2 Short         2.85       0.118          24.2  3.14e-120
+#&gt;  3 length        0.0156     0.00112        14.0  3.25e- 43
+#&gt;  4 Drama         0.654      0.0482         13.6  4.57e- 41
+#&gt;  5 votes_log10   0.570      0.0314         18.2  1.30e- 70
+#&gt;  6 budget_log10 -0.407      0.0334        -12.2  1.51e- 33
+#&gt;  7 Documentary   1.25       0.145           8.64 8.32e- 18
+#&gt;  8 year         -0.00797    0.00112        -7.13 1.24e- 12
+#&gt;  9 Animation     0.809      0.144           5.61 2.16e-  8
+#&gt; 10 Comedy        0.238      0.0495          4.81 1.58e-  6
+#&gt; 11 Action       -0.212      0.0639         -3.32 9.05e-  4
+#&gt; 12 rownames      0.00000246 0.00000129      1.90 5.77e-  2</code></pre></div><div id=modellselektion-modellwahl-anova class="section level1"><h1>Modellselektion (Modellwahl) – anova</h1><p>Es gibt verschiedene Methoden, um ein hoffentlich bestes Modell auszuwählen.</p><pre class=r><code>anova(m0,  m2, m3, m4)
+#&gt; Analysis of Variance Table
+#&gt; 
+#&gt; Model 1: rating ~ 1
+#&gt; Model 2: rating ~ votes_log10
+#&gt; Model 3: rating ~ I(votes_log10^2) + votes_log10
+#&gt; Model 4: rating ~ poly(votes_log10, degree = 3)
+#&gt;   Res.Df    RSS Df Sum of Sq       F    Pr(&gt;F)    
+#&gt; 1   3627 8657.2                                   
+#&gt; 2   3626 8525.7  1    131.51  63.517 2.111e-15 ***
+#&gt; 3   3625 7534.0  1    991.65 478.969 &lt; 2.2e-16 ***
+#&gt; 4   3624 7503.1  1     30.92  14.933 0.0001134 ***
+#&gt; ---
+#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre><p>Eine Varianzanalyse (anova) besteht im Kern aus einem <span class="math inline">\(F\)</span>-Test. Der F-Test ist so definiert:</p><p><span class="math display">\[F =\frac{(TSS-RSS)/p}{RSS/(n-p-1)}\]</span></p><p>Dabei ist TSS die Gesamtstreuung, RSS die Streuung der Residuen; <span class="math inline">\(n\)</span> die Anzahl der Beobachtungen und <span class="math inline">\(p\)</span> die Anzahl der Prädiktoren; s. Witten et al. (2013), S. 75 (eq. 3.23).</p><p>Man kann diese Formel verwenden, um die Residualstreuung eines einfacheren Modells (<span class="math inline">\(RSS_0\)</span>) im Vergleich zu einem “verschachtelteren” (komplexeren) Modells (<span class="math inline">\(RSS\)</span>) zu vergleichen:</p><p><span class="math display">\[F =\frac{(RSS_0-RSS)/p}{RSS/(n-p-1)}\]</span></p><ol start=19 style=list-style-type:lower-alpha><li>Witten et al. (2013), S. 77 (eq. 3.24).</li></ol><p>Genau das wird mit <code>anova()</code> angezeigt.</p><p><code>m1</code> und <code>m2</code> sind nicht ineinander verschachtelt; <code>m2</code> ist genau komplex wie <code>m1</code>; daher wird hier kein Test durchgeführt bzw. würden keine Koeffizienten von <code>anova()</code> ausgegeben.</p></div><div id=modellselektion-modellwahl-prädiktion class="section level1"><h1>Modellselektion (Modellwahl) – Prädiktion</h1><pre class=r><code>modellist &lt;- list(m0, m1, m2, m3, m4, m5, m6, forward)</code></pre><pre class=r><code>model_preds &lt;- modellist %&gt;% 
+  map( ~ predict(., movies2_test))
+#&gt; Error in `map()`:
+#&gt; ℹ In index: 3.
+#&gt; Caused by error:
+#&gt; ! Objekt &#39;votes_log10&#39; nicht gefunden</code></pre><p>Mit <code>map()</code> wird die angegebene Funktion – <code>predict()</code> auf jedes Element von <code>modellist</code> “gemapt”, zugeordnet oder angewendet also.</p><p>Oh, uns fehlen noch die Transformationen im Test-Sample…</p><pre class=r><code>movies2_test %&gt;% 
+  mutate(votes_log10 = log10(votes)) -&gt; movies2_test</code></pre><p>Noch einmal:</p><pre class=r><code>model_preds &lt;- modellist %&gt;% 
+  map_dfc( ~ predict(., movies2_test))</code></pre><p>Schauen wir uns das Ergebnisobjekt an:</p><pre class=r><code>glimpse(model_preds)
+#&gt; Rows: 1,555
+#&gt; Columns: 8
+#&gt; $ ...1 &lt;dbl&gt; 6.127508, 6.127508, 6.127508, 6.127508, 6.127508, 6.127508, 6.127…
+#&gt; $ ...2 &lt;dbl&gt; 6.018852, 6.082631, 6.145912, 6.217160, 6.217160, 5.964221, 5.988…
+#&gt; $ ...3 &lt;dbl&gt; 6.155901, 6.075402, 6.045352, 6.082722, 5.803194, 6.370895, 6.263…
+#&gt; $ ...4 &lt;dbl&gt; 5.644215, 5.557038, 5.573610, 5.557045, 6.681743, 6.816318, 6.058…
+#&gt; $ ...5 &lt;dbl&gt; 5.666664, 5.503725, 5.495860, 5.510274, 6.798402, 6.834337, 6.145…
+#&gt; $ ...6 &lt;dbl&gt; 5.626967, 5.691683, 5.934694, 6.463845, 5.460634, 6.095668, 5.846…
+#&gt; $ ...7 &lt;dbl&gt; 5.566329, 5.500739, 5.726260, 6.197511, 5.579736, 6.539594, 6.006…
+#&gt; $ ...8 &lt;dbl&gt; 5.471932, 4.930652, 5.367656, 7.209424, 5.365659, 5.318496, 6.798…</code></pre><p>Eine Tabelle mit 8 Spalten Jede dieser 8 Spalten sind die Vorhersagen für eines der Modelle. Wie gut wohl jeweils die Vorhersagen sind?</p><p>Geben wir zuerst schönere Namen an die Spalten:</p><pre class=r><code>col_names &lt;- paste0(&quot;model&quot;, 1:8)
+names(model_preds) &lt;- col_names</code></pre><p>Fügen wir zunächst die wahren Beurteilungswerte zur Tabelle mit den Vorhersagen hinzu:</p><pre class=r><code>model_preds %&gt;% 
+  bind_cols(select(movies2_test, rating)) -&gt; model_preds</code></pre><pre class=r><code>metrics(model_preds, truth = rating, estimate = model2)
+#&gt; # A tibble: 3 × 3
+#&gt;   .metric .estimator .estimate
+#&gt;   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+#&gt; 1 rmse    standard     1.54   
+#&gt; 2 rsq     standard     0.00767
+#&gt; 3 mae     standard     1.21</code></pre><pre class=r><code>metrics(model_preds, truth = rating, estimate = model3)
+#&gt; # A tibble: 3 × 3
+#&gt;   .metric .estimator .estimate
+#&gt;   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+#&gt; 1 rmse    standard      1.53  
+#&gt; 2 rsq     standard      0.0148
+#&gt; 3 mae     standard      1.20</code></pre></div><div id=hm class="section level1"><h1>Hm</h1><p>Wie kommt man jetzt elegant zu dem Modell mit den besten Modellkoeffizienten? Jemand eine gute Idee?</p></div><div id=vielleicht-so-vergleich-der-modellgüten class="section level1"><h1>Vielleicht so: Vergleich der Modellgüten</h1><p>Hier ist eine Funktion, die die Modellgüten berechnet:</p><pre class=r><code>get_rmse &lt;- function(est) {
+  
+  rmse &lt;- sqrt(mean((model_preds$rating - est)^2))
+}
+</code></pre><p>Die Funktion fasst einen Vektor zu einem Skalar zusammen, kann also gut mit <code>summarise()</code> verwendet werden.</p><p>Wir wenden die Funktion über alle Spalten hinweg (<code>across everything</code>) an:</p><pre class=r><code>model_preds %&gt;% 
+  summarise(across(everything(), get_rmse)) -&gt; model_rmse</code></pre><pre class=r><code>knitr::kable(model_rmse)</code></pre><table><col width=11%><col width=11%><col width=11%><col width=11%><col width=11%><col width=11%><col width=10%><col width=11%><col width=8%><thead><tr class=header><th align=right>model1</th><th align=right>model2</th><th align=right>model3</th><th align=right>model4</th><th align=right>model5</th><th align=right>model6</th><th align=right>model7</th><th align=right>model8</th><th align=right>rating</th></tr></thead><tbody><tr class=odd><td align=right>1.541326</td><td align=right>1.535519</td><td align=right>1.529956</td><td align=right>1.428753</td><td align=right>1.423921</td><td align=right>1.468111</td><td align=right>1.44571</td><td align=right>1.325001</td><td align=right>0</td></tr></tbody></table><pre class=r><code>model_rmse %&gt;% 
+  pivot_longer(cols = everything(), 
+               names_to = &quot;model&quot;, 
+               values_to = &quot;rmse&quot;) %&gt;%
+  filter(model != &quot;rating&quot;) %&gt;% 
+  ggplot() +
+  aes(x = reorder(model, -rmse), y = rmse) +
+  geom_point()</code></pre><p><img src=index_files/figure-html/unnamed-chunk-90-1.png alt width=100% style=display:block;margin:auto></p></div><div id=prüfung-der-voraussetzungen class="section level1"><h1>Prüfung der Voraussetzungen</h1><pre class=r><code>ggplot2::autoplot(forward) + theme_minimal()
+</code></pre><p><img src=index_files/figure-html/unnamed-chunk-91-1.png alt width=100% style=display:block;margin:auto></p></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>

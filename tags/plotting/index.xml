@@ -1,0 +1,756 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Plotting on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/plotting/</link><description>Recent content in Plotting on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Fri, 26 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/plotting/index.xml" rel="self" type="application/rss+xml"/><item><title>How to sort the labels of the legend in a ggplot-diagram</title><link>https://sebastiansauer.github.io/data_se/2020/06/26/how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram/</link><pubDate>Fri, 26 Jun 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/06/26/how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="load-packages" class="section level1">
+&lt;h1>Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(forcats)
+library(hrbrthemes)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="what-we-want-to-achieve-barplot-ggplot2-diagram-where-bars-and-legend-labels-are-sorted" class="section level1">
+&lt;h1>What we want to achieve: barplot ggplot2-diagram where bars and legend labels are sorted&lt;/h1>
+&lt;p>Say we would like to plot frequencies, and would like to use &lt;code>ggplot2&lt;/code> for that purpose. How can we get a decent graph? This post shows some ways.&lt;/p>
+&lt;/div>
+&lt;div id="some-data" class="section level1">
+&lt;h1>Some data&lt;/h1>
+&lt;pre class="r">&lt;code>data(diamonds)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="a-glimpse-to-the-data" class="section level1">
+&lt;h1>A glimpse to the data&lt;/h1>
+&lt;pre class="r">&lt;code>glimpse(diamonds)
+#&amp;gt; Rows: 53,940
+#&amp;gt; Columns: 10
+#&amp;gt; $ carat &amp;lt;dbl&amp;gt; 0.23, 0.21, 0.23, 0.29, 0.31, 0.24, 0.24, 0.26, 0.22, 0.23, 0…
+#&amp;gt; $ cut &amp;lt;ord&amp;gt; Ideal, Premium, Good, Premium, Good, Very Good, Very Good, Ve…
+#&amp;gt; $ color &amp;lt;ord&amp;gt; E, E, E, I, J, J, I, H, E, H, J, J, F, J, E, E, I, J, J, J, I…
+#&amp;gt; $ clarity &amp;lt;ord&amp;gt; SI2, SI1, VS1, VS2, SI2, VVS2, VVS1, SI1, VS2, VS1, SI1, VS1,…
+#&amp;gt; $ depth &amp;lt;dbl&amp;gt; 61.5, 59.8, 56.9, 62.4, 63.3, 62.8, 62.3, 61.9, 65.1, 59.4, 6…
+#&amp;gt; $ table &amp;lt;dbl&amp;gt; 55, 61, 65, 58, 58, 57, 57, 55, 61, 61, 55, 56, 61, 54, 62, 5…
+#&amp;gt; $ price &amp;lt;int&amp;gt; 326, 326, 327, 334, 335, 336, 336, 337, 337, 338, 339, 340, 3…
+#&amp;gt; $ x &amp;lt;dbl&amp;gt; 3.95, 3.89, 4.05, 4.20, 4.34, 3.94, 3.95, 4.07, 3.87, 4.00, 4…
+#&amp;gt; $ y &amp;lt;dbl&amp;gt; 3.98, 3.84, 4.07, 4.23, 4.35, 3.96, 3.98, 4.11, 3.78, 4.05, 4…
+#&amp;gt; $ z &amp;lt;dbl&amp;gt; 2.43, 2.31, 2.31, 2.63, 2.75, 2.48, 2.47, 2.53, 2.49, 2.39, 2…&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="plot-1-basic-bar-plot" class="section level1">
+&lt;h1>Plot 1: Basic bar plot&lt;/h1>
+&lt;pre class="r">&lt;code>diamonds %&amp;gt;% 
+ ggplot(aes(cut)) +
+ geom_bar()&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/post/2020-06-26-how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram_files/figure-html/unnamed-chunk-3-1.png" width="70%" style="display: block; margin: auto;" />&lt;/p></description></item><item><title>Plot for mean comparison</title><link>https://sebastiansauer.github.io/data_se/2020/06/02/plot-for-mean-comparison/</link><pubDate>Tue, 02 Jun 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/06/02/plot-for-mean-comparison/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="load-packages" class="section level1">
+&lt;h1>Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(reshape2) # for data
+library(mosaic)
+library(sjmisc)
+library(skimr)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="data-setup" class="section level1">
+&lt;h1>Data setup&lt;/h1>
+&lt;pre class="r">&lt;code>data(tips)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="aggregate-data-per-group" class="section level1">
+&lt;h1>Aggregate data per group&lt;/h1>
+&lt;pre class="r">&lt;code>tips_aggr &amp;lt;- tips %&amp;gt;% 
+ group_by(smoker) %&amp;gt;% 
+ summarise(tip_avg = mean(tip),
+ tip_md = median(tip),
+ tip_sd = sd(tip),
+ tip_iqr = IQR(tip))
+
+tips_aggr
+#&amp;gt; # A tibble: 2 x 5
+#&amp;gt; smoker tip_avg tip_md tip_sd tip_iqr
+#&amp;gt; &amp;lt;fct&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt;
+#&amp;gt; 1 No 2.99 2.74 1.38 1.50
+#&amp;gt; 2 Yes 3.01 3 1.40 1.68&lt;/code>&lt;/pre>
+&lt;p>The same lines, more concisely:&lt;/p></description></item><item><title>Plotting a correlated bivariate Gaussian</title><link>https://sebastiansauer.github.io/data_se/2020/05/30/plotting-a-correlated-bivariate-gaussian/</link><pubDate>Sat, 30 May 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/05/30/plotting-a-correlated-bivariate-gaussian/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/header-attrs/header-attrs.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/htmlwidgets/htmlwidgets.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-binding/plotly.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/typedarray/typedarray.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/jquery/jquery.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/crosstalk/css/crosstalk.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/crosstalk/js/crosstalk.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-main/plotly-latest.min.js">&lt;/script>
+
+
+&lt;div id="load-packages" class="section level1">
+&lt;h1>Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(rockchalk)
+library(MASS)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="defining-the-data" class="section level1">
+&lt;h1>Defining the data&lt;/h1>
+&lt;pre class="r">&lt;code>myR &amp;lt;- lazyCor(X = 0.7, d = 2)
+mySD &amp;lt;- c(1, 1)
+myCov &amp;lt;- lazyCov(Rho = myR, Sd = mySD)&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>myR
+#&amp;gt; [,1] [,2]
+#&amp;gt; [1,] 1.0 0.7
+#&amp;gt; [2,] 0.7 1.0
+mySD
+#&amp;gt; [1] 1 1
+myCov
+#&amp;gt; [,1] [,2]
+#&amp;gt; [1,] 1.0 0.7
+#&amp;gt; [2,] 0.7 1.0&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="drawing-from-the-multivariate-normal" class="section level1">
+&lt;h1>Drawing from the multivariate normal&lt;/h1>
+&lt;p>Let’s draw 1000 cases. Met &lt;span class="math inline">\(\mu\)&lt;/span> be zero.&lt;/p></description></item><item><title>Various methods for plotting 3d bivariate Gaussians</title><link>https://sebastiansauer.github.io/data_se/2020/05/30/various-methods-for-plotting-3d-bivariate-gaussians/</link><pubDate>Sat, 30 May 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/05/30/various-methods-for-plotting-3d-bivariate-gaussians/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/header-attrs/header-attrs.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/htmlwidgets/htmlwidgets.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-binding/plotly.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/typedarray/typedarray.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/jquery/jquery.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/crosstalk/css/crosstalk.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/crosstalk/js/crosstalk.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-main/plotly-latest.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/threejs/three.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/threejs/Detector.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/threejs/Projector.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/threejs/CanvasRenderer.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/threejs/TrackballControls.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/threejs/StateOrbitControls.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterplotThree-binding/scatterplotThree.js">&lt;/script>
+
+
+&lt;div id="load-packages" class="section level1">
+&lt;h1>Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1">
+&lt;h1>Motivation&lt;/h1>
+&lt;p>This post is a compilation, rather uncommented compilation, of various methods of plotting 3D (bivariate) Gaussian distributions in R.&lt;/p>
+&lt;p>I add the source to each method.&lt;/p>
+&lt;p>Note that some methods (5, 6) open a interactive window wihich is not supported here. I added a static version of the plot then.&lt;/p>
+&lt;/div>
+&lt;div id="method-1" class="section level1">
+&lt;h1>Method 1&lt;/h1>
+&lt;p>Source: &lt;a href="https://codegolf.stackexchange.com/questions/123039/plot-the-gaussian-distribution-in-3d" class="uri">https://codegolf.stackexchange.com/questions/123039/plot-the-gaussian-distribution-in-3d&lt;/a>&lt;/p>
+&lt;p>Feel free to change the sd, &lt;code>s&lt;/code> in the code below.&lt;/p></description></item><item><title>Pictogram waffle plot using emojifont</title><link>https://sebastiansauer.github.io/data_se/2019/11/25/pictogram-waffle-plot-using-emojifont/</link><pubDate>Mon, 25 Nov 2019 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2019/11/25/pictogram-waffle-plot-using-emojifont/</guid><description>&lt;div id="load-packages" class="section level1">
+&lt;h1>Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(emojifont)
+library(showtext)
+library(ggpubr)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="pictogram-waffle-plot" class="section level1">
+&lt;h1>Pictogram waffle plot&lt;/h1>
+&lt;p>A Pictogram may be defined as a (statistical) diagram using icons or similar “iconic” graphics to illstrate stuff. The waffle plot (see &lt;a href="https://data-se.netlify.com/2019/11/24/how-to-draw-a-waffle-plot/">this post&lt;/a>) is a nice object where to combine waffle and pictorgrams. Originally, this post was inspired by HRBRMSTR waffle package, see this &lt;a href="https://github.com/hrbrmstr/waffle">post&lt;/a>, but I could not get it running.&lt;/p>
+&lt;p>Maybe the easiest way is to work through an example (spoiler: see below for what we’re heading at).&lt;/p></description></item><item><title>Plotting functions in 3d</title><link>https://sebastiansauer.github.io/data_se/2019/11/19/plotting-functions-in-3d/</link><pubDate>Tue, 19 Nov 2019 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2019/11/19/plotting-functions-in-3d/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/htmlwidgets/htmlwidgets.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-binding/plotly.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/typedarray/typedarray.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/jquery/jquery.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/crosstalk/css/crosstalk.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/crosstalk/js/crosstalk.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-main/plotly-latest.min.js">&lt;/script>
+
+
+&lt;div id="load-packages" class="section level1">
+&lt;h1>Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(mosaic)
+library(plotly)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="gimme-a-function" class="section level1">
+&lt;h1>Gimme a function&lt;/h1>
+&lt;p>Say, you have some function such as&lt;/p>
+&lt;p>&lt;span class="math display">\[
+f(x) = x^2+z^2
+\]&lt;/span>&lt;/p>
+&lt;p>In more R-ish:&lt;/p>
+&lt;pre class="r">&lt;code>f &amp;lt;- makeFun(x^2 + z^2 ~ x &amp;amp; z)&lt;/code>&lt;/pre>
+&lt;p>And you would like to plot it.&lt;/p>
+&lt;p>Observe that this function has &lt;em>two&lt;/em> input (independent) variables, &lt;span class="math inline">\(x\)&lt;/span> and &lt;span class="math inline">\(z\)&lt;/span>, plus one output (dependent) variables, &lt;span class="math inline">\(y\)&lt;/span>.&lt;/p>
+&lt;p>The thing is, you’ll need to define the values for a number of output values for &lt;span class="math inline">\(y\)&lt;/span>, as defined by the function.&lt;/p></description></item><item><title>Plotting functions in 3D in R</title><link>https://sebastiansauer.github.io/data_se/2019/11/19/plotting-functions-in-3d-in-r/</link><pubDate>Tue, 19 Nov 2019 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2019/11/19/plotting-functions-in-3d-in-r/</guid><description>&lt;div id="load-packages" class="section level1">
+&lt;h1>Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;/div></description></item><item><title>Geoplotting - update to my MODAR-book</title><link>https://sebastiansauer.github.io/data_se/2019/07/29/geoplotting-update-to-my-modar-book/</link><pubDate>Mon, 29 Jul 2019 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2019/07/29/geoplotting-update-to-my-modar-book/</guid><description>&lt;p>In my &lt;a href="https://link.springer.com/book/10.1007%2F978-3-658-21587-3">book&lt;/a> on modern data analyisis using R, I show some basics of geoplotting. It seems that some software update for the package &lt;a href="https://github.com/r-spatial/sf">simple features&lt;/a> broke my code. So, here ’s some update.&lt;/p>
+&lt;div id="load-packages-and-data" class="section level1">
+&lt;h1>Load packages and data&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(viridis)
+library(sf)
+
+
+data(socec, package = &amp;quot;pradadata&amp;quot;)
+data(wahlkreise_shp, package = &amp;quot;pradadata&amp;quot;)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="check-data" class="section level1">
+&lt;h1>Check data&lt;/h1>
+&lt;pre class="r">&lt;code>glimpse(socec)
+#&amp;gt; Observations: 316
+#&amp;gt; Variables: 51
+#&amp;gt; $ V01 &amp;lt;chr&amp;gt; &amp;quot;Schleswig-Holstein&amp;quot;, &amp;quot;Schleswig-Holstein&amp;quot;, &amp;quot;Schleswig-Holst…
+#&amp;gt; $ V02 &amp;lt;int&amp;gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 901, 12, 13, 14, 15, 16, …
+#&amp;gt; $ V03 &amp;lt;chr&amp;gt; &amp;quot;Flensburg – Schleswig&amp;quot;, &amp;quot;Nordfriesland – Dithmarschen Nord&amp;quot;…
+#&amp;gt; $ V04 &amp;lt;int&amp;gt; 130, 197, 178, 163, 3, 92, 49, 95, 49, 126, 28, 1110, 132, 1…
+#&amp;gt; $ V05 &amp;lt;dbl&amp;gt; 2128.1, 2777.0, 2000.5, 2164.8, 143.0, 1302.0, 664.3, 1333.4…
+#&amp;gt; $ V06 &amp;lt;dbl&amp;gt; 282.8, 232.3, 220.8, 248.7, 268.0, 219.8, 307.5, 313.2, 219.…
+#&amp;gt; $ V07 &amp;lt;dbl&amp;gt; 266.7, 219.7, 209.8, 239.4, 242.9, 206.8, 281.5, 294.9, 209.…
+#&amp;gt; $ V08 &amp;lt;dbl&amp;gt; 5.7, 5.4, 5.0, 3.7, 9.4, 5.9, 8.4, 5.8, 4.3, 6.6, 8.0, 6.3, …
+#&amp;gt; $ V09 &amp;lt;dbl&amp;gt; 132.9, 83.6, 110.4, 114.9, 1873.8, 168.8, 462.9, 234.9, 143.…
+#&amp;gt; $ V10 &amp;lt;dbl&amp;gt; -3.7, -5.0, -5.3, -3.4, -0.1, -4.9, -2.3, -1.6, -6.5, -3.7, …
+#&amp;gt; $ V11 &amp;lt;dbl&amp;gt; 12.3, 13.2, 11.9, 10.0, 11.9, 21.0, 13.1, 9.2, 13.2, 16.8, 1…
+#&amp;gt; $ V12 &amp;lt;dbl&amp;gt; 16.5, 16.1, 16.7, 17.3, 14.6, 16.4, 16.8, 17.1, 15.0, 16.8, …
+#&amp;gt; $ V13 &amp;lt;dbl&amp;gt; 8.7, 8.0, 7.6, 7.2, 10.8, 7.3, 7.2, 6.9, 6.7, 6.6, 8.2, 7.7,…
+#&amp;gt; $ V14 &amp;lt;dbl&amp;gt; 11.3, 10.4, 9.9, 9.4, 17.4, 10.1, 10.7, 10.5, 9.1, 10.1, 13.…
+#&amp;gt; $ V15 &amp;lt;dbl&amp;gt; 35.0, 35.1, 37.0, 37.2, 32.8, 35.8, 37.4, 37.9, 36.1, 36.9, …
+#&amp;gt; $ V16 &amp;lt;dbl&amp;gt; 17.4, 18.5, 17.4, 17.9, 14.8, 18.3, 16.7, 17.0, 20.0, 17.3, …
+#&amp;gt; $ V17 &amp;lt;dbl&amp;gt; 11.2, 11.9, 11.4, 11.0, 9.6, 12.1, 11.2, 10.5, 13.1, 12.3, 1…
+#&amp;gt; $ V18 &amp;lt;dbl&amp;gt; 90.0, 92.0, 90.8, 91.5, 82.0, 89.2, 85.0, 86.7, 91.6, 87.3, …
+#&amp;gt; $ V19 &amp;lt;dbl&amp;gt; 10.0, 8.0, 9.2, 8.5, 18.0, 10.8, 15.0, 13.3, 8.4, 12.7, 16.5…
+#&amp;gt; $ V20 &amp;lt;dbl&amp;gt; 5.1, 5.2, 4.2, 4.9, 7.3, 5.6, 6.4, 5.8, 6.1, 6.8, 8.1, 6.0, …
+#&amp;gt; $ V21 &amp;lt;dbl&amp;gt; 59.5, 65.0, 59.9, 58.3, 41.8, 54.1, 40.9, 44.1, 57.6, 44.1, …
+#&amp;gt; $ V22 &amp;lt;dbl&amp;gt; 35.5, 29.8, 35.9, 36.8, 50.9, 40.3, 52.7, 50.1, 36.3, 49.0, …
+#&amp;gt; $ V23 &amp;lt;dbl&amp;gt; 49.4, 58.8, 59.4, 58.7, 29.5, 53.0, 52.8, 54.6, 55.9, 55.6, …
+#&amp;gt; $ V24 &amp;lt;dbl&amp;gt; 3.8, 6.0, 2.4, 5.5, 1.3, 2.4, 6.0, 3.1, 4.7, 2.8, 2.7, 3.7, …
+#&amp;gt; $ V25 &amp;lt;dbl&amp;gt; 514.6, 566.1, 493.0, 492.2, 539.3, 501.9, 484.6, 469.6, 551.…
+#&amp;gt; $ V26 &amp;lt;int&amp;gt; 20265, 22159, 20896, 22093, 18637, 20395, 23766, 22791, 2196…
+#&amp;gt; $ V27 &amp;lt;int&amp;gt; 28300, 30078, 29298, 26659, 42836, 25983, 26342, 29135, 2335…
+#&amp;gt; $ V28 &amp;lt;dbl&amp;gt; 696.9, 748.1, 724.5, 733.3, 518.2, 673.6, 651.9, 712.1, 719.…
+#&amp;gt; $ V29 &amp;lt;chr&amp;gt; &amp;quot;4,4&amp;quot;, &amp;quot;4&amp;quot;, &amp;quot;2,7&amp;quot;, &amp;quot;2,4&amp;quot;, &amp;quot;4,8&amp;quot;, &amp;quot;4&amp;quot;, &amp;quot;2,1&amp;quot;, &amp;quot;2&amp;quot;, &amp;quot;3&amp;quot;, &amp;quot;2&amp;quot;, …
+#&amp;gt; $ V30 &amp;lt;dbl&amp;gt; 11.9, 11.5, 11.7, 9.4, 8.7, 11.6, 11.0, 10.4, 10.0, 9.2, 9.2…
+#&amp;gt; $ V31 &amp;lt;dbl&amp;gt; 8.2, 7.9, 7.8, 7.4, 6.6, 7.9, 6.0, 6.2, 9.8, 6.8, 9.5, 7.5, …
+#&amp;gt; $ V32 &amp;lt;dbl&amp;gt; 19.8, 19.9, 19.1, 18.2, 15.2, 18.5, 14.8, 16.7, 19.4, 16.3, …
+#&amp;gt; $ V33 &amp;lt;dbl&amp;gt; 41.6, 48.8, 44.1, 43.6, 34.5, 39.0, 40.1, 41.2, 41.3, 39.1, …
+#&amp;gt; $ V34 &amp;lt;dbl&amp;gt; 30.4, 23.4, 29.0, 30.9, 43.6, 34.6, 39.1, 35.9, 29.4, 37.9, …
+#&amp;gt; $ V35 &amp;lt;dbl&amp;gt; 41.1, 33.9, 35.0, 37.1, 42.1, 37.5, 40.2, 47.5, 33.4, 43.1, …
+#&amp;gt; $ V36 &amp;lt;dbl&amp;gt; 44.0, 60.9, 43.8, 41.6, 37.9, 41.6, 48.5, 48.3, 51.1, 45.9, …
+#&amp;gt; $ V37 &amp;lt;dbl&amp;gt; 7.3, 9.2, 7.1, 6.9, 4.2, 6.7, 7.2, 7.3, 7.3, 6.8, 5.5, 6.9, …
+#&amp;gt; $ V38 &amp;lt;dbl&amp;gt; 337.4, 337.6, 290.2, 276.1, 473.7, 312.4, 290.2, 333.4, 300.…
+#&amp;gt; $ V39 &amp;lt;chr&amp;gt; &amp;quot;1,6&amp;quot;, &amp;quot;2,6&amp;quot;, &amp;quot;2,7&amp;quot;, &amp;quot;2,4&amp;quot;, &amp;quot;0,2&amp;quot;, &amp;quot;1,7&amp;quot;, &amp;quot;2,3&amp;quot;, &amp;quot;1,1&amp;quot;, &amp;quot;1,5…
+#&amp;gt; $ V40 &amp;lt;chr&amp;gt; &amp;quot;18,7&amp;quot;, &amp;quot;19,9&amp;quot;, &amp;quot;28,3&amp;quot;, &amp;quot;24,4&amp;quot;, &amp;quot;16&amp;quot;, &amp;quot;22,5&amp;quot;, &amp;quot;29,5&amp;quot;, &amp;quot;27,8&amp;quot;…
+#&amp;gt; $ V41 &amp;lt;chr&amp;gt; &amp;quot;28,1&amp;quot;, &amp;quot;33,4&amp;quot;, &amp;quot;22,9&amp;quot;, &amp;quot;23&amp;quot;, &amp;quot;20,1&amp;quot;, &amp;quot;29,1&amp;quot;, &amp;quot;29&amp;quot;, &amp;quot;29,3&amp;quot;, …
+#&amp;gt; $ V42 &amp;lt;chr&amp;gt; &amp;quot;16,4&amp;quot;, &amp;quot;12,4&amp;quot;, &amp;quot;15,9&amp;quot;, &amp;quot;15,5&amp;quot;, &amp;quot;25,2&amp;quot;, &amp;quot;17,6&amp;quot;, &amp;quot;17,2&amp;quot;, &amp;quot;17,…
+#&amp;gt; $ V43 &amp;lt;dbl&amp;gt; 35.2, 31.7, 30.3, 34.7, 38.6, 29.1, 22.0, 24.3, 33.4, 26.5, …
+#&amp;gt; $ V44 &amp;lt;dbl&amp;gt; 88.5, 70.9, 80.1, 59.4, 138.7, 86.8, 67.7, 54.5, 62.6, 59.5,…
+#&amp;gt; $ V45 &amp;lt;dbl&amp;gt; 26.3, 26.2, 26.0, 28.1, 26.4, 26.2, 28.8, 28.5, 24.9, 27.8, …
+#&amp;gt; $ V46 &amp;lt;dbl&amp;gt; 18.8, 16.7, 21.1, 23.8, 28.3, 22.1, 34.6, 28.3, 20.2, 28.7, …
+#&amp;gt; $ V47 &amp;lt;dbl&amp;gt; 7.2, 7.2, 6.6, 5.1, 8.8, 6.9, 5.2, 4.6, 6.2, 4.8, 8.7, 6.4, …
+#&amp;gt; $ V48 &amp;lt;dbl&amp;gt; 8.2, 7.7, 7.2, 5.5, 10.0, 7.5, 5.6, 4.9, 6.6, 5.1, 9.4, 6.9,…
+#&amp;gt; $ V49 &amp;lt;dbl&amp;gt; 6.2, 6.6, 6.0, 4.7, 7.6, 6.4, 4.8, 4.2, 5.7, 4.5, 8.0, 5.8, …
+#&amp;gt; $ V50 &amp;lt;dbl&amp;gt; 4.2, 3.6, 5.2, 3.2, 6.1, 4.4, 3.3, 2.7, 3.7, 3.2, 5.7, 4.0, …
+#&amp;gt; $ V51 &amp;lt;dbl&amp;gt; 7.3, 8.4, 6.6, 5.6, 8.7, 7.7, 6.4, 5.1, 7.4, 5.5, 9.0, 6.9, …&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>glimpse(wahlkreise_shp)
+#&amp;gt; Observations: 299
+#&amp;gt; Variables: 5
+#&amp;gt; $ WKR_NR &amp;lt;int&amp;gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,…
+#&amp;gt; $ LAND_NR &amp;lt;fct&amp;gt; 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 01, 13, 13, 13…
+#&amp;gt; $ LAND_NAME &amp;lt;fct&amp;gt; Schleswig-Holstein, Schleswig-Holstein, Schleswig-Hols…
+#&amp;gt; $ WKR_NAME &amp;lt;fct&amp;gt; Flensburg – Schleswig, Nordfriesland – Dithmarschen No…
+#&amp;gt; $ geometry &amp;lt;MULTIPOLYGON [m]&amp;gt; MULTIPOLYGON (((543474.9 60..., MULTIPOLY…&lt;/code>&lt;/pre>
+&lt;p>Let’s pick only a few columns to make life easier:&lt;/p></description></item><item><title>Ornaments with ggformula</title><link>https://sebastiansauer.github.io/data_se/2019/02/12/ornaments-with-gformula/</link><pubDate>Tue, 12 Feb 2019 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2019/02/12/ornaments-with-gformula/</guid><description>&lt;p>Since some time, there’s a wrapper for &lt;code>ggplot2&lt;/code> available, bundled in the package &lt;code>ggformula&lt;/code>. One nice thing is that in that it plays nicely with the popular R package &lt;code>mosaic&lt;/code>. &lt;code>mosaic&lt;/code> provides some useful functions for modeling along with a tamed and consistent syntax. In this post, we will discuss some “ornaments”, that is, some details of beautification of a plot. I confess that every one will deem it central, but in some cases in comes in handy to know how to “refine” a plot using &lt;code>ggformula&lt;/code>.&lt;/p></description></item><item><title>Barplots with mosaic</title><link>https://sebastiansauer.github.io/data_se/2019/01/10/barplots-with-mosaic/</link><pubDate>Thu, 10 Jan 2019 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2019/01/10/barplots-with-mosaic/</guid><description>&lt;p>Plotting barplots is a frequent endeavor for the analysis of qualitative data. Numerous methods for plotting barplots exist; the popular R package &lt;code>mosaic&lt;/code> also provides methods.&lt;/p>
+&lt;p>More recently, &lt;code>mosaic&lt;/code> switched to a ggplot wrapper for plotting diagrams, that is &lt;code>gf_XXX()&lt;/code>, packaged in &lt;code>ggformula&lt;/code>. That implies that input data is expected to be tidy, because ggplot, a central member of the tidyverse, excepts its input data to be tidy.&lt;/p>
+&lt;p>Let’s check an example.&lt;/p></description></item><item><title>Visualizing a multivariate normal distribution</title><link>https://sebastiansauer.github.io/data_se/2018/12/13/visualizing-a-multivariate-normal-distribution/</link><pubDate>Thu, 13 Dec 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/12/13/visualizing-a-multivariate-normal-distribution/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/htmlwidgets/htmlwidgets.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-binding/plotly.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/typedarray/typedarray.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/jquery/jquery.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/crosstalk/css/crosstalk.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/crosstalk/js/crosstalk.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-main/plotly-latest.min.js">&lt;/script>
+
+
+&lt;p>In R, it is quite straight forward to plot a normal distribution, eg., using the package &lt;code>ggplot2&lt;/code> or plotly.&lt;/p>
+&lt;div id="setup" class="section level1">
+&lt;h1>Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(mvtnorm)
+library(plotly)
+library(MASS)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="simulate-multivariate-normal-data" class="section level1">
+&lt;h1>Simulate multivariate normal data&lt;/h1>
+&lt;p>First, let’s define a covariance matrix &lt;span class="math inline">\(\Sigma\)&lt;/span>:&lt;/p>
+&lt;pre class="r">&lt;code>sigma &amp;lt;- matrix(c(4,2,2,3), ncol = 2)
+sigma&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## [,1] [,2]
+## [1,] 4 2
+## [2,] 2 3&lt;/code>&lt;/pre>
+&lt;p>Then, simulate observations n = &lt;code>n&lt;/code> from these covariance matrix; the means need be defined, too. As the rank of our covariance matrix is 2, we need two means:&lt;/p></description></item><item><title>Visualizing a regression plane (two predictors)</title><link>https://sebastiansauer.github.io/data_se/2018/12/13/visualizing-a-regression-plane-two-predictors/</link><pubDate>Thu, 13 Dec 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/12/13/visualizing-a-regression-plane-two-predictors/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/htmlwidgets/htmlwidgets.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-binding/plotly.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/typedarray/typedarray.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/jquery/jquery.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/crosstalk/css/crosstalk.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/crosstalk/js/crosstalk.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-main/plotly-latest.min.js">&lt;/script>
+
+
+&lt;p>Plotting a “simple” regression (one regression) is pretty straight forward in R.&lt;/p>
+&lt;div id="setup" class="section level1">
+&lt;h1>Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+data(mtcars)
+library(mosaic)
+library(modelr)
+library(plotly)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="define-model" class="section level1">
+&lt;h1>Define model&lt;/h1>
+&lt;pre class="r">&lt;code>lm1 &amp;lt;- lm(mpg ~ hp, data = mtcars)
+
+mtcars &amp;lt;- mtcars %&amp;gt;% 
+ mutate(lm1_pred = predict(lm1))&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="plot" class="section level1">
+&lt;h1>Plot&lt;/h1>
+&lt;p>One way:&lt;/p>
+&lt;pre class="r">&lt;code>ggplot(mtcars) +
+ aes(y = mpg, x = hp) +
+ geom_point() +
+ geom_lm()&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-12-13-visualizing-a-regression-plane-two-predictors_files/figure-html/unnamed-chunk-3-1.png" width="672" />&lt;/p>
+&lt;p>Another way:&lt;/p>
+&lt;pre class="r">&lt;code>ggplot(mtcars) +
+ aes(x = hp) +
+ geom_point(aes(y = mpg)) +
+ geom_point(aes(y = lm1_pred), color = &amp;quot;blue&amp;quot;) +
+ geom_line(aes(y = lm1_pred), color = &amp;quot;blue&amp;quot;)&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-12-13-visualizing-a-regression-plane-two-predictors_files/figure-html/unnamed-chunk-4-1.png" width="672" />&lt;/p></description></item><item><title>Plot many ggplot diagrams using nest() and map()</title><link>https://sebastiansauer.github.io/data_se/2018/12/05/plot-many-ggplot-diagrams-using-nest-and-map/</link><pubDate>Wed, 05 Dec 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/12/05/plot-many-ggplot-diagrams-using-nest-and-map/</guid><description>&lt;p>At times, it is helpful to plot a multiple of related diagrams, such as a scatter plot for each subgroup. As always, there a number of ways of doing so in R. Specifically, we will make use of &lt;code>ggplot2&lt;/code>.&lt;/p>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(glue)&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>data(mtcars)&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>d &amp;lt;- mtcars %&amp;gt;% 
+ rownames_to_column(var = &amp;quot;car_names&amp;quot;)&lt;/code>&lt;/pre>
+&lt;p>Is &lt;code>d&lt;/code> a tibble`&lt;/p>
+&lt;pre class="r">&lt;code>is_tibble(d)
+#&amp;gt; [1] FALSE&lt;/code>&lt;/pre>
+&lt;p>What is it?&lt;/p>
+&lt;pre class="r">&lt;code>class(d)
+#&amp;gt; [1] &amp;quot;data.frame&amp;quot;&lt;/code>&lt;/pre>
+&lt;p>Okay, let’s make a tibble out of it:&lt;/p>
+&lt;pre class="r">&lt;code>d &amp;lt;- as_tibble(d)
+class(d)
+#&amp;gt; [1] &amp;quot;tbl_df&amp;quot; &amp;quot;tbl&amp;quot; &amp;quot;data.frame&amp;quot;&lt;/code>&lt;/pre>
+&lt;div id="way-1-using-facets" class="section level1">
+&lt;h1>Way 1: using facets&lt;/h1>
+&lt;p>One simple way is to plot several facets according to the grouping variable:&lt;/p></description></item><item><title>Simple Examples with DiagrammeR</title><link>https://sebastiansauer.github.io/data_se/2018/11/07/simple-examples-with-diagrammer/</link><pubDate>Wed, 07 Nov 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/11/07/simple-examples-with-diagrammer/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/htmlwidgets/htmlwidgets.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/viz/viz.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/DiagrammeR-styles/styles.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/grViz-binding/grViz.js">&lt;/script>
+
+
+&lt;hr />
+&lt;p>UPDATE 2018-12-13: Based on a comment from &lt;span class="citation">@nmarkgraf&lt;/span>, I added a section on how to export diagrammeR diagrams.&lt;/p>
+&lt;hr />
+&lt;p>Here are some examples of diagrams build with DiagrammeR:&lt;/p>
+&lt;div id="setup" class="section level1">
+&lt;h1>Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(DiagrammeR)
+library(DiagrammeRsvg)
+library(magick)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="diagrammer-using-grviz" class="section level1">
+&lt;h1>DiagrammeR using &lt;code>grViz()&lt;/code>&lt;/h1>
+&lt;p>Define the graph:&lt;/p>
+&lt;pre class="r">&lt;code>g1 &amp;lt;- &amp;quot;digraph boxes_and_circles {
+ graph [layout = circo,
+ overlap = true]
+ node [shape = circle,
+ fixedsize = true,
+ fontname = Helvetica,
+ width = 1]
+ Problem; Plan; Data; Analysis; Conclusion
+ 
+ edge [color = grey] 
+ Problem -&amp;gt; Plan
+ Plan -&amp;gt; Data
+ Data -&amp;gt; Analysis
+ Analysis -&amp;gt; Conclusion
+ Conclusion -&amp;gt; Problem
+ }&amp;quot;&lt;/code>&lt;/pre>
+&lt;p>Print it to the screen:&lt;/p></description></item><item><title>Plot columns repeatedly</title><link>https://sebastiansauer.github.io/data_se/2018/11/02/plot-columns-repeatedly/</link><pubDate>Fri, 02 Nov 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/11/02/plot-columns-repeatedly/</guid><description>&lt;p>Suppose you have a large number of columns of a dataframe, and you want to plot each column – say a histogram for each column.&lt;/p>
+&lt;p>This post shows some ways of achieving this.&lt;/p>
+&lt;p>Let’s take the mtcars dataset as an example.&lt;/p>
+&lt;pre class="r">&lt;code>data(mtcars)&lt;/code>&lt;/pre>
+&lt;p>We will use the tidyverse approach:&lt;/p>
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;div id="way-1" class="section level1">
+&lt;h1>Way 1&lt;/h1>
+&lt;pre class="r">&lt;code>mtcars %&amp;gt;% 
+ select_if(is_numeric) %&amp;gt;% 
+ map2(., names(.), ~ {ggplot(data = data_frame(.x), 
+ aes(x = .x)) + 
+ geom_histogram() +
+ labs(x= .y)})
+#&amp;gt; $mpg
+#&amp;gt; 
+#&amp;gt; $cyl
+#&amp;gt; 
+#&amp;gt; $disp
+#&amp;gt; 
+#&amp;gt; $hp
+#&amp;gt; 
+#&amp;gt; $drat
+#&amp;gt; 
+#&amp;gt; $wt
+#&amp;gt; 
+#&amp;gt; $qsec
+#&amp;gt; 
+#&amp;gt; $vs
+#&amp;gt; 
+#&amp;gt; $am
+#&amp;gt; 
+#&amp;gt; $gear
+#&amp;gt; 
+#&amp;gt; $carb&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-11-02-plot-columns-repeatedly_files/figure-html/unnamed-chunk-4-1.png" width="100%" style="display: block; margin: auto;" />&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-11-02-plot-columns-repeatedly_files/figure-html/unnamed-chunk-4-2.png" width="100%" style="display: block; margin: auto;" />&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-11-02-plot-columns-repeatedly_files/figure-html/unnamed-chunk-4-3.png" width="100%" style="display: block; margin: auto;" />&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-11-02-plot-columns-repeatedly_files/figure-html/unnamed-chunk-4-4.png" width="100%" style="display: block; margin: auto;" />&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-11-02-plot-columns-repeatedly_files/figure-html/unnamed-chunk-4-5.png" width="100%" style="display: block; margin: auto;" />&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-11-02-plot-columns-repeatedly_files/figure-html/unnamed-chunk-4-6.png" width="100%" style="display: block; margin: auto;" />&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-11-02-plot-columns-repeatedly_files/figure-html/unnamed-chunk-4-7.png" width="100%" style="display: block; margin: auto;" />&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-11-02-plot-columns-repeatedly_files/figure-html/unnamed-chunk-4-8.png" width="100%" style="display: block; margin: auto;" />&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-11-02-plot-columns-repeatedly_files/figure-html/unnamed-chunk-4-9.png" width="100%" style="display: block; margin: auto;" />&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-11-02-plot-columns-repeatedly_files/figure-html/unnamed-chunk-4-10.png" width="100%" style="display: block; margin: auto;" />&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-11-02-plot-columns-repeatedly_files/figure-html/unnamed-chunk-4-11.png" width="100%" style="display: block; margin: auto;" />&lt;/p></description></item><item><title>Change standard theme of ggplot</title><link>https://sebastiansauer.github.io/data_se/2018/10/10/change-standard-theme-of-ggplot/</link><pubDate>Wed, 10 Oct 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/10/10/change-standard-theme-of-ggplot/</guid><description>&lt;p>&lt;code>ggplot2&lt;/code> is customizeable. Frankly, one can change a heap of details - not everything probably, but a lot. Of course, one can add a theme to the ggplot call, in order to change the theme. However, a more catch-it-all approach would be to change the standard theme of ggplot itself. In this post, we’ll investigate this option.&lt;/p>
+&lt;p>Load some data and the right packages:&lt;/p>
+&lt;pre class="r">&lt;code>data(mtcars)
+library(tidyverse)&lt;/code>&lt;/pre>
+&lt;p>Here’s the standard theme of ggplot, let’s have a look at it&lt;/p></description></item><item><title>Talk - Populism in tweets of German politicians (talk at DGPs 2018)</title><link>https://sebastiansauer.github.io/data_se/2018/09/14/talk-populism-in-tweets-of-german-politicians-talk-at-dgps-2018/</link><pubDate>Fri, 14 Sep 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/09/14/talk-populism-in-tweets-of-german-politicians-talk-at-dgps-2018/</guid><description>&lt;p>The slides of my talk &lt;em>Populism in tweets of German politicians&lt;/em>&lt;/p>
+&lt;p>can be found here &lt;a href="http://data-se.netlify.com/slides/populist-twitter/populist-twitter-dgps2018.html#1" class="uri">http://data-se.netlify.com/slides/populist-twitter/populist-twitter-dgps2018.html#1&lt;/a>.&lt;/p>
+&lt;p>Data, code, and more can be found at Github: &lt;a href="https://github.com/sebastiansauer/polits_tweet_mining" class="uri">https://github.com/sebastiansauer/polits_tweet_mining&lt;/a>&lt;/p></description></item><item><title>Wenn Excel aufgibt: Datenvisualisierung kann zu komplex für Excel werden</title><link>https://sebastiansauer.github.io/data_se/2018/09/11/wenn-excel-aufgibt-datenvisualisierung-kann-zu-komplex-f%C3%BCr-excel-werden/</link><pubDate>Tue, 11 Sep 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/09/11/wenn-excel-aufgibt-datenvisualisierung-kann-zu-komplex-f%C3%BCr-excel-werden/</guid><description>&lt;p>Ms Excel ist ein beliebtes Werkzeug der Datenanalyse, auch für Datenvisualisierung. Es gibt einige Beispiele, dass andere Werkzeuge, wie R, zu ansehnlicheren Diagrammen führen können, s. &lt;a href="https://data-se.netlify.com/2017/11/20/great-dataviz-examples-in-rstats/">diesen Post&lt;/a>. In diesem Post geht es um eine verwandte Frage: Gibt es Diagramme, die nicht – oder nur sehr aufwendig – mit Excel zu erstellen sind?&lt;/p>
+&lt;p>&lt;del>Die&lt;/del> Meine Antwort lautet: Ja, die gibt es. Betrachten wir ein Beispiel.&lt;/p>
+&lt;div id="bayesianische-modelle-visualisieren" class="section level2">
+&lt;h2>Bayesianische Modelle visualisieren&lt;/h2>
+&lt;p>Als Hintergrund dient uns &lt;a href="https://data-se.netlify.com/2018/08/25/bayesian-modeling-of-populist-party-success-in-german-federal-elections/">eine Analyse&lt;/a> (s. auch &lt;a href="http://data-se.netlify.com/slides/afd_dgps2018/afd_dgps2018.html">diese Folien&lt;/a>),
+die bayesianische Modell anwendet, um den AfD-Wahlerfolg bei der Bundestagswahl zu analysieren.&lt;/p></description></item><item><title>Plotting a logistic regression - some considerations</title><link>https://sebastiansauer.github.io/data_se/2018/09/03/plotting-a-logistic-regression-some-considerations/</link><pubDate>Mon, 03 Sep 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/09/03/plotting-a-logistic-regression-some-considerations/</guid><description>&lt;pre class="r">&lt;code>library(mosaic)
+data(tips, package = &amp;quot;reshape2&amp;quot;)&lt;/code>&lt;/pre>
+&lt;p>Recode &lt;code>sex&lt;/code>:&lt;/p>
+&lt;pre class="r">&lt;code>tips %&amp;gt;% 
+ mutate(sex_n = case_when(
+ sex == &amp;quot;Female&amp;quot; ~ 0,
+ sex == &amp;quot;Male&amp;quot; ~ 1
+ )) -&amp;gt; tips2&lt;/code>&lt;/pre>
+&lt;p>Fit model:&lt;/p>
+&lt;pre class="r">&lt;code>glm1 &amp;lt;- glm(sex_n ~ total_bill, data = tips2,
+ family = &amp;quot;binomial&amp;quot;)&lt;/code>&lt;/pre>
+&lt;div id="way-1" class="section level1">
+&lt;h1>Way 1&lt;/h1>
+&lt;pre class="r">&lt;code>plotModel(glm1)&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-09-03-plotting-a-logistic-regression-some-considerations_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" />&lt;/p>
+&lt;/div>
+&lt;div id="way-2" class="section level1">
+&lt;h1>Way 2&lt;/h1>
+&lt;p>Add predictions to data frame:&lt;/p>
+&lt;pre class="r">&lt;code>tips2 %&amp;gt;% 
+ mutate(pred = predict(glm1, newdata = tips, type = &amp;quot;response&amp;quot;)) %&amp;gt;% 
+ mutate(predict_Male = pred &amp;gt; .5) -&amp;gt; tips3&lt;/code>&lt;/pre>
+&lt;p>Check values of predictions:&lt;/p></description></item><item><title>Bayesian modeling of populist party success in German federal elections - A notebook from the lab</title><link>https://sebastiansauer.github.io/data_se/2018/08/25/bayesian-modeling-of-populist-party-success-in-german-federal-elections/</link><pubDate>Sat, 25 Aug 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/08/25/bayesian-modeling-of-populist-party-success-in-german-federal-elections/</guid><description>&lt;p>Following up on an &lt;a href="https://data-se.netlify.com/2017/10/10/afd-map/">earlier post&lt;/a>, we will model the voting success of the (most prominent) populist party, AfD, in the recent federal elections. This time, Bayesian modeling techniques will be used, drawing on the &lt;a href="https://xcelab.net/rm/statistical-rethinking/">excellent textbook&lt;/a> my McElreath.&lt;/p>
+&lt;p>Note that this post is rather a notebook of my thinking, doing, and erring. I’ve made no efforts to hide scaffolding. I think it will be confusing to the uniniate and the initiate as well …&lt;/p></description></item><item><title>How to prepare data for a gantt diagram</title><link>https://sebastiansauer.github.io/data_se/2018/07/05/how-to-prepare-data-for-a-gantt-diagram/</link><pubDate>Thu, 05 Jul 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/07/05/how-to-prepare-data-for-a-gantt-diagram/</guid><description>&lt;p>There’s the new cool world of project management - agile, scrumbling, cool. There’s the old sluggish way of project management using stuff like &lt;em>gantt&lt;/em> diagrams. Let’s stick to the old world and come up with a gantt diagram.&lt;/p>
+&lt;p>The gant diagram itself is no big deal. Just some horizontal lines referring to dates. Somewhat more interesting is to populate a raw data frame in a way that allows for convenient plotting.&lt;/p></description></item><item><title>Visualizing mean values between two groups - the tidyverse way</title><link>https://sebastiansauer.github.io/data_se/2018/06/10/visualizing-summary-statistics-the-tidyverse-way/</link><pubDate>Sun, 10 Jun 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/06/10/visualizing-summary-statistics-the-tidyverse-way/</guid><description>&lt;p>A frequent job in data visualizing is to present summary statistics. In this post, I show one way to plot mean values between groups using the tidyverse approach in comparison to the mosaic way.&lt;/p>
+&lt;pre class="r">&lt;code>library(tidyverse)
+data(mtcars)
+library(mosaic)
+library(knitr)
+library(sjmisc)
+library(sjPlot)&lt;/code>&lt;/pre>
+&lt;div id="visualizing-mean-values-between-two-groups" class="section level1">
+&lt;h1>Visualizing mean values between two groups&lt;/h1>
+&lt;p>First, let’s compute the mean hp for automatic cars (&lt;code>am == 0&lt;/code>) vs. manual cars (&lt;code>am == 1&lt;/code>).&lt;/p>
+&lt;pre class="r">&lt;code>mtcars %&amp;gt;% 
+ group_by(am) %&amp;gt;% 
+ summarise(hp_am = mean(hp)) -&amp;gt; hp_am&lt;/code>&lt;/pre>
+&lt;p>Now just hand over this data frame of summarized data to ggplot:&lt;/p></description></item><item><title>Playing around with geo mapping: combining demographic data with spatial data</title><link>https://sebastiansauer.github.io/data_se/2018/05/28/playing-around-with-geo-mapping-combining-demographic-data-with-spatial-data/</link><pubDate>Mon, 28 May 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/05/28/playing-around-with-geo-mapping-combining-demographic-data-with-spatial-data/</guid><description>&lt;p>In this post, we will play around with some basic geo mapping. More preciseyl, we will explore some easy ways to plot a choropleth map.&lt;/p>
+&lt;p>First, let’s load some geo data from &lt;a href="https://www.bundeswahlleiter.de/bundestagswahlen/2017/ergebnisse.html">Bundeswahlleiter&lt;/a>, and combine it with some socio demographic data from the same source.&lt;/p>
+&lt;div id="preparation" class="section level2">
+&lt;h2>Preparation&lt;/h2>
+&lt;p>Let’s load some packages:&lt;/p>
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## Warning: package &amp;#39;dplyr&amp;#39; was built under R version 3.5.1&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>library(sf)
+library(viridis)
+suppressPackageStartupMessages(library(googleVis))&lt;/code>&lt;/pre>
+&lt;p>Geo data:&lt;/p>
+&lt;pre class="r">&lt;code>my_path_wahlkreise &amp;lt;- &amp;quot;~/Documents/datasets/geo_maps/btw17_geometrie_wahlkreise_shp/Geometrie_Wahlkreise_19DBT.shp&amp;quot;
+file.exists(my_path_wahlkreise)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## [1] TRUE&lt;/code>&lt;/pre>
+&lt;p>socio demographic data:&lt;/p></description></item><item><title>Playing around with dumbbell plots</title><link>https://sebastiansauer.github.io/data_se/2018/05/23/playing-around-with-dumbbell-plots/</link><pubDate>Wed, 23 May 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/05/23/playing-around-with-dumbbell-plots/</guid><description>&lt;p>Dumbbell plots can be used to show differences between two groups. &lt;a href="https://rud.is/b/">Bob Rudis&lt;/a> demonstrated a beautiful application of such plots using ggplot2 board methods.&lt;/p>
+&lt;p>In this plot, I will explain or comment his code, and adapt a few changes.&lt;/p>
+&lt;p>First, load some packages.&lt;/p>
+&lt;pre class="r">&lt;code>pacman::p_load(tidyverse, ggalt)&lt;/code>&lt;/pre>
+&lt;p>Let’s make up some data. Tip: Make up some data conveniently in Excel, copy it to the clipboard, and then paste it as tribble (see below) into R. For the last step, there is this RStudio Add-in available “Dataset Loads”. Then use the menu item “Paste as Tribble”.&lt;/p></description></item><item><title>Playing around with dataviz: Comparing distributions between groups</title><link>https://sebastiansauer.github.io/data_se/2018/05/18/playing-around-dataviz-comparing-distributions-between-groups/</link><pubDate>Fri, 18 May 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/05/18/playing-around-dataviz-comparing-distributions-between-groups/</guid><description>&lt;p>What’ a nice way to display distributional differences between a (larger) number of groups? Boxplots is one way to go. In addition, the raw data may be shown as dots, but should be demphasized. Third, a trend or big picture comparing the groups will make sense in some cases.&lt;/p>
+&lt;p>Ok, based on this reasoning, let’s do som visualizing. Let’s load some data (movies), and the usual culprits of packages.&lt;/p>
+&lt;pre class="r">&lt;code>library(tidyverse) &lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## Warning: package &amp;#39;dplyr&amp;#39; was built under R version 3.5.1&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>library(mosaic)
+
+data(movies, package = &amp;quot;ggplot2movies&amp;quot;)&lt;/code>&lt;/pre>
+&lt;p>Now let’s add a variable for &lt;code>decade&lt;/code> as &lt;code>year&lt;/code> is too fine grained..&lt;/p></description></item><item><title>Playing around with dataviz: Showing correlations</title><link>https://sebastiansauer.github.io/data_se/2018/05/18/playing-around-with-dataviz-showing-correlations/</link><pubDate>Fri, 18 May 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/05/18/playing-around-with-dataviz-showing-correlations/</guid><description>&lt;p>In this plot, we are looking into some ways of displaying association between (two) quantitative variables, aka correlation. Our goal is to present a rich representation of the correlation.&lt;/p>
+&lt;p>Let’s take the dataset &lt;code>flights&lt;/code> as an example.&lt;/p>
+&lt;pre class="r">&lt;code>data(flights, package = &amp;quot;nycflights13&amp;quot;)
+library(tidyverse)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## Warning: package &amp;#39;dplyr&amp;#39; was built under R version 3.5.1&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>library(viridis)&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>flights %&amp;gt;% 
+ filter(arr_delay &amp;lt; 100, dep_delay &amp;lt; 100) %&amp;gt;% 
+ ggplot(aes(x = dep_delay, y = arr_delay, color = origin)) +
+ geom_point(alpha = .01) +
+ geom_smooth(se = FALSE, color = &amp;quot;grey20&amp;quot;) +
+ geom_rug() +
+ facet_wrap(~origin) +
+ scale_color_viridis_d()&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## `geom_smooth()` using method = &amp;#39;gam&amp;#39; and formula &amp;#39;y ~ s(x, bs = &amp;quot;cs&amp;quot;)&amp;#39;&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/post/2018-05-18-playing-around-with-dataviz-showing-correlations_files/figure-html/unnamed-chunk-2-1.png" width="672" />&lt;/p></description></item><item><title>Showcase of Viridis, maps, and ggcounty</title><link>https://sebastiansauer.github.io/data_se/2018/05/18/showcase-of-viridis-maps-and-ggounty/</link><pubDate>Fri, 18 May 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/05/18/showcase-of-viridis-maps-and-ggounty/</guid><description>&lt;p>This posts shows how easy it can be to build an visually pleasing plot. We will use &lt;a href="https://github.com/hrbrmstr">hrbrmster&lt;/a>’s &lt;code>ggcounty&lt;/code>, which is an R package at this &lt;a href="https://github.com/hrbrmstr/ggcounty">Github repo&lt;/a>. Graphics engine is as mostly in my plots, Hadley Wickhams &lt;code>ggplot&lt;/code>. All build on R. Standing on shoulders…&lt;/p>
+&lt;p>Disclaimer: This example heavily draws on hrbrmster example on &lt;a href="https://github.com/hrbrmstr/ggcounty">this page&lt;/a>. All credit is due to Rudy, and those on whose work he built up on.&lt;/p>
+&lt;p>First, load the relevant packages:&lt;/p></description></item><item><title>Visualisation of interaction for the logistic regression</title><link>https://sebastiansauer.github.io/data_se/2018/04/02/visualisation-of-interaction-for-logistic-regression/</link><pubDate>Mon, 02 Apr 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/04/02/visualisation-of-interaction-for-logistic-regression/</guid><description>&lt;p>In this post we are plotting an interaction for a logistic regression. Interaction per se is a concept difficult to grasp; for a GLM it may be even more difficult especially for continuous variables’ interaction. Plotting helps to better or more easy grasp what a model tries to tell us.&lt;/p>
+&lt;p>First, load some packages.&lt;/p>
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ── Attaching packages ────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ✔ ggplot2 3.0.0 ✔ purrr 0.2.5
+## ✔ tibble 1.4.2 ✔ dplyr 0.7.6
+## ✔ tidyr 0.8.1 ✔ stringr 1.3.1
+## ✔ readr 1.1.1 ✔ forcats 0.3.0&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## Warning: package &amp;#39;dplyr&amp;#39; was built under R version 3.5.1&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ── Conflicts ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag() masks stats::lag()&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>library(titanic)
+library(broom)
+library(modelr)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## 
+## Attaching package: &amp;#39;modelr&amp;#39;&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## The following object is masked from &amp;#39;package:broom&amp;#39;:
+## 
+## bootstrap&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>library(knitr)&lt;/code>&lt;/pre>
+&lt;p>We will deal with the well-known Titanic data, ie., we check which predictors augment survival probability:&lt;/p></description></item><item><title>Intuition to Simpson's paradox</title><link>https://sebastiansauer.github.io/data_se/2018/03/09/intuition-to-simpson-s-paradox/</link><pubDate>Fri, 09 Mar 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/03/09/intuition-to-simpson-s-paradox/</guid><description>&lt;p>Say, you have to choose between two doctors (Anna and Berta). To decide which one is better, you check their success rates. Suppose that they deal with two conditions (Coolities and Dummities). So let’s compare their success rate for each of the two conditions (and the total success rate):&lt;/p>
+&lt;p>This is the proportion of healing (success) of the first doctor, Dr. &lt;em>Anna&lt;/em> for each of the two conditions:&lt;/p>
+&lt;ul>
+&lt;li>Coolities: 7 out of 8 patients are healed from Coolities&lt;/li>
+&lt;li>Dummieties: 1 out of 2 patients are healed from Dummities&lt;/li>
+&lt;/ul>
+&lt;p>This is the proportion of healing (success) of the first doctor, Dr. &lt;em>Berta&lt;/em> for each of the two conditions:&lt;/p></description></item><item><title>Zusammenhang von Lernen und Noten im Statistikunterricht</title><link>https://sebastiansauer.github.io/data_se/2017/12/20/zusammenhang-von-lernen-und-noten-im-statistikunterricht/</link><pubDate>Wed, 20 Dec 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/12/20/zusammenhang-von-lernen-und-noten-im-statistikunterricht/</guid><description>&lt;p>Führt Lernen zu besseren Noten? Eigene Erfahrung und allgemeiner Konsens stimmen dem zu; zumindest schadet Lernen des Stoffes nicht und hilft oft, gute Noten bei einer Prüfung zu diesem Stoff zu erzielen. Aber welche &lt;em>Belege&lt;/em>, &lt;em>wissenschaftliche&lt;/em> Belege gibt es dazu? An unserer Hochschule, die FOM, haben wir eine kleine Untersuchung zu dieser Frage durchgeführt. Genauer gesagt haben wir unseren Studierenden einen Statistik-Test vorlegt und gefagt, wie sehr sie sich für diesen Test vorbereitet hätten. Den Zusammenhang dieser beiden Größe haben wir dann ausgewertet; die folgende Abbildung zeigt das Ergebnis:&lt;/p></description></item><item><title>A p-value picture</title><link>https://sebastiansauer.github.io/data_se/2017/11/29/a-p-value-picture/</link><pubDate>Wed, 29 Nov 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/11/29/a-p-value-picture/</guid><description>&lt;p>Much ado and to say about the p-value. Let me add one more point; actually not really from myself, but from &lt;span class="citation">Diez, Barr, and Cetinkaya-Rundel (&lt;a href="#ref-diez2012openintro">2012&lt;/a>)&lt;/span>, p. 189; good book in one is looking for “orthodox” statistics.&lt;/p>
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ── Attaching packages ────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse 1.2.1 ──&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ✔ ggplot2 3.0.0 ✔ purrr 0.2.5
+## ✔ tibble 1.4.2 ✔ dplyr 0.7.6
+## ✔ tidyr 0.8.1 ✔ stringr 1.3.1
+## ✔ readr 1.1.1 ✔ forcats 0.3.0&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## Warning: package &amp;#39;dplyr&amp;#39; was built under R version 3.5.1&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ── Conflicts ───────────────────────────────────────────────────────────────────────────────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag() masks stats::lag()&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>ggplot(NULL, aes(c(-5,5))) +
+ geom_area(stat = &amp;quot;function&amp;quot;, fun = dnorm, fill = &amp;quot;grey40&amp;quot;, xlim = c(-5, 2)) +
+ geom_area(stat = &amp;quot;function&amp;quot;, fun = dnorm, fill = &amp;quot;#00998a&amp;quot;, xlim = c(2, 5)) +
+ labs(y = &amp;quot;&amp;quot;,
+ x = &amp;quot;X&amp;quot;) +
+ theme(axis.text = element_blank(),
+ axis.ticks = element_blank())&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/post/2017-11-29-a-p-value-picture_files/figure-html/unnamed-chunk-2-1.png" width="672" />&lt;/p></description></item><item><title>Interactive diagrams in lieu of shiny?</title><link>https://sebastiansauer.github.io/data_se/2017/11/27/interactive-diagrams-in-lieu-of-shiny/</link><pubDate>Mon, 27 Nov 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/11/27/interactive-diagrams-in-lieu-of-shiny/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/htmlwidgets/htmlwidgets.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-binding/plotly.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/typedarray/typedarray.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/jquery/jquery.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/crosstalk/css/crosstalk.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/crosstalk/js/crosstalk.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-main/plotly-latest.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/bokehjs/bokeh.min.css" rel="stylesheet" />
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/bokehjs/loader.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/bokehjs/bokeh.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/rbokeh-binding/rbokeh.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/d3v4/d3-4.13.0.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/d3v4/d3-legend.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/d3.lasso-plugin/lasso.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/d3.lasso-plugin/lasso.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3/scatterD3.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3/scatterD3-utils.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3/scatterD3-setup.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3/scatterD3-axes.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3/scatterD3-dots.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3/scatterD3-arrows.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3/scatterD3-labels.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3/scatterD3-lines.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3/scatterD3-ellipses.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3/scatterD3-legend.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3/scatterD3-lasso.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3/scatterD3-exports.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/scatterD3-binding/scatterD3.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/d3/d3.v3.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/rmarkdown-libs/pairsD3/style.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/pairsD3-binding/pairsD3.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/chart.js/./dist/Chart.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/chartJSRadar-binding/chartJSRadar.js">&lt;/script>
+
+
+&lt;p>One frequent use of the Shiny server software is displaying interactive data diagrams. The pro of using
+Shiny is the great flexibility; much more than “just graphics” can be done. Basically Shiny provides a flexible
+GUI for your R program. &lt;em>But&lt;/em> if you simply aiming at displaying or exploring some data interactively, a much
+simplor approach may do it for you; there are some nice libraries available in R for that. The aim of this post is to present some examples, and to that’s easy to use them in R.&lt;/p></description></item><item><title>Mapping foreigner ratio to AfD election results in the German Wahlkreise</title><link>https://sebastiansauer.github.io/data_se/2017/10/22/afd-map-foreigners/</link><pubDate>Sun, 22 Oct 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/10/22/afd-map-foreigners/</guid><description>&lt;p>In a &lt;a href="https://data-se.netlify.com/2017/10/10/afd-map/">previous post&lt;/a>, we have shed some light on the idea that populism - as manifested in AfD election results - is associated with socioeconomic deprivation, be it subjective or objective. We found some supporting pattern in the data, although that hypothesis is far from being complete; ie., most of the variance remained unexplained.&lt;/p>
+&lt;p>In this post, we test the hypothesis that AfD election results are &lt;em>negatively&lt;/em> associated with the proportion of foreign nationals in a Wahlkreis. The idea is this: Many foreigners in your neighborhood, and you will get used to it. You will perceive those type of people as normal. To the contrary, if there are few of them, they are perceived as rather alien.&lt;/p></description></item><item><title>Mapping unemployment ratio to AfD election results in German Wahlkreise</title><link>https://sebastiansauer.github.io/data_se/2017/10/10/afd-map/</link><pubDate>Tue, 10 Oct 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/10/10/afd-map/</guid><description>&lt;p>There is the idea that the alt-right German party AfD is followed by those who are deprived of chances, thoses of fearing to falling down the social ladder, and so on. Let&amp;rsquo;s test this hypothesis. No, I am not thinking on hypothesis testing, p-values, and stuff. Rather, let&amp;rsquo;s color a map of German election districts (Wahlkreise) according to whether the area is poor AND the AfD gained a lot of votes (and vice versa: the area is rich AND the AfD gained relatively few votes). More specifically, let&amp;rsquo;s look at unemployment ratios and incomes at different election areas in the country and compare those figures to AfD election results.&lt;/p></description></item><item><title>Mapping unemployment rate to German district areas</title><link>https://sebastiansauer.github.io/data_se/2017/10/09/unemp-map/</link><pubDate>Mon, 09 Oct 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/10/09/unemp-map/</guid><description>&lt;p>A &lt;em>chloropleth&lt;/em> map is a geographic map where statistical information are mapped to certain areas. Let&amp;rsquo;s plot such a chloropleth map in this post.&lt;/p>
+&lt;h1 id="packages">Packages&lt;/h1>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(sf)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(stringr)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(tidyverse)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(readxl)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="geo-data">Geo data&lt;/h1>
+&lt;p>Best place to get German geo data is from the &lt;a href="http://www.bkg.bund.de%3E">&amp;ldquo;Bundesamt für Kartografie und Geodäsie (BKG)&amp;rdquo;&lt;/a>. One may basically use the data for a purposes unless it is against the law. I have downloaded the data 2017-10-09. More specifically, we are looking at the &amp;ldquo;Verwaltungsgebiete&amp;rdquo; (vg), that is, the administrative areas of the country, ie., counties, states etc.&lt;/p></description></item><item><title>Drawing a country map</title><link>https://sebastiansauer.github.io/data_se/2017/10/06/chloromap/</link><pubDate>Fri, 06 Oct 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/10/06/chloromap/</guid><description>&lt;p>Let&amp;rsquo;s draw a map of Bavaria, a state of Germany, in this post.&lt;/p>
+&lt;h1 id="packages">Packages&lt;/h1>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(tidyverse)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(maptools)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(sf)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(RColorBrewer)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(ggmap)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(viridis)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(stringr)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="data">Data&lt;/h1>
+&lt;p>Let&amp;rsquo;s get the data first. Basically, we need to data files:&lt;/p>
+&lt;ul>
+&lt;li>the shape file, ie., a geographic details of state borders and points of interest&lt;/li>
+&lt;li>the semantic information to points of interest eg., town names&lt;/li>
+&lt;/ul>
+&lt;h2 id="shape-file">Shape file&lt;/h2>
+&lt;p>The shape file can be downloaded from this source: &lt;a href="http://www.metaspatial.net/download/plz.tar.gz">http://www.metaspatial.net/download/plz.tar.gz&lt;/a>&lt;/p>
+&lt;p>&lt;a href="http://gadm.org/country">This site&lt;/a> also looks great to get geospatial data.&lt;/p></description></item><item><title>Different ways to present summaries in ggplot2</title><link>https://sebastiansauer.github.io/data_se/2017/09/08/ggplot-summaries/</link><pubDate>Fri, 08 Sep 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/09/08/ggplot-summaries/</guid><description>&lt;p>A convenient and well applicable visualization for comparing groups with respect to a metric variable is the boxplot. However, often, comparing means is accompanied by t-tests, ANOVAs, and friends. Such tests test the &lt;em>mean&lt;/em>, not the median, and hence the boxplot is presenting the tested statistic. It would be better to align test and diagram. How can that be achieved using &lt;code>ggplot2&lt;/code>? This posts demonstrates some possibilities.&lt;/p>
+&lt;p>First, let&amp;rsquo;s plot a boxplot.&lt;/p></description></item><item><title>Print csv-file tables as plots</title><link>https://sebastiansauer.github.io/data_se/2017/06/22/tab2plot/</link><pubDate>Thu, 22 Jun 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/06/22/tab2plot/</guid><description>&lt;h1 id="tldr">tl;dr&lt;/h1>
+&lt;p>Use this convenience function to print a dataframe as a png-plot: &lt;code>tab2grob()&lt;/code>.&lt;/p>
+&lt;p>Source the function here: &lt;a href="https://sebastiansauer.github.io/Rcode/tab2grob.R">https://sebastiansauer.github.io/Rcode/tab2grob.R&lt;/a>&lt;/p>
+&lt;p>Easiest way in R:&lt;/p>
+&lt;pre tabindex="0">&lt;code>source(&amp;#34;https://sebastiansauer.github.io/Rcode/tab2grob.R&amp;#34;)
+&lt;/code>&lt;/pre>&lt;h1 id="printing-csv-dataframes-as-ggplot-plots">Printing csv-dataframes as ggplot plots&lt;/h1>
+&lt;p>Recently, I wanted to print dataframes not as normal tables, but as a png-plot. See:&lt;/p>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/images/2017-06-22/Tabelle_Befehle_Datenjudo.png" alt="">&lt;/p>
+&lt;p>Why? Well, basically as a convenience function for colleagues who are not into using Markdown &amp;amp; friends. As I am preparing some stats stuff (see my new open access course material &lt;a href="https://sebastiansauer.github.io/Praxis_der_Datenanalyse/">here&lt;/a>) using RMarkdown, I wanted to prepare the materials ready for using in Powerpoint.&lt;/p></description></item><item><title>Sorting the x-axis in bargraphs using ggplot2</title><link>https://sebastiansauer.github.io/data_se/2017/06/05/ordering-bars/</link><pubDate>Mon, 05 Jun 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/06/05/ordering-bars/</guid><description>&lt;p>Some time ago, I &lt;a href="https://sebastiansauer.github.io/percentage_plot_ggplot2_V2/">posted about how to plot frequencies using ggplot2&lt;/a>. One point that remained untouched was how to sort the order of the bars. Let&amp;rsquo;s look at that issue here.&lt;/p>
+&lt;p>First, let&amp;rsquo;s load some data.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">data&lt;/span>(tips, package &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;reshape2&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>And the usual culprits.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(tidyverse)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(scales) &lt;span style="color:#75715e"># for percentage scales&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>First, let&amp;rsquo;s plot a standard plot, with bars &lt;em>un&lt;/em>sorted.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>tips &lt;span style="color:#f92672">%&amp;gt;%&lt;/span> 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">count&lt;/span>(day) &lt;span style="color:#f92672">%&amp;gt;%&lt;/span> 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">mutate&lt;/span>(perc &lt;span style="color:#f92672">=&lt;/span> n &lt;span style="color:#f92672">/&lt;/span> &lt;span style="color:#a6e22e">nrow&lt;/span>(tips)) &lt;span style="color:#f92672">-&amp;gt;&lt;/span> tips2
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">ggplot&lt;/span>(tips2, &lt;span style="color:#a6e22e">aes&lt;/span>(x &lt;span style="color:#f92672">=&lt;/span> day, y &lt;span style="color:#f92672">=&lt;/span> perc)) &lt;span style="color:#f92672">+&lt;/span> &lt;span style="color:#a6e22e">geom_bar&lt;/span>(stat &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;identity&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;img src="https://sebastiansauer.github.io/images/2017-06-05/figure/unnamed-chunk-3-1.png" alt="plot of chunk unnamed-chunk-3">&lt;/p></description></item><item><title>Simple way of plotting normal/logistic/etc. curve</title><link>https://sebastiansauer.github.io/data_se/2017/05/24/plotting_s-curve/</link><pubDate>Wed, 24 May 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/05/24/plotting_s-curve/</guid><description>&lt;p>Plotting a function is often helpful to better understand what&amp;rsquo;s going on. Plotting curves in R &lt;code>base&lt;/code> is simple by virtue of function &lt;code>curve&lt;/code>. But how to draw curves using ggplot2?&lt;/p>
+&lt;p>That&amp;rsquo;s a little bit more complicated by can still be accomplished by 1-2 lines.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(ggplot2)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="normal-curve">Normal curve&lt;/h1>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>p &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">ggplot&lt;/span>(data &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#a6e22e">data.frame&lt;/span>(x &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#a6e22e">c&lt;/span>(&lt;span style="color:#ae81ff">-3&lt;/span>, &lt;span style="color:#ae81ff">3&lt;/span>)), &lt;span style="color:#a6e22e">aes&lt;/span>(x))
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>p &lt;span style="color:#f92672">+&lt;/span> &lt;span style="color:#a6e22e">stat_function&lt;/span>(fun &lt;span style="color:#f92672">=&lt;/span> dnorm, n &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">101&lt;/span>) 
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;img src="https://sebastiansauer.github.io/images/2017-05-24/figure/unnamed-chunk-2-1.png" alt="plot of chunk unnamed-chunk-2">&lt;/p>
+&lt;p>&lt;code>stat_function&lt;/code> is some kind of parallel function to &lt;code>curve&lt;/code>. The parameter &lt;code>n&lt;/code> tells ggplot how finely granulated the curve should be. Compare to &lt;code>n=10&lt;/code>:&lt;/p></description></item><item><title>Squares maximize area - a visualization</title><link>https://sebastiansauer.github.io/data_se/2017/05/19/maximize_area/</link><pubDate>Fri, 19 May 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/05/19/maximize_area/</guid><description>&lt;p>An old story is that one of the farmer with a fence of some given length, say 20m. Now this farmer wants to put up his fence so that he claims the largest piece of land possible. What width (w) and height (h) should we pick?&lt;/p>
+&lt;p>Instead of a formal proof, let&amp;rsquo;s start with a visualization.&lt;/p>
+&lt;p>First, we need some packages.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(tidyverse)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(gganimate)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(RColorBrewer)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(scales)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(knitr)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Now, let&amp;rsquo;s make up serveral ways to split up a rectengular piece of land. Note that we only need to define two sides (width and height), as the circumference of a rectangle is $$c = 2w + sh$$.&lt;/p></description></item><item><title>A predictor's unique contribution - (visual) demonstration</title><link>https://sebastiansauer.github.io/data_se/2017/05/17/storks/</link><pubDate>Wed, 17 May 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/05/17/storks/</guid><description>&lt;p>A well-known property of regression models is that they capture the &lt;em>unique&lt;/em> contribution of a predictor. By &amp;ldquo;unique&amp;rdquo; we mean the effect of the predictor (on the criterion) &lt;em>if the other predictor(s) is/are held constant&lt;/em>. A typical classroom example goes along the following lines.&lt;/p>
+&lt;h1 id="all-about-storks">All about storks&lt;/h1>
+&lt;ol>
+&lt;li>
+&lt;p>There&amp;rsquo;s a correlation between babies and storks. Counties with lots of storks enjoy large number of babies and v.v.&lt;/p>
+&lt;/li>
+&lt;li>
+&lt;p>However, I have children, I know the storks are not overly involved in that business, so says the teacher (polite laughters in the audience).&lt;/p></description></item><item><title>Plotting true random numbers</title><link>https://sebastiansauer.github.io/data_se/2017/05/12/true_random/</link><pubDate>Fri, 12 May 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/05/12/true_random/</guid><description>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>knitr&lt;span style="color:#f92672">::&lt;/span>opts_chunk&lt;span style="color:#f92672">$&lt;/span>&lt;span style="color:#a6e22e">set&lt;/span>(fig.align &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;center&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> out.width &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;70%&amp;#34;&lt;/span>,
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> fig.asp &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">.61&lt;/span>)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Every now and then, random numbers come in handy to demonstrate some statistical behavior. Of course, well-known appraoches are &lt;code>rnorm&lt;/code> and friends. These functions are what is called &lt;em>pseudo random number generators&lt;/em>, because they are not random at all, strictly speaking, but determined by some algorithm. An algorithm is a sort of creature that is 100% predictable once you know the input (and the details of the algorithm). Pseudo random numbers are useful &amp;lsquo;cause you know what you will get; reproducibility ensured.&lt;/p></description></item><item><title>Variance explained vs. variance blurred</title><link>https://sebastiansauer.github.io/data_se/2017/05/05/explained_variance/</link><pubDate>Fri, 05 May 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/05/05/explained_variance/</guid><description>&lt;p>Frequently, someones says that some indicator variable X &amp;ldquo;explains&amp;rdquo; some proportion of some target variable, Y. What does this actually mean? By &amp;ldquo;mean&amp;rdquo; I am trying to find some intuition that &amp;ldquo;clicks&amp;rdquo; rather than citing the (well-known) formualas.&lt;/p>
+&lt;p>To start with, let&amp;rsquo;s load some packages and make up some random data.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(tidyverse)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>n_rows &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#ae81ff">100&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">set.seed&lt;/span>(&lt;span style="color:#ae81ff">271828&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>df &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">data_frame&lt;/span>(
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> exp_clean &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#a6e22e">rnorm&lt;/span>(n &lt;span style="color:#f92672">=&lt;/span> n_rows, mean &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">2&lt;/span>, sd &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span>),
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> cntrl_clean &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#a6e22e">rnorm&lt;/span>(n &lt;span style="color:#f92672">=&lt;/span> n_rows, mean &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span>, sd &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span>),
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> exp_noisy &lt;span style="color:#f92672">=&lt;/span> exp_clean &lt;span style="color:#f92672">+&lt;/span> &lt;span style="color:#a6e22e">rnorm&lt;/span>(n &lt;span style="color:#f92672">=&lt;/span> n_rows, mean &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span>, sd &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">3&lt;/span>),
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> cntrl_noisy &lt;span style="color:#f92672">=&lt;/span> cntrl_clean &lt;span style="color:#f92672">+&lt;/span> &lt;span style="color:#a6e22e">rnorm&lt;/span>(n &lt;span style="color:#f92672">=&lt;/span> n_rows, mean &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span>, sd &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">3&lt;/span>),
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> ID &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span>&lt;span style="color:#f92672">:&lt;/span>n_rows)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Here, we drew 100 cases from the population of the &amp;ldquo;experimental group&amp;rdquo; (mue = 2) and 100 cases from the control group (mue = 0). We will investigate the effect of noise on our data. So for both groups we make up noisy data: We just add some random noise on the existing data.&lt;/p></description></item><item><title>Plotting skewed distributions</title><link>https://sebastiansauer.github.io/data_se/2017/04/19/skewed-distribs/</link><pubDate>Wed, 19 Apr 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/04/19/skewed-distribs/</guid><description>&lt;p>Let&amp;rsquo;s plot some skewed stuff, aehm, distributions!&lt;/p>
+&lt;p>Actually, the point I - initially - wanted to make is that in skewed distribution, don&amp;rsquo;t use means. Or at least, be very aware that (arithmetic) means can be grossly misleading. But for today, let&amp;rsquo;s focus on drawing skewed distributions.&lt;/p>
+&lt;p>Some packages:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(tidyverse)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(fGarch) &lt;span style="color:#75715e"># for snorm&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>Some skewed distribution include:&lt;/p>
+&lt;ul>
+&lt;li>&amp;ldquo;polluted&amp;rdquo; normal distributions, ie., mixtures of two normals&lt;/li>
+&lt;li>Exponential distributions&lt;/li>
+&lt;li>Gamma distributions&lt;/li>
+&lt;li>Beta distributions&lt;/li>
+&lt;/ul>
+&lt;p>One way to visualize them is to draw their curve, ie., their functional (analytical) form:&lt;/p></description></item><item><title>Error bars for interaction effects with nominal variables</title><link>https://sebastiansauer.github.io/data_se/2017/04/18/moderator-errorbars/</link><pubDate>Tue, 18 Apr 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/04/18/moderator-errorbars/</guid><description>&lt;p>Moderator effects (ie., interaction or synergy effects) are a topic of frequent interest in many sciences braches. A lot ink has been spilled over this topic (so did I, eg., &lt;a href="https://sebastiansauer.github.io/vis_interaction_effects/">here&lt;/a>).&lt;/p>
+&lt;p>However, in that post I did now show how to visualize error in case of nominal (categorical) independent variable, and categorical moderator.&lt;/p>
+&lt;p>Luckily, visualization of this case is quite straight forward with ggplot2.&lt;/p>
+&lt;p>First, some data and packages to be loaded:&lt;/p></description></item><item><title>The two ggplot2-ways of plottings bars</title><link>https://sebastiansauer.github.io/data_se/2017/01/20/two_ways_barplots_with_ggplot2/</link><pubDate>Fri, 20 Jan 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/01/20/two_ways_barplots_with_ggplot2/</guid><description>&lt;p>Bar plots, whereas not appropriate for means, are helpful for conveying impressions of frequencies, particularly relative frequencies, ie., proportions.&lt;/p>
+&lt;p>Intuition: Bar plots and histograms alike can be thought of as piles of Lego pieces, put onto each each other, where each Lego piece represents (is) one observation.&lt;/p>
+&lt;p>Presenting tables of frequencies are often not insightful to the eye. Bar plots are often much more accessible and present the story more clearly.&lt;/p></description></item><item><title>Visualizing Interaction Effects with ggplot2</title><link>https://sebastiansauer.github.io/data_se/2017/01/17/vis_interaction_effects/</link><pubDate>Tue, 17 Jan 2017 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2017/01/17/vis_interaction_effects/</guid><description>&lt;p>Moderator effects or interaction effect are a frequent topic of scientific endeavor. Put bluntly, such effects respond to the question whether the input variable X (predictor or independent variable IV) has an effect on the output variable (dependent variable DV) Y: &amp;ldquo;it depends&amp;rdquo;. More precisely, it depends on a second variable, M (Moderator).&lt;/p>
+&lt;p>More formally, a moderation effect can be summarized as follows:&lt;/p>
+&lt;blockquote>
+&lt;p>If the effect of X on Y depends on M, a moderator effect takes place.&lt;/p></description></item><item><title>Some musings on the validation of Satow's Extraversion questionnaire</title><link>https://sebastiansauer.github.io/data_se/2016/11/23/validation_extraversion_questionnaire/</link><pubDate>Wed, 23 Nov 2016 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2016/11/23/validation_extraversion_questionnaire/</guid><description>&lt;p>Measuring personality traits is one of (the?) bread-and-butter business of psychologists, at least for quantitatively oriented ones. Literally, thousand of psychometric questionnaires exits. Measures abound. Extroversion, part of the Big Five personality &lt;del>theory&lt;/del> approach, is one of the most widely used, and extensively scrutinized questionnaire tapping into human personality.&lt;/p>
+&lt;p>One rather new, but quite often used questionnaire, is &lt;a href="https://www.zpid.de/pub/tests/PT_9006357_B5T_Forschungsbericht.pdf">Satow&amp;rsquo;s (2012)&lt;/a> &lt;strong>B5T&lt;/strong>. The reason for the popularity of this instrument is that it runs under a CC-licence - in contrast to the old ducks, which coute chere. The B5T has undergone some psychometric scrutiny, and a number of results support the notion that it is a valid instrument.&lt;/p></description></item><item><title>Preparing survey results data</title><link>https://sebastiansauer.github.io/data_se/2016/11/19/preparing_survey_data/</link><pubDate>Sat, 19 Nov 2016 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2016/11/19/preparing_survey_data/</guid><description>&lt;p>Analyzing survey results is a frequent endeavor (for some including me). Let&amp;rsquo;s not think about arguments whether and when surveys are useful or not (for some recent criticism see &lt;a href="http://www.springer.com/de/book/9783319397559">Briggs&amp;rsquo; book&lt;/a>).&lt;/p>
+&lt;p>Typically, respondents circle some option ranging from &amp;ldquo;don&amp;rsquo;t agree at all&amp;rdquo; to &amp;ldquo;completely agree&amp;rdquo; for each question (or &amp;ldquo;item&amp;rdquo;). Typically, four to six boxes are given where one is expected to tick one.&lt;/p>
+&lt;p>In this tutorial, I will discuss some typical steps to prepare the data for subsequent analyses. The goal is that we have the dataset ready for analyzing with basic preparations (eg. recoding of reversed variables) already done.&lt;/p></description></item><item><title>New bar stacking with ggplot 2.2.0</title><link>https://sebastiansauer.github.io/data_se/2016/11/13/improved_bar_stacking_ggplot2_220/</link><pubDate>Sun, 13 Nov 2016 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2016/11/13/improved_bar_stacking_ggplot2_220/</guid><description>&lt;p>Recently, &lt;code>ggplot2&lt;/code> 2.2.0 was released. Among other news, stacking bar plot was improved. Here is a short demonstration.&lt;/p>
+&lt;p>Load libraries&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(tidyverse)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(htmlTable)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&amp;hellip; and load data:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>data &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">read.csv&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;https://osf.io/meyhp/?action=download&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>DOI for this piece of data is 10.17605/OSF.IO/4KGZH.&lt;/p>
+&lt;p>The data consists of results of a survey on extraversion and associated behavior.&lt;/p>
+&lt;p>Say, we would like to visualize the responsed to the extraversion items (there are 10 of them).&lt;/p>
+&lt;p>So, let&amp;rsquo;s see. First, compute summary of the responses.&lt;/p></description></item><item><title>Plotting survey results using `ggplot2`</title><link>https://sebastiansauer.github.io/data_se/2016/11/12/plotting_surveys/</link><pubDate>Sat, 12 Nov 2016 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2016/11/12/plotting_surveys/</guid><description>&lt;p>Plotting (and more generally, analyzing) survey results is a frequent endeavor in many business environments. Let&amp;rsquo;s not think about arguments whether and when surveys are useful (for some recent criticism see &lt;a href="http://www.springer.com/de/book/9783319397559">Briggs&amp;rsquo; book&lt;/a>).&lt;/p>
+&lt;p>Typically, respondents circle some option ranging from &amp;ldquo;don&amp;rsquo;t agree at all&amp;rdquo; to &amp;ldquo;completely agree&amp;rdquo; for each question (or &amp;ldquo;item&amp;rdquo;). Typically, four to six boxes are given where one is expected to tick one.&lt;/p>
+&lt;p>In this tutorial, I will discuss some barplot type visualizations; the presentation is based on &lt;code>ggplot2&lt;/code> (within the &lt;code>R&lt;/code> environment) . Sure, much more can be done than will be presented here, but for the scope of this post, we will stick to the plain barplot (although some variations of it).&lt;/p></description></item><item><title>How to plot a 'percentage plot' with ggplot2</title><link>https://sebastiansauer.github.io/data_se/2016/11/03/percentage_plot_ggplot2_v2/</link><pubDate>Thu, 03 Nov 2016 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2016/11/03/percentage_plot_ggplot2_v2/</guid><description>&lt;p>At times it is convenient to draw a frequency bar plot; at times we prefer not the bare frequencies but the proportions or the percentages per category. There are lots of ways doing so; let&amp;rsquo;s look at some &lt;code>ggplot2&lt;/code> ways.&lt;/p>
+&lt;p>First, let&amp;rsquo;s load some data.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">data&lt;/span>(tips, package &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;reshape2&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>And the typical libraries.&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(dplyr)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(ggplot2)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(tidyr)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(scales) &lt;span style="color:#75715e"># for percentage scales&lt;/span>
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;h1 id="way-1">Way 1&lt;/h1>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>tips &lt;span style="color:#f92672">%&amp;gt;%&lt;/span> 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">count&lt;/span>(day) &lt;span style="color:#f92672">%&amp;gt;%&lt;/span> 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">mutate&lt;/span>(perc &lt;span style="color:#f92672">=&lt;/span> n &lt;span style="color:#f92672">/&lt;/span> &lt;span style="color:#a6e22e">nrow&lt;/span>(tips)) &lt;span style="color:#f92672">-&amp;gt;&lt;/span> tips2
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">ggplot&lt;/span>(tips2, &lt;span style="color:#a6e22e">aes&lt;/span>(x &lt;span style="color:#f92672">=&lt;/span> day, y &lt;span style="color:#f92672">=&lt;/span> perc)) &lt;span style="color:#f92672">+&lt;/span> &lt;span style="color:#a6e22e">geom_bar&lt;/span>(stat &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;identity&amp;#34;&lt;/span>)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;img src="https://sebastiansauer.github.io/images/2016-11-02-02/plot1-1.png" alt="plot of chunk plot1">&lt;/p></description></item><item><title>CLES plot</title><link>https://sebastiansauer.github.io/data_se/2016/10/17/cles-plot/</link><pubDate>Mon, 17 Oct 2016 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2016/10/17/cles-plot/</guid><description>&lt;p>In data analysis, we often ask &amp;ldquo;Do these two groups differ in the outcome variable&amp;rdquo;? Asking this question, a tacit assumption may be that the grouping variable is the cause of the difference in the outcome variable. For example, assume the two groups are &amp;ldquo;treatment group&amp;rdquo; and &amp;ldquo;control group&amp;rdquo;, and the outcome variable is &amp;ldquo;pain reduction&amp;rdquo;.&lt;/p>
+&lt;p>A typical approach would be to report the strenght of the difference by help of Cohen&amp;rsquo;s d. Even better (probably, but this atttitude is not undebated) is to report confidence intervals for d.&lt;/p></description></item><item><title>Code example for plotting boxplots instead of mean bars</title><link>https://sebastiansauer.github.io/data_se/2016/09/22/use-boxplots/</link><pubDate>Thu, 22 Sep 2016 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2016/09/22/use-boxplots/</guid><description>&lt;p>On a recent psychology conference I had the impression that psychologists keep preferring to show mean values, but appear less interested in more detailled plots such as the boxplot. Plots like the boxplot are richer in information, but not more difficult to perceive.&lt;/p>
+&lt;p>For those who would like to have an easy starter on how to visualize more informative plots (more than mean bars), here is a suggestion:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#75715e"># install.pacakges(&amp;#34;Ecdat&amp;#34;)&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(Ecdat) &lt;span style="color:#75715e"># dataset on extramarital affairs&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">data&lt;/span>(Fair)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">str&lt;/span>(Fair)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;pre tabindex="0">&lt;code>## &amp;#39;data.frame&amp;#39;:	601 obs. of 9 variables:
+## $ sex : Factor w/ 2 levels &amp;#34;female&amp;#34;,&amp;#34;male&amp;#34;: 2 1 1 2 2 1 1 2 1 2 ...
+## $ age : num 37 27 32 57 22 32 22 57 32 22 ...
+## $ ym : num 10 4 15 15 0.75 1.5 0.75 15 15 1.5 ...
+## $ child : Factor w/ 2 levels &amp;#34;no&amp;#34;,&amp;#34;yes&amp;#34;: 1 1 2 2 1 1 1 2 2 1 ...
+## $ religious : int 3 4 1 5 2 2 2 2 4 4 ...
+## $ education : num 18 14 12 18 17 17 12 14 16 14 ...
+## $ occupation: int 7 6 1 6 6 5 1 4 1 4 ...
+## $ rate : int 4 4 4 5 3 5 3 4 2 5 ...
+## $ nbaffairs : num 0 0 0 0 0 0 0 0 0 0 ...
+&lt;/code>&lt;/pre>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(ggplot2)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(dplyr)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>Fair &lt;span style="color:#f92672">%&amp;gt;%&lt;/span> 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">filter&lt;/span>(nbaffairs &lt;span style="color:#f92672">!=&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span>) &lt;span style="color:#f92672">%&amp;gt;%&lt;/span> 
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ggplot&lt;/span>(&lt;span style="color:#a6e22e">aes&lt;/span>(x &lt;span style="color:#f92672">=&lt;/span> sex, y &lt;span style="color:#f92672">=&lt;/span> nbaffairs)) &lt;span style="color:#f92672">+&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">ggtitle&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;Difference in extramarital affairs between sexes&amp;#34;&lt;/span>) &lt;span style="color:#f92672">+&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">geom_boxplot&lt;/span>() &lt;span style="color:#f92672">+&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">geom_jitter&lt;/span>(alpha &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">.5&lt;/span>, color &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#e6db74">&amp;#34;firebrick&amp;#34;&lt;/span>) &lt;span style="color:#f92672">+&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">theme_minimal&lt;/span>()
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/images/2016-09-22-01/unnamed-chunk-1-1.png" alt="plot of chunk unnamed-chunk-1">&lt;/p></description></item><item><title>Plot of mean with exact numbers using ggplot2</title><link>https://sebastiansauer.github.io/data_se/2016/08/30/plot_dot_means/</link><pubDate>Tue, 30 Aug 2016 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2016/08/30/plot_dot_means/</guid><description>&lt;p>Often, both in academic research and more business-driven data analysis, we want to compare some (two in many cases) means. We will not discuss here that &lt;a href="https://www.kickstarter.com/projects/1474588473/barbarplots">friends should not let friends plot barplots&lt;/a>. Following the advise of &lt;a href="https://www.amazon.com/Visualizing-Data-William-S-Cleveland/dp/0963488406">Cleveland&amp;rsquo;s seminal book&lt;/a> we will plot the means using dots, not bars.&lt;/p>
+&lt;p>However, at times we do not simply want the diagram, but we (or someone) is interested in the bare, plain, naked, exact numbers too. So we would like to put the numbers right into the diagram. One way to achieve this is the following:&lt;/p></description></item><item><title>Shading multiple areas under normal curve</title><link>https://sebastiansauer.github.io/data_se/2016/08/30/shade_normal_curve/</link><pubDate>Tue, 30 Aug 2016 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2016/08/30/shade_normal_curve/</guid><description>&lt;p>When plotting a normal curve, it is often helpful to color (or shade) some segments. For example, often we might want to indicate whether an absolute value is greater than 2.&lt;/p>
+&lt;p>How can we achieve this with &lt;code>ggplot2&lt;/code>? Here is one way.&lt;/p>
+&lt;p>First, load packages and define some constants. Specifically, we define mean, sd, and start/end (z-) value of the area we want to shade. And your favorite color is defined.&lt;/p></description></item><item><title>Simple way to plot a normal distribution with ggplot2</title><link>https://sebastiansauer.github.io/data_se/2016/08/30/normal_curve_ggplot2/</link><pubDate>Tue, 30 Aug 2016 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2016/08/30/normal_curve_ggplot2/</guid><description>&lt;p>Plotting a normal distribution is something needed in a variety of situation: Explaining to students (or professors) the basic of statistics; convincing your clients that a t-Test is (not) the right approach to the problem, or pondering on the vicissitudes of life&amp;hellip;&lt;/p>
+&lt;p>If you like &lt;code>ggplot2&lt;/code>, you may have wondered what the easiest way is to plot a normal curve with &lt;code>ggplot2&lt;/code>?&lt;/p>
+&lt;p>Here is one:&lt;/p>
+&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>&lt;span style="color:#a6e22e">library&lt;/span>(cowplot)
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;pre tabindex="0">&lt;code>## Loading required package: ggplot2
+&lt;/code>&lt;/pre>&lt;pre tabindex="0">&lt;code>## 
+## Attaching package: &amp;#39;cowplot&amp;#39;
+&lt;/code>&lt;/pre>&lt;pre tabindex="0">&lt;code>## The following object is masked from &amp;#39;package:ggplot2&amp;#39;:
+## 
+## ggsave
+&lt;/code>&lt;/pre>&lt;div class="highlight">&lt;pre tabindex="0" style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4;">&lt;code class="language-r" data-lang="r">&lt;span style="display:flex;">&lt;span>p1 &lt;span style="color:#f92672">&amp;lt;-&lt;/span> &lt;span style="color:#a6e22e">ggplot&lt;/span>(data &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#a6e22e">data.frame&lt;/span>(x &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#a6e22e">c&lt;/span>(&lt;span style="color:#ae81ff">-3&lt;/span>, &lt;span style="color:#ae81ff">3&lt;/span>)), &lt;span style="color:#a6e22e">aes&lt;/span>(x)) &lt;span style="color:#f92672">+&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">stat_function&lt;/span>(fun &lt;span style="color:#f92672">=&lt;/span> dnorm, n &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">101&lt;/span>, args &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#a6e22e">list&lt;/span>(mean &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">0&lt;/span>, sd &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#ae81ff">1&lt;/span>)) &lt;span style="color:#f92672">+&lt;/span> &lt;span style="color:#a6e22e">ylab&lt;/span>(&lt;span style="color:#e6db74">&amp;#34;&amp;#34;&lt;/span>) &lt;span style="color:#f92672">+&lt;/span>
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span> &lt;span style="color:#a6e22e">scale_y_continuous&lt;/span>(breaks &lt;span style="color:#f92672">=&lt;/span> &lt;span style="color:#66d9ef">NULL&lt;/span>)
+&lt;/span>&lt;/span>&lt;span style="display:flex;">&lt;span>p1
+&lt;/span>&lt;/span>&lt;/code>&lt;/pre>&lt;/div>&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/images/2016-08-30-01.png" alt="">&lt;/p></description></item></channel></rss>

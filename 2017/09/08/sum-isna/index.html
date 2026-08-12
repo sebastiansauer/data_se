@@ -1,0 +1,87 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Different ways to count NAs over multiple columns - Data Se</title>
+<meta property="og:title" content="Different ways to count NAs over multiple columns - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>4 min read</span><h1 class=article-title>Different ways to count NAs over multiple columns</h1><span class=article-date>2017/09/08</span><div class=article-content><p>There are a number of ways in R to count NAs (missing values). A common use case is to count the NAs over multiple columns, ie., a whole dataframe. That&rsquo;s basically the question &ldquo;how many NAs are there in each column of my dataframe&rdquo;? This post demonstrates some ways to answer this question.</p><h1 id=way-1-using-sapply>Way 1: using <code>sapply</code></h1><p>A typical way (or classical way) in R to achieve some iteration is using <code>apply</code> and friends. <code>sapply</code> renders through a list and simplifies (hence the &ldquo;s&rdquo; in sapply) if possible.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>sapply</span>(mtcars, <span style=color:#66d9ef>function</span>(x) <span style=color:#a6e22e>sum</span>(<span style=color:#a6e22e>is.na</span>(x)))
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;  mpg  cyl disp   hp drat   wt qsec   vs   am gear carb</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;    0    0    0    0    0    0    0    0    0    0    0</span>
+</span></span></code></pre></div><p>Pros: Straightforward. No dependencies on other packages. Tried and true.<br>Cons: Not typestable; not sure you will always get the same data type back from this function. You might be surprised and get something you did not expect. That&rsquo;s no problem in interactive use, but you&rsquo;d not want for programming.</p><h1 id=way-2-using-purrrmap>Way 2: using <code>purrr::map</code></h1><p><code>map</code> maps (applies) a function to each element of a vector/list. Here, the following code reads as &ldquo;Apply &lsquo;sum(is.na(.))&rsquo; on each column of mtcars&rdquo;. Mind the tilde <code>~</code> before <code>function. The dot </code>.` refers to the respective column.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>library</span>(tidyverse)
+</span></span><span style=display:flex><span><span style=color:#a6e22e>map</span>(mtcars, <span style=color:#f92672>~</span><span style=color:#a6e22e>sum</span>(<span style=color:#a6e22e>is.na</span>(.)))
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; $mpg</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; [1] 0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; $cyl</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; [1] 0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; $disp</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; [1] 0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; $hp</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; [1] 0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; $drat</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; [1] 0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; $wt</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; [1] 0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; $qsec</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; [1] 0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; $vs</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; [1] 0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; $am</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; [1] 0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; $gear</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; [1] 0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; $carb</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; [1] 0</span>
+</span></span></code></pre></div><p>Pros: Modern, cool. Straightforward. Typestable. Complex function with lots of use cases.<br>Cons: Learning curve. Depends on package <code>tidyverse</code>.</p><h1 id=way-3-using-dplyr>Way 3: using <code>dplyr</code></h1><p>The following code can be translated as something like this:</p><pre tabindex=0><code>1. Hey R, take mtcars -and then-    
+2. Select all columns (if I&#39;m in a good mood tomorrow, I might select fewer) -and then-  
+3. Summarise all selected columns by using the function &#39;sum(is.na(.))&#39;
+</code></pre><p>The dot <code>.</code> refers to what was handed over by the pipe, ie., the output of the last step.</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span>mtcars <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>select</span>(<span style=color:#a6e22e>everything</span>()) <span style=color:#f92672>%&gt;%</span>  <span style=color:#75715e># replace to your needs</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>summarise_all</span>(<span style=color:#a6e22e>funs</span>(<span style=color:#a6e22e>sum</span>(<span style=color:#a6e22e>is.na</span>(.))))
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;   mpg cyl disp hp drat wt qsec vs am gear carb</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; 1   0   0    0  0    0  0    0  0  0    0    0</span>
+</span></span></code></pre></div><p>Pros: Straightforward. Quite simple (simple than <code>map</code> to me).<br>Cons: Depends on package <code>tidyverse</code>.</p><h1 id=way-4-counting-nas-rowwise-using-apply>Way 4: Counting NAs rowwise using <code>apply</code></h1><p>Sometimes it is useful to count the NAs rowwise (case by case). <code>apply</code> allows for applying a function to each <em>row</em> of a dataframe (that the <code>MARGIN</code> parameter).</p><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span><span style=color:#a6e22e>apply</span>(mtcars, MARGIN <span style=color:#f92672>=</span> <span style=color:#ae81ff>1</span>, <span style=color:#66d9ef>function</span>(x) <span style=color:#a6e22e>sum</span>(<span style=color:#a6e22e>is.na</span>(x)))
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;           Mazda RX4       Mazda RX4 Wag          Datsun 710</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;                   0                   0                   0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;      Hornet 4 Drive   Hornet Sportabout             Valiant</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;                   0                   0                   0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;          Duster 360           Merc 240D            Merc 230</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;                   0                   0                   0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;            Merc 280           Merc 280C          Merc 450SE</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;                   0                   0                   0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;          Merc 450SL         Merc 450SLC  Cadillac Fleetwood</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;                   0                   0                   0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; Lincoln Continental   Chrysler Imperial            Fiat 128</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;                   0                   0                   0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;         Honda Civic      Toyota Corolla       Toyota Corona</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;                   0                   0                   0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;    Dodge Challenger         AMC Javelin          Camaro Z28</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;                   0                   0                   0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;    Pontiac Firebird           Fiat X1-9       Porsche 914-2</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;                   0                   0                   0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;        Lotus Europa      Ford Pantera L        Ferrari Dino</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;                   0                   0                   0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;       Maserati Bora          Volvo 142E</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;                   0                   0</span>
+</span></span></code></pre></div><p>Pros: Straightforward.<br>Cons: ?</p><h1 id=way-5-counting-nas-rowwise-using-dplyr>Way 5: Counting NAs rowwise using <code>dplyr</code></h1><div class=highlight><pre tabindex=0 style=color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4><code class=language-r data-lang=r><span style=display:flex><span>mtcars <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  rowwise <span style=color:#f92672>%&gt;%</span>
+</span></span><span style=display:flex><span>  <span style=color:#a6e22e>summarise</span>(NA_per_row <span style=color:#f92672>=</span> <span style=color:#a6e22e>sum</span>(<span style=color:#a6e22e>is.na</span>(.)))
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; # A tibble: 32 x 1</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;    NA_per_row</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;         &lt;int&gt;</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;  1          0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;  2          0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;  3          0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;  4          0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;  5          0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;  6          0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;  7          0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;  8          0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt;  9          0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; 10          0</span>
+</span></span><span style=display:flex><span><span style=color:#75715e>#&gt; # ... with 22 more rows</span>
+</span></span></code></pre></div><p>Pro: Fits into the pipe thinking.<br>Cons: Somewhat less common.</p><h1 id=debrief>Debrief</h1><p>Counting NAs over all columns of a dataframe is quite a common task. Like always (?) in R, there a multiple ways to achieve it. Some where shown here (more exist). Enjoy!</p></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>
