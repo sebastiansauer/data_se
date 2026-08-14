@@ -1,12 +1,16 @@
 <!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Wetterdaten des DWD aufbereiten - Data Se</title>
-<meta property="og:title" content="Wetterdaten des DWD aufbereiten - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>2 min read</span><h1 class=article-title>Wetterdaten des DWD aufbereiten</h1><span class=article-date>2026/08/14</span><div class=article-content><div id=load-packages class="section level1"><h1>Load packages</h1><pre class=r><code>library(tidyverse)
+<meta property="og:title" content="Wetterdaten des DWD aufbereiten - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>4 min read</span><h1 class=article-title>Wetterdaten des DWD aufbereiten</h1><span class=article-date>2026/08/14</span><div class=article-content><div id=load-packages class="section level1"><h1>Load packages</h1><pre class=r><code>library(tidyverse)
 library(rvest)
-library(tinytable)</code></pre></div><div id=daten class="section level1"><h1>Daten</h1><pre class=r><code>base_url &lt;- &quot;https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE&quot;
+library(tinytable)</code></pre></div><div id=daten class="section level1"><h1>Daten</h1><p>Datenquelle: Deutscher Wetterdienst (DWD), Climate Data Center, opendata.dwd.de, Lizenz: CC BY 4.0</p><pre class=r><code>base_url &lt;- &quot;https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE&quot;
 </code></pre></div><div id=hilfsfunktion-alle-.txt-dateilinks-eines-verzeichnisses-auslesen class="section level1"><h1>Hilfsfunktion: alle .txt-Dateilinks eines Verzeichnisses auslesen</h1><pre class=r><code>list_txt_files &lt;- function(dir_url) {
   page &lt;- read_html(dir_url)
   hrefs &lt;- page |&gt; html_elements(&quot;a&quot;) |&gt; html_attr(&quot;href&quot;)
   hrefs[str_ends(hrefs, &quot;.txt&quot;)]
-}</code></pre></div><div id=hilfsfunktion-eine-dwd-bundesland-zeitreihendatei-einlesen class="section level1"><h1>Hilfsfunktion: eine DWD-Bundesland-Zeitreihendatei einlesen</h1><pre class=r><code>read_regional_file &lt;- function(url) {
+}</code></pre></div><div id=hilfsfunktion-eine-dwd-bundesland-zeitreihendatei-einlesen class="section level1"><h1>Hilfsfunktion: eine DWD-Bundesland-Zeitreihendatei einlesen</h1><p>Jahresdateien haben den Header “Jahr;Jahr;Bundesland1;…”: die zweite
+Spalte ist nur ein Textlabel (“year”), keine echte zweite Jahresangabe.
+Bei doppelten Namen die zweite Vorkommnis auf “Periode” umbenennen,
+sonst kollidieren beide zu “Jahr…1”/“Jahr…2” und “Jahr” existiert
+danach nicht mehr als eigenstaendige Spalte.</p><pre class=r><code>read_regional_file &lt;- function(url) {
 
   # Header steht in Zeile 2 der Datei (Zeile 1 ist ein Titel/Kommentar).
   header &lt;- read_lines(url, skip = 1, n_max = 1) |&gt;
@@ -16,11 +20,7 @@ library(tinytable)</code></pre></div><div id=daten class="section level1"><h1>Da
   header &lt;- header[header != &quot;&quot;]  # trailing Semikolon entfernt leere Spalte
 
 
-  # Jahresdateien haben den Header &quot;Jahr;Jahr;Bundesland1;...&quot;: die zweite
-  # Spalte ist nur ein Textlabel (&quot;year&quot;), keine echte zweite Jahresangabe.
-  # Bei doppelten Namen die zweite Vorkommnis auf &quot;Periode&quot; umbenennen,
-  # sonst kollidieren beide zu &quot;Jahr...1&quot;/&quot;Jahr...2&quot; und &quot;Jahr&quot; existiert
-  # danach nicht mehr als eigenstaendige Spalte.
+
   dupe &lt;- duplicated(header)
   header[dupe] &lt;- &quot;Periode&quot;
 
@@ -85,7 +85,22 @@ kenntage_liste &lt;- imap(kenntage_ordner, function(pfad, label) {
 kenntage_lang &lt;- bind_rows(kenntage_liste) |&gt;
   arrange(Indikator, Bundesland, Jahr)
 
-# write_csv(kenntage_lang, &quot;klimakenntage_bundesland_jahr.csv&quot;)</code></pre></div><div id=überblick-über-die-aggregierten-daten class="section level1"><h1>Überblick über die aggregierten Daten</h1><pre class=r><code>cat(&quot;Temperatur:&quot;, nrow(temperatur_lang), &quot;Zeilen,&quot;,
+# write_csv(kenntage_lang, &quot;klimakenntage_bundesland_jahr.csv&quot;)</code></pre></div><div id=jahreswerte-trockenheit-abgeleitet-aus-den-monatsniederschlaegen class="section level1"><h1>4. Jahreswerte: Trockenheit (abgeleitet aus den Monatsniederschlaegen)</h1><pre class=r><code># Ein Monat gilt als &quot;trocken&quot;, wenn sein Niederschlag unter dem 20%-Quantil
+# der langjaehrigen Monatsniederschlaege des jeweiligen Bundeslands liegt
+# (bundeslandspezifischer, relativer Schwellenwert statt fixer mm-Grenze,
+# da die Bundeslaender klimatisch sehr unterschiedlich trocken/feucht sind).
+trockenheit_lang &lt;- niederschlag_lang |&gt;
+  group_by(Bundesland) |&gt;
+  mutate(schwelle = quantile(Niederschlag_mm, 0.2, na.rm = TRUE)) |&gt;
+  ungroup() |&gt;
+  group_by(Bundesland, Jahr) |&gt;
+  summarise(Wert = sum(Niederschlag_mm &lt; schwelle, na.rm = TRUE), .groups = &quot;drop&quot;) |&gt;
+  mutate(Indikator = &quot;trocken_monate&quot;)
+
+kenntage_lang &lt;- bind_rows(kenntage_lang, trockenheit_lang) |&gt;
+  arrange(Indikator, Bundesland, Jahr)
+
+# write_csv(kenntage_lang, &quot;klimakenntage_bundesland_jahr.csv&quot;)</code></pre><div id=data-dictionary-dwd-jahreswerte-klimakenntage class="section level2"><h2>Data Dictionary: DWD Jahreswerte – Klimakenntage</h2><p>Quelle: <code>klimakenntage_bundesland_jahr.csv</code></p><table><col width=13%><col width=10%><col width=76%><thead><tr class=header><th>Spalte</th><th>Typ</th><th>Beschreibung</th></tr></thead><tbody><tr class=odd><td><code>Jahr</code></td><td>integer</td><td>Kalenderjahr der Beobachtung</td></tr><tr class=even><td><code>Bundesland</code></td><td>character</td><td>Deutsches Bundesland (regionaler Mittelwert)</td></tr><tr class=odd><td><code>Wert</code></td><td>double</td><td>Anzahl der Tage im jeweiligen Jahr, die das Kriterium des Indikators erfüllen</td></tr><tr class=even><td><code>Indikator</code></td><td>character</td><td>Kenntag-Typ, siehe Codebuch unten</td></tr></tbody></table><div id=codebuch-indikator class="section level3"><h3>Codebuch <code>Indikator</code></h3><table><col width=22%><col width=10%><col width=22%><col width=44%><thead><tr class=header><th>Wert in <code>Indikator</code></th><th align=center>DWD-Kürzel</th><th>Deutsche Bezeichnung</th><th>Definition</th></tr></thead><tbody><tr class=odd><td><code>frost_days</code></td><td align=center>FD</td><td>Frosttage</td><td>Tmin &lt; 0 °C</td></tr><tr class=even><td><code>ice_days</code></td><td align=center>ID</td><td>Eistage</td><td>Tmax &lt; 0 °C</td></tr><tr class=odd><td><code>summer_days</code></td><td align=center>SU</td><td>Sommertage</td><td>Tmax ≥ 25 °C</td></tr><tr class=even><td><code>hot_days</code></td><td align=center>—</td><td>Heiße Tage</td><td>Tmax ≥ 30 °C</td></tr><tr class=odd><td><code>tropical_nights</code></td><td align=center>TR</td><td>Tropennächte</td><td>Tmin ≥ 20 °C</td></tr><tr class=even><td><code>precipGE10mm_days</code></td><td align=center>—</td><td>Starkregentage (≥10 mm)</td><td>Tagesniederschlag ≥ 10 mm</td></tr><tr class=odd><td><code>precipGE20mm_days</code></td><td align=center>—</td><td>Starkregentage (≥20 mm)</td><td>Tagesniederschlag ≥ 20 mm</td></tr><tr class=even><td><code>trocken_monate</code></td><td align=center>—</td><td>Trockenmonate</td><td>Anzahl Monate/Jahr mit Niederschlag unter dem 20%-Quantil des Bundeslands</td></tr></tbody></table><p><strong>Hinweis:</strong> Tmin/Tmax beziehen sich auf die Tagesminimum-/Tagesmaximumtemperatur der Lufttemperatur in 2 m Höhe. Die Werte sind regionale Jahresmittel je Bundesland, wie vom DWD (Climate Data Center, regional_averages_DE) bereitgestellt.</p><p>Anmerkung: Deine Liste enthielt “TR” für Starkregentage — das DWD-Kürzel TR steht offiziell für Tropennächte; Starkregentage haben im DWD-Schema kein eigenes Kürzel, daher hier über die tatsächlichen Spaltenwerte (precipGE10mm_days/precipGE20mm_days) benannt.</p></div></div></div><div id=überblick-über-die-aggregierten-daten class="section level1"><h1>Überblick über die aggregierten Daten</h1><pre class=r><code>cat(&quot;Temperatur:&quot;, nrow(temperatur_lang), &quot;Zeilen,&quot;,
     n_distinct(temperatur_lang$Bundesland), &quot;Bundeslaender,&quot;,
     &quot;Zeitraum&quot;, min(temperatur_lang$Jahr), &quot;-&quot;, max(temperatur_lang$Jahr), &quot;\n&quot;)
 #&gt; Temperatur: 29699 Zeilen, 17 Bundeslaender, Zeitraum 1881 - 2026
