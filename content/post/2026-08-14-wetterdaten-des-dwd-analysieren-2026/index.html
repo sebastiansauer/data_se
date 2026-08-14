@@ -22,7 +22,12 @@ tags:
 </div>
 <div id="klimakenntage" class="section level1">
 <h1>Klimakenntage</h1>
-<pre class="r"><code>klimakenntage &lt;- read_csv(klimakenntage_url)</code></pre>
+<pre class="r"><code># Frost-/Sommer-/Eistage, Tropennaechte und Starkregentage liegen beim DWD
+# erst ab 1951 vor; nur &quot;trocken_monate&quot; (abgeleitet aus den Monatsnieder-
+# schlaegen) reicht weiter zurueck. Auf 1951+ filtern, damit alle Indikatoren
+# in den Facet-Plots dieselbe x-Achse (Jahr) haben.
+klimakenntage &lt;- read_csv(klimakenntage_url) |&gt;
+  filter(Jahr &gt;= 1951)</code></pre>
 <div id="data-dictionary-dwd-jahreswerte-klimakenntage" class="section level2">
 <h2>Data Dictionary: DWD Jahreswerte – Klimakenntage</h2>
 <p>Quelle: <code>klimakenntage_bundesland_jahr.csv</code></p>
@@ -192,5 +197,34 @@ tags:
   facet_wrap(~ Indikator, scales = &quot;free_y&quot;) +
   labs(x = &quot;Jahr&quot;, y = &quot;Mittlere Anzahl Tage (Deutschland)&quot;)</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/deutschland-1.png" alt="" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="vergleich-mit-langfristigen-trends" class="section level2">
+<h2>Vergleich mit langfristigen Trends</h2>
+<p>Referenzperiode: WMO-Standard <strong>1991–2020</strong>. Für jeden Indikator wird
+das Referenzmittel über diesen Zeitraum berechnet (gemittelt über alle
+Bundesländer) und die jährliche Abweichung davon dargestellt.</p>
+<pre class="r"><code>ref_start &lt;- 1991
+ref_end   &lt;- 2020
+
+referenz_kenntage &lt;- klimakenntage |&gt;
+  filter(Jahr &gt;= ref_start, Jahr &lt;= ref_end) |&gt;
+  group_by(Indikator) |&gt;
+  summarise(Referenzmittel = mean(Wert, na.rm = TRUE), .groups = &quot;drop&quot;)
+
+abweichung_jahr &lt;- klimakenntage |&gt;
+  group_by(Indikator, Jahr) |&gt;
+  summarise(Wert_avg = mean(Wert, na.rm = TRUE), .groups = &quot;drop&quot;) |&gt;
+  left_join(referenz_kenntage, by = &quot;Indikator&quot;) |&gt;
+  mutate(Abweichung = Wert_avg - Referenzmittel)</code></pre>
+<pre class="r"><code>abweichung_jahr |&gt;
+  ggplot(aes(x = Jahr, y = Abweichung, fill = Abweichung &gt; 0)) +
+  geom_col() +
+  facet_wrap(~ Indikator, scales = &quot;free_y&quot;) +
+  scale_fill_manual(values = c(`TRUE` = &quot;firebrick&quot;, `FALSE` = &quot;steelblue&quot;), guide = &quot;none&quot;) +
+  labs(
+    title = paste(&quot;Abweichung vom Referenzmittel&quot;, ref_start, &quot;-&quot;, ref_end),
+    x = &quot;Jahr&quot;, y = &quot;Abweichung (Tage) zum Referenzmittel&quot;
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/abweichung_zeitreihe-1.png" alt="" width="70%" style="display: block; margin: auto;" /></p>
 </div>
 </div>

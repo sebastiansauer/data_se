@@ -49,7 +49,12 @@ klimakenntage_url <- "https://raw.githubusercontent.com/sebastiansauer/data_se/r
 
 
 ```{r data-read}
-klimakenntage <- read_csv(klimakenntage_url)
+# Frost-/Sommer-/Eistage, Tropennaechte und Starkregentage liegen beim DWD
+# erst ab 1951 vor; nur "trocken_monate" (abgeleitet aus den Monatsnieder-
+# schlaegen) reicht weiter zurueck. Auf 1951+ filtern, damit alle Indikatoren
+# in den Facet-Plots dieselbe x-Achse (Jahr) haben.
+klimakenntage <- read_csv(klimakenntage_url) |>
+  filter(Jahr >= 1951)
 ```
 
 
@@ -157,4 +162,36 @@ klimakenntage |>
 ```
 
 ## Vergleich mit langfristigen Trends
+
+Referenzperiode: WMO-Standard **1991–2020**. Für jeden Indikator wird
+das Referenzmittel über diesen Zeitraum berechnet (gemittelt über alle
+Bundesländer) und die jährliche Abweichung davon dargestellt.
+
+```{r referenzperiode}
+ref_start <- 1991
+ref_end   <- 2020
+
+referenz_kenntage <- klimakenntage |>
+  filter(Jahr >= ref_start, Jahr <= ref_end) |>
+  group_by(Indikator) |>
+  summarise(Referenzmittel = mean(Wert, na.rm = TRUE), .groups = "drop")
+
+abweichung_jahr <- klimakenntage |>
+  group_by(Indikator, Jahr) |>
+  summarise(Wert_avg = mean(Wert, na.rm = TRUE), .groups = "drop") |>
+  left_join(referenz_kenntage, by = "Indikator") |>
+  mutate(Abweichung = Wert_avg - Referenzmittel)
+```
+
+```{r abweichung_zeitreihe}
+abweichung_jahr |>
+  ggplot(aes(x = Jahr, y = Abweichung, fill = Abweichung > 0)) +
+  geom_col() +
+  facet_wrap(~ Indikator, scales = "free_y") +
+  scale_fill_manual(values = c(`TRUE` = "firebrick", `FALSE` = "steelblue"), guide = "none") +
+  labs(
+    title = paste("Abweichung vom Referenzmittel", ref_start, "-", ref_end),
+    x = "Jahr", y = "Abweichung (Tage) zum Referenzmittel"
+  )
+```
 
