@@ -160,14 +160,11 @@ abweichung_kenntage |&gt; tt() |&gt; format_tt(digits = 2)</code></pre><script s
 #&gt; Temperatur: 29699 Zeilen, 17 Bundeslaender, Zeitraum 1881 - 2026
 cat(&quot;Kenntage:&quot;, nrow(kenntage_lang), &quot;Zeilen,&quot;,
     n_distinct(kenntage_lang$Indikator), &quot;Indikatoren\n&quot;)
-#&gt; Kenntage: 8925 Zeilen, 7 Indikatoren</code></pre></div><div id=monatsdaten-temperatur-niederschlag-zusammenfuehren class="section level1"><h1>Monatsdaten Temperatur & Niederschlag zusammenfuehren</h1><p>“Deutschland” ist in den DWD-Rohdaten eine zusaetzliche Gesamtspalte
-neben den 16 Regionen und wird hier herausgefiltert, damit pro
-Jahr-Monat-Kombination genau 16 Zeilen (eine je Region) uebrig bleiben.</p><pre class=r><code>wetterdaten_monat &lt;- temperatur_lang |&gt;
-  filter(Bundesland != &quot;Deutschland&quot;) |&gt;
-  inner_join(
-    niederschlag_lang |&gt; filter(Bundesland != &quot;Deutschland&quot;),
-    by = c(&quot;Jahr&quot;, &quot;Monat&quot;, &quot;Bundesland&quot;)
-  ) |&gt;
+#&gt; Kenntage: 8925 Zeilen, 7 Indikatoren</code></pre></div><div id=monatsdaten-temperatur-niederschlag-zusammenfuehren class="section level1"><h1>Monatsdaten Temperatur & Niederschlag zusammenfuehren</h1><p>Neben den 16 Regionen enthalten die DWD-Rohdaten zusaetzlich
+“Deutschland” als Gesamtwert; die Zeile bleibt hier erhalten, sodass
+pro Jahr-Monat-Kombination 17 Zeilen (16 Regionen + Deutschland)
+entstehen.</p><pre class=r><code>wetterdaten_monat &lt;- temperatur_lang |&gt;
+  inner_join(niederschlag_lang, by = c(&quot;Jahr&quot;, &quot;Monat&quot;, &quot;Bundesland&quot;)) |&gt;
   transmute(
     year   = Jahr,
     month  = Monat,
