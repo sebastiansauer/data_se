@@ -1,0 +1,99 @@
+---
+title: Setting to NA, conditionally
+author: Sebastian Sauer
+date: '2023-01-16'
+slug: setting-to-na-conditionally
+categories:
+  - rstats
+tags:
+  - tidyverse
+  - datawrangling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+# Motivation
+
+Let's assume we would like to change the values of multiple variables depending in the state of another variable.
+For the sake of concreteness, let's say we have some variable called `data_trustworthiness`. If this variable (indicating whether or not we can have confidence in some other variables) has the value `FALSE` for some cases, we would like to set the varialbe `measure1` and `measure2` to `NA`, thus reflecting that the data from our measurements are not reliable.
+
+Let's use the tidyverse ecosystem.
+
+# Minimal example
+
+For the sake of simplicity, we'll make use of the `mtcars` dataset.
+
+First, we build a variable `trustworthy` with (for this minimal example) random values.
+
+```{r}
+data(mtcars)
+
+mtcars <-
+  mtcars |> 
+  mutate(trustworthy = sample(c(1, 0), size = nrow(mtcars), replace = TRUE)) |> 
+  relocate(trustworthy)
+
+glimpse(mtcars)  # check
+```
+
+
+Next comes the actual *conditional change* of the data variables (`data_vars`).
+
+```{r}
+mtcars_new <- 
+  mtcars |> 
+  mutate(across(.cols = c("mpg", "cyl"),
+                .fns = ~ifelse(trustworthy == 0, NA, .x))) 
+
+glimpse(mtcars_new)  # check
+```
+
+```{r}
+sum(is.na(mtcars_new))
+```
+
+
+```{r}
+head(mtcars_new)
+```
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

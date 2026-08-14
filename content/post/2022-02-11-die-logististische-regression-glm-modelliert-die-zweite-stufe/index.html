@@ -1,0 +1,139 @@
+---
+title: Die logististische Regression (glm) modelliert die zweite Stufe
+author: R package build
+date: '2022-02-11'
+slug: die-logististische-regression-glm-modelliert-die-zweite-stufe
+categories: []
+tags: []
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="welche-stufe-modelliert-die-logististische-regression-in-r" class="section level1">
+<h1>Welche Stufe modelliert die logististische Regression in R?</h1>
+<p>Sagen wir, wir möchten vorhersagen, ob eine Person Frau oder Mann ist (nur diese zwei Stufen)
+anhand der Höhe des Trinkgelds, das diese Person gibt.
+Dazu nutzen wir die Funktio <code>glm()</code> in R.</p>
+</div>
+<div id="vorbereitung" class="section level1">
+<h1>Vorbereitung</h1>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──</code></pre>
+<pre><code>## ✓ ggplot2 3.3.5     ✓ purrr   0.3.4
+## ✓ tibble  3.1.6     ✓ dplyr   1.0.8
+## ✓ tidyr   1.2.0     ✓ stringr 1.4.0
+## ✓ readr   2.1.2     ✓ forcats 0.5.1</code></pre>
+<pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()</code></pre>
+</div>
+<div id="daten" class="section level1">
+<h1>Daten</h1>
+<pre class="r"><code>data(tips, package = &quot;reshape2&quot;)</code></pre>
+<p>Die Zielvariable ist <code>sex</code>, sie ist nominalskaliert und sie hat zwei Stufen:</p>
+<pre class="r"><code>levels(tips$sex)</code></pre>
+<pre><code>## [1] &quot;Female&quot; &quot;Male&quot;</code></pre>
+<p>Nominalskalierte Variablen werden in R als “Faktorvariablen” (factor) bezeichnet bzw.
+mit solchen Variablen gefasst.</p>
+<ol style="list-style-type: decimal">
+<li>Stufe: <code>Female</code>.</li>
+<li>Stufe: <code>Male</code>.</li>
+</ol>
+<p><em>glm() modelliert die zweite Stufe als Ereignisse von Interesse</em>.</p>
+<p>Das hat den Hintergrund, dass die zweite Stufe bei einer Skalierung mit den Werten 0 und 1,
+es ebenfalls die zweite Stufe, also die 1 ist, die von Interesse ist (normalerweise).</p>
+<p>Die 0-1-Skalierung nennt man auch binäre Skalierung.</p>
+</div>
+<div id="was-ist-der-mittlere-trinkgeld-betrag-zwischen-den-geschlechtern" class="section level1">
+<h1>Was ist der mittlere Trinkgeld-Betrag zwischen den Geschlechtern?</h1>
+<pre class="r"><code>tips %&gt;% 
+  group_by(sex) %&gt;%
+  summarise(mean(tip))</code></pre>
+<pre><code>## # A tibble: 2 × 2
+##   sex    `mean(tip)`
+##   &lt;fct&gt;        &lt;dbl&gt;
+## 1 Female        2.83
+## 2 Male          3.09</code></pre>
+</div>
+<div id="probieren-wirs-aus" class="section level1">
+<h1>Probieren wir’s aus</h1>
+<p>Hier die Zielvariable als Faktorvariable:</p>
+<pre class="r"><code>glm1 &lt;- glm(sex ~ tip, data=tips, family = &quot;binomial&quot;)
+glm1</code></pre>
+<pre><code>## 
+## Call:  glm(formula = sex ~ tip, family = &quot;binomial&quot;, data = tips)
+## 
+## Coefficients:
+## (Intercept)          tip  
+##      0.1703       0.1421  
+## 
+## Degrees of Freedom: 243 Total (i.e. Null);  242 Residual
+## Null Deviance:       317.9 
+## Residual Deviance: 315.9     AIC: 319.9</code></pre>
+<p>Hier die Zielvariable als binär skalierte Variable:</p>
+<pre class="r"><code>tips &lt;-
+  tips %&gt;% 
+  mutate(sex_bin = ifelse(sex == &quot;Female&quot;, 0, 1))</code></pre>
+<p>Also: 0 entspricht <code>Female</code>. 1 entspricht <code>Male</code>.</p>
+<pre class="r"><code>glm2 &lt;- glm(sex_bin ~ tip, data = tips, family = &quot;binomial&quot;)
+glm2</code></pre>
+<pre><code>## 
+## Call:  glm(formula = sex_bin ~ tip, family = &quot;binomial&quot;, data = tips)
+## 
+## Coefficients:
+## (Intercept)          tip  
+##      0.1703       0.1421  
+## 
+## Degrees of Freedom: 243 Total (i.e. Null);  242 Residual
+## Null Deviance:       317.9 
+## Residual Deviance: 315.9     AIC: 319.9</code></pre>
+</div>
+<div id="vergleichen-wir" class="section level1">
+<h1>Vergleichen wir</h1>
+<pre class="r"><code>glm1$coefficients[[&quot;tip&quot;]]</code></pre>
+<pre><code>## [1] 0.142119</code></pre>
+<pre class="r"><code>glm2$coefficients[[&quot;tip&quot;]]</code></pre>
+<pre><code>## [1] 0.142119</code></pre>
+<p>Identisch! Wir sehen also, die logistische Regression (allgemeiner: das generalisierte lineare Modell mit <code>glm()</code>) modelliert die <em>zweite</em> Stufe, wenn die Zielvariable eine Faktorvariable ist.</p>
+<p>Handelt es sich um eine 0-1-skalierte Variable, so wird die “1” modelliert.</p>
+</div>
+<div id="visualisierung" class="section level1">
+<h1>Visualisierung</h1>
+<pre class="r"><code>pred_df &lt;-
+  tibble(
+    tip = seq(min(tips$tip), max(tips$tip), by = .1),
+    y = predict(glm1, type = &quot;response&quot;, newdata = tibble(tip))
+  )
+
+ggplot(tips) +
+  aes(x = tip, y = sex_bin) +
+  geom_point() +
+  geom_line(data = pred_df, aes(x = tip, y = y), color = &quot;blue&quot;) +
+  labs(title = &quot;Vorhersage von `Male` in Abhängigkeit des Trinkgelds (blaue Linie)&quot;,
+       subtitle = &quot;Logististisches Modell&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+</div>
+<div id="zum-vergleich-lineare-regression" class="section level1">
+<h1>Zum Vergleich: lineare Regression</h1>
+<pre class="r"><code>lm1 &lt;- lm(sex_bin ~ tip, data = tips)</code></pre>
+<pre class="r"><code>pred_df &lt;-
+  tibble(
+    tip = seq(min(tips$tip), max(tips$tip), by = .1),
+    y = predict(lm1,  newdata = tibble(tip))
+  )
+
+ggplot(tips) +
+  aes(x = tip, y = sex_bin) +
+  geom_point() +
+  geom_line(data = pred_df, aes(x = tip, y = y), color = &quot;blue&quot;) +
+  labs(title = &quot;Vorhersage von `Male` in Abhängigkeit des Trinkgelds (blaue Linie)&quot;,
+       subtitle = &quot;Lineares Modell&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p>Keine großen Unterschiede (in den Vorhersagen), in diesem Fall, scheint’s.</p>
+</div>
+<div id="fazit" class="section level1">
+<h1>Fazit</h1>
+<p>Für die Praxis sollte man sich merken,
+dass die logistische Regression in R (mit <code>glm()</code>) die <em>zweite</em> Stufe der Zielvariable modelliert.</p>
+</div>

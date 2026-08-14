@@ -1,0 +1,324 @@
+---
+title: YACSDA Seitensprünge
+author: Sebastian Sauer
+date: '2021-05-28'
+slug: yacsda-seitensprünge
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Setup
+
+```{r}
+library(tidyverse)
+library(skimr)
+library(corrr)
+```
+
+
+
+
+# Forschungsfrage und Hintergrund
+
+Wovon ist die Häufigkeit von Affären (Seitensprüngen) in Ehen abhängig (nur prädiktiv!)? Diese Frage soll anhand des Datensatzes `Affair` untersucht werden.
+
+Dieser Post stellt beispielhaft eine grundlegende Methoden der praktischen Datenanalyse im Rahmen einer kleinen Fallstudie (YACSDA) vor.
+
+
+# ACHTUNG
+
+In dieser Analyse wird (fälschlich!) davon ausgegangen, dass `affairs` die Anzahl der Affären angibt. Erst nach der Analyse habe ich erkannt, dass die Variable nur ordinal skaliert ist. Mehr Infos finden sich im Codebook.
+
+# Daten laden
+
+Quelle der Daten: <http://statsmodels.sourceforge.net/0.5.0/datasets/generated/fair.html>
+
+Der Datensatz findet sich (in ähnlicher Form) auch im R-Paket `COUNT` (https://cran.r-project.org/web/packages/COUNT/index.html).
+
+Laden wir als erstes den Datensatz in R:
+
+
+```{r}
+d <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/AER/Affairs.csv")
+```
+
+
+```{r}
+glimpse(d)
+```
+
+
+# Aufgaben
+
+1. Geben Sie zentrale deskriptive Statistiken an für Affärenhäufigkeit und Ehezufriedenheit!
+1. Visualisieren Sie zentrale Variablen!
+1. Wer ist zufriedener mit der Partnerschaft: Personen mit Kindern oder ohne?
+1. Wie viele fehlende Werte gibt es? Was machen wir am besten damit?
+1. Wer ist glücklicher in der Partnerschaft: Männer oder Frauen?
+1. Berechnen und visualisieren Sie zentrale Korrelationen!
+1. Wie groß ist der (statistische) Effekt (das Einflussgewicht) der Ehejahre bzw. Ehezufriedenheit auf die Anzahl der Affären?
+1. Um wie viel erhöht sich die erklärte Varianz (R-Quadrat) von Affärenhäufigkeit wenn man den Prädiktor Ehezufriedenheit zum Prädiktor Ehejahre hinzufügt? (Wie) verändern sich die Einflussgewichte (b)?
+1. Welche Prädiktoren würden Sie noch in die Regressionsanalyse aufnehmen?
+ 1. Unterscheiden sich die Geschlechter (deutlich) in ihrer Zufriedenheit mit der Partnerschaft und in der Häufigkeit von Seitensprüngen? Wie groß ist der Unterschied? 
+1. Rechnen Sie die Regressionsanalyse getrennt für kinderlose Ehe und Ehen mit Kindern!
+1. Rechnen Sie die Regression nur für "Halodries"; d.h. für Menschen mit Seitensprüngen. Dafür müssen Sie alle Menschen ohne Affären aus den Datensatz entfernen.
+
+
+
+
+# Los geht's
+
+
+## Geben Sie zentrale deskriptive Statistiken an für Affärenhäufigkeit und Ehezufriedenheit!
+
+
+```{r}
+d %>% 
+  summarise(rating_avg = mean(rating),
+            rating_sd = sd(rating))
+```
+
+
+```{r}
+d %>% 
+  skim()
+```
+
+
+```{r}
+d %>% 
+  count(affairs)
+```
+
+
+
+
+
+
+
+
+## Visualisieren Sie zentrale Variablen!
+
+### `affairs`
+
+```{r}
+ggplot(d) +
+  aes(x = affairs) +
+  geom_bar()
+```
+
+
+### `rating`
+
+```{r}
+ggplot(d) +
+  aes(x = rating) +
+  geom_histogram()
+```
+
+
+```{r}
+ggplot(d) +
+  aes(y = rating) +
+  geom_boxplot()
+```
+
+
+
+##  Wer ist zufriedener mit der Partnerschaft: Personen mit Kindern oder ohne?
+
+
+```{r}
+d %>% 
+  group_by(children) %>% 
+  summarise(rating_avg = mean(rating))
+```
+
+
+
+
+## Wie viele fehlende Werte gibt es? Was machen wir am besten damit?
+
+```{r}
+d %>% 
+  filter(is.na(affairs))
+```
+
+
+```{r}
+d %>% 
+  drop_na()
+```
+
+
+
+```{r}
+d %>% 
+  filter(if_any(everything(), ~ is.na(.)))
+```
+
+
+
+##  Wer ist glücklicher in der Partnerschaft: Männer oder Frauen?
+
+
+
+```{r}
+d %>% 
+  group_by(gender) %>% 
+  summarise(rating_avg = mean(rating))
+```
+
+
+
+
+## Berechnen und visualisieren Sie zentrale Korrelationen!
+
+
+```{r}
+d %>% 
+  summarise(cor1 = cor(rating, affairs))
+```
+
+
+```{r}
+d %>% 
+  select(where(is.numeric)) %>% 
+  correlate() %>% 
+  focus(rating) 
+```
+
+
+```{r}
+d %>% 
+  select(where(is.numeric)) %>% 
+  correlate() %>% 
+  rplot()
+```
+
+
+## Wie groß ist der (statistische) "Einfluss" (das Einflussgewicht) der Ehejahre bzw. Ehezufriedenheit auf die Anzahl der Affären?
+
+```{r}
+lm1 <- lm(affairs ~ yearsmarried + rating,
+          data = d)
+summary(lm1)
+```
+
+
+```{r}
+d2 <-
+  d %>% 
+  mutate(affairs_z = (affairs - mean(affairs)) / sd(affairs),
+         yearsmarried_z = scale(yearsmarried),
+         rating_z = scale(rating)) %>% 
+  select(affairs, affairs_z, everything())
+```
+
+
+
+```{r}
+lm2 <- lm(affairs ~ yearsmarried_z + rating_z,
+          data = d2)
+summary(lm2)
+```
+
+
+
+## Um wie viel erhöht sich die erklärte Varianz (R-Quadrat) von Affärenhäufigkeit wenn man den Prädiktor Ehezufriedenheit zum Prädiktor Ehejahre hinzufügt? (Wie) verändern sich die Einflussgewichte (b)?
+
+
+
+```{r}
+lm1 <- lm(affairs ~ yearsmarried,
+          data = d)
+summary(lm1)
+```
+
+
+## Welche Prädiktoren würden Sie noch in die Regressionsanalyse aufnehmen?
+
+
+Hm...
+
+1. Apriori-Wissen (Theorie der Ehezufriedenheit)
+2. Signal-Rausch-Verhältnisses (Estimate/SE)
+3. EDA
+4. ...
+
+
+
+
+## Unterscheiden sich die Geschlechter (deutlich) in ihrer Zufriedenheit mit der Partnerschaft und in der Häufigkeit von Seitensprüngen? Wie groß ist der Unterschied? 
+
+
+nicht ausgeführt! p-Wert ...
+
+
+## Rechnen Sie die Regressionsanalyse getrennt für kinderlose Ehe und Ehen mit Kindern!
+
+
+```{r}
+lm3 <- lm(affairs ~ rating + children, data = d)
+summary(lm3)
+```
+
+```{r}
+d %>% 
+  filter(children == "yes") %>% 
+  lm(affairs ~ rating, data = .)
+```
+
+
+
+
+##  Rechnen Sie die Regression nur für "Halodries"; d.h. für Menschen mit Seitensprüngen. Dafür müssen Sie alle Menschen ohne Affären aus den Datensatz entfernen.
+
+
+```{r}
+lm4 <- d %>% 
+  filter(affairs > 0) %>% 
+  lm(affairs ~ rating, data = .)
+
+summary(lm4)
+```
+
+
+
+```{r}
+d3 <- d2 %>% 
+  mutate(is_halodrie = affairs > 0)
+```
+
+
+```{r}
+lm5 <- lm(rating ~ is_halodrie, data = d3)
+summary(lm5)
+```
+

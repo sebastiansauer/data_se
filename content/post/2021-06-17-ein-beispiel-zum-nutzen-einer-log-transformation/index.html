@@ -1,0 +1,113 @@
+---
+title: Ein Beispiel zum Nutzen einer Log-Transformation
+author: Sebastian Sauer
+date: '2021-06-17'
+slug: ein-beispiel-zum-nutzen-einer-log-transformation
+categories: []
+tags: []
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#vorbereitung"><span class="toc-section-number">1</span> Vorbereitung</a></li>
+<li><a href="#ein-unschuldiger-datensatz"><span class="toc-section-number">2</span> Ein unschuldiger Datensatz</a></li>
+<li><a href="#lm1-additiv"><span class="toc-section-number">3</span> lm1: additiv</a></li>
+<li><a href="#lm2-multiplikativ-exponenziell"><span class="toc-section-number">4</span> lm2: multiplikativ (exponenziell)</a></li>
+<li><a href="#fazit"><span class="toc-section-number">5</span> Fazit</a></li>
+<li><a href="#take-home-message"><span class="toc-section-number">6</span> Take home message</a></li>
+</ul>
+</div>
+
+<div id="vorbereitung" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Vorbereitung</h1>
+<pre class="r"><code>library(tidyverse)
+library(arm)</code></pre>
+</div>
+<div id="ein-unschuldiger-datensatz" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Ein unschuldiger Datensatz</h1>
+<p>Gehen wir davon aus, uns ist ein Datensatz gegeben. Die Hintergründe der Entstehung verlieren sich im Dunkel. Ich habe hier einen Datensatz simuliert; diese Details können Sie getrost überspringen. Nehmen Sie den Datensatz einfach als gegeben hin.</p>
+<pre class="r"><code>euler_e &lt;- 2.71
+
+d2 &lt;- 
+  tibble(
+    x = rep(0:100, 10),
+    y_hat = euler_e^(0.1*x) %&gt;% round(2),
+    e = rnorm(n = (101)*10) %&gt;% round(2),
+    y = y_hat + e
+  )</code></pre>
+<pre class="r"><code>glimpse(d2)</code></pre>
+<pre><code>## Rows: 1,010
+## Columns: 4
+## $ x     &lt;int&gt; 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18…
+## $ y_hat &lt;dbl&gt; 1.00, 1.10, 1.22, 1.35, 1.49, 1.65, 1.82, 2.01, 2.22, 2.45, 2.71…
+## $ e     &lt;dbl&gt; -1.79, -0.31, 2.09, 0.58, -0.07, 0.35, -0.21, 0.60, -1.13, 0.48,…
+## $ y     &lt;dbl&gt; -0.79, 0.79, 3.31, 1.93, 1.42, 2.00, 1.61, 2.61, 1.09, 2.93, 3.3…</code></pre>
+<p><code>y_hat</code> ist der “wahre” Wert von Y, aber für uns unzugänglich. <code>y</code> ist der mit etwas Rauschen überlagerte echte Wert und der Wert, den wir messen.</p>
+</div>
+<div id="lm1-additiv" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> lm1: additiv</h1>
+<p>Versuchen wir ein normales (“additives”) Modell klassischer Bauart.</p>
+<pre class="r"><code>lm1 &lt;- lm(y ~ x, data = d2)
+
+display(lm1)</code></pre>
+<pre><code>## lm(formula = y ~ x, data = d2)
+##             coef.est coef.se 
+## (Intercept) -3076.92   202.21
+## x             106.12     3.49
+## ---
+## n = 1010, k = 2
+## residual sd = 3237.04, R-Squared = 0.48</code></pre>
+<p>Visualisierung:</p>
+<pre class="r"><code>ggplot(d2) +
+  aes(x = x, y = y) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;)</code></pre>
+<pre><code>## `geom_smooth()` using formula &#39;y ~ x&#39;</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<p>Passt irgendwie nicht so gut, die Regressionsgerade …</p>
+</div>
+<div id="lm2-multiplikativ-exponenziell" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> lm2: multiplikativ (exponenziell)</h1>
+<p>Jetzt probieren wir ein LogY-Modell; wir logarithmieren dazu die Y-Variable (die Basis des Logarithmus ist im Prinzip egal, ich empfehle aber e, weil oft am einfachsten zu interpretieren).</p>
+<pre class="r"><code>d3 &lt;- 
+  d2 %&gt;% 
+  filter(y &gt; 0) %&gt;% 
+  mutate(y_log = log(y))</code></pre>
+<pre class="r"><code>lm2 &lt;- lm(y_log ~ x, data = d3)
+
+display(lm2)</code></pre>
+<pre><code>## lm(formula = y_log ~ x, data = d3)
+##             coef.est coef.se
+## (Intercept) -0.03     0.02  
+## x            0.10     0.00  
+## ---
+## n = 1004, k = 2
+## residual sd = 0.24, R-Squared = 0.99</code></pre>
+<pre class="r"><code>ggplot(d3) +
+  aes(x = x, y = y_log) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;)</code></pre>
+<pre><code>## `geom_smooth()` using formula &#39;y ~ x&#39;</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p>Passt. perfekt.</p>
+</div>
+<div id="fazit" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Fazit</h1>
+<p>👏YOU👏NEED👏THE👏LOG👏</p>
+<p>Übrigens denkt unser Hirn in Logarithmen, <a href="https://www.youtube.com/watch?v=Pxb5lSPLy9c">s. hier</a> (entspanntes, sofataugliches Video).</p>
+</div>
+<div id="take-home-message" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Take home message</h1>
+<a href="https://imgflip.com/i/5dl64h"><img src="https://i.imgflip.com/5dl64h.jpg" title="made at imgflip.com"/></a>
+<div>
+<a href="https://imgflip.com/memegenerator">from Imgflip Meme Generator</a>
+</div>
+</div>

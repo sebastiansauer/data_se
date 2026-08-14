@@ -1,0 +1,147 @@
+---
+title: Penguins Lasso with Tidymodels
+author: Sebastian Sauer
+date: '2022-07-24'
+slug: penguins-lasso-with-tidymodels
+categories:
+  - rstats
+tags:
+  - prediction
+  - tidymodels
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(tidymodels)
+```
+
+
+# Data
+
+```{r}
+data("penguins", package = "modeldata")
+```
+
+
+
+# A bit more than minimal
+
+
+```{r}
+rec1 <-
+  recipe(body_mass_g ~ ., data = penguins) %>% 
+  step_dummy(all_nominal()) %>% 
+  step_normalize(all_numeric_predictors()) %>% 
+  step_nzv(all_numeric_predictors()) %>% 
+  step_naomit(all_predictors())
+```
+
+
+Checks:
+
+```{r}
+summary(rec1)
+```
+
+
+```{r}
+tidy(rec1)
+```
+
+
+```{r}
+rec1 %>% 
+  prep() %>% 
+  bake(new_data = NULL) %>% 
+  head()
+```
+
+
+
+```{r}
+wf1 <-
+  workflow() %>% 
+  add_model(spec = linear_reg(engine = "glmnet", mixture = 1, penalty = 1)) %>% 
+  add_recipe(recipe = rec1)
+```
+
+```{r}
+m2 <- wf1 %>% 
+  fit(data = penguins)
+```
+
+
+# Results
+
+Use `tidy()` to extract model coefficients:
+
+
+
+```{r}
+tidy(m2)
+```
+
+
+In case some predictor beta has been shrunken to zero, it would be noted here.
+
+# Extract fit
+
+Less einformative ...
+
+
+```{r}
+m2 %>% 
+  extract_fit_parsnip()
+```
+
+Similar to:    
+
+```{r eval = TRUE}
+m2 %>% 
+  extract_fit_engine()
+```
+
+
+More information, such as the difference between the last two functions, can be found [here](https://www.tidymodels.org/learn/models/coefficients/), the tidymodels page on model coefficients.
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

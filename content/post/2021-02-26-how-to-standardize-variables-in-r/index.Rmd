@@ -1,0 +1,175 @@
+---
+title: How to standardize variables in R
+author: Sebastian Sauer
+date: '2021-02-26'
+slug: how-to-standardize-variables-in-r
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+
+
+# Motivation
+
+Running a regression in R yields *un*standardized coefficients, *not* standardized ones. However, as is spelled out by eg., Gelman and Hill (2007), standardizing values is of advantages in many situations. This post shows how run a regression in R using standardized values as inputs ("standardized regression" for short, as some dup it).
+
+
+The advantage of standardizing input variables is the simpler comparison of importance. It can be seen as undesirable that the scaling (SD) of the input variable determines (in part) the regression coefficient. For instance, measuring the "power" of a car in horse power or in kilowatt will strongly influence the value of the regression coefficient. Similarly, measuring the distance walked in kilomweters or in millimeters will have an profound effect on the respective regression coefficient on, say, the amount of fat burned (in grams or in kilo grams...).
+
+Hence, having all variables on the same scale will facilitate easy comparison of the "importance" of each variable, as now all variables are on the same scale.
+
+
+The most common way to standardize the variable $X$ is to use the $z$ transformation:
+
+
+$$z_i = \frac{x_i - \mu}{sd_X}$$
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(broom)  # tidy regression output
+library(mosaic)  # standardizing variables
+```
+
+
+```{r include = FALSE}
+library(printr)
+```
+
+
+
+# Some data
+
+
+```{r}
+mtcars <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/datasets/mtcars.csv")
+```
+
+
+
+# Research question
+
+
+Say, we are interested in the association of horse power (`hp`) and fuel consumption (`mpg`; miles per gallon): What's the difference in the fuel consumption between cars which differ in their horse power?
+
+# Regression with *un*standardized input variables
+
+
+
+```{r}
+lm1 <- lm(mpg ~ hp, data = mtcars)
+
+tidy(lm1)
+```
+
+As cen be seen in the output, our model `lm1` estimates that the cars which differ in 1 hp, differ in -0.07 miles per gallon, on overage (and given the model is true). That is, a car with 1 hp more, goes 0.07 miles *less* (compared to a car with 1 hp less).
+
+
+# Standardize input variables
+
+
+```{r}
+mtcars_standardized <- 
+  mtcars %>% 
+  mutate(hp_s = scale(hp))
+```
+
+
+As we see, `scale` does the trick, that is the z transformation. For example:
+
+
+```{r}
+x <- c(0,10, 20)
+scale(x)
+```
+
+
+Let's double check:
+
+```{r}
+x_mean <- mean(x)
+x_sd <- sd(x)
+
+z <- (x - mean(x)) / sd(x)
+z
+```
+
+
+
+It's not so nice that `scale()` takes a vector as input, but hands back a matrix.
+
+
+A similar function, `zscore()`  is provided by the package `{mosaic}`; this function gives back a vector which is more comfortable:
+
+
+
+```{r}
+zscore(x)
+```
+
+
+
+# Regression with standardized input variables
+
+```{r}
+lm2 <- lm(mpg ~ hp_s, data = mtcars_standardized)
+
+tidy(lm2)
+```
+
+
+# The models (`lm1` and `lm2`) are identical
+
+
+Have a look at the p-values and the model fit values of both models (`lm1` and `lm2`) to reassure yourself that both models are indeed equivalant, as it should be:
+
+
+```{r}
+glance(lm1)
+glance(lm2)
+```
+
+
+
+# Interpretation of a standardized regression coefficient
+
+
+"According to our model, `lm2`, cars differ in their fuel consumption (measured as miles consumed per gallon) such that a cars with 1 SD higher horse power value consume one average approx. 5 gallons less fuel."
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

@@ -1,0 +1,181 @@
+---
+title: Visualizing a log-y regression model
+author: Sebastian Sauer
+date: '2022-01-14'
+slug: visualizing-a-log-y-regression-model
+categories:
+  - rstats
+tags:
+  - modeling
+  - visualization
+  - plotting
+editor_options: 
+  chunk_output_type: console
+---
+
+
+```{r global-knitr-options, include=FALSE}
+  knitr::opts_chunk$set(
+  fig.pos = 'H',
+  fig.asp = 0.618,
+  fig.align='center',
+  fig.width = 5,
+  out.width = "100%",
+  fig.cap = "", 
+  fig.path = "chunk-img/",
+  dpi = 300,
+  # tidy = TRUE,
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = FALSE,
+  fig.show = "hold")
+```
+
+
+
+# Setup
+
+```{r}
+library(tidyverse)
+data(mtcars)
+```
+
+
+
+# Using a log-Y regression
+
+
+Gelman et al., in "Regression and other stories" are stating that "when additivity and linearity are not reasonable assumptions" it may sense to "take the logarithms of outcomes that are all positive" (p. 189).
+
+A log-y regression can be defined as follows, in the simplest case:
+
+$$\text{log} \, y = b_0 + b_1X_1 + \ldots + \epsilon$$
+Exponentiating both sides yields
+
+$$y = e^{b_0 + b_1X_1 + \ldots + \epsilon}$$
+
+This is a multiplicative model as can be seen perhaps more lucidly in this notation:
+
+
+$$y = e^{b0} \cdot e^{b1} \cdot \ldots \cdot e^{\epsilon}$$
+
+
+In essence, we can make use uf log-y regression for modelling
+*multiplicative* assocations between x and y.
+
+A multiplicative associations also means that it is not *linear*.
+
+Let's have a look at an example.
+
+
+```{r}
+m1 <- lm(log(mpg) ~ hp, data = mtcars)
+coef(m1)
+```
+
+The coefficent of the predictor is reported as `r coef(m1)[2]`.
+Exponentiating this values yields approx.
+
+```{r}
+b1_approx <- coef(m1)[2] %>% exp() 
+b1_approx
+```
+
+Thus, one more unit in $X$ increases $Y$ by exp(b1). 
+In this case, `exp(1)` amounts to `r coef(m1)[2] %>% exp()`.
+Of course, factors below one indicate a decrease in $Y$.
+
+In this example, we find a decrease of approx. 0.035% change in y associated with a one unit change in x.
+
+
+Let's have a look at the predictions:
+
+```{r}
+pred_grid <-
+  tibble(
+    hp = 0:400,
+    pred = predict(m1, tibble(hp))
+  ) %>% 
+  mutate(pred_exp = exp(pred))
+```
+
+
+```{r}
+ggplot(mtcars) +
+  aes(x = hp, y = mpg) +
+  geom_point() +
+  geom_line(data = pred_grid,
+            aes(x = hp, y = pred_exp))
+```
+
+
+There's a useful shortcut to interpreting log-y regression coefficients.
+
+Compare this following (small) figures and their respective exponentiated values:
+
+```{r}
+dat <- 
+  tibble(
+    xs = seq(-.5, .5, by = .1),
+    xs_exp = exp(xs)
+  )
+```
+
+
+```{r}
+ggplot(dat) +
+  aes(x = xs, y = xs_exp) + 
+  geom_line() +
+  geom_abline(slope = 1, intercept = 1)
+```
+
+
+<!-- As can be seen, as long as the (x) values are small - as it is often the case for (properly scaled) regression model coefficients - we can easily translate between the x's and their exponentiated values. -->
+<!-- The values are very similar, given that the x is around zero (say, between -.25 and +.25). -->
+
+
+<!-- In short, in a log-y regression a coefficient of `x` means a change of `b1` percent in `y` (given that the coefficent is around zero). -->
+
+
+<!-- Let's check this shortcut: -->
+
+
+<!-- ```{r} -->
+<!-- intercept_exp <- exp(coef(m1)[1]) -->
+<!-- change_percent <- exp(coef(m1)[2]) -->
+<!-- change_percent_reduction <- (1 - exp(coef(m1)[2])) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- dat2 <- -->
+<!--   tibble( -->
+<!--     hp = 0:400, -->
+<!--     reduction = change_percent ^ hp, -->
+<!--     mpg_approx = intercept_exp * reduction*intercept_exp) -->
+<!--   ) -->
+<!-- ``` -->
+
+
+<!-- ```{r} -->
+<!-- head(dat2) -->
+<!-- ``` -->
+
+
+
+
+
+
+<!-- ```{r} -->
+<!-- ggplot(mtcars) + -->
+<!--   aes(x = hp, y = mpg) + -->
+<!--   geom_point() + -->
+<!--   geom_line(data = pred_grid, -->
+<!--             aes(x = hp, y = pred_exp)) + -->
+<!--   geom_line(data = dat2, -->
+<!--             aes(x = hp, y = mpg_approx), -->
+<!--             color = "blue") -->
+<!-- ``` -->
+
+

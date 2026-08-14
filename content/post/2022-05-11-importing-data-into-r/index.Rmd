@@ -1,0 +1,198 @@
+---
+title: Importing data into R
+author: Sebastian Sauer
+date: '2022-05-11'
+slug: importing-data-into-r
+categories:
+  - rstats
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, waring = FALSE}
+library(tidyverse)
+```
+
+
+
+# Motivation: Get your data into R, different ways
+
+
+Importing data into R can cause headaches for newbies. For some, the concept of relative and absolute paths is new. 
+That's why I compiled here some recommendations on how to important data into R and on how to ditch the "what's my path" problem.
+
+
+
+# Pragmatic goal
+
+
+If you are in a hurry, just pick *one way*, maybe the first approach.
+The pragmatic goal is to get your data into R. The rest is mere detail 😄.
+
+
+
+
+# Approach 1: Quick and easy
+
+
+This approach is useful for beginners, as it is quick and simple.
+This approach assumes the data file (as csv format) is located somewhere on your disk (and you know where to find it).
+
+
+1. In RStudio, click on the pane *Environment* and then on *Import Dataset* and then on `From Text (readr)`.
+2. In the menu, click on *Browse* to search the file on your computer.
+3. Finally, click on *Import* to import the CSV file into R. 
+
+Note that the menu offers some options such as skipping the first few lines, changing the name of the R tibble,
+or adjusting the CSV file details (such as different delimiters eg ";" used in German Excel files).
+
+
+See [this picture](https://community.rstudio.com/uploads/default/original/2X/0/0b5d697ffafc33b1c9d8de3f6359df41a5825d18.png) for an illustration of the respective RStudio menu. 
+
+What RStudio does is to get the absolute path to your data file and paste it into `read_csv()`.
+
+For example, an abolute path on *my* machine to a data file is this:
+`/Users/sebastiansaueruser/datasets/tips.csv`.
+
+An absolute path is great, because it's simple, but the downside is this path
+will not work on *your* machine.
+As long as you are not concerned with other machines,
+you can safely work with absolute path.
+If you would like to make your work portable,
+consider understanding relativ paths. Read on.
+
+
+
+# Approach 2: Start an RStudio project
+
+That's an approach I generally recommend. 
+
+1. Start an [RStudio project](https://support.rstudio.com/hc/en-us/articles/200526207-Using-Projects).
+2. Put your code files and your data files in *this very* folder.
+3. Import the data without specifying any paths, eg., `d <- read.csv("mydata.csv)`
+
+RStudio will consider the RStudio project folder *which you specified* 
+as the "root" of any (relative) paths you specify.
+As a consequence, if you put your data in this path,
+you will not need to specify any path - just give the file name to `read_csv()`.
+
+In case the data are stored in a *sub* folder in your project folder,
+you will need to specify this subfolder.
+
+An helpful approach is provided by the package `{{here}}`.
+As an example, let's assume the subfolder where your data file resides is called `data`,
+and the data file is named `mydata.csv`:
+
+```{r eval = FALSE}
+d <- read_csv(here("data", "mydata.csv"))
+```
+
+
+This command essentially tells R "Hey R, look here, that is, in my current project folder,
+*then* look in the subfolder "data" and then take the file "mydata.csv".
+
+In case you are unsure where you *current* project folder (also called *working directory*) is,
+try
+
+```{r}
+getwd()
+```
+
+
+
+# Approach 3: Import from an online source
+
+That's also simple and convenient -- as long as someone has put the data online.
+
+
+1. Identify the URL of your data set, and copy it.
+2. Open up an R/Rmd script file and paste the URL to your import function, e.g,. `d <- read.csv("https://vincentarelbundock.github.io/Rdatasets/csv/reshape2/tips.csv")`
+
+Note that the URL provides an absolute URL
+that will work irrespective from which machine you access it. 
+Handy.
+
+
+Note: In case you download a zip file, remember to unzip it before accessing the files.
+
+
+
+# Approach 4: Learn what a path means
+
+
+
+This is a more thorough approach, but one which will pay out in the long run.
+
+
+
+
+It is helpful to understand the difference between an *abolute* path and a *relative* path.
+There is a ton of tutorials on that in the web, e.g., checkout [this one](https://www.computerhope.com/issues/ch001708.htm) or [this one](https://www.lifewire.com/absolute-and-relative-paths-3466467).
+
+
+Here's an approach for absolute file paths:
+
+
+1. Identify the location (path) of your data file on your computer. 
+2. Copy it to the clipboard (depends on your operating system)^[Mac: Click right, hold Option key, select "copy path name". Windows: Click right, hold shift, select "copy path name". Linux users will know in the first place how to proceed 🥳).
+3. Paste it into your import function, e.g, `d <- read.csv("/Users/sebastiansaueruser/datasets/tips.csv")
+
+
+
+
+# Example time -- dataset `tips` 
+
+
+
+```{r}
+tips <- read.csv("https://vincentarelbundock.github.io/Rdatasets/csv/reshape2/tips.csv")
+```
+
+
+
+
+Exercises:
+
+1. Import from the URL.
+2. Download the file to your PC and import it via the absolute path.
+3.  Download the file to your PC, move it to your current project folder, and import it via the relativ path.
+
+
+
+
+
+
+
+
+
+
+
+
+

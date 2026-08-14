@@ -1,0 +1,1280 @@
+---
+title: Metadaten von Forschungsartikeln herunterladen
+author: Sebastian Sauer
+date: '2021-07-08'
+slug: metadaten-von-forschungsartikeln-herunterladen
+categories:
+  - rstats
+tags:
+  - metascience
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: true
+    number_sections: true
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#vorbereitung"><span class="toc-section-number">1</span> Vorbereitung</a></li>
+<li><a href="#via-crossref"><span class="toc-section-number">2</span> Via Crossref</a>
+<ul>
+<li><a href="#abfragen-einfach"><span class="toc-section-number">2.1</span> Abfragen, einfach</a></li>
+</ul></li>
+<li><a href="#filter"><span class="toc-section-number">3</span> Filter</a>
+<ul>
+<li><a href="#anzahl"><span class="toc-section-number">3.1</span> Anzahl</a></li>
+</ul></li>
+<li><a href="#dois-rausziehen"><span class="toc-section-number">4</span> Dois rausziehen</a></li>
+<li><a href="#zitationen-herunterladen"><span class="toc-section-number">5</span> Zitationen herunterladen</a></li>
+<li><a href="#abstracts-herunterladen"><span class="toc-section-number">6</span> Abstracts herunterladen</a>
+<ul>
+<li><a href="#safely-abstracts-herunterladen"><span class="toc-section-number">6.1</span> “Safely” Abstracts herunterladen</a></li>
+<li><a href="#artikel-nur-mit-abstracts"><span class="toc-section-number">6.2</span> Artikel nur mit Abstracts</a></li>
+<li><a href="#abstract-mit-cr_abstract"><span class="toc-section-number">6.3</span> Abstract mit <code>cr_abstract</code></a></li>
+<li><a href="#check"><span class="toc-section-number">6.4</span> Check</a></li>
+<li><a href="#auf-einen-haps"><span class="toc-section-number">6.5</span> Auf einen Haps</a></li>
+</ul></li>
+<li><a href="#andere-apis"><span class="toc-section-number">7</span> Andere APIs</a>
+<ul>
+<li><a href="#google-scholar-hat-keine-api-wie-es-aussieht"><span class="toc-section-number">7.1</span> Google Scholar hat keine API, wie es aussieht</a>
+<ul>
+<li><a href="#weitere-api"><span class="toc-section-number">7.1.1</span> Weitere API</a></li>
+</ul></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="vorbereitung" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Vorbereitung</h1>
+<pre class="r"><code>library(tidyverse)
+library(printr)
+library(rcrossref)
+library(gt)</code></pre>
+</div>
+<div id="via-crossref" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Via Crossref</h1>
+<p>Von der <a href="https://www.crossref.org/">Crossref-Webseite</a>:</p>
+<blockquote>
+<p>Crossref makes research outputs easy to find, cite, link, assess, and reuse. We’re a not-for-profit membership organization that exists to make scholarly communications better.</p>
+</blockquote>
+<p>Mit diesem R-Paket kann man <a href="https://www.crossref.org/">Crossref</a> abfragen:</p>
+<pre class="r"><code>library(rcrossref)</code></pre>
+<div id="abfragen-einfach" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> Abfragen, einfach</h2>
+<pre class="r"><code>mindfulness_query &lt;- 
+  cr_works(query=&quot;mindfulness&quot;)</code></pre>
+<p>Ein Blick in die Ergebnisse:</p>
+<pre class="r"><code>mindfulness_query %&gt;% 
+  map(head)</code></pre>
+<pre><code>## $meta
+##   total_results search_terms start_index items_per_page
+## 1         18300  mindfulness           0             20
+## 
+## $data
+## # A tibble: 6 x 35
+##   alternative.id container.title  created  deposited published.online doi       
+##   &lt;chr&gt;          &lt;chr&gt;            &lt;chr&gt;    &lt;chr&gt;     &lt;chr&gt;            &lt;chr&gt;     
+## 1 290            Mindfulness      2014-03… 2019-06-… 2014-03-05       10.1007/s…
+## 2 &lt;NA&gt;           After Mindfulne… 2014-03… 2014-04-… &lt;NA&gt;             10.1057/9…
+## 3 &lt;NA&gt;           After Mindfulne… 2014-03… 2014-04-… &lt;NA&gt;             10.1057/9…
+## 4 174            Mindfulness      2012-11… 2019-06-… 2012-11-20       10.1007/s…
+## 5 255            Mindfulness      2013-10… 2019-06-… 2013-10-18       10.1007/s…
+## 6 380            Mindfulness      2014-12… 2019-08-… 2014-12-28       10.1007/s…
+## # … with 29 more variables: indexed &lt;chr&gt;, issn &lt;chr&gt;, issued &lt;chr&gt;,
+## #   member &lt;chr&gt;, prefix &lt;chr&gt;, publisher &lt;chr&gt;, score &lt;chr&gt;, source &lt;chr&gt;,
+## #   reference.count &lt;chr&gt;, references.count &lt;chr&gt;,
+## #   is.referenced.by.count &lt;chr&gt;, title &lt;chr&gt;, type &lt;chr&gt;, url &lt;chr&gt;,
+## #   language &lt;chr&gt;, short.container.title &lt;chr&gt;, author &lt;list&gt;, link &lt;list&gt;,
+## #   content_domain &lt;list&gt;, license &lt;list&gt;, isbn &lt;chr&gt;, published.print &lt;chr&gt;,
+## #   issue &lt;chr&gt;, page &lt;chr&gt;, volume &lt;chr&gt;, reference &lt;list&gt;,
+## #   update.policy &lt;chr&gt;, subject &lt;chr&gt;, assertion &lt;list&gt;
+## 
+## $facets
+## NULL</code></pre>
+<p>Welche Daten werden in den Daten <code>data</code> zurückgegeben?</p>
+<pre class="r"><code>mindfulness_query$data %&gt;% 
+  names()</code></pre>
+<pre><code>##  [1] &quot;alternative.id&quot;         &quot;container.title&quot;        &quot;created&quot;               
+##  [4] &quot;deposited&quot;              &quot;published.online&quot;       &quot;doi&quot;                   
+##  [7] &quot;indexed&quot;                &quot;issn&quot;                   &quot;issued&quot;                
+## [10] &quot;member&quot;                 &quot;prefix&quot;                 &quot;publisher&quot;             
+## [13] &quot;score&quot;                  &quot;source&quot;                 &quot;reference.count&quot;       
+## [16] &quot;references.count&quot;       &quot;is.referenced.by.count&quot; &quot;title&quot;                 
+## [19] &quot;type&quot;                   &quot;url&quot;                    &quot;language&quot;              
+## [22] &quot;short.container.title&quot;  &quot;author&quot;                 &quot;link&quot;                  
+## [25] &quot;content_domain&quot;         &quot;license&quot;                &quot;isbn&quot;                  
+## [28] &quot;published.print&quot;        &quot;issue&quot;                  &quot;page&quot;                  
+## [31] &quot;volume&quot;                 &quot;reference&quot;              &quot;update.policy&quot;         
+## [34] &quot;subject&quot;                &quot;assertion&quot;</code></pre>
+</div>
+</div>
+<div id="filter" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Filter</h1>
+<p><a href="https://docs.ropensci.org/rcrossref/reference/filters.html#arguments">Viele Filter sind möglich</a>.</p>
+<p>Begrenzen wir uns auf Journal-Artikel:</p>
+<pre class="r"><code>mindfulness_query2 &lt;- 
+  cr_works(query = &quot;mindfulness&quot;,
+           filter = c(type = &quot;journal-article&quot;))</code></pre>
+<pre class="r"><code>mindfulness_query2$data %&gt;% 
+  slice(1:2) %&gt;% 
+  select(-reference) %&gt;%   # zu viel Kram
+  gt()</code></pre>
+<div id="txpmukwzzr" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#txpmukwzzr .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#txpmukwzzr .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#txpmukwzzr .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#txpmukwzzr .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 4px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#txpmukwzzr .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#txpmukwzzr .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#txpmukwzzr .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#txpmukwzzr .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#txpmukwzzr .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#txpmukwzzr .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#txpmukwzzr .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#txpmukwzzr .gt_group_heading {
+  padding: 8px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#txpmukwzzr .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#txpmukwzzr .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#txpmukwzzr .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#txpmukwzzr .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#txpmukwzzr .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 12px;
+}
+
+#txpmukwzzr .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#txpmukwzzr .gt_first_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+}
+
+#txpmukwzzr .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#txpmukwzzr .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#txpmukwzzr .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#txpmukwzzr .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#txpmukwzzr .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#txpmukwzzr .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding: 4px;
+}
+
+#txpmukwzzr .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#txpmukwzzr .gt_sourcenote {
+  font-size: 90%;
+  padding: 4px;
+}
+
+#txpmukwzzr .gt_left {
+  text-align: left;
+}
+
+#txpmukwzzr .gt_center {
+  text-align: center;
+}
+
+#txpmukwzzr .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#txpmukwzzr .gt_font_normal {
+  font-weight: normal;
+}
+
+#txpmukwzzr .gt_font_bold {
+  font-weight: bold;
+}
+
+#txpmukwzzr .gt_font_italic {
+  font-style: italic;
+}
+
+#txpmukwzzr .gt_super {
+  font-size: 65%;
+}
+
+#txpmukwzzr .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 65%;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">alternative.id</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">container.title</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">created</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">deposited</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">published.online</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">doi</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">indexed</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">issn</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">issued</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">member</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">prefix</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">publisher</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">score</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">source</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">reference.count</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">references.count</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">is.referenced.by.count</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">title</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">type</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">url</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">language</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">short.container.title</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">author</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">link</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">content_domain</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">license</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">published.print</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">issue</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">page</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">volume</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">update.policy</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">subject</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">assertion</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">290</td>
+<td class="gt_row gt_left">Mindfulness</td>
+<td class="gt_row gt_left">2014-03-04</td>
+<td class="gt_row gt_left">2019-06-02</td>
+<td class="gt_row gt_left">2014-03-05</td>
+<td class="gt_row gt_left">10.1007/s12671-014-0290-6</td>
+<td class="gt_row gt_left">2020-03-30</td>
+<td class="gt_row gt_left">1868-8527,1868-8535</td>
+<td class="gt_row gt_left">2014-03-05</td>
+<td class="gt_row gt_left">297</td>
+<td class="gt_row gt_left">10.1007</td>
+<td class="gt_row gt_left">Springer Science and Business Media LLC</td>
+<td class="gt_row gt_left">15.401021</td>
+<td class="gt_row gt_left">Crossref</td>
+<td class="gt_row gt_left">0</td>
+<td class="gt_row gt_left">0</td>
+<td class="gt_row gt_left">0</td>
+<td class="gt_row gt_left">Mindfulness of Death</td>
+<td class="gt_row gt_left">journal-article</td>
+<td class="gt_row gt_left">http://dx.doi.org/10.1007/s12671-014-0290-6</td>
+<td class="gt_row gt_left">en</td>
+<td class="gt_row gt_left">Mindfulness</td>
+<td class="gt_row gt_center">c("Edo", "William"), c("Shonin", "Van Gordon"), c("first", "additional")</td>
+<td class="gt_row gt_center">c("http://link.springer.com/content/pdf/10.1007/s12671-014-0290-6.pdf", "http://link.springer.com/article/10.1007/s12671-014-0290-6/fulltext.html", "http://link.springer.com/content/pdf/10.1007/s12671-014-0290-6"), c("application/pdf", "text/html", "unspecified"), c("vor", "vor", "vor"), c("text-mining", "text-mining", "similarity-checking")</td>
+<td class="gt_row gt_center">, FALSE</td>
+<td class="gt_row gt_center">2014-03-05, http://www.springer.com/tdm, 0, tdm</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_center"></td></tr>
+    <tr><td class="gt_row gt_left">174</td>
+<td class="gt_row gt_left">Mindfulness</td>
+<td class="gt_row gt_left">2012-11-19</td>
+<td class="gt_row gt_left">2019-06-02</td>
+<td class="gt_row gt_left">2012-11-20</td>
+<td class="gt_row gt_left">10.1007/s12671-012-0174-6</td>
+<td class="gt_row gt_left">2020-03-28</td>
+<td class="gt_row gt_left">1868-8527,1868-8535</td>
+<td class="gt_row gt_left">2012-11-20</td>
+<td class="gt_row gt_left">297</td>
+<td class="gt_row gt_left">10.1007</td>
+<td class="gt_row gt_left">Springer Science and Business Media LLC</td>
+<td class="gt_row gt_left">15.151318</td>
+<td class="gt_row gt_left">Crossref</td>
+<td class="gt_row gt_left">5</td>
+<td class="gt_row gt_left">5</td>
+<td class="gt_row gt_left">4</td>
+<td class="gt_row gt_left">German Contributions to Mindfulness Research, Part 2: Assessment of Mindfulness</td>
+<td class="gt_row gt_left">journal-article</td>
+<td class="gt_row gt_left">http://dx.doi.org/10.1007/s12671-012-0174-6</td>
+<td class="gt_row gt_left">en</td>
+<td class="gt_row gt_left">Mindfulness</td>
+<td class="gt_row gt_center">c("Zeno", "Stefan"), c("Kupper", "Schmidt"), c("first", "additional")</td>
+<td class="gt_row gt_center">c("http://link.springer.com/content/pdf/10.1007/s12671-012-0174-6.pdf", "http://link.springer.com/article/10.1007/s12671-012-0174-6/fulltext.html", "http://link.springer.com/content/pdf/10.1007/s12671-012-0174-6"), c("application/pdf", "text/html", "unspecified"), c("vor", "vor", "vor"), c("text-mining", "text-mining", "similarity-checking")</td>
+<td class="gt_row gt_center">, FALSE</td>
+<td class="gt_row gt_center">2012-11-20, http://www.springer.com/tdm, 0, tdm</td>
+<td class="gt_row gt_left">2013-03</td>
+<td class="gt_row gt_left">1</td>
+<td class="gt_row gt_left">1-2</td>
+<td class="gt_row gt_left">4</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_center"></td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p>Weitere Infos auf der <a href="https://docs.ropensci.org/rcrossref/reference/cr_works.html">Hilfeseite</a>.</p>
+<div id="anzahl" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Anzahl</h2>
+<p>Von der Hilfeseite:</p>
+<blockquote>
+<p><strong>limit</strong> Number of results to return in the query. Not relavant when searching with specific dois. Default: 20. Max: 1000</p>
+</blockquote>
+</div>
+</div>
+<div id="dois-rausziehen" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Dois rausziehen</h1>
+<pre class="r"><code>mindfulness_dois &lt;- 
+  mindfulness_query2$data %&gt;% 
+  pull(doi)</code></pre>
+<pre class="r"><code>mindfulness_dois %&gt;% head()</code></pre>
+<pre><code>## [1] &quot;10.1007/s12671-014-0290-6&quot;  &quot;10.1007/s12671-012-0174-6&quot; 
+## [3] &quot;10.1007/s12671-013-0255-1&quot;  &quot;10.1007/s12671-014-0380-5&quot; 
+## [5] &quot;10.1007/s12671-011-0084-z&quot;  &quot;10.1007/s12671-020-01532-1&quot;</code></pre>
+</div>
+<div id="zitationen-herunterladen" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Zitationen herunterladen</h1>
+<p>Standard-Format ist Bibtex. Viele Zitationsstile sind möglich; Standard ist APA.</p>
+<pre class="r"><code>cr_cn(mindfulness_dois[1], format = &quot;text&quot;)</code></pre>
+<pre><code>## [1] &quot;Shonin, E., &amp; Van Gordon, W. (2014). Mindfulness of Death. Mindfulness. doi:10.1007/s12671-014-0290-6&quot;</code></pre>
+<pre class="r"><code>cr_cn(mindfulness_dois[1], format = &quot;bibtex&quot;) %&gt;% 
+  cat()</code></pre>
+<pre><code>## @article{Shonin_2014,
+##  doi = {10.1007/s12671-014-0290-6},
+##  url = {https://doi.org/10.1007%2Fs12671-014-0290-6},
+##  year = 2014,
+##  month = {mar},
+##  publisher = {Springer Science and Business Media {LLC}},
+##  author = {Edo Shonin and William Van Gordon},
+##  title = {Mindfulness of Death},
+##  journal = {Mindfulness}
+## }</code></pre>
+</div>
+<div id="abstracts-herunterladen" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Abstracts herunterladen</h1>
+<p>Leider haben nicht alle Papers einen Abstract:</p>
+<pre class="r"><code>rcrossref::cr_abstract(&#39;10.1007/s12671-012-0174-6&#39;)</code></pre>
+<pre><code>## Error: no abstract found for 10.1007/s12671-012-0174-6</code></pre>
+<p>Entsprechend:</p>
+<pre class="r"><code>cr_abstract(doi = mindfulness_dois[1])</code></pre>
+<pre><code>## Error: no abstract found for 10.1007/s12671-014-0290-6</code></pre>
+<div id="safely-abstracts-herunterladen" class="section level2" number="6.1">
+<h2><span class="header-section-number">6.1</span> “Safely” Abstracts herunterladen</h2>
+<p>Probieren wir, mehrere Abstracts herunterzuladen:</p>
+<pre class="r"><code>cr_abstract_safely &lt;- safely(cr_abstract)</code></pre>
+<pre class="r"><code>mindfulness_abstracts &lt;- 
+  mindfulness_dois %&gt;% 
+    map(cr_abstract_safely)</code></pre>
+<pre class="r"><code>mindfulness_abstracts %&gt;% 
+  map(&quot;error&quot;)</code></pre>
+<pre><code>## [[1]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-014-0290-6&gt;
+## 
+## [[2]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-012-0174-6&gt;
+## 
+## [[3]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-013-0255-1&gt;
+## 
+## [[4]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-014-0380-5&gt;
+## 
+## [[5]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-011-0084-z&gt;
+## 
+## [[6]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-020-01532-1&gt;
+## 
+## [[7]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-019-01286-5&gt;
+## 
+## [[8]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-019-01283-8&gt;
+## 
+## [[9]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-019-01145-3&gt;
+## 
+## [[10]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-012-0117-2&gt;
+## 
+## [[11]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-010-0036-z&gt;
+## 
+## [[12]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-019-01181-z&gt;
+## 
+## [[13]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-015-0456-x&gt;
+## 
+## [[14]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-010-0015-4&gt;
+## 
+## [[15]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-020-01481-9&gt;
+## 
+## [[16]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-020-01398-3&gt;
+## 
+## [[17]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-017-0858-z&gt;
+## 
+## [[18]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-020-01377-8&gt;
+## 
+## [[19]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-019-01237-0&gt;
+## 
+## [[20]]
+## &lt;simpleError: no abstract found for 10.1007/s12671-020-01432-4&gt;</code></pre>
+</div>
+<div id="artikel-nur-mit-abstracts" class="section level2" number="6.2">
+<h2><span class="header-section-number">6.2</span> Artikel nur mit Abstracts</h2>
+<pre class="r"><code>mindfulness_query3 &lt;- 
+  cr_works(query = &quot;mindfulness&quot;,
+           filter = c(type = &quot;journal-article&quot;,
+                      has_abstract = TRUE),
+           limit = 3,
+           .progress =&quot;text&quot;)</code></pre>
+<pre class="r"><code>mindfulness_query3$data %&gt;% 
+  select(-reference) %&gt;% 
+  gt()</code></pre>
+<div id="djmyaarbpi" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#djmyaarbpi .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#djmyaarbpi .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#djmyaarbpi .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#djmyaarbpi .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 4px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#djmyaarbpi .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#djmyaarbpi .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#djmyaarbpi .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#djmyaarbpi .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#djmyaarbpi .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#djmyaarbpi .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#djmyaarbpi .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#djmyaarbpi .gt_group_heading {
+  padding: 8px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#djmyaarbpi .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#djmyaarbpi .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#djmyaarbpi .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#djmyaarbpi .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#djmyaarbpi .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 12px;
+}
+
+#djmyaarbpi .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#djmyaarbpi .gt_first_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+}
+
+#djmyaarbpi .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#djmyaarbpi .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#djmyaarbpi .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#djmyaarbpi .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#djmyaarbpi .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#djmyaarbpi .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding: 4px;
+}
+
+#djmyaarbpi .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#djmyaarbpi .gt_sourcenote {
+  font-size: 90%;
+  padding: 4px;
+}
+
+#djmyaarbpi .gt_left {
+  text-align: left;
+}
+
+#djmyaarbpi .gt_center {
+  text-align: center;
+}
+
+#djmyaarbpi .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#djmyaarbpi .gt_font_normal {
+  font-weight: normal;
+}
+
+#djmyaarbpi .gt_font_bold {
+  font-weight: bold;
+}
+
+#djmyaarbpi .gt_font_italic {
+  font-style: italic;
+}
+
+#djmyaarbpi .gt_super {
+  font-size: 65%;
+}
+
+#djmyaarbpi .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 65%;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">alternative.id</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">container.title</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">created</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">deposited</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">published.print</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">published.online</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">doi</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">indexed</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">issn</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">issue</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">issued</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">member</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">page</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">prefix</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">publisher</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">score</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">source</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">reference.count</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">references.count</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">is.referenced.by.count</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">subject</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">title</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">type</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">update.policy</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">url</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">volume</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">abstract</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">language</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">short.container.title</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">assertion</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">author</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">funder</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">link</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">content_domain</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">license</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">1335</td>
+<td class="gt_row gt_left">Mindfulness</td>
+<td class="gt_row gt_left">2020-02-21</td>
+<td class="gt_row gt_left">2021-02-20</td>
+<td class="gt_row gt_left">2020-05</td>
+<td class="gt_row gt_left">2020-02-21</td>
+<td class="gt_row gt_left">10.1007/s12671-020-01335-4</td>
+<td class="gt_row gt_left">2021-02-20</td>
+<td class="gt_row gt_left">1868-8527,1868-8535</td>
+<td class="gt_row gt_left">5</td>
+<td class="gt_row gt_left">2020-02-21</td>
+<td class="gt_row gt_left">297</td>
+<td class="gt_row gt_left">1253-1266</td>
+<td class="gt_row gt_left">10.1007</td>
+<td class="gt_row gt_left">Springer Science and Business Media LLC</td>
+<td class="gt_row gt_left">14.2459345</td>
+<td class="gt_row gt_left">Crossref</td>
+<td class="gt_row gt_left">60</td>
+<td class="gt_row gt_left">60</td>
+<td class="gt_row gt_left">0</td>
+<td class="gt_row gt_left">Applied Psychology,Experimental and Cognitive Psychology,Developmental and Educational Psychology,Health(social science),Social Psychology</td>
+<td class="gt_row gt_left">Mindfulness and Affect-Network Density: Does Mindfulness Facilitate Disengagement from Affective Experiences in Daily Life?</td>
+<td class="gt_row gt_left">journal-article</td>
+<td class="gt_row gt_left">http://dx.doi.org/10.1007/springer_crossmark_policy</td>
+<td class="gt_row gt_left">http://dx.doi.org/10.1007/s12671-020-01335-4</td>
+<td class="gt_row gt_left">11</td>
+<td class="gt_row gt_left">&lt;jats:title&gt;Abstract&lt;/jats:title&gt;&lt;jats:sec&gt;
+&lt;jats:title&gt;Objectives&lt;/jats:title&gt;
+&lt;jats:p&gt;Mindfulness has been positively associated with affective well-being, which may be explained by improved affective disengagement from prior experiences.&lt;/jats:p&gt;
+&lt;/jats:sec&gt;&lt;jats:sec&gt;
+&lt;jats:title&gt;Methods&lt;/jats:title&gt;
+&lt;jats:p&gt;We used a dynamic network approach to represent temporal interconnections between specific affective states (i.e., network density)—with less interconnected states indicating better affective disengagement—to investigate whether mindfulness predicted a lower network density. One-hundred twenty-five undergraduate students (&lt;jats:italic&gt;M&lt;/jats:italic&gt; age = 22.87; &lt;jats:italic&gt;SD&lt;/jats:italic&gt; = 5.06 years; 77.6% female) completed a 40-day ambulatory assessment, reporting on their affective experiences and state mindfulness six times a day, and either practiced mindfulness or were on a wait-list (control condition).&lt;/jats:p&gt;
+&lt;/jats:sec&gt;&lt;jats:sec&gt;
+&lt;jats:title&gt;Results&lt;/jats:title&gt;
+&lt;jats:p&gt;We found that neither the mindfulness training, β = −.11, &lt;jats:italic&gt;p&lt;/jats:italic&gt; = .222, nor state mindfulness, β = −.06, &lt;jats:italic&gt;p&lt;/jats:italic&gt; = .484, were associated with affective network density. However, given prior research indicating the importance of prior meditation experience, we found that participants with prior meditation experience reported lower affective network density when they reported higher state mindfulness than participants without meditation experiences, β = −.20, &lt;jats:italic&gt;p&lt;/jats:italic&gt; = .048.&lt;/jats:p&gt;
+&lt;/jats:sec&gt;&lt;jats:sec&gt;
+&lt;jats:title&gt;Conclusion&lt;/jats:title&gt;
+&lt;jats:p&gt;The present study found that neither high levels of mindfulness nor a mindfulness training automatically improved affective disengagement in the form of lower network density. Rather, it seems that only those who were already familiar with practicing mindfulness and who were mindful in their daily life experienced easier disengagement from previous affective experiences. These findings may point toward a different, more complex, understanding of mindfulness in experienced meditators.&lt;/jats:p&gt;
+&lt;/jats:sec&gt;</td>
+<td class="gt_row gt_left">en</td>
+<td class="gt_row gt_left">Mindfulness</td>
+<td class="gt_row gt_center">c("21 February 2020", NA, "The authors declare that they have no conflict of interest.", "This trial was approved by the local ethics committee at the Institute of Psychology at the Johannes Gutenberg-University of Mainz, Germany (2015-JGU-psychEK-011). All procedures performed in studies involving human participants were in accordance with the ethical standards of the institutional research committee Johannes Gutenberg University Mainz and with the 1964 Helsinki declaration and its later amendments or comparable ethical standards.", 
+"Informed consent was obtained from all individual participants included in the study.", "All data and syntax are available at the Open Science Framework (ExternalRef removed)."), c(1, 1, 2, 3, 4, 5), c("first_online", "Ethics", "Ethics", "Ethics", "Ethics", "Ethics"), c("First Online", NA, NA, NA, NA, NA), c("ArticleHistory", "EthicsHeading", "EthicsHeading", "EthicsHeading", "EthicsHeading", "EthicsHeading"), c("Article History", "Compliance with Ethical Standards", "Conflict of Interest", "Ethical Approval", "Informed Consent", "Data Availability Statement")</td>
+<td class="gt_row gt_center">c("http://orcid.org/0000-0002-3902-1488", NA), c(FALSE, NA), c("Zarah", "Mario"), c("Rowland", "Wenzel"), c("first", "additional")</td>
+<td class="gt_row gt_center">Johannes Gutenberg-Universität Mainz</td>
+<td class="gt_row gt_center">c("http://link.springer.com/content/pdf/10.1007/s12671-020-01335-4.pdf", "http://link.springer.com/article/10.1007/s12671-020-01335-4/fulltext.html", "http://link.springer.com/content/pdf/10.1007/s12671-020-01335-4.pdf"), c("application/pdf", "text/html", "application/pdf"), c("vor", "vor", "vor"), c("text-mining", "text-mining", "similarity-checking")</td>
+<td class="gt_row gt_center">link.springer.com, FALSE</td>
+<td class="gt_row gt_center">c("2020-02-21", "2020-02-21"), c("https://creativecommons.org/licenses/by/4.0", "https://creativecommons.org/licenses/by/4.0"), c(0, 0), c("tdm", "vor")</td></tr>
+    <tr><td class="gt_row gt_left">1647</td>
+<td class="gt_row gt_left">Mindfulness</td>
+<td class="gt_row gt_left">2021-06-07</td>
+<td class="gt_row gt_left">2021-06-07</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">2021-06-07</td>
+<td class="gt_row gt_left">10.1007/s12671-021-01647-z</td>
+<td class="gt_row gt_left">2021-06-07</td>
+<td class="gt_row gt_left">1868-8527,1868-8535</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">2021-06-07</td>
+<td class="gt_row gt_left">297</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">10.1007</td>
+<td class="gt_row gt_left">Springer Science and Business Media LLC</td>
+<td class="gt_row gt_left">14.1860485</td>
+<td class="gt_row gt_left">Crossref</td>
+<td class="gt_row gt_left">7</td>
+<td class="gt_row gt_left">7</td>
+<td class="gt_row gt_left">0</td>
+<td class="gt_row gt_left">Applied Psychology,Experimental and Cognitive Psychology,Developmental and Educational Psychology,Health(social science),Social Psychology</td>
+<td class="gt_row gt_left">The Art of Introducing Mindfulness into Medical and Allied Health Curricula</td>
+<td class="gt_row gt_left">journal-article</td>
+<td class="gt_row gt_left">http://dx.doi.org/10.1007/springer_crossmark_policy</td>
+<td class="gt_row gt_left">http://dx.doi.org/10.1007/s12671-021-01647-z</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">&lt;jats:title&gt;Abstract&lt;/jats:title&gt;&lt;jats:sec&gt;
+              &lt;jats:title&gt;Objectives&lt;/jats:title&gt;
+              &lt;jats:p&gt;Mindfulness is now widely used therapeutically in health settings, but for a range of reasons, it is not commonly integrated into the education of health professionals. This article aims to share practical insights and lessons learned from teaching mindfulness as core curriculum to the whole cohorts of medical students at Monash University.&lt;/jats:p&gt;
+            &lt;/jats:sec&gt;&lt;jats:sec&gt;
+              &lt;jats:title&gt;Methods&lt;/jats:title&gt;
+              &lt;jats:p&gt;This reflective article will provide a personal perspective drawing on many years’ experience since the early 1990s of integrating mindfulness into the core medical curriculum including outlining the mindfulness-based lifestyle program delivered to the medical students. This will provide a backdrop to sharing important lessons relating to preparation, integration, delivery and review of mindfulness curriculum. A range of practical issues will be explored including making the case for it to faculty, finding the right language, giving it a context and rationale, using the most conducive teaching style, having the right tutors, carefully dealing with resistance, finding appropriate methods of assessment and the importance of review.&lt;/jats:p&gt;
+            &lt;/jats:sec&gt;&lt;jats:sec&gt;
+              &lt;jats:title&gt;Results&lt;/jats:title&gt;
+              &lt;jats:p&gt;Evaluations and feedback on the program over a number of years have shown a high level of acceptance and utilisation of mindfulness-based skills by students. Since its inception, mindfulness training has now become integral in the training of many other health professional students at Monash.&lt;/jats:p&gt;
+            &lt;/jats:sec&gt;&lt;jats:sec&gt;
+              &lt;jats:title&gt;Conclusions&lt;/jats:title&gt;
+              &lt;jats:p&gt;If done effectively, mindfulness can be successfully introduced and integrated into core curriculum of medical and allied health students using it as a meta-skill to support the development of student wellbeing a range of important clinical competencies.&lt;/jats:p&gt;
+            &lt;/jats:sec&gt;</td>
+<td class="gt_row gt_left">en</td>
+<td class="gt_row gt_left">Mindfulness</td>
+<td class="gt_row gt_center">c("10 May 2021", "7 June 2021", NA, "The author declares no competing interests."), c(1, 2, 1, 2), c("accepted", "first_online", "Ethics", "Ethics"), c("Accepted", "First Online", NA, NA), c("ArticleHistory", "ArticleHistory", "EthicsHeading", "EthicsHeading"), c("Article History", "Article History", "Declarations", "Conflict of Interest")</td>
+<td class="gt_row gt_center">Craig, Hassed, first</td>
+<td class="gt_row gt_center"></td>
+<td class="gt_row gt_center">c("https://link.springer.com/content/pdf/10.1007/s12671-021-01647-z.pdf", "https://link.springer.com/article/10.1007/s12671-021-01647-z/fulltext.html", "https://link.springer.com/content/pdf/10.1007/s12671-021-01647-z.pdf"), c("application/pdf", "text/html", "application/pdf"), c("vor", "vor", "vor"), c("text-mining", "text-mining", "similarity-checking")</td>
+<td class="gt_row gt_center">link.springer.com, FALSE</td>
+<td class="gt_row gt_center">c("2021-06-07", "2021-06-07"), c("https://creativecommons.org/licenses/by/4.0", "https://creativecommons.org/licenses/by/4.0"), c(0, 0), c("tdm", "vor")</td></tr>
+    <tr><td class="gt_row gt_left">1274</td>
+<td class="gt_row gt_left">Mindfulness</td>
+<td class="gt_row gt_left">2019-12-10</td>
+<td class="gt_row gt_left">2020-12-09</td>
+<td class="gt_row gt_left">2020-02</td>
+<td class="gt_row gt_left">2019-12-10</td>
+<td class="gt_row gt_left">10.1007/s12671-019-01274-9</td>
+<td class="gt_row gt_left">2021-06-23</td>
+<td class="gt_row gt_left">1868-8527,1868-8535</td>
+<td class="gt_row gt_left">2</td>
+<td class="gt_row gt_left">2019-12-10</td>
+<td class="gt_row gt_left">297</td>
+<td class="gt_row gt_left">493-506</td>
+<td class="gt_row gt_left">10.1007</td>
+<td class="gt_row gt_left">Springer Science and Business Media LLC</td>
+<td class="gt_row gt_left">14.1860485</td>
+<td class="gt_row gt_left">Crossref</td>
+<td class="gt_row gt_left">38</td>
+<td class="gt_row gt_left">38</td>
+<td class="gt_row gt_left">2</td>
+<td class="gt_row gt_left">Applied Psychology,Experimental and Cognitive Psychology,Developmental and Educational Psychology,Health(social science),Social Psychology</td>
+<td class="gt_row gt_left">Experimental Phenomenology in Mindfulness Research</td>
+<td class="gt_row gt_left">journal-article</td>
+<td class="gt_row gt_left">http://dx.doi.org/10.1007/springer_crossmark_policy</td>
+<td class="gt_row gt_left">http://dx.doi.org/10.1007/s12671-019-01274-9</td>
+<td class="gt_row gt_left">11</td>
+<td class="gt_row gt_left">&lt;jats:title&gt;Abstract&lt;/jats:title&gt;&lt;jats:p&gt;The present paper argues that experimental phenomenology has an important role to play in research on mindfulness. Experimental phenomenology is defined as a subcategory of phenomenology (defined as the science of our subjective experience of being in the world), which explores the effects of intentional variations of subjective experiencing (direction of attention and choice of attitude) on subsequent experience. To count as experimental phenomenology, both the independent and dependent variable have to be phenomenological. Because mindfulness involves paying attention to present experience with a specific attitude, it is well suited for experimental-phenomenological research. What makes experimental phenomenology into a scientific endeavor is the intersubjective nature of this kind of study: potential effects described by one person can be subjected to replication both by the same person, and by other persons. Also, conclusions drawn on the basis of this kind of study are hypothetical and provisional, and may be modified or specified on the basis of further study. In this paper, the principles of experimental phenomenology are illustrated by (a) variations of a given mindfulness practice (the body scan), and (b) the construction of a personalized mindfulness practice (mindful driving). Finally, three varieties of experimental phenomenology in research on mindfulness are discussed: (1) the use of qualitative methods to analyze mindfulness practices and their potential effects, (2) idiographic research with the use of single-subject designs and experience sampling, and (3) randomized controlled studies of the effects of mindfulness practices on present experience.&lt;/jats:p&gt;</td>
+<td class="gt_row gt_left">en</td>
+<td class="gt_row gt_left">Mindfulness</td>
+<td class="gt_row gt_center">c("10 December 2019", NA, "The author declares that he has no conflicts of interest.", "This article does not contain any studies with human participants performed by the author. Informed consent was obtained from the individuals who are mentioned in the case illustrations."), c(1, 1, 2, 3), c("first_online", "Ethics", "Ethics", "Ethics"), c("First Online", NA, NA, NA), c("ArticleHistory", "EthicsHeading", "EthicsHeading", "EthicsHeading"), c("Article History", "Compliance with Ethical Standards", "Conflict of Interest", "Ethical Approval")</td>
+<td class="gt_row gt_center">http://orcid.org/0000-0002-1649-969X, FALSE, Lars-Gunnar, Lundh, first</td>
+<td class="gt_row gt_center">10.13039/501100003252, Lunds Universitet, crossref</td>
+<td class="gt_row gt_center">c("http://link.springer.com/content/pdf/10.1007/s12671-019-01274-9.pdf", "http://link.springer.com/article/10.1007/s12671-019-01274-9/fulltext.html", "http://link.springer.com/content/pdf/10.1007/s12671-019-01274-9.pdf"), c("application/pdf", "text/html", "application/pdf"), c("vor", "vor", "vor"), c("text-mining", "text-mining", "similarity-checking")</td>
+<td class="gt_row gt_center">link.springer.com, FALSE</td>
+<td class="gt_row gt_center">c("2019-12-10", "2019-12-10"), c("https://creativecommons.org/licenses/by/4.0", "https://creativecommons.org/licenses/by/4.0"), c(0, 0), c("tdm", "vor")</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<pre class="r"><code>mindfulness_query3$data %&gt;% 
+  select(doi, abstract) %&gt;% 
+  slice(1) %&gt;% 
+  pull(abstract)</code></pre>
+<pre><code>## [1] &quot;&lt;jats:title&gt;Abstract&lt;/jats:title&gt;&lt;jats:sec&gt;\n&lt;jats:title&gt;Objectives&lt;/jats:title&gt;\n&lt;jats:p&gt;Mindfulness has been positively associated with affective well-being, which may be explained by improved affective disengagement from prior experiences.&lt;/jats:p&gt;\n&lt;/jats:sec&gt;&lt;jats:sec&gt;\n&lt;jats:title&gt;Methods&lt;/jats:title&gt;\n&lt;jats:p&gt;We used a dynamic network approach to represent temporal interconnections between specific affective states (i.e., network density)—with less interconnected states indicating better affective disengagement—to investigate whether mindfulness predicted a lower network density. One-hundred twenty-five undergraduate students (&lt;jats:italic&gt;M&lt;/jats:italic&gt; age = 22.87; &lt;jats:italic&gt;SD&lt;/jats:italic&gt; = 5.06 years; 77.6% female) completed a 40-day ambulatory assessment, reporting on their affective experiences and state mindfulness six times a day, and either practiced mindfulness or were on a wait-list (control condition).&lt;/jats:p&gt;\n&lt;/jats:sec&gt;&lt;jats:sec&gt;\n&lt;jats:title&gt;Results&lt;/jats:title&gt;\n&lt;jats:p&gt;We found that neither the mindfulness training, β = −.11, &lt;jats:italic&gt;p&lt;/jats:italic&gt; = .222, nor state mindfulness, β = −.06, &lt;jats:italic&gt;p&lt;/jats:italic&gt; = .484, were associated with affective network density. However, given prior research indicating the importance of prior meditation experience, we found that participants with prior meditation experience reported lower affective network density when they reported higher state mindfulness than participants without meditation experiences, β = −.20, &lt;jats:italic&gt;p&lt;/jats:italic&gt; = .048.&lt;/jats:p&gt;\n&lt;/jats:sec&gt;&lt;jats:sec&gt;\n&lt;jats:title&gt;Conclusion&lt;/jats:title&gt;\n&lt;jats:p&gt;The present study found that neither high levels of mindfulness nor a mindfulness training automatically improved affective disengagement in the form of lower network density. Rather, it seems that only those who were already familiar with practicing mindfulness and who were mindful in their daily life experienced easier disengagement from previous affective experiences. These findings may point toward a different, more complex, understanding of mindfulness in experienced meditators.&lt;/jats:p&gt;\n&lt;/jats:sec&gt;&quot;</code></pre>
+</div>
+<div id="abstract-mit-cr_abstract" class="section level2" number="6.3">
+<h2><span class="header-section-number">6.3</span> Abstract mit <code>cr_abstract</code></h2>
+<p>Ziehen wir uns die Dois:</p>
+<pre class="r"><code>mindfulness_dois3 &lt;- 
+  mindfulness_query3$data %&gt;% 
+  pull(doi)</code></pre>
+<pre class="r"><code>mindfulness_abstracts &lt;- 
+  mindfulness_dois3 %&gt;% 
+    map(cr_abstract)</code></pre>
+</div>
+<div id="check" class="section level2" number="6.4">
+<h2><span class="header-section-number">6.4</span> Check</h2>
+<pre class="r"><code>mindfulness_abstracts[[1]] %&gt;% 
+  cat()</code></pre>
+<pre><code>## AbstractObjectivesMindfulness has been positively associated with affective well-being, which may be explained by improved affective disengagement from prior experiences.Methods
+##                       We used a dynamic network approach to represent temporal interconnections between specific affective states (i.e., network density)—with less interconnected states indicating better affective disengagement—to investigate whether mindfulness predicted a lower network density. One-hundred twenty-five undergraduate students (
+##                       M
+##                       age = 22.87;
+##                       SD
+##                        = 5.06 years; 77.6% female) completed a 40-day ambulatory assessment, reporting on their affective experiences and state mindfulness six times a day, and either practiced mindfulness or were on a wait-list (control condition).
+##                     Results
+##                       We found that neither the mindfulness training, β = −.11,
+##                       p
+##                        = .222, nor state mindfulness, β = −.06,
+##                       p
+##                        = .484, were associated with affective network density. However, given prior research indicating the importance of prior meditation experience, we found that participants with prior meditation experience reported lower affective network density when they reported higher state mindfulness than participants without meditation experiences, β = −.20,
+##                       p
+##                        = .048.
+##                     ConclusionThe present study found that neither high levels of mindfulness nor a mindfulness training automatically improved affective disengagement in the form of lower network density. Rather, it seems that only those who were already familiar with practicing mindfulness and who were mindful in their daily life experienced easier disengagement from previous affective experiences. These findings may point toward a different, more complex, understanding of mindfulness in experienced meditators.</code></pre>
+<pre class="r"><code>mindfulness_abstracts[[2]] %&gt;% 
+  cat()</code></pre>
+<pre><code>## AbstractObjectivesMindfulness is now widely used therapeutically in health settings, but for a range of reasons, it is not commonly integrated into the education of health professionals. This article aims to share practical insights and lessons learned from teaching mindfulness as core curriculum to the whole cohorts of medical students at Monash University.MethodsThis reflective article will provide a personal perspective drawing on many years’ experience since the early 1990s of integrating mindfulness into the core medical curriculum including outlining the mindfulness-based lifestyle program delivered to the medical students. This will provide a backdrop to sharing important lessons relating to preparation, integration, delivery and review of mindfulness curriculum. A range of practical issues will be explored including making the case for it to faculty, finding the right language, giving it a context and rationale, using the most conducive teaching style, having the right tutors, carefully dealing with resistance, finding appropriate methods of assessment and the importance of review.ResultsEvaluations and feedback on the program over a number of years have shown a high level of acceptance and utilisation of mindfulness-based skills by students. Since its inception, mindfulness training has now become integral in the training of many other health professional students at Monash.ConclusionsIf done effectively, mindfulness can be successfully introduced and integrated into core curriculum of medical and allied health students using it as a meta-skill to support the development of student wellbeing a range of important clinical competencies.</code></pre>
+<pre class="r"><code>mindfulness_abstracts[[3]] %&gt;% 
+  cat()</code></pre>
+<pre><code>## AbstractThe present paper argues that experimental phenomenology has an important role to play in research on mindfulness. Experimental phenomenology is defined as a subcategory of phenomenology (defined as the science of our subjective experience of being in the world), which explores the effects of intentional variations of subjective experiencing (direction of attention and choice of attitude) on subsequent experience. To count as experimental phenomenology, both the independent and dependent variable have to be phenomenological. Because mindfulness involves paying attention to present experience with a specific attitude, it is well suited for experimental-phenomenological research. What makes experimental phenomenology into a scientific endeavor is the intersubjective nature of this kind of study: potential effects described by one person can be subjected to replication both by the same person, and by other persons. Also, conclusions drawn on the basis of this kind of study are hypothetical and provisional, and may be modified or specified on the basis of further study. In this paper, the principles of experimental phenomenology are illustrated by (a) variations of a given mindfulness practice (the body scan), and (b) the construction of a personalized mindfulness practice (mindful driving). Finally, three varieties of experimental phenomenology in research on mindfulness are discussed: (1) the use of qualitative methods to analyze mindfulness practices and their potential effects, (2) idiographic research with the use of single-subject designs and experience sampling, and (3) randomized controlled studies of the effects of mindfulness practices on present experience.</code></pre>
+</div>
+<div id="auf-einen-haps" class="section level2" number="6.5">
+<h2><span class="header-section-number">6.5</span> Auf einen Haps</h2>
+<pre class="r"><code>mindfulness_abstracts</code></pre>
+<pre><code>## [[1]]
+## [1] &quot;AbstractObjectivesMindfulness has been positively associated with affective well-being, which may be explained by improved affective disengagement from prior experiences.Methods\n                      We used a dynamic network approach to represent temporal interconnections between specific affective states (i.e., network density)—with less interconnected states indicating better affective disengagement—to investigate whether mindfulness predicted a lower network density. One-hundred twenty-five undergraduate students (\n                      M\n                      age = 22.87;\n                      SD\n                       = 5.06 years; 77.6% female) completed a 40-day ambulatory assessment, reporting on their affective experiences and state mindfulness six times a day, and either practiced mindfulness or were on a wait-list (control condition).\n                    Results\n                      We found that neither the mindfulness training, β = −.11,\n                      p\n                       = .222, nor state mindfulness, β = −.06,\n                      p\n                       = .484, were associated with affective network density. However, given prior research indicating the importance of prior meditation experience, we found that participants with prior meditation experience reported lower affective network density when they reported higher state mindfulness than participants without meditation experiences, β = −.20,\n                      p\n                       = .048.\n                    ConclusionThe present study found that neither high levels of mindfulness nor a mindfulness training automatically improved affective disengagement in the form of lower network density. Rather, it seems that only those who were already familiar with practicing mindfulness and who were mindful in their daily life experienced easier disengagement from previous affective experiences. These findings may point toward a different, more complex, understanding of mindfulness in experienced meditators.&quot;
+## 
+## [[2]]
+## [1] &quot;AbstractObjectivesMindfulness is now widely used therapeutically in health settings, but for a range of reasons, it is not commonly integrated into the education of health professionals. This article aims to share practical insights and lessons learned from teaching mindfulness as core curriculum to the whole cohorts of medical students at Monash University.MethodsThis reflective article will provide a personal perspective drawing on many years’ experience since the early 1990s of integrating mindfulness into the core medical curriculum including outlining the mindfulness-based lifestyle program delivered to the medical students. This will provide a backdrop to sharing important lessons relating to preparation, integration, delivery and review of mindfulness curriculum. A range of practical issues will be explored including making the case for it to faculty, finding the right language, giving it a context and rationale, using the most conducive teaching style, having the right tutors, carefully dealing with resistance, finding appropriate methods of assessment and the importance of review.ResultsEvaluations and feedback on the program over a number of years have shown a high level of acceptance and utilisation of mindfulness-based skills by students. Since its inception, mindfulness training has now become integral in the training of many other health professional students at Monash.ConclusionsIf done effectively, mindfulness can be successfully introduced and integrated into core curriculum of medical and allied health students using it as a meta-skill to support the development of student wellbeing a range of important clinical competencies.&quot;
+## 
+## [[3]]
+## [1] &quot;AbstractThe present paper argues that experimental phenomenology has an important role to play in research on mindfulness. Experimental phenomenology is defined as a subcategory of phenomenology (defined as the science of our subjective experience of being in the world), which explores the effects of intentional variations of subjective experiencing (direction of attention and choice of attitude) on subsequent experience. To count as experimental phenomenology, both the independent and dependent variable have to be phenomenological. Because mindfulness involves paying attention to present experience with a specific attitude, it is well suited for experimental-phenomenological research. What makes experimental phenomenology into a scientific endeavor is the intersubjective nature of this kind of study: potential effects described by one person can be subjected to replication both by the same person, and by other persons. Also, conclusions drawn on the basis of this kind of study are hypothetical and provisional, and may be modified or specified on the basis of further study. In this paper, the principles of experimental phenomenology are illustrated by (a) variations of a given mindfulness practice (the body scan), and (b) the construction of a personalized mindfulness practice (mindful driving). Finally, three varieties of experimental phenomenology in research on mindfulness are discussed: (1) the use of qualitative methods to analyze mindfulness practices and their potential effects, (2) idiographic research with the use of single-subject designs and experience sampling, and (3) randomized controlled studies of the effects of mindfulness practices on present experience.&quot;</code></pre>
+</div>
+</div>
+<div id="andere-apis" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Andere APIs</h1>
+<div id="google-scholar-hat-keine-api-wie-es-aussieht" class="section level2" number="7.1">
+<h2><span class="header-section-number">7.1</span> Google Scholar hat keine API, wie es aussieht</h2>
+<p><a href="https://www.nature.com/articles/d41586-018-04190-5/">Nach dieser Quelle</a> hat Google Scholar keine offizielle API.</p>
+<p>Es existieren aber <a href="https://www.scraperapi.com/blog/best-google-scholar-apis-proxies/#serpapi">kommerzielle Versuche</a> eine API nachzustellen.</p>
+<div id="weitere-api" class="section level3" number="7.1.1">
+<h3><span class="header-section-number">7.1.1</span> Weitere API</h3>
+<p><a href="https://libraries.mit.edu/scholarly/publishing/apis-for-scholarly-resources/">Hier ist ein Überblick</a> über weitere APIs.</p>
+</div>
+</div>
+</div>

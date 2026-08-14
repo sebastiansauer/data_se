@@ -1,0 +1,201 @@
+---
+title: Simple contingency tables in R
+author: Sebastian Sauer
+date: '2024-01-12'
+slug: simple-contingency-tables-in-r
+tags:
+  - eda
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+# Motivation
+
+Assume we would like to compute contingency tables in R without much ado. Let's explore some ways.
+
+# Toy data
+
+```{r}
+data(mtcars)
+```
+
+
+
+# Using `table` and friends
+
+
+```{r}
+mtcars |> 
+  select(vs, am) |> 
+  table()
+```
+
+Let's add margins:
+
+```{r}
+mtcars |> 
+  select(vs, am) |> 
+  table() |> 
+  addmargins()
+```
+
+Let's show rather proportions instead of raw counts:
+
+```{r}
+mtcars |> 
+  select(vs, am) |> 
+  table() |> 
+  prop.table() |> 
+  addmargins()
+```
+
+Note that `addmargins` must appear after `proptable`. 
+
+Let's round to 2 places:
+
+
+```{r}
+mtcars |> 
+  select(vs, am) |> 
+  table() |> 
+  prop.table() |> 
+  addmargins() |> 
+  round(2)
+```
+
+
+Let's change the margin, i.e, the groups which should sum up to 100%:
+
+
+Proportions *per row*:
+
+```{r}
+mtcars |> 
+  select(vs, am) |> 
+  table() |> 
+  prop.table(margin = 1) |> 
+  addmargins() |> 
+  round(2)
+```
+
+Proportion per *column*:
+
+```{r}
+mtcars |> 
+  select(vs, am) |> 
+  table() |> 
+  prop.table(margin = 2) |> 
+  addmargins() |> 
+  round(2)
+```
+
+
+
+# Using `count`
+
+
+```{r}
+mtcars |> 
+  count(vs, am)
+```
+
+
+Adding proportions:
+
+```{r}
+mtcars |> 
+  count(vs, am) |> 
+  mutate(prop = n/sum(n))
+```
+
+
+Since some while, `count` returns an ungrouped table, we would need to group according to our wishes.
+
+If we group e.g., by `am` we get the proportion of `vs` values for each group of `am`:
+
+```{r}
+mtcars |> 
+  count(am, vs) |> 
+  group_by(am) |> 
+  mutate(prop = n/sum(n))
+```
+
+
+Grouping by `vs`:
+
+```{r}
+mtcars |> 
+  count(am, vs) |> 
+  group_by(vs) |> 
+  mutate(prop = n/sum(n))
+```
+
+
+We can also sum up all groups to 100%, if we do not group at all:
+
+
+```{r}
+mtcars |> 
+  count(am, vs) |> 
+  mutate(prop = n/sum(n))
+```
+
+# Don't drop unused factor levels
+
+Use `count(..., .drop = FALSE)` to prevent that unused factor levels are dropped.
+
+
+
+
+# See also
+
+[This SO post](https://stackoverflow.com/questions/24576515/relative-frequencies-proportions-with-dplyr) shows a nice overview on grouping using `count` from `dplyr`.
+
+
+
+# Conclusions
+
+
+There are many ways in R to produce contingency tables. Here are two :-)
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

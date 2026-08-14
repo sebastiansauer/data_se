@@ -1,0 +1,291 @@
+---
+title: Empirische Verteilungsfunktion
+author: Sebastian Sauer
+date: '2022-05-02'
+slug: empirische-verteilungsfunktion
+categories:
+  - rstats
+tags:
+  - rstats
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#r-pakete" id="toc-r-pakete"><span class="toc-section-number">1</span> R-Pakete</a></li>
+<li><a href="#hintergrund" id="toc-hintergrund"><span class="toc-section-number">2</span> Hintergrund</a></li>
+<li><a href="#verteilungsfunktion-der-normalverteilung" id="toc-verteilungsfunktion-der-normalverteilung"><span class="toc-section-number">3</span> Verteilungsfunktion der Normalverteilung</a></li>
+<li><a href="#empirische-verteilungsfunktion" id="toc-empirische-verteilungsfunktion"><span class="toc-section-number">4</span> Empirische Verteilungsfunktion</a>
+<ul>
+<li><a href="#tidyverse" id="toc-tidyverse"><span class="toc-section-number">4.1</span> Tidyverse</a>
+<ul>
+<li><a href="#tidyverse-1" id="toc-tidyverse-1"><span class="toc-section-number">4.1.1</span> Tidyverse 1</a></li>
+<li><a href="#tidyverse-2" id="toc-tidyverse-2"><span class="toc-section-number">4.1.2</span> Tidyverse 2</a></li>
+<li><a href="#plotten-der-ecdf" id="toc-plotten-der-ecdf"><span class="toc-section-number">4.1.3</span> Plotten der ECDF</a></li>
+<li><a href="#quantile" id="toc-quantile"><span class="toc-section-number">4.1.4</span> Quantile</a></li>
+</ul></li>
+<li><a href="#base-r" id="toc-base-r"><span class="toc-section-number">4.2</span> Base R</a>
+<ul>
+<li><a href="#quantile-1" id="toc-quantile-1"><span class="toc-section-number">4.2.1</span> Quantile</a></li>
+<li><a href="#ecdf" id="toc-ecdf"><span class="toc-section-number">4.2.2</span> ECDF</a></li>
+<li><a href="#plot" id="toc-plot"><span class="toc-section-number">4.2.3</span> Plot</a></li>
+</ul></li>
+<li><a href="#mosaic" id="toc-mosaic"><span class="toc-section-number">4.3</span> Mosaic</a>
+<ul>
+<li><a href="#ecdf-1" id="toc-ecdf-1"><span class="toc-section-number">4.3.1</span> ECDF</a></li>
+<li><a href="#quantile-2" id="toc-quantile-2"><span class="toc-section-number">4.3.2</span> Quantile</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#reproducibility" id="toc-reproducibility"><span class="toc-section-number">5</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="r-pakete" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> R-Pakete</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+theme_set(theme_minimal())  # Stylesheet für ggplot2</code></pre>
+</div>
+<div id="hintergrund" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Hintergrund</h1>
+<p>Will man eine Verteilung untersuchen, sind Verteilungsfunktion <span class="math inline">\(F\)</span> und Quantilsfunktion <span class="math inline">\(F^{-1}\)</span> wichtige Größen.
+Nicht nur für theoretische, sondern auch für empirische Verteilungen kann man diese Funktionen anwenden.</p>
+<p>Allerdings ist die Umsetzung in R vielleicht nicht ganz klar. Daher soll dieser Post zeigen,
+wie man eine empirische Verteilungfunktion und Quantilsfunktion in R berechnet.</p>
+</div>
+<div id="verteilungsfunktion-der-normalverteilung" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Verteilungsfunktion der Normalverteilung</h1>
+<p>Für eine Normalverteilung kann man sich Quantile und Verteilungsfunktion einfach in R ausgeben lassen.</p>
+<p>Wert der Verteilungsfunktion bei <span class="math inline">\(x=0\)</span>:</p>
+<pre class="r"><code>pnorm(q = 0)
+#&gt; [1] 0.5</code></pre>
+<p>Ausgehend von einer Standardnormalverteilung sagt uns R, dass der Wert der Verteilungsfunktion <span class="math inline">\(F(0)=0.5\)</span> beträgt.</p>
+<p>Quantile, z.B. <span class="math inline">\(F^{-1}(0.5)\)</span>:</p>
+<pre class="r"><code>qnorm(p = .5)
+#&gt; [1] 0</code></pre>
+<p>Passt!</p>
+<p>Das Plotten geht analog:</p>
+<pre class="r"><code>ggplot(tibble(x = c(-3, 3)), aes(x = x)) +
+  stat_function(fun = pnorm) +
+  labs(title = &quot;Verteilungsfunktion F der Normalverteilung&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="empirische-verteilungsfunktion" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Empirische Verteilungsfunktion</h1>
+<p>Erzeugen wir uns (standard-)normalverteilte Daten:</p>
+<pre class="r"><code>d_normal &lt;-
+  tibble(x = rnorm(n = 1e04))</code></pre>
+<div id="tidyverse" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> Tidyverse</h2>
+<p>Die empirische Verteilungsfunktion für <span class="math inline">\(x=0\)</span> kann man, so mit dem Tidyverse bekommen</p>
+<div id="tidyverse-1" class="section level3" number="4.1.1">
+<h3><span class="header-section-number">4.1.1</span> Tidyverse 1</h3>
+<p>Dann zählen wir den Anteil der Beobachtungen (Zeilen), die dem gesuchten Wert der Verteilungsfunktion entsprechen,
+z.B. <span class="math inline">\(x=0\)</span>:</p>
+<pre class="r"><code>d_normal %&gt;% 
+  count(x &lt;= 0)
+#&gt; # A tibble: 2 × 2
+#&gt;   `x &lt;= 0`     n
+#&gt;   &lt;lgl&gt;    &lt;int&gt;
+#&gt; 1 FALSE     4951
+#&gt; 2 TRUE      5049</code></pre>
+<p>Also etwa 50%.</p>
+</div>
+<div id="tidyverse-2" class="section level3" number="4.1.2">
+<h3><span class="header-section-number">4.1.2</span> Tidyverse 2</h3>
+<p>So geht es auch, recht umständlich allerdings:</p>
+<p>Zunächst erzeugen wir die kumulierte Verteilung.</p>
+<pre class="r"><code>d_normal &lt;-
+  d_normal %&gt;% 
+  mutate(x_cume_dist = cume_dist(x))</code></pre>
+<p>Dann lesen wir den Wert von <code>x_cume_dist</code> an der gewünschten Stelle von <code>x</code> aus:</p>
+<pre class="r"><code>d_normal %&gt;% 
+  filter(x &lt;= 0) %&gt;% 
+  summarise(max(x_cume_dist))
+#&gt; # A tibble: 1 × 1
+#&gt;   `max(x_cume_dist)`
+#&gt;                &lt;dbl&gt;
+#&gt; 1              0.505</code></pre>
+</div>
+<div id="plotten-der-ecdf" class="section level3" number="4.1.3">
+<h3><span class="header-section-number">4.1.3</span> Plotten der ECDF</h3>
+<p>Und so kann man die empirische Verteilungsfunktion plotten, auch genannt <em>empirical cumulative density function</em> (ecdf):</p>
+<pre class="r"><code>d_normal %&gt;%
+  ggplot(aes(x = x)) +
+  stat_ecdf(geom = &quot;step&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="quantile" class="section level3" number="4.1.4">
+<h3><span class="header-section-number">4.1.4</span> Quantile</h3>
+<p>Zur Erinnerung: Das <span class="math inline">\(p\)</span>-Quantil ist der Wert, der von <span class="math inline">\(p\cdot100\)</span> Prozent der Beobachtungen der Verteilung nicht überschritten wird.</p>
+<p>Anschaulich: Wir schneiden den Anteil <span class="math inline">\(p\)</span> links von der Verteilung ab, und fragen uns, bei welchem Wert <span class="math inline">\(x\)</span> wir die Schere ansetzen müssen.</p>
+<p>Quantil für <span class="math inline">\(p=.5\)</span>:</p>
+<pre class="r"><code>d_normal %&gt;% 
+  filter(percent_rank(x) &lt;= .5) %&gt;% 
+  summarise(max(x))
+#&gt; # A tibble: 1 × 1
+#&gt;   `max(x)`
+#&gt;      &lt;dbl&gt;
+#&gt; 1  -0.0110</code></pre>
+<p>Also etwa Null, passt.</p>
+</div>
+</div>
+<div id="base-r" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> Base R</h2>
+<div id="quantile-1" class="section level3" number="4.2.1">
+<h3><span class="header-section-number">4.2.1</span> Quantile</h3>
+<p>Mit Base R geht es schön einfach:</p>
+<pre class="r"><code>quantile(d_normal$x, prob = .5)
+#&gt;         50% 
+#&gt; -0.01070173</code></pre>
+<p>Oder, etwas mehr Tidyverse-Stil:</p>
+<pre class="r"><code>d_normal %&gt;% 
+  summarise(x_50perc = quantile(x, prob = .5))
+#&gt; # A tibble: 1 × 1
+#&gt;   x_50perc
+#&gt;      &lt;dbl&gt;
+#&gt; 1  -0.0107</code></pre>
+</div>
+<div id="ecdf" class="section level3" number="4.2.2">
+<h3><span class="header-section-number">4.2.2</span> ECDF</h3>
+<p>mit <code>ecdf(x)</code> erzeugt man <em>eine Funktion</em> und zwar eine, die die kumulierten Anteile für <code>x</code> wiedergibt:</p>
+<pre class="r"><code>F &lt;- ecdf(d_normal$x)</code></pre>
+<p>Wenn einmal definiert, können wir die Funktion bequem befragen.</p>
+<p>Hey <code>F</code>, was ist dein Wert bei <span class="math inline">\(x=0\)</span>?</p>
+<pre class="r"><code>F(0)
+#&gt; [1] 0.5049</code></pre>
+<p>50%! Passt</p>
+</div>
+<div id="plot" class="section level3" number="4.2.3">
+<h3><span class="header-section-number">4.2.3</span> Plot</h3>
+<p><code>ecdf()</code> hat auch eine Plot-Methode:</p>
+<pre class="r"><code>plot(ecdf(d_normal$x))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="mosaic" class="section level2" number="4.3">
+<h2><span class="header-section-number">4.3</span> Mosaic</h2>
+<pre class="r"><code>library(mosaic)</code></pre>
+<p>Mit `{{mosaic}}`` geht das auch schön einfach:</p>
+<div id="ecdf-1" class="section level3" number="4.3.1">
+<h3><span class="header-section-number">4.3.1</span> ECDF</h3>
+<p>Was ist der kumulierte Anteil für <code>x=0</code>:</p>
+<pre class="r"><code>pdata( ~ x, q = 0, data = d_normal)
+#&gt; [1] 0.5049</code></pre>
+</div>
+<div id="quantile-2" class="section level3" number="4.3.2">
+<h3><span class="header-section-number">4.3.2</span> Quantile</h3>
+<p>Was ist das Quantil für <code>p = .5</code>:</p>
+<pre class="r"><code>qdata(~ x, p = 1/2, data = d_normal)
+#&gt;         50% 
+#&gt; -0.01070173</code></pre>
+<p>Etwa Null, passt!</p>
+</div>
+</div>
+</div>
+<div id="reproducibility" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.1.3 (2022-03-10)
+#&gt;  os       macOS Big Sur/Monterey 10.16
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2022-05-02                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version date       lib source                            
+#&gt;  assertthat    0.2.1   2019-03-21 [1] CRAN (R 4.1.0)                    
+#&gt;  backports     1.4.1   2021-12-13 [1] CRAN (R 4.1.0)                    
+#&gt;  blogdown      1.8     2022-02-16 [2] CRAN (R 4.1.2)                    
+#&gt;  bookdown      0.24.2  2021-10-15 [1] Github (rstudio/bookdown@ba51c26) 
+#&gt;  brio          1.1.3   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  broom         0.7.12  2022-01-28 [1] CRAN (R 4.1.2)                    
+#&gt;  bslib         0.3.1   2021-10-06 [1] CRAN (R 4.1.0)                    
+#&gt;  cachem        1.0.6   2021-08-19 [1] CRAN (R 4.1.0)                    
+#&gt;  callr         3.7.0   2021-04-20 [1] CRAN (R 4.1.0)                    
+#&gt;  cellranger    1.1.0   2016-07-27 [1] CRAN (R 4.1.0)                    
+#&gt;  cli           3.2.0   2022-02-14 [1] CRAN (R 4.1.2)                    
+#&gt;  codetools     0.2-18  2020-11-04 [2] CRAN (R 4.1.3)                    
+#&gt;  colorout    * 1.2-2   2022-01-04 [1] Github (jalvesaq/colorout@79931fd)
+#&gt;  colorspace    2.0-3   2022-02-21 [1] CRAN (R 4.1.2)                    
+#&gt;  crayon        1.5.1   2022-03-26 [1] CRAN (R 4.1.2)                    
+#&gt;  DBI           1.1.2   2021-12-20 [1] CRAN (R 4.1.0)                    
+#&gt;  dbplyr        2.1.1   2021-04-06 [1] CRAN (R 4.1.0)                    
+#&gt;  desc          1.4.0   2021-09-28 [1] CRAN (R 4.1.0)                    
+#&gt;  devtools      2.4.3   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  digest        0.6.29  2021-12-01 [1] CRAN (R 4.1.0)                    
+#&gt;  dplyr       * 1.0.8   2022-02-08 [1] CRAN (R 4.1.2)                    
+#&gt;  ellipsis      0.3.2   2021-04-29 [1] CRAN (R 4.1.0)                    
+#&gt;  evaluate      0.14    2019-05-28 [1] CRAN (R 4.1.0)                    
+#&gt;  fansi         1.0.3   2022-03-24 [1] CRAN (R 4.1.2)                    
+#&gt;  fastmap       1.1.0   2021-01-25 [2] CRAN (R 4.1.0)                    
+#&gt;  forcats     * 0.5.1   2021-01-27 [1] CRAN (R 4.1.0)                    
+#&gt;  fs            1.5.2   2021-12-08 [1] CRAN (R 4.1.0)                    
+#&gt;  generics      0.1.2   2022-01-31 [1] CRAN (R 4.1.2)                    
+#&gt;  ggplot2     * 3.3.5   2021-06-25 [2] CRAN (R 4.1.0)                    
+#&gt;  glue          1.6.2   2022-02-24 [1] CRAN (R 4.1.2)                    
+#&gt;  gtable        0.3.0   2019-03-25 [1] CRAN (R 4.1.0)                    
+#&gt;  haven         2.4.3   2021-08-04 [1] CRAN (R 4.1.0)                    
+#&gt;  hms           1.1.1   2021-09-26 [1] CRAN (R 4.1.0)                    
+#&gt;  htmltools     0.5.2   2021-08-25 [1] CRAN (R 4.1.0)                    
+#&gt;  httr          1.4.2   2020-07-20 [1] CRAN (R 4.1.0)                    
+#&gt;  jquerylib     0.1.4   2021-04-26 [1] CRAN (R 4.1.0)                    
+#&gt;  jsonlite      1.7.3   2022-01-17 [1] CRAN (R 4.1.2)                    
+#&gt;  knitr         1.37    2021-12-16 [1] CRAN (R 4.1.0)                    
+#&gt;  lifecycle     1.0.1   2021-09-24 [1] CRAN (R 4.1.0)                    
+#&gt;  lubridate     1.8.0   2021-10-07 [1] CRAN (R 4.1.0)                    
+#&gt;  magrittr      2.0.3   2022-03-30 [1] CRAN (R 4.1.2)                    
+#&gt;  memoise       2.0.0   2021-01-26 [2] CRAN (R 4.1.0)                    
+#&gt;  modelr        0.1.8   2020-05-19 [1] CRAN (R 4.1.0)                    
+#&gt;  munsell       0.5.0   2018-06-12 [1] CRAN (R 4.1.0)                    
+#&gt;  pillar        1.7.0   2022-02-01 [1] CRAN (R 4.1.2)                    
+#&gt;  pkgbuild      1.2.0   2020-12-15 [2] CRAN (R 4.1.0)                    
+#&gt;  pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.1.0)                    
+#&gt;  pkgload       1.2.4   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  prettyunits   1.1.1   2020-01-24 [1] CRAN (R 4.1.0)                    
+#&gt;  processx      3.5.2   2021-04-30 [1] CRAN (R 4.1.0)                    
+#&gt;  ps            1.6.0   2021-02-28 [1] CRAN (R 4.1.0)                    
+#&gt;  purrr       * 0.3.4   2020-04-17 [1] CRAN (R 4.1.0)                    
+#&gt;  R6            2.5.1   2021-08-19 [1] CRAN (R 4.1.0)                    
+#&gt;  Rcpp          1.0.8.3 2022-03-17 [1] CRAN (R 4.1.2)                    
+#&gt;  readr       * 2.1.2   2022-01-30 [1] CRAN (R 4.1.2)                    
+#&gt;  readxl        1.3.1   2019-03-13 [1] CRAN (R 4.1.0)                    
+#&gt;  remotes       2.4.0   2021-06-02 [2] CRAN (R 4.1.0)                    
+#&gt;  reprex        2.0.1   2021-08-05 [1] CRAN (R 4.1.0)                    
+#&gt;  rlang         1.0.2   2022-03-04 [1] CRAN (R 4.1.2)                    
+#&gt;  rmarkdown     2.11    2021-09-14 [1] CRAN (R 4.1.0)                    
+#&gt;  rprojroot     2.0.2   2020-11-15 [2] CRAN (R 4.1.0)                    
+#&gt;  rstudioapi    0.13    2020-11-12 [1] CRAN (R 4.1.0)                    
+#&gt;  rvest         1.0.2   2021-10-16 [1] CRAN (R 4.1.0)                    
+#&gt;  sass          0.4.0   2021-05-12 [1] CRAN (R 4.1.0)                    
+#&gt;  scales        1.2.0   2022-04-13 [1] CRAN (R 4.1.3)                    
+#&gt;  sessioninfo   1.1.1   2018-11-05 [2] CRAN (R 4.1.0)                    
+#&gt;  stringi       1.7.6   2021-11-29 [1] CRAN (R 4.1.0)                    
+#&gt;  stringr     * 1.4.0   2019-02-10 [1] CRAN (R 4.1.0)                    
+#&gt;  testthat      3.1.2   2022-01-20 [1] CRAN (R 4.1.2)                    
+#&gt;  tibble      * 3.1.6   2021-11-07 [1] CRAN (R 4.1.0)                    
+#&gt;  tidyr       * 1.2.0   2022-02-01 [1] CRAN (R 4.1.2)                    
+#&gt;  tidyselect    1.1.2   2022-02-21 [1] CRAN (R 4.1.2)                    
+#&gt;  tidyverse   * 1.3.1   2021-04-15 [1] CRAN (R 4.1.0)                    
+#&gt;  tzdb          0.1.2   2021-07-20 [2] CRAN (R 4.1.0)                    
+#&gt;  usethis       2.0.1   2021-02-10 [2] CRAN (R 4.1.0)                    
+#&gt;  utf8          1.2.2   2021-07-24 [1] CRAN (R 4.1.0)                    
+#&gt;  vctrs         0.4.0   2022-03-30 [1] CRAN (R 4.1.2)                    
+#&gt;  withr         2.5.0   2022-03-03 [1] CRAN (R 4.1.2)                    
+#&gt;  xfun          0.29    2021-12-14 [1] CRAN (R 4.1.0)                    
+#&gt;  xml2          1.3.3   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  yaml          2.2.2   2022-01-25 [1] CRAN (R 4.1.2)                    
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Library/R/x86_64/4.1/library
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.1/Resources/library</code></pre>
+</div>

@@ -1,0 +1,251 @@
+---
+title: Test if return value is in tolerance
+author: Sebastian Sauer
+date: '2023-12-13'
+slug: test-if-return-value-is-in-tolerance2
+categories:
+  - rstats
+tags:
+  - simulation
+  - Bayes
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = FALSE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(prada)  # function "is_in_tolerance`
+library(rstanarm)  # Bayes regression
+library(easystats)  # R2 etc
+library(DataExplorer)  # data vis
+library(tictoc)
+```
+
+
+
+# Motivation
+
+Bayes models (using MCMC) build on drawing random numbers. 
+By their very nature, random numbers are random.
+Unless they are not.
+As you may know, the random number fuctions in computers are purely deterministic.
+
+However, in practice, some inpredictable behavior may still show up.
+The reason being simply that two computational environment must - in theory - being exactly identical in order to reproduce the same results.
+At least identical in every bit that influence random number generation.
+
+In fact, [the manual of STAN appears to advise us not to place too much believe in the reproducibility of the random numbers](https://mc-stan.org/docs/reference-manual/reproducibility.html):
+
+---
+
+Stan results will only be exactly reproducible if all of the following components are identical:
+
+- Stan version
+- tan interface (RStan, PyStan, CmdStan) and version, plus version of interface language (R, Python, shell)
+- versions of included libraries (Boost and Eigen)
+- operating system version
+- computer hardware including CPU, motherboard and memory
+- C++ compiler, including version, compiler flags, and linked libraries
+same configuration of call to Stan, including random seed, chain ID, initialization and data
+
+---
+
+# But in practice, how large is the difference?
+
+Okay, let's try to find out the degree of difference to be expected in the process of drawing random numbers.
+
+
+As a first step, let's run many regressions and analyze the variance of the results.
+
+Here's a simple regression with the seed fixed.
+Please see below for the spec of my machine.
+
+```{r}
+reference_model <- rstanarm::stan_glm(mpg ~ hp, 
+                         data = mtcars, 
+                         seed = 42,
+                         refresh = 0)
+coef(reference_model)
+```
+
+And now the same model but without fixing the seed.
+
+
+
+```{r}
+out <-
+  tibble(id = integer(),
+         b0 = numeric(),
+         b1 = numeric(),
+         r2 = numeric()
+  )
+
+n <- 10^2
+```
+
+
+
+```{r main-loop, cache=TRUE}
+tic()
+for (i in 1:n) {
+  stan_mod <- rstanarm::stan_glm(mpg ~ hp, 
+                         data = mtcars,
+                         refresh = 0)
+  mod_results <- 
+    tibble(id = i,
+           b0 = coef(stan_mod)[1],
+           b1 = coef(stan_mod)[2],
+           r2 = performance::r2(stan_mod)$R2_Bayes
+    )
+  out <- rbind(out, mod_results)
+  
+  print(glue::glue("i: {i}, b0: {round(coef(stan_mod)[1], 3)}, b1: {round(coef(stan_mod)[2], 3)}, r2: {round(mod_results$r2\n, 3)}"))
+}
+toc()
+```
+
+
+# Check if in tolerance region
+
+Let's define the region of tolerance such that:
+
+```{r}
+tol_rel <- .05
+tol_abs <- tol_rel
+```
+
+
+Check for first value manually:
+
+```{r}
+is_in_tolerance(asis = out$b0[1],
+                tobe = coef(reference_model)[1],
+                tol_rel = .05,
+                tol_abs = .05 * sd(mtcars$mpg))
+```
+
+
+Okay, now check in a loop all values.
+
+## b0
+
+```{r}
+out <- 
+out |> 
+  mutate(b0_in_tolerance = map_lgl(b0, ~ is_in_tolerance(asis = .x,
+                                               tobe = coef(reference_model)[1],
+                                               tol_rel = tol_rel,
+                                               tol_abs = tol_rel * sd(mtcars$mpg))),
+         b0_diff_abs = coef(reference_model)[1] - b0,
+         b0_diff_rel = b0_diff_abs / coef(reference_model)[1])
+```
+
+
+
+
+## b1
+
+
+```{r}
+out <- 
+out |> 
+  mutate(b1_in_tolerance = map_lgl(b1, ~ is_in_tolerance(asis = .x,
+                                               tobe = coef(reference_model)[2],
+                                               tol_rel = tol_rel,
+                                               tol_abs = tol_rel * sd(mtcars$mpg))),
+         b1_diff_abs = coef(reference_model)[2] - b1,
+         b1_diff_rel = b1_diff_abs / coef(reference_model)[2])
+```
+
+
+
+## R2
+
+
+```{r}
+out <- 
+out |> 
+  mutate(r2_in_tolerance = map_lgl(r2, ~ is_in_tolerance(asis = .x,
+                                               tobe = r2(reference_model)$R2_Bayes,
+                                               tol_rel = tol_rel,
+                                               tol_abs = tol_rel)),
+         r2_diff_abs = r2(reference_model)$R2_Bayes - r2,
+         r2_diff_rel = r2_diff_abs / coef(reference_model)[2])
+```
+
+
+## Count
+
+```{r}
+count(out, b0_in_tolerance)
+count(out, b1_in_tolerance)
+count(out, r2_in_tolerance)
+```
+
+
+
+# Check variability
+
+```{r}
+out |> 
+  select(-id) |> 
+  describe_distribution(range = TRUE) 
+```
+
+
+In comparison, the SD of the y-variable (`mpg`) is:
+
+```{r}
+describe_distribution(mtcars |> select(mpg))
+```
+
+
+```{r}
+plot_density(out |> select(-id))
+```
+
+
+
+# Conclusions
+
+The *relative* deviations of the coefficients from the reference model are in the domaine of $10^{-3}$. 
+Hence, setting the maximum deviation to $10-^{2}$ should be save.
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

@@ -1,0 +1,246 @@
+---
+title: Zeitungsartikel per API herunterladen
+author: Sebastian Sauer
+date: '2021-07-07'
+slug: zeitungsartikel-per-api-herunterladen
+categories:
+  - rstats
+tags:
+  - tutorial
+  - web
+  - textmining
+output:
+  blogdown::html_page:
+    toc: true
+    number_sections: true
+---
+
+
+
+```{r message= FALSE}
+library(tidyverse)
+library(newsanchor)
+library(printr)
+library(httr)
+library(jsonlite)
+```
+
+
+
+# News API
+
+Es gibt eine Seite [News API](https://newsapi.org/), die es erlaubt, per API News (Artikel, Schlagzeilen) von weltweiten Quellen herunterzuladen, per JSON API.
+
+
+# Gibt's da auch ein R-Paket?
+
+
+Ja - [NewsAnchor](https://cran.r-project.org/web/packages/newsanchor/vignettes/usage-newsanchor.html).
+
+
+
+# Setup
+
+Zuerst muss man sich bei der Seite eine API Key holen, für Entwicklerzwecke kostenlos. Komfortabel ist, sich den Schlüssel in die R-environment-Datei (`.Renviron`) zu schreiben, s. [hier](https://cran.r-project.org/web/packages/newsanchor/vignettes/usage-newsanchor.html) für mehr Infos.
+
+Das kann man z.B. so machen:
+
+```{r eval = FALSE}
+newsanchor::set_api_key(path = "~/.Renviron")
+```
+
+
+So fragt man den API-Schlüssel dann ab:
+
+```{r eval = TRUE}
+my_api_key <- Sys.getenv("NEWS_API_KEY")
+```
+
+
+
+
+
+
+# Abfrage
+
+
+```{r eval = FALSE}
+results <- get_everything(query = "Corona",
+                          language = "de")
+
+results_main <- results$results_df
+```
+
+
+In eine Datei schreiben:
+
+
+```{r eval = FALSE}
+saveRDS(results, file = "newsanchor1.rds")
+```
+
+Und wieder laden:
+
+```{r eval = TRUE}
+results <- read_rds("newsanchor1.rds")
+```
+
+
+# Abfrage 2
+
+```{r eval = FALSE}
+results_covid <- get_everything(query = "Covid",
+                          language = "en")
+
+```
+
+```{r eval = FALSE}
+write_rds(results_covid,
+          file = "results_covid1.rds")
+```
+
+
+```{r eval = TRUE}
+results_covid <- read_rds(file = "results_covid1.rds")
+```
+
+Metadata:
+
+```{r}
+results_covid$metadata
+```
+
+Ergebnisse:
+
+```{r}
+results_covid$results_df %>% 
+  slice(1:2)
+```
+
+# Aufbereiten
+
+
+```{r}
+results_covid_short <- 
+  results_covid$results_df %>% 
+  select(author, title, content, published_at, name) %>%
+  drop_na()
+
+results_covid_short %>% 
+  slice(1:2)
+```
+
+```{r eval = FALSE}
+write_csv(results_covid_short,
+          file = "news_covid_short.csv")
+```
+
+
+
+
+# Quellen
+
+
+Hier ist eine Liste der unterstützen Quellen:
+
+```{r}
+terms_sources
+```
+
+# Mit GET-Abfrage
+
+So setzt man die Abfrage zusammen, bzw. so kann man es tun:
+
+Beispiel: Alle Artikel über Tesla aus dem letzten Monat, sortiert nach dem neuesten
+
+```{r}
+apiurl <- 
+  "https://newsapi.org/v2/everything?"
+```
+
+Suchbegriff:
+
+```{r}
+term <- "q=tesla"
+```
+
+
+Zeitraum begrenzen:
+
+```{r}
+from_to <- "&from=2021-06-07"
+```
+
+
+Sortieren:
+
+```{r}
+sortby <- "&sortBy=publishedAt"
+```
+
+
+API-Schlüssel:
+
+```{r}
+apikey <- paste0("&apiKey=",my_api_key)
+```
+
+In tutto:
+
+```{r}
+GET_term <- paste0(apiurl, 
+                   term,
+                   from_to,
+                   sortby,
+                   apikey
+                   )
+```
+
+
+
+
+
+```{r eval = FALSE}
+tesla_news <- 
+  GET(url = GET_term)
+```
+
+
+```{r eval = FALSE}
+write_rds(tesla_news, 
+          file = "tesla_news.rds")
+```
+
+```{r}
+tesla_news <- read_rds("tesla_news.rds")
+```
+
+
+```{r eval = FALSE}
+tesla_news$status_code
+```
+
+
+See [here](https://www.restapitutorial.com/httpstatuscodes.html) the HTTP status codes.
+
+200 means success, everything above is not so good.
+
+
+
+
+
+```{r}
+tesla_content <-
+  fromJSON(rawToChar(tesla_news$content))
+```
+
+```{r}
+names(tesla_content)
+```
+
+
+```{r}
+tesla_content$articles %>% 
+  select(-source)
+```
+

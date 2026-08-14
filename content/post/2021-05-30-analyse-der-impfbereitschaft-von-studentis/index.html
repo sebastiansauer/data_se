@@ -1,0 +1,868 @@
+---
+title: Analyse der Impfbereitschaft von Studentis
+author: Sebastian Sauer
+date: '2021-05-30'
+draft: FALSE
+slug: analyse-der-impfbereitschaft-von-studentis
+categories:
+  - rstats
+tags:
+  - dataviz
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#analyse-der-impfbereitschaft"><span class="toc-section-number">1</span> Analyse der Impfbereitschaft</a></li>
+<li><a href="#vorbereitung"><span class="toc-section-number">2</span> Vorbereitung</a>
+<ul>
+<li><a href="#pakete-laden"><span class="toc-section-number">2.1</span> Pakete laden</a></li>
+<li><a href="#daten-laden"><span class="toc-section-number">2.2</span> Daten laden</a></li>
+<li><a href="#daten-und-variablen"><span class="toc-section-number">2.3</span> Daten und Variablen</a></li>
+<li><a href="#sind-die-items-schon-umgepolt"><span class="toc-section-number">2.4</span> Sind die Items schon umgepolt?</a></li>
+<li><a href="#liegen-mittelwerte-für-die-persönlichkeits-dimensionen-vor"><span class="toc-section-number">2.5</span> Liegen Mittelwerte für die Persönlichkeits-Dimensionen vor?</a></li>
+</ul></li>
+<li><a href="#daten-verstehen"><span class="toc-section-number">3</span> Daten verstehen</a>
+<ul>
+<li><a href="#fehlende-werte"><span class="toc-section-number">3.1</span> Fehlende Werte</a></li>
+<li><a href="#nominal-skalierte-variablen-in-numerische-umwandeln"><span class="toc-section-number">3.2</span> Nominal skalierte Variablen in numerische umwandeln</a></li>
+<li><a href="#welche-variablen-korrelieren-mit-der-impfbereitschaft"><span class="toc-section-number">3.3</span> Welche Variablen korrelieren mit der Impfbereitschaft?</a></li>
+<li><a href="#korrelation-der-items-pro-big-five-dimension"><span class="toc-section-number">3.4</span> Korrelation der Items pro Big-Five-Dimension</a></li>
+</ul></li>
+<li><a href="#modell-mit-den-big-five-dimensionen-als-prädiktoren"><span class="toc-section-number">4</span> Modell mit den Big-Five-Dimensionen als Prädiktoren</a></li>
+<li><a href="#zur-datenqualität"><span class="toc-section-number">5</span> Zur Datenqualität</a></li>
+<li><a href="#visualisierung-1"><span class="toc-section-number">6</span> Visualisierung 1</a>
+<ul>
+<li><a href="#median-aufteilung"><span class="toc-section-number">6.1</span> Median-Aufteilung</a></li>
+<li><a href="#dichotomisierung-anhand-des-skalen-mittelpunkts"><span class="toc-section-number">6.2</span> Dichotomisierung anhand des Skalen-Mittelpunkts</a></li>
+<li><a href="#anteile-berechnen-eindimensional"><span class="toc-section-number">6.3</span> Anteile berechnen (eindimensional)</a></li>
+<li><a href="#als-balkendiagramm"><span class="toc-section-number">6.4</span> Als Balkendiagramm</a></li>
+<li><a href="#anteil-hoher-big-five-werte-bei-impfwilligen-zweidimensional"><span class="toc-section-number">6.5</span> Anteil hoher Big-Five-Werte bei Impfwilligen (zweidimensional)</a></li>
+<li><a href="#kontingenzbalken-1"><span class="toc-section-number">6.6</span> Kontingenzbalken 1</a></li>
+<li><a href="#kontingenzbalken-2"><span class="toc-section-number">6.7</span> Kontingenzbalken 2</a></li>
+<li><a href="#größter-unterschied-zwischen-den-big-five-dimensionen-bei-den-hoch-impfbereiten"><span class="toc-section-number">6.8</span> Größter Unterschied zwischen den Big-Five-Dimensionen bei den Hoch-Impfbereiten</a></li>
+<li><a href="#plot-zur-differenz"><span class="toc-section-number">6.9</span> Plot Zur Differenz</a></li>
+<li><a href="#korrespondenz-kontingenz-von-extraversion-und-impfbereitschaft"><span class="toc-section-number">6.10</span> Korrespondenz (Kontingenz) von Extraversion und Impfbereitschaft</a></li>
+<li><a href="#waffel-diagramm"><span class="toc-section-number">6.11</span> Waffel-Diagramm</a></li>
+<li><a href="#font-awesome-visualisierung-pictogramm"><span class="toc-section-number">6.12</span> Font-Awesome-Visualisierung (Pictogramm)</a></li>
+<li><a href="#was-für-ein-aufwand"><span class="toc-section-number">6.13</span> Was für ein Aufwand …</a></li>
+<li><a href="#fazit"><span class="toc-section-number">6.14</span> Fazit</a></li>
+</ul></li>
+<li><a href="#visualisierung-2"><span class="toc-section-number">7</span> Visualisierung 2</a>
+<ul>
+<li><a href="#visualisierung-der-regressionskoeffizienten"><span class="toc-section-number">7.1</span> Visualisierung der Regressionskoeffizienten</a></li>
+<li><a href="#variante-a"><span class="toc-section-number">7.2</span> Variante A</a></li>
+<li><a href="#variante-b"><span class="toc-section-number">7.3</span> Variante B</a></li>
+<li><a href="#variante-c-mit-bordmitteln"><span class="toc-section-number">7.4</span> Variante C: Mit Bordmitteln</a></li>
+<li><a href="#fazit-1"><span class="toc-section-number">7.5</span> Fazit</a></li>
+</ul></li>
+<li><a href="#finale-visualisierungen"><span class="toc-section-number">8</span> Finale Visualisierungen</a>
+<ul>
+<li><a href="#piktogramm"><span class="toc-section-number">8.1</span> Piktogramm</a></li>
+<li><a href="#beta-diagramm"><span class="toc-section-number">8.2</span> Beta-Diagramm</a></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="analyse-der-impfbereitschaft" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Analyse der Impfbereitschaft</h1>
+<p>Im Rahmen einer <a href="https://docs.google.com/forms/d/1Rmo-yq7EHD7ZbH1FA9ad2mMxCenwST2sJVyHRgkY3u8/edit?usp=forms_home&amp;ths=true">Umfrage</a> wurde die Impfbereitschaft von Studentis im Hinblick auf eine Covid-19-Impfung erfasst.</p>
+<p>Es stellt sich die Aufgabe, zentrale Erkenntnisse aus diesen Daten darzustellen. In diesem Post werden einige Ansätze dazu vorgestellt.</p>
+</div>
+<div id="vorbereitung" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Vorbereitung</h1>
+<div id="pakete-laden" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> Pakete laden</h2>
+<pre class="r"><code>library(tidyverse)
+library(corrr)   # Komfort bei Korrelationen 
+library(broom)  # tidy Regressionsergebnisse
+library(waffle)  # Waffeldiagramm
+library(hrbrthemes)  # Ggplot2 style
+library(magick)  # Bildbearbeitung
+library(GGally)  # Regressionskoeffizienten plotten
+library(broom.helpers)  # Regressionskoeffizienten plotten</code></pre>
+</div>
+<div id="daten-laden" class="section level2" number="2.2">
+<h2><span class="header-section-number">2.2</span> Daten laden</h2>
+<pre class="r"><code>d &lt;- read_csv(&quot;https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/Impfbereitschaft/d3.csv&quot;)</code></pre>
+<p>Ein Blick in die Daten:</p>
+<pre class="r"><code>glimpse(d)</code></pre>
+<pre><code>## Rows: 164
+## Columns: 23
+## $ timestamp   &lt;chr&gt; &quot;23/04/2021 12:22:18&quot;, &quot;23/04/2021 12:26:45&quot;, &quot;23/04/2021 …
+## $ willingness &lt;dbl&gt; 10, 10, 3, 7, 10, 10, 9, 10, 9, 5, 10, 10, 10, 9, 10, 10, …
+## $ health      &lt;dbl&gt; 9, 10, 10, 10, 10, 10, 9, 9, 9, 10, 10, 10, 10, 9, 8, 10, …
+## $ fear        &lt;dbl&gt; 5, 7, 2, 6, 5, 3, 7, 5, 5, 1, 2, 7, 7, 7, 10, 6, 4, 2, 3, …
+## $ cases       &lt;dbl&gt; 1, 7, 0, 10, 8, 4, 3, 5, 3, 4, 4, 1, 5, 3, 0, 12, 2, 2, 2,…
+## $ extra1      &lt;dbl&gt; 2, 4, 3, 1, 2, 4, 3, 3, 4, 4, 3, 4, 3, 3, 1, 3, 2, 3, 1, 4…
+## $ agree1      &lt;dbl&gt; 2, 3, 5, 3, 3, 3, 5, 4, 3, 4, 2, 2, 4, 5, 1, 4, 4, 2, 3, 3…
+## $ cons1       &lt;dbl&gt; 3, 5, 4, 3, 3, 4, 2, 4, 3, 5, 1, 4, 2, 2, 5, 4, 3, 2, 1, 5…
+## $ neuro1      &lt;dbl&gt; 2, 4, 3, 4, 3, 4, 3, 3, 3, 4, 3, 3, 5, 3, 5, 3, 3, 2, 3, 3…
+## $ open1       &lt;dbl&gt; 4, 3, 5, 2, 3, 5, 4, 4, 5, 5, 2, 4, 5, 4, 3, 4, 4, 5, 4, 4…
+## $ extra2      &lt;dbl&gt; 1, 4, 3, 2, 2, 4, 4, 3, 5, 5, 2, 4, 3, 4, 1, 4, 2, 3, 3, 4…
+## $ agree2      &lt;dbl&gt; 4, 2, 5, 4, 3, 3, 4, 4, 2, 4, 2, 3, 4, 4, 2, 4, 4, 1, 2, 4…
+## $ cons2       &lt;dbl&gt; 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 3, 4, 4, 4, 5, 5, 5, 4, 4, 4…
+## $ neuro2      &lt;dbl&gt; 4, 2, 3, 4, 4, 3, 4, 2, 3, 2, 2, 3, 4, 4, 5, 1, 4, 2, 5, 3…
+## $ open2       &lt;dbl&gt; 4, 5, 5, 2, 3, 4, 5, 4, 5, 5, 4, 3, 2, 5, 5, 5, 5, 5, 2, 4…
+## $ age         &lt;dbl&gt; 20, 19, 21, 20, 20, 19, 20, 19, 20, 22, 22, 24, 18, 20, 21…
+## $ sex         &lt;chr&gt; &quot;Mann&quot;, &quot;Frau&quot;, &quot;Mann&quot;, &quot;Frau&quot;, &quot;Frau&quot;, &quot;Frau&quot;, &quot;Frau&quot;, &quot;F…
+## $ comments    &lt;chr&gt; NA, NA, NA, NA, &quot;Bin schon geimpft.&quot;, NA, &quot;Ich würde mich …
+## $ extra       &lt;dbl&gt; 1.5, 4.0, 3.0, 1.5, 2.0, 4.0, 3.5, 3.0, 4.5, 4.5, 2.5, 4.0…
+## $ agree       &lt;dbl&gt; 3.0, 2.5, 5.0, 3.5, 3.0, 3.0, 4.5, 4.0, 2.5, 4.0, 2.0, 2.5…
+## $ neuro       &lt;dbl&gt; 3.0, 3.0, 3.0, 4.0, 3.5, 3.5, 3.5, 2.5, 3.0, 3.0, 2.5, 3.0…
+## $ cons        &lt;dbl&gt; 3.5, 4.5, 4.0, 3.5, 3.5, 4.0, 3.0, 4.0, 3.5, 4.5, 2.0, 4.0…
+## $ open        &lt;dbl&gt; 4.0, 4.0, 5.0, 2.0, 3.0, 4.5, 4.5, 4.0, 5.0, 5.0, 3.0, 3.5…</code></pre>
+</div>
+<div id="daten-und-variablen" class="section level2" number="2.3">
+<h2><span class="header-section-number">2.3</span> Daten und Variablen</h2>
+<p>Über die Umfrage kann der Inhalt der Variablen eingesehen werden. Weiter ist eine <a href="https://github.com/sebastiansauer/willingness-vaccination-covid19">grundlegende Datenaufbereitung hier dokumentiert</a>.</p>
+<p>Das Codebook findet sich <a href="https://github.com/sebastiansauer/willingness-vaccination-covid19/blob/main/data/codebook-covid-vac-willingness.xlsx">im gleichen Repo</a>.</p>
+</div>
+<div id="sind-die-items-schon-umgepolt" class="section level2" number="2.4">
+<h2><span class="header-section-number">2.4</span> Sind die Items schon umgepolt?</h2>
+<p><em>Ja</em>, ein Blick in die Datenaufbereitung zeigt, dass die (ursprünglich) negativ gepolten Items bereits “richtig” (positiv) gepolt vorliegen.</p>
+</div>
+<div id="liegen-mittelwerte-für-die-persönlichkeits-dimensionen-vor" class="section level2" number="2.5">
+<h2><span class="header-section-number">2.5</span> Liegen Mittelwerte für die Persönlichkeits-Dimensionen vor?</h2>
+<p><em>Ja</em>, es liegen bereits Mittelwerte (“Scores”) für die fünf Big-Five-Persönlichkeitsdimensionen vor.</p>
+</div>
+</div>
+<div id="daten-verstehen" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Daten verstehen</h1>
+<div id="fehlende-werte" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Fehlende Werte</h2>
+<p>Summieren wir die fehlenden Werte über alle Spalten:</p>
+<pre class="r"><code>d %&gt;% 
+  summarise(across(everything(), ~ sum(is.na(.))))</code></pre>
+<pre><code>## # A tibble: 1 x 23
+##   timestamp willingness health  fear cases extra1 agree1 cons1 neuro1 open1
+##       &lt;int&gt;       &lt;int&gt;  &lt;int&gt; &lt;int&gt; &lt;int&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt;
+## 1         0           0      0     0     0      0      0     0      0     0
+## # … with 13 more variables: extra2 &lt;int&gt;, agree2 &lt;int&gt;, cons2 &lt;int&gt;,
+## #   neuro2 &lt;int&gt;, open2 &lt;int&gt;, age &lt;int&gt;, sex &lt;int&gt;, comments &lt;int&gt;,
+## #   extra &lt;int&gt;, agree &lt;int&gt;, neuro &lt;int&gt;, cons &lt;int&gt;, open &lt;int&gt;</code></pre>
+<p>Nur bei den Kommentaren fehlen Werte. Das macht uns das Leben leichter: Wir müssen uns nicht um fehlende Werte kümmern.</p>
+<p>Natürlich hätte man das einfacher schreiben können (aber mit mehr Tippaufwand):</p>
+<pre class="r"><code>d %&gt;% 
+  summarise(sum(is.na(willingness)))</code></pre>
+<pre><code>## # A tibble: 1 x 1
+##   `sum(is.na(willingness))`
+##                       &lt;int&gt;
+## 1                         0</code></pre>
+<p>Und entsprechend für alle anderen Variablen des Datensatzes.</p>
+</div>
+<div id="nominal-skalierte-variablen-in-numerische-umwandeln" class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> Nominal skalierte Variablen in numerische umwandeln</h2>
+<p>Welche metrisch und welche nominal skalierten Variablen liegen vor? Gut, man könnte einen einfachen Blick in die Tabelle werfen, aber so ist es etwas cooler:</p>
+<pre class="r"><code>d %&gt;% 
+  select(where(is.numeric)) %&gt;% 
+  names()</code></pre>
+<pre><code>##  [1] &quot;willingness&quot; &quot;health&quot;      &quot;fear&quot;        &quot;cases&quot;       &quot;extra1&quot;     
+##  [6] &quot;agree1&quot;      &quot;cons1&quot;       &quot;neuro1&quot;      &quot;open1&quot;       &quot;extra2&quot;     
+## [11] &quot;agree2&quot;      &quot;cons2&quot;       &quot;neuro2&quot;      &quot;open2&quot;       &quot;age&quot;        
+## [16] &quot;extra&quot;       &quot;agree&quot;       &quot;neuro&quot;       &quot;cons&quot;        &quot;open&quot;</code></pre>
+<p>Gegenprobe, die <em>nicht</em> numerischen:</p>
+<pre class="r"><code>d %&gt;% 
+  select(where(~!is.numeric(.))) %&gt;% 
+  names()</code></pre>
+<pre><code>## [1] &quot;timestamp&quot; &quot;sex&quot;       &quot;comments&quot;</code></pre>
+<p><em>Geschlecht</em> ist ein Kandidat, der – wenn es nur zwei Werte gibt – mit Nutzen in eine numerische Variable umgewandelt werden kann.</p>
+<pre class="r"><code>d %&gt;% 
+  count(sex)</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   sex        n
+##   &lt;chr&gt;  &lt;int&gt;
+## 1 Divers     1
+## 2 Frau     129
+## 3 Mann      34</code></pre>
+<p>Da es von einer Stufe (<code>divers</code>) nur eine Beobachtung gibt, bietet es sich an, diese Beobachtung entweder der Gruppe (Frau oder Mann) zuzuordnen, für die die restlichen Werte typischer sind oder diese Beobachtung aufzugeben. Der Einfachheit halber entscheide ich mich für Lezteres.</p>
+<pre class="r"><code>d2 &lt;-
+  d %&gt;% 
+  mutate(sex = case_when(
+    sex == &quot;Divers&quot; ~ NA_character_,
+    TRUE ~ sex
+  ))</code></pre>
+<pre class="r"><code>d2 %&gt;% 
+  count(sex)</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   sex       n
+##   &lt;chr&gt; &lt;int&gt;
+## 1 Frau    129
+## 2 Mann     34
+## 3 &lt;NA&gt;      1</code></pre>
+<pre class="r"><code>d2 &lt;-
+  d2 %&gt;% 
+  mutate(is_female = case_when(
+    sex == &quot;Frau&quot; ~ 1,
+    sex == &quot;Mann&quot; ~ 0,
+    TRUE ~ NA_real_
+  )) %&gt;% 
+  select(-sex)</code></pre>
+<pre class="r"><code>d2 %&gt;% 
+  count(is_female)</code></pre>
+<pre><code>## # A tibble: 3 x 2
+##   is_female     n
+##       &lt;dbl&gt; &lt;int&gt;
+## 1         0    34
+## 2         1   129
+## 3        NA     1</code></pre>
+<p>Jetzt können wir <code>is_female</code> z.B. für eine Korrelation heranziehen. Aber Achtung: Die Schiefe der Verteilung limitiert die Höhe der Korrelation!</p>
+</div>
+<div id="welche-variablen-korrelieren-mit-der-impfbereitschaft" class="section level2" number="3.3">
+<h2><span class="header-section-number">3.3</span> Welche Variablen korrelieren mit der Impfbereitschaft?</h2>
+<pre class="r"><code>d2 %&gt;% 
+  select(where(is.numeric)) %&gt;% 
+  select(-matches(&quot;[[:digit:]]&quot;)) %&gt;% 
+  correlate() %&gt;% 
+  focus(willingness) %&gt;% 
+  arrange(-abs(willingness))  # uns interessiert nur der Absolutwert der Korrelation</code></pre>
+<pre><code>## # A tibble: 10 x 2
+##    term      willingness
+##    &lt;chr&gt;           &lt;dbl&gt;
+##  1 fear          0.396  
+##  2 cons         -0.200  
+##  3 extra        -0.184  
+##  4 cases        -0.160  
+##  5 health       -0.121  
+##  6 neuro         0.101  
+##  7 open         -0.0648 
+##  8 is_female     0.0178 
+##  9 agree         0.00516
+## 10 age          -0.00455</code></pre>
+<p>Hier haben wir Variablen, deren Namen eine Zahl beinhalteten, entfernt. Der Grund ist, dass diese Variablen (<code>neuro1</code>, …) einzelne Items codieren, hier aber nur die ganze Skala einer Big-Five-Dimension betrachtet werden soll.</p>
+</div>
+<div id="korrelation-der-items-pro-big-five-dimension" class="section level2" number="3.4">
+<h2><span class="header-section-number">3.4</span> Korrelation der Items pro Big-Five-Dimension</h2>
+<p>Theoretisch müssten die Items jeweils einer Big-Five-Dimension hoch korrelieren. Wenn dem so ist, dann macht es Sinn, die Items (Fragen) einer Dimension zu einem Wert zusammenzufassen (ansonsten nicht). Überprüfen wir das mal.</p>
+<pre class="r"><code>d2 %&gt;% 
+  select(matches(&quot;[[:digit:]]&quot;)) %&gt;%  # Wählt spalten, die Zahlen enthalten
+  pivot_longer(everything()) %&gt;% 
+  mutate(dimension = str_extract(name, &quot;\\D+&quot;)) %&gt;%   # alle Nicht-Ziffern
+  mutate(name = case_when(
+    str_detect(name, &quot;1&quot;) ~ &quot;i1&quot;,  # Findet Elemente der Variablen `name`, die den Wert `1` enthalten
+    str_detect(name, &quot;2&quot;) ~ &quot;i2&quot;,
+    TRUE ~ NA_character_
+  )) %&gt;% 
+  pivot_wider(names_from = &quot;name&quot;,
+              values_from = &quot;value&quot;) %&gt;% 
+  mutate(cor_i1_i2 = map2_dbl(.x = i1, 
+                              .y = i2,
+                              .f = cor))</code></pre>
+<pre><code>## # A tibble: 5 x 4
+##   dimension i1          i2          cor_i1_i2
+##   &lt;chr&gt;     &lt;list&gt;      &lt;list&gt;          &lt;dbl&gt;
+## 1 extra     &lt;dbl [164]&gt; &lt;dbl [164]&gt;     0.679
+## 2 agree     &lt;dbl [164]&gt; &lt;dbl [164]&gt;     0.262
+## 3 cons      &lt;dbl [164]&gt; &lt;dbl [164]&gt;     0.417
+## 4 neuro     &lt;dbl [164]&gt; &lt;dbl [164]&gt;     0.432
+## 5 open      &lt;dbl [164]&gt; &lt;dbl [164]&gt;     0.422</code></pre>
+<p>Puh, das war schon etwas Daten-Gymnastik. Man hätte das gleiche Ergebnis auch einfacher bekommen können, etwa so:</p>
+<pre class="r"><code>d2 %&gt;%
+  select(extra1, extra2) %&gt;% 
+  correlate()</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   term   extra1 extra2
+##   &lt;chr&gt;   &lt;dbl&gt;  &lt;dbl&gt;
+## 1 extra1 NA      0.679
+## 2 extra2  0.679 NA</code></pre>
+<p>Und so weiter für jede der fünf Big-Five-Dimensionen.</p>
+<p>Halten wir fest: Für Verträglichkeit (<code>agree</code>) ist die Korrelation gering; ansonsten mittel bis gut.</p>
+</div>
+</div>
+<div id="modell-mit-den-big-five-dimensionen-als-prädiktoren" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Modell mit den Big-Five-Dimensionen als Prädiktoren</h1>
+<p>In meinem Kopf schwebt die Idee, die fünf Big-Five-Dimensionen als Prädiktoren der Impfbereitschaft zu präsentieren. Der Grund ist einfach: Die Forschungsfrage “Sagt die Persönlichkeit (voraus), wer sich impfen lassen wird und wer nicht?” ist bestechend und daher wert, analysiert zu werden.</p>
+<pre class="r"><code>lm1 &lt;- lm(willingness ~ extra + neuro + agree + cons + open, data = d2)
+
+
+tidy(lm1)</code></pre>
+<pre><code>## # A tibble: 6 x 5
+##   term        estimate std.error statistic       p.value
+##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;         &lt;dbl&gt;
+## 1 (Intercept)  11.0        1.73      6.35  0.00000000215
+## 2 extra        -0.413      0.228    -1.81  0.0721       
+## 3 neuro         0.0665     0.253     0.263 0.793        
+## 4 agree         0.116      0.241     0.483 0.630        
+## 5 cons         -0.565      0.246    -2.30  0.0230       
+## 6 open         -0.0338     0.232    -0.145 0.885</code></pre>
+<p>Das Ergebnis zeigt: Das Signal-Rausch-Verhältnis ist höchstens bei <code>cons</code> akzeptabel, und das auch nur grenzwertig.</p>
+<p>Reicht das für eine “Story”? Eher nicht.</p>
+</div>
+<div id="zur-datenqualität" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Zur Datenqualität</h1>
+<p>Insgesamt muss die Datenqualität als eingeschränkt bezeichnet werden: Die Stichprobe ist nicht groß und die Repräsentativität unklar. Non-Response-Bias kann nicht abgeschätzt werden. Daher sollten die Ergebnisse nur mit großem Vorbehalt interpretiert werden.</p>
+<p>Kausale Interpretationen der Daten sind kaum möglich.</p>
+</div>
+<div id="visualisierung-1" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Visualisierung 1</h1>
+<p>Diese Visualisierung soll eine sehr einfache, eingängige Visualisierung des Zusammenhangs von Persönlichkeit und Impfbereitschaft aufzeigen. Die Visualisierung ist unterkomplex. Mehr dazu weiter unten.</p>
+<div id="median-aufteilung" class="section level2" number="6.1">
+<h2><span class="header-section-number">6.1</span> Median-Aufteilung</h2>
+<p>Für eine einfaches Verständnis für eine Zielgruppe, die wenig “datenkundig” (data literate) ist, soll hier eine Dichotomisierung der Daten (z.B. anhand des Medians) vollzogen werden.</p>
+<p>Ausdrücklich sei <em>gewarnt</em>, dass eine Median-Aufteilung statistisch <em>fahrlässig</em> ist. Diese Methode wird hier <em>nur</em> illustrativ gezeigt.</p>
+<pre class="r"><code>main_vars &lt;- c(&quot;willingness&quot;,
+               &quot;extra&quot;,
+               &quot;open&quot;,
+               &quot;agree&quot;,
+               &quot;neuro&quot;,
+               &quot;cons&quot;)</code></pre>
+<pre class="r"><code>median_split &lt;- function(var) {
+  ifelse(var &gt; median(var, na.rm = TRUE), 1, 0)
+}</code></pre>
+<pre class="r"><code>d3 &lt;- 
+  d2 %&gt;% 
+  select(all_of(main_vars)) %&gt;% 
+  mutate(across(.cols = all_of(main_vars),
+                .fns = median_split,
+                .names = &quot;{.col}_bin&quot;  # &quot;bin&quot; wie &quot;binär&quot;
+                ))</code></pre>
+<p>Mit <code>names</code> kann man die Namen der neu erzeugten Spalten wählen: Hier soll der neue Name gleich dem Namen der alten Spalte (“col” wie Spalte) sein plus ein "_bin" hintendran.</p>
+<p>Natürlich hätte man das auch wieder einfacher lösen können (aber mit mehr Tipp-Aufwand):</p>
+<pre class="r"><code>d2 %&gt;% 
+  mutate(willingness_bin = ifelse(willingness &gt; median(willingness), 1, 0)) %&gt;% 
+  select(willingness, willingness_bin)</code></pre>
+<pre><code>## # A tibble: 164 x 2
+##    willingness willingness_bin
+##          &lt;dbl&gt;           &lt;dbl&gt;
+##  1          10               1
+##  2          10               1
+##  3           3               0
+##  4           7               0
+##  5          10               1
+##  6          10               1
+##  7           9               0
+##  8          10               1
+##  9           9               0
+## 10           5               0
+## # … with 154 more rows</code></pre>
+<p>Die Verteilung von <code>willingness</code> scheint sehr schief zu sein:</p>
+<pre class="r"><code>d2 %&gt;% 
+  ggplot(aes(x = willingness)) + 
+  geom_density()</code></pre>
+<p><img src="unnamed-chunk-21-1.png" width="100%" /></p>
+</div>
+<div id="dichotomisierung-anhand-des-skalen-mittelpunkts" class="section level2" number="6.2">
+<h2><span class="header-section-number">6.2</span> Dichotomisierung anhand des Skalen-Mittelpunkts</h2>
+<p>Anstelle des Medians soll hier der <em>Skalen-Mittelpunkt</em> zur Dichotomisierung gewählt werden:</p>
+<pre class="r"><code>scale01 &lt;- function(x) {
+  rng &lt;- range(x, na.rm = TRUE)
+  (x - rng[1]) / (rng[2] - rng[1])
+}</code></pre>
+<p>Zuerst skalieren wir auf 0 bis 100%, um die Skalierung anzugleichen:</p>
+<pre class="r"><code>d4 &lt;- 
+  d2 %&gt;% 
+  select(all_of(main_vars)) %&gt;% 
+  mutate(across(everything(),
+                scale01,
+                .names = &quot;{.col}_01&quot;))</code></pre>
+<pre class="r"><code>head(d4)</code></pre>
+<pre><code>## # A tibble: 6 x 12
+##   willingness extra  open agree neuro  cons willingness_01 extra_01 open_01
+##         &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;          &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;
+## 1          10   1.5   4     3     3     3.5          1        0.125   0.75 
+## 2          10   4     4     2.5   3     4.5          1        0.75    0.75 
+## 3           3   3     5     5     3     4            0.222    0.5     1    
+## 4           7   1.5   2     3.5   4     3.5          0.667    0.125   0.25 
+## 5          10   2     3     3     3.5   3.5          1        0.25    0.5  
+## 6          10   4     4.5   3     3.5   4            1        0.75    0.875
+## # … with 3 more variables: agree_01 &lt;dbl&gt;, neuro_01 &lt;dbl&gt;, cons_01 &lt;dbl&gt;</code></pre>
+<p>Dann teilen wir in kleine und große Werte auf: Kleiner 50% soll “klein” sein, sonst “groß”.</p>
+<pre class="r"><code>bin_01 &lt;- function(var) {
+  ifelse(var &gt; .5, 1, 0)
+}</code></pre>
+<p>Anstelle von <code>ifelse</code> hätten wir auch mit <code>case_when</code> arbeiten können. <code>ifelse</code> ist eine einfache Wenn-Dann-Regel: <code>wenndann(prüfung, wenn_prüfung_positiv_tue_dies, ansonsten_das)</code>.</p>
+<pre class="r"><code>d5 &lt;-
+  d4 %&gt;% 
+  select(contains(&quot;_01&quot;)) %&gt;% 
+  mutate(across(everything(),
+                bin_01))</code></pre>
+<pre class="r"><code>dim(d5)</code></pre>
+<pre><code>## [1] 164   6</code></pre>
+<pre class="r"><code>head(d5)</code></pre>
+<pre><code>## # A tibble: 6 x 6
+##   willingness_01 extra_01 open_01 agree_01 neuro_01 cons_01
+##            &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;
+## 1              1        0       1        0        0       1
+## 2              1        1       1        0        0       1
+## 3              0        0       1        1        0       1
+## 4              1        0       0        1        1       1
+## 5              1        0       0        0        1       1
+## 6              1        1       1        0        1       1</code></pre>
+</div>
+<div id="anteile-berechnen-eindimensional" class="section level2" number="6.3">
+<h2><span class="header-section-number">6.3</span> Anteile berechnen (eindimensional)</h2>
+<p>Wir berechnen die Anteile für geringe (<code>value==0</code>) bzw. hohe (<code>value==1</code>) Werte in den Big-Five-Dimensionen und Impfbereitschaft:</p>
+<pre class="r"><code>d6 &lt;- 
+  d5 %&gt;% 
+  select(contains(&quot;_01&quot;)) %&gt;% 
+  pivot_longer(everything()) %&gt;% 
+  count(name, value) %&gt;% 
+  group_by(name) %&gt;% 
+  mutate(prop = n / sum(n))</code></pre>
+<pre class="r"><code>slice_head(d6)</code></pre>
+<pre><code>## # A tibble: 6 x 4
+## # Groups:   name [6]
+##   name           value     n  prop
+##   &lt;chr&gt;          &lt;dbl&gt; &lt;int&gt; &lt;dbl&gt;
+## 1 agree_01           0    91 0.555
+## 2 cons_01            0    61 0.372
+## 3 extra_01           0    72 0.439
+## 4 neuro_01           0    94 0.573
+## 5 open_01            0    45 0.274
+## 6 willingness_01     0    27 0.165</code></pre>
+</div>
+<div id="als-balkendiagramm" class="section level2" number="6.4">
+<h2><span class="header-section-number">6.4</span> Als Balkendiagramm</h2>
+<p>Die Tabelle von oben visualisieren wir als Balkendiagramm:</p>
+<pre class="r"><code>labels_auspraegung &lt;- c(&quot;0&quot; = &quot;gering&quot;, &quot;1&quot; = &quot;hoch&quot;)
+labels_bigfive &lt;- c(&quot;agree&quot; = &quot;Verträglichkeit&quot;,
+                   &quot;cons&quot; = &quot;Gewissenshaftigkeit&quot;,
+                   &quot;extra&quot; = &quot;Extraversion&quot;,
+                   &quot;neuro&quot; = &quot;Neurotizismus&quot;,
+                   &quot;open&quot; = &quot;Offenheit&quot;,
+                   &quot;willingness&quot; = &quot;Impfbereitschaft&quot;)
+
+d6 %&gt;% 
+  select(name, prop) %&gt;% 
+  mutate(dimension = str_remove(name,&quot;_01&quot;)) %&gt;% 
+  group_by(dimension) %&gt;% 
+  mutate(value = c(0,1)) %&gt;% 
+  ungroup() %&gt;% 
+  ggplot() +
+  aes(x = value, y = prop) +
+  geom_col() +
+  facet_wrap(~ dimension, 
+             labeller = labeller(dimension = labels_bigfive)) +
+  scale_x_continuous(breaks = c(0,1), 
+                     labels = labels_auspraegung) +
+  labs(x = &quot;&quot;,
+       y = &quot;Anteil&quot;,
+       title = &quot;Verteilung von gering bzw. hoch ausgeprägten Werten&quot;,
+       caption = &quot;n=165 Personen, nicht repräsentativ&quot;) +
+  theme_ipsum_rc() +
+  geom_label(aes(label = round(prop, 2))) +
+  scale_y_continuous(limits = c(0, 1))</code></pre>
+<p><img src="unnamed-chunk-31-1.png" width="120%" /></p>
+<p>Das Diagramm zeigt allerdings noch <em>keine</em> Kontingenz/Korrespondenz (keinen Zusammenhang) zwischen Impfbereitschaft und den einzelnen Big-Five-Dimensionen. Also weiter.</p>
+</div>
+<div id="anteil-hoher-big-five-werte-bei-impfwilligen-zweidimensional" class="section level2" number="6.5">
+<h2><span class="header-section-number">6.5</span> Anteil hoher Big-Five-Werte bei Impfwilligen (zweidimensional)</h2>
+<pre class="r"><code>d7 &lt;- 
+  d5 %&gt;% 
+  pivot_longer(extra_01:last_col()) %&gt;% 
+  group_by(name, willingness_01) %&gt;% 
+  count(value) %&gt;% 
+  mutate(prop = n / sum(n)) </code></pre>
+<pre class="r"><code>d7</code></pre>
+<pre><code>## # A tibble: 20 x 5
+## # Groups:   name, willingness_01 [10]
+##    name     willingness_01 value     n  prop
+##    &lt;chr&gt;             &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;dbl&gt;
+##  1 agree_01              0     0    18 0.667
+##  2 agree_01              0     1     9 0.333
+##  3 agree_01              1     0    73 0.533
+##  4 agree_01              1     1    64 0.467
+##  5 cons_01               0     0     5 0.185
+##  6 cons_01               0     1    22 0.815
+##  7 cons_01               1     0    56 0.409
+##  8 cons_01               1     1    81 0.591
+##  9 extra_01              0     0     7 0.259
+## 10 extra_01              0     1    20 0.741
+## 11 extra_01              1     0    65 0.474
+## 12 extra_01              1     1    72 0.526
+## 13 neuro_01              0     0    18 0.667
+## 14 neuro_01              0     1     9 0.333
+## 15 neuro_01              1     0    76 0.555
+## 16 neuro_01              1     1    61 0.445
+## 17 open_01               0     0     6 0.222
+## 18 open_01               0     1    21 0.778
+## 19 open_01               1     0    39 0.285
+## 20 open_01               1     1    98 0.715</code></pre>
+<p>So ist z.B. der Anteil der gering Extrovertierten (=introvertiert) <em>an den hoch Impfbereiten</em> ca. 47%; der Anteil der hoch Extrovertierten an den hoch Impfbereiten ca. 53%. Wir summieren also pro Stufe von Impfbereitschaft auf.</p>
+<pre class="r"><code>name_order &lt;- 
+  d7 %&gt;% 
+  filter(value == 1, willingness_01 == 1) %&gt;% 
+  arrange(-prop) %&gt;% 
+  pull(name) 
+
+name_order</code></pre>
+<pre><code>## [1] &quot;open_01&quot;  &quot;cons_01&quot;  &quot;extra_01&quot; &quot;agree_01&quot; &quot;neuro_01&quot;</code></pre>
+<pre class="r"><code>name_order_de &lt;- c(
+  &quot;hohe Offenheit&quot;,
+  &quot;hohe Gewissenhaftigkeit&quot;,
+  &quot;hohe Extraversion&quot;,
+  &quot;hohe Verträglichkeit&quot;,
+  &quot;hohe Neurotizismus&quot;
+)</code></pre>
+<pre class="r"><code>d8 &lt;-
+  d7 %&gt;% 
+  mutate(name = str_extract(name, &quot;.*[^_01]&quot;)) %&gt;% 
+  mutate(name = factor(name)) %&gt;% 
+  ungroup()</code></pre>
+</div>
+<div id="kontingenzbalken-1" class="section level2" number="6.6">
+<h2><span class="header-section-number">6.6</span> Kontingenzbalken 1</h2>
+<pre class="r"><code>d8 %&gt;% 
+  glimpse()</code></pre>
+<pre><code>## Rows: 20
+## Columns: 5
+## $ name           &lt;fct&gt; agree, agree, agree, agree, cons, cons, cons, cons, ext…
+## $ willingness_01 &lt;dbl&gt; 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1…
+## $ value          &lt;dbl&gt; 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0…
+## $ n              &lt;int&gt; 18, 9, 73, 64, 5, 22, 56, 81, 7, 20, 65, 72, 18, 9, 76,…
+## $ prop           &lt;dbl&gt; 0.6666667, 0.3333333, 0.5328467, 0.4671533, 0.1851852, …</code></pre>
+<pre class="r"><code>d8a &lt;-
+  d8 %&gt;% 
+  filter(value == 1)</code></pre>
+<pre class="r"><code>d8a %&gt;% 
+  glimpse()</code></pre>
+<pre><code>## Rows: 10
+## Columns: 5
+## $ name           &lt;fct&gt; agree, agree, cons, cons, extra, extra, neuro, neuro, o…
+## $ willingness_01 &lt;dbl&gt; 0, 1, 0, 1, 0, 1, 0, 1, 0, 1
+## $ value          &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+## $ n              &lt;int&gt; 9, 64, 22, 81, 20, 72, 9, 61, 21, 98
+## $ prop           &lt;dbl&gt; 0.3333333, 0.4671533, 0.8148148, 0.5912409, 0.7407407, …</code></pre>
+<pre class="r"><code>d8a %&gt;% 
+  mutate(Impfbereitschaft = case_when(
+    willingness_01 == 0 ~ &quot;geringer&quot;,
+    willingness_01 == 1 ~ &quot;höher&quot;
+  )) %&gt;% 
+  ggplot() +
+  aes(x = name, y = n, fill = as.factor(Impfbereitschaft)) +
+  geom_col(position = &quot;dodge&quot;) +
+  scale_fill_manual(values = c(&quot;indianred2&quot;, &quot;palegreen4&quot;)) +
+  coord_flip() +
+  scale_x_discrete(labels = labels_bigfive) +
+  labs(x = NULL,
+       y = &quot;Anteil&quot;,
+       fill = &quot;Impfbereitschaft&quot;,
+       title = &quot;Menschen mit hohe Verträglichkeit\nzeigen hohe Impfbereitschaft&quot;,
+       subtitle = &quot;Nur Menschen mit hoher Ausprägung pro Persönlichkeitsdimension&quot;,
+       caption = &quot;n=164; nicht repräsentative Stichprobe. Nur eingeschränkt interpretierbar&quot;) +
+  theme_ipsum_rc() +
+  theme(legend.position = &quot;bottom&quot;) </code></pre>
+<p><img src="unnamed-chunk-40-1.png" width="100%" /></p>
+</div>
+<div id="kontingenzbalken-2" class="section level2" number="6.7">
+<h2><span class="header-section-number">6.7</span> Kontingenzbalken 2</h2>
+<p>Oder besser vielleicht nicht nur die hohen Ausprägungen der Big-Five-Dimensionen, sondern auch die geringen.</p>
+<p>Zuerst erstellen wir einen Hilfs-Datensatz für die Zahlen-Labels auf den Balken:</p>
+<pre class="r"><code>d8b &lt;-
+  d8 %&gt;% 
+  filter(willingness_01 == 1)</code></pre>
+<pre class="r"><code>d8b %&gt;% 
+  slice_head(n=10)</code></pre>
+<pre><code>## # A tibble: 10 x 5
+##    name  willingness_01 value     n  prop
+##    &lt;fct&gt;          &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;dbl&gt;
+##  1 agree              1     0    73 0.533
+##  2 agree              1     1    64 0.467
+##  3 cons               1     0    56 0.409
+##  4 cons               1     1    81 0.591
+##  5 extra              1     0    65 0.474
+##  6 extra              1     1    72 0.526
+##  7 neuro              1     0    76 0.555
+##  8 neuro              1     1    61 0.445
+##  9 open               1     0    39 0.285
+## 10 open               1     1    98 0.715</code></pre>
+<p>Ok, los geht’s:</p>
+<pre class="r"><code>d8 %&gt;% 
+  #filter(willingness_01 == 1) %&gt;% 
+  mutate(Impfbereitschaft = case_when(
+    willingness_01 == 0 ~ &quot;gering&quot;,
+    willingness_01 == 1 ~ &quot;hoch&quot;
+  )) %&gt;% 
+  ggplot() +
+  aes(x = name, y = prop) +
+  geom_col(aes(fill = as.factor(Impfbereitschaft)),
+           position = &quot;fill&quot;) +
+  scale_fill_manual(values = c(&quot;indianred2&quot;, &quot;palegreen4&quot;)) +
+  coord_flip() +
+  scale_x_discrete(labels = labels_bigfive) +
+  labs(x = NULL,
+       y = &quot;Anteil&quot;,
+       fill = &quot;Impfbereitschaft&quot;,
+       title = &quot;Hat das Persönlichkeitsprofil  einen Einfluss auf die Impfbereitschaft?&quot;,
+       subtitle = &quot;Personen mit geringer (hoher) Ausprägung\nin den Persönlichkeitsdimensionen sind links (rechts) abgebildet&quot;,
+       caption = &quot;n=164; nicht repräsentative Stichprobe. Nur eingeschränkt interpretierbar&quot;) +
+  theme_ipsum_rc() +
+  theme(legend.position = &quot;bottom&quot;) +
+  facet_wrap(~ value, 
+             labeller = labeller(value = labels_auspraegung)) +
+  scale_y_continuous(breaks = c(0, .5, 1))
+# 
+#   geom_label(data = d8b,
+#             aes(label = round(n, 2)))</code></pre>
+<p><img src="unnamed-chunk-43-1.png" width="100%" /></p>
+<p>Vielleicht wäre es interessanter, die <em>Ungleichheit</em> in den Ausprägungen der Persönlichkeitsdimensionen (Hohe Werte vs. niedrige Werte) in den Hoch- und Niedrig-Impfwilligen zu berechnen. Also nochmal weiter.</p>
+</div>
+<div id="größter-unterschied-zwischen-den-big-five-dimensionen-bei-den-hoch-impfbereiten" class="section level2" number="6.8">
+<h2><span class="header-section-number">6.8</span> Größter Unterschied zwischen den Big-Five-Dimensionen bei den Hoch-Impfbereiten</h2>
+<pre class="r"><code>d9 &lt;- 
+  d8 %&gt;% 
+  arrange(name, value) %&gt;% 
+  group_by(name, value) %&gt;% 
+  summarise(diff_hoch_vs_gering_impfwillig = prop[[2]] - prop[[1]])   %&gt;%  
+  filter(value == 1) %&gt;% 
+  ungroup() %&gt;% 
+  mutate(diff_abs = abs(diff_hoch_vs_gering_impfwillig)) %&gt;% 
+  mutate(is_high = percent_rank(diff_abs) &gt; .7)</code></pre>
+<pre class="r"><code>d9</code></pre>
+<pre><code>## # A tibble: 5 x 5
+##   name  value diff_hoch_vs_gering_impfwillig diff_abs is_high
+##   &lt;fct&gt; &lt;dbl&gt;                          &lt;dbl&gt;    &lt;dbl&gt; &lt;lgl&gt;  
+## 1 agree     1                         0.134    0.134  FALSE  
+## 2 cons      1                        -0.224    0.224  TRUE   
+## 3 extra     1                        -0.215    0.215  TRUE   
+## 4 neuro     1                         0.112    0.112  FALSE  
+## 5 open      1                        -0.0624   0.0624 FALSE</code></pre>
+<p>Der Effekt bei den <em>Gewissenhaften</em> ist am stärksten. Allerdings ist der Effekt bei den <em>Extravertierten</em> besser zu interpretieren: “Die Extrovertierten sind weniger impfbereit als die introvertierten”. Außerdem ist der Effekt fast genau so stark.</p>
+</div>
+<div id="plot-zur-differenz" class="section level2" number="6.9">
+<h2><span class="header-section-number">6.9</span> Plot Zur Differenz</h2>
+<pre class="r"><code>d9 %&gt;% 
+  ggplot(aes(x = reorder(name, diff_abs), y = diff_abs)) +
+  geom_hline(color = &quot;white&quot;, yintercept = 0, size = 3) +
+  geom_col(aes(fill = is_high)) +
+  coord_flip() +
+  scale_x_discrete(labels = labels_bigfive) +
+  scale_fill_manual(guide = FALSE,
+                    values = c(&quot;grey50&quot;, &quot;royalblue4&quot;)) +
+  labs(x = &quot;&quot;,
+       y = &quot;Absolutwert des Unterschieds&quot;,
+       subtitle = &quot;Unterschied der Impfbereitschaft\nabhängig von der Ausprägung des Persönlichkeitsmerkmals&quot;,
+       title = &quot;Bei Gewissenhaften und Extrovertierten \nhängt die Impfbereitschaft relativ stark \nvon der Ausprägung des Persönlichkeitsmerksmals ab&quot;,
+       is_high = &quot;&quot;) +
+  theme_ipsum_rc()</code></pre>
+<p><img src="unnamed-chunk-46-1.png" width="100%" /></p>
+</div>
+<div id="korrespondenz-kontingenz-von-extraversion-und-impfbereitschaft" class="section level2" number="6.10">
+<h2><span class="header-section-number">6.10</span> Korrespondenz (Kontingenz) von Extraversion und Impfbereitschaft</h2>
+<pre class="r"><code>d8 %&gt;% 
+  filter(name == &quot;extra_01&quot;)</code></pre>
+<pre><code>## # A tibble: 0 x 5
+## # … with 5 variables: name &lt;fct&gt;, willingness_01 &lt;dbl&gt;, value &lt;dbl&gt;, n &lt;int&gt;,
+## #   prop &lt;dbl&gt;</code></pre>
+<pre class="r"><code>d8 %&gt;% 
+  filter(name == &quot;extra&quot;) %&gt;% 
+  rename(Extraversion = value,
+         Anteil = prop,
+         Impfbereitschaft = willingness_01) %&gt;% 
+  mutate(Extraversion = case_when(
+    Extraversion == 0 ~ &quot;introvertiert&quot;,
+    Extraversion == 1 ~ &quot;extravertiert&quot;,
+  )) %&gt;% 
+  mutate(Impfbereitschaft = case_when(
+    Impfbereitschaft == 0 ~ &quot;gering&quot;,
+    Impfbereitschaft == 1 ~ &quot;hoch&quot;,
+  )) %&gt;% 
+  ggplot(aes(x = Extraversion, 
+             y = Anteil, fill = Impfbereitschaft)) +
+  geom_col(position = &quot;fill&quot;) +
+  labs(title = &quot;Introvertierte sind impfbereiter&quot;) +
+  scale_fill_brewer(type = &quot;qual&quot;, palette = 6)</code></pre>
+<p><img src="unnamed-chunk-48-1.png" width="100%" /></p>
+<p>Das ist aus <em>Kommunikationssicht</em> eine passable Botschaft.</p>
+<p><strong>ACHTUNG</strong> Die wissenschaftliche Belastbarkeit dieser Aussage ist wackelig!</p>
+<p>Übrigens: <a href="https://jiffyclub.github.io/palettable/colorbrewer/qualitative/">Hier</a> findet sich ein Überblick an <em>qualitativen</em> Farbpaletten für <code>ggplot2</code>.</p>
+</div>
+<div id="waffel-diagramm" class="section level2" number="6.11">
+<h2><span class="header-section-number">6.11</span> Waffel-Diagramm</h2>
+<pre class="r"><code>willingness_low &lt;- c(&quot;geringe Extraversion&quot; = 26, 
+                      &quot;hohe Extraversion&quot; = 74)</code></pre>
+<p>Zur Installation von Font Awesome:</p>
+<pre class="r"><code>library(extrafont)
+
+library(waffle)
+waffle::install_fa_fonts()
+font_import(paths = &quot;/Users/sebastiansaueruser/Rlibs/waffle/fonts/&quot;, prompt = F)</code></pre>
+<pre class="r"><code>waffle(willingness_low,
+       flip = TRUE,
+       reverse = TRUE,
+       use_glyph = &quot;syringe&quot;,
+       colors = c(&quot;grey60&quot;, &quot;dodgerblue&quot;),
+       size = .1,
+       title = &quot;Persönlichkeitsmerkmal &#39;Extraversion&#39; \nunter Personen mit geringer Impfbereitschaft&quot;) +
+  expand_limits(y = c(0, 4)) +
+  theme(legend.position = &quot;bottom&quot;)
+
+#ggsave(test.png)</code></pre>
+<p><img src="unnamed-chunk-51-1.png" width="100%" /></p>
+</div>
+<div id="font-awesome-visualisierung-pictogramm" class="section level2" number="6.12">
+<h2><span class="header-section-number">6.12</span> Font-Awesome-Visualisierung (Pictogramm)</h2>
+<pre class="r"><code>d8a &lt;- 
+  d8 %&gt;% 
+  filter(name == &quot;extra&quot;) %&gt;% 
+  mutate(willingness_01 = factor(willingness_01)) %&gt;% 
+  ungroup() %&gt;% 
+  select(willingness_01, n, value, prop) %&gt;% 
+  mutate(n = as.numeric(n)) %&gt;% 
+  mutate(value = as.factor(value))
+
+d8a</code></pre>
+<pre><code>## # A tibble: 4 x 4
+##   willingness_01     n value  prop
+##   &lt;fct&gt;          &lt;dbl&gt; &lt;fct&gt; &lt;dbl&gt;
+## 1 0                  7 0     0.259
+## 2 0                 20 1     0.741
+## 3 1                 65 0     0.474
+## 4 1                 72 1     0.526</code></pre>
+<p>Facetten-Labels:</p>
+<pre class="r"><code>levels(d8a$value)</code></pre>
+<pre><code>## [1] &quot;0&quot; &quot;1&quot;</code></pre>
+<pre class="r"><code>levels(d8a$value) &lt;- c(&quot;introvertiert &quot;, &quot;extrovertiert&quot;)</code></pre>
+<pre class="r"><code>p_final1 &lt;- d8a %&gt;% 
+  ggplot(aes(label = willingness_01, 
+             values = n)) +
+  geom_pictogram(n_rows = 20, 
+                 size = 3,
+                 aes(colour = willingness_01),
+                 flip = TRUE, 
+                 make_proportional = TRUE) +
+  scale_color_manual(
+    name = NULL,
+    values = c(&quot;#a40000&quot;, &quot;chartreuse4&quot;),
+    labels = c(&quot;gering impfbereit&quot;, &quot;hoch impfbereit&quot;)
+  ) +
+  scale_label_pictogram(
+    name = NULL,
+    values = c(&quot;times&quot;, &quot;syringe&quot;),
+    labels = c(&quot;gering impfbereit&quot;, &quot;hoch impfbereit&quot;)
+  ) +
+  coord_equal() +
+  theme_ipsum_rc(grid=&quot;&quot;) +
+  theme_enhance_waffle() +
+  theme(legend.key.height = unit(1, &quot;line&quot;)) +
+  theme(legend.text = element_text(size = 8, 
+                                   hjust = 0, vjust = 0)) +
+  facet_wrap(~ value, nrow = 1) +
+  theme(legend.position = &quot;bottom&quot;) +
+  theme(legend.text = element_text(hjust = 0, vjust = 0.5)) +
+  labs(title = &quot;Introvertierte Menschen sind impfbereiter als extrovertierte&quot;,
+       caption = &quot;N=164, nicht repräsentativ&quot;) +
+  theme(plot.title = element_text(size = 12))
+
+p_final1</code></pre>
+<p><img src="unnamed-chunk-55-1.png" width="100%" /></p>
+<p>Bild speichern:</p>
+<pre class="r"><code>ggsave(&quot;impf1.png&quot;, dpi = 300)</code></pre>
+<p>Whitespace abschneiden:</p>
+<pre class="r"><code>img &lt;- image_read(&quot;impf1.png&quot;)
+img2 &lt;- image_trim(img)
+image_write(img2, path = &quot;impf2.png&quot; )</code></pre>
+</div>
+<div id="was-für-ein-aufwand" class="section level2" number="6.13">
+<h2><span class="header-section-number">6.13</span> Was für ein Aufwand …</h2>
+<p>Der vergleichsweise hohe Aufwand für diese Visualisierung ist aufschlussreich. Der eine Grund ist in der Verwendung eines ungewöhnlichen Geoms – Pictogramm – zu suchen. Der zweite Grund, und das ist der Hauptgrund, ist, dass die <em>Datenaufbereitung</em> bzw. <em>Datenumformung</em> der eigentliche Zeitfresser gewesen ist. Vielleicht noch pointierter formuliert: Es hat gedauert, bis die Datenlage verstanden war, und verstanden war, was eigentlich dargestellt werden soll.</p>
+</div>
+<div id="fazit" class="section level2" number="6.14">
+<h2><span class="header-section-number">6.14</span> Fazit</h2>
+<p>Die wissenschaftliche Belastbarkeit der Studie ist fraglich. Mehr noch: Die Nützlichkeit eines Waffel-Diagramms (oder Pictogramms) ist ebenfalls fragwürdig. Wahrnehmungspsychologisch sind andere Darstellungsformen – etwa ein Balkendiagramme für Häufigkeiten – besser geeignet. Darüber hinaus: Die Dichotomisierung der Daten, also der Verlust von Skaleninformation ist statistisch zumeist nicht zu begründen. Alles in allem steht in dieser Analyse der didaktische Blick zur Frage “Wie erstelle ich ein Diagramm, das unterhält?” im Vordergrund. Die wissenschaftlichen “Kosten” eines solchen Vorgehens spielten hier keine Rolle. Entsprechend eingeschränkt ist die Interpretierbarkeit dieser Analyse bzw. dieses Diagramms. Nur mit äußerster Vorsicht zu interpretieren!</p>
+</div>
+</div>
+<div id="visualisierung-2" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Visualisierung 2</h1>
+<div id="visualisierung-der-regressionskoeffizienten" class="section level2" number="7.1">
+<h2><span class="header-section-number">7.1</span> Visualisierung der Regressionskoeffizienten</h2>
+<p>Die Werte der Regressionskoeffizienten (Betas) darzustellen, ist eine wissenschaftlich nützliche Repräsentation der Analyse der Prädiktoren der Impfbereitschaft – wenn auch für ein Laien-Publikum weniger geeignet.</p>
+<pre class="r"><code>vars_lm2 &lt;- c(&quot;willingness&quot;,
+              &quot;extra&quot;,
+              &quot;neuro&quot;,
+              &quot;agree&quot;,
+              &quot;cons&quot;,
+              &quot;open&quot;)
+
+preds_lm2 &lt;- setdiff(vars_lm2, &quot;willingness&quot;)</code></pre>
+<pre class="r"><code>preds_lm2</code></pre>
+<pre><code>## [1] &quot;extra&quot; &quot;neuro&quot; &quot;agree&quot; &quot;cons&quot;  &quot;open&quot;</code></pre>
+<pre class="r"><code>d2a &lt;-
+  d2 %&gt;% 
+  select(all_of(vars_lm2)) %&gt;% 
+  mutate(across(.cols = all_of(preds_lm2),
+                .fns = scale) )</code></pre>
+<pre class="r"><code>d2a %&gt;% 
+  slice_head()</code></pre>
+<pre><code>## # A tibble: 1 x 6
+##   willingness extra[,1] neuro[,1] agree[,1] cons[,1] open[,1]
+##         &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;
+## 1          10     -1.87   -0.0678    -0.136   0.0811    0.164</code></pre>
+<pre class="r"><code>lm2 &lt;- lm(willingness ~ ., data = d2a)</code></pre>
+<pre class="r"><code>tidy(lm2)</code></pre>
+<pre><code>## # A tibble: 6 x 5
+##   term        estimate std.error statistic  p.value
+##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+## 1 (Intercept)   8.10       0.206    39.3   2.01e-83
+## 2 extra        -0.414      0.229    -1.81  7.21e- 2
+## 3 neuro         0.0598     0.227     0.263 7.93e- 1
+## 4 agree         0.102      0.211     0.483 6.30e- 1
+## 5 cons         -0.489      0.213    -2.30  2.30e- 2
+## 6 open         -0.0308     0.212    -0.145 8.85e- 1</code></pre>
+</div>
+<div id="variante-a" class="section level2" number="7.2">
+<h2><span class="header-section-number">7.2</span> Variante A</h2>
+<pre class="r"><code>ggcoef(lm2,
+       exclude_intercept = TRUE,
+       color = &quot;blue&quot;, sort = &quot;ascending&quot;) +
+  scale_y_discrete(labels = labels_bigfive) +
+  labs(y = &quot;&quot;,
+       x = &quot;Relevanz für die Impfbereitschaft&quot;,
+       title = &quot;Für Gewissenshaftigkeit fand sich ein Einfluss auf die Impfbereitschaft&quot;,
+       caption = &quot;N=164; nicht repräsentativ.\nDargestellt sind die Regressionskoeffizienten (z-skalierte Prädiktoren) zur Impfbereitschaft. Die horizontalen Balken zeigen 95%-Konfidenzintervalle.&quot;) +
+  theme_minimal()</code></pre>
+<p><img src="unnamed-chunk-64-1.png" width="100%" /></p>
+</div>
+<div id="variante-b" class="section level2" number="7.3">
+<h2><span class="header-section-number">7.3</span> Variante B</h2>
+<pre class="r"><code>p_final2 &lt;- ggcoef_model(lm2,
+             conf.int = TRUE,
+             variable_labels = labels_bigfive,
+             show_p_values = FALSE,
+             facet_row = NULL,
+       signif_stars = FALSE) +
+  labs(title = &quot;Für Gewissenshaftigkeit fand sich ein Einfluss auf die Impfbereitschaft&quot;,
+       caption = &quot;N=164; nicht repräsentativ.\nDargestellt sind die Regressionskoeffizienten (z-skalierte Prädiktoren) zur Impfbereitschaft.\nDie horizontalen Balken zeigen 95%-Konfidenzintervalle.&quot;)
+
+p_final2</code></pre>
+<p><img src="unnamed-chunk-65-1.png" width="100%" /></p>
+</div>
+<div id="variante-c-mit-bordmitteln" class="section level2" number="7.4">
+<h2><span class="header-section-number">7.4</span> Variante C: Mit Bordmitteln</h2>
+<p>Man hätte das Diagramm auch ohne Extra-Paket erstellen können, wenn auch etwas weniger poliert (wenn man Extraufwand meiden möchte):</p>
+<pre class="r"><code>lm2 %&gt;% 
+  tidy()</code></pre>
+<pre><code>## # A tibble: 6 x 5
+##   term        estimate std.error statistic  p.value
+##   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+## 1 (Intercept)   8.10       0.206    39.3   2.01e-83
+## 2 extra        -0.414      0.229    -1.81  7.21e- 2
+## 3 neuro         0.0598     0.227     0.263 7.93e- 1
+## 4 agree         0.102      0.211     0.483 6.30e- 1
+## 5 cons         -0.489      0.213    -2.30  2.30e- 2
+## 6 open         -0.0308     0.212    -0.145 8.85e- 1</code></pre>
+</div>
+<div id="fazit-1" class="section level2" number="7.5">
+<h2><span class="header-section-number">7.5</span> Fazit</h2>
+<p>Diese Art der Darstellung ist wissenschaftlich gut geeignet, verlangt aber höhere Fachkentnisse von den Betrachtis.</p>
+</div>
+</div>
+<div id="finale-visualisierungen" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Finale Visualisierungen</h1>
+<div id="piktogramm" class="section level2" number="8.1">
+<h2><span class="header-section-number">8.1</span> Piktogramm</h2>
+<pre class="r"><code>p_final1</code></pre>
+<p><img src="unnamed-chunk-67-1.png" width="100%" /></p>
+</div>
+<div id="beta-diagramm" class="section level2" number="8.2">
+<h2><span class="header-section-number">8.2</span> Beta-Diagramm</h2>
+<pre class="r"><code>p_final2</code></pre>
+<p><img src="unnamed-chunk-68-1.png" width="100%" /></p>
+<p>```</p>
+</div>
+</div>

@@ -1,0 +1,469 @@
+---
+title: Testing if return value is in tolerance
+author: Sebastian Sauer
+date: '2023-12-13'
+slug: test-if-return-value-is-in-tolerance2
+categories:
+  - rstats
+tags:
+  - simulation
+  - Bayes
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages" id="toc-load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#motivation" id="toc-motivation"><span class="toc-section-number">2</span> Motivation</a></li>
+<li><a href="#but-in-practice-how-large-is-the-difference" id="toc-but-in-practice-how-large-is-the-difference"><span class="toc-section-number">3</span> But in practice, how large is the difference?</a></li>
+<li><a href="#check-if-in-tolerance-region" id="toc-check-if-in-tolerance-region"><span class="toc-section-number">4</span> Check if in tolerance region</a>
+<ul>
+<li><a href="#b0" id="toc-b0"><span class="toc-section-number">4.1</span> b0</a></li>
+<li><a href="#b1" id="toc-b1"><span class="toc-section-number">4.2</span> b1</a></li>
+<li><a href="#r2" id="toc-r2"><span class="toc-section-number">4.3</span> R2</a></li>
+<li><a href="#count" id="toc-count"><span class="toc-section-number">4.4</span> Count</a></li>
+</ul></li>
+<li><a href="#check-variability" id="toc-check-variability"><span class="toc-section-number">5</span> Check variability</a></li>
+<li><a href="#conclusions" id="toc-conclusions"><span class="toc-section-number">6</span> Conclusions</a></li>
+<li><a href="#reproducibility" id="toc-reproducibility"><span class="toc-section-number">7</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(prada)  # function &quot;is_in_tolerance`
+library(rstanarm)  # Bayes regression
+library(easystats)  # R2 etc
+library(DataExplorer)  # data vis
+library(tictoc)</code></pre>
+</div>
+<div id="motivation" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Motivation</h1>
+<p>Bayes models (using MCMC) build on drawing random numbers.
+By their very nature, random numbers are random.
+Unless they are not.
+As you may know, the random number fuctions in computers are purely deterministic.</p>
+<p>However, in practice, some inpredictable behavior may still show up.
+The reason being simply that two computational environment must - in theory - being exactly identical in order to reproduce the same results.
+At least identical in every bit that influence random number generation.</p>
+<p>In fact, <a href="https://mc-stan.org/docs/reference-manual/reproducibility.html">the manual of STAN appears to advise us not to place too much believe in the reproducibility of the random numbers</a>:</p>
+<hr />
+<p>Stan results will only be exactly reproducible if all of the following components are identical:</p>
+<ul>
+<li>Stan version</li>
+<li>tan interface (RStan, PyStan, CmdStan) and version, plus version of interface language (R, Python, shell)</li>
+<li>versions of included libraries (Boost and Eigen)</li>
+<li>operating system version</li>
+<li>computer hardware including CPU, motherboard and memory</li>
+<li>C++ compiler, including version, compiler flags, and linked libraries
+same configuration of call to Stan, including random seed, chain ID, initialization and data</li>
+</ul>
+<hr />
+</div>
+<div id="but-in-practice-how-large-is-the-difference" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> But in practice, how large is the difference?</h1>
+<p>Okay, let’s try to find out the degree of difference to be expected in the process of drawing random numbers.</p>
+<p>As a first step, let’s run many regressions and analyze the variance of the results.</p>
+<p>Here’s a simple regression with the seed fixed.
+Please see below for the spec of my machine.</p>
+<pre class="r"><code>reference_model &lt;- rstanarm::stan_glm(mpg ~ hp, 
+                         data = mtcars, 
+                         seed = 42,
+                         refresh = 0)
+coef(reference_model)
+#&gt; (Intercept)          hp 
+#&gt; 30.11668130 -0.06820988</code></pre>
+<p>And now the same model but without fixing the seed.</p>
+<pre class="r"><code>out &lt;-
+  tibble(id = integer(),
+         b0 = numeric(),
+         b1 = numeric(),
+         r2 = numeric()
+  )
+
+n &lt;- 10^2</code></pre>
+<pre class="r"><code>tic()
+for (i in 1:n) {
+  stan_mod &lt;- rstanarm::stan_glm(mpg ~ hp, 
+                         data = mtcars,
+                         refresh = 0)
+  mod_results &lt;- 
+    tibble(id = i,
+           b0 = coef(stan_mod)[1],
+           b1 = coef(stan_mod)[2],
+           r2 = performance::r2(stan_mod)$R2_Bayes
+    )
+  out &lt;- rbind(out, mod_results)
+  
+  print(glue::glue(&quot;i: {i}, b0: {round(coef(stan_mod)[1], 3)}, b1: {round(coef(stan_mod)[2], 3)}, r2: {round(mod_results$r2\n, 3)}&quot;))
+}
+#&gt; i: 1, b0: 30.083, b1: -0.068, r2: 0.588
+#&gt; i: 2, b0: 30.057, b1: -0.068, r2: 0.587
+#&gt; i: 3, b0: 30.063, b1: -0.068, r2: 0.585
+#&gt; i: 4, b0: 30.038, b1: -0.068, r2: 0.585
+#&gt; i: 5, b0: 30.058, b1: -0.068, r2: 0.584
+#&gt; i: 6, b0: 30.064, b1: -0.068, r2: 0.585
+#&gt; i: 7, b0: 30.108, b1: -0.068, r2: 0.586
+#&gt; i: 8, b0: 30.057, b1: -0.068, r2: 0.583
+#&gt; i: 9, b0: 30.061, b1: -0.068, r2: 0.588
+#&gt; i: 10, b0: 30.097, b1: -0.068, r2: 0.587
+#&gt; i: 11, b0: 30.1, b1: -0.068, r2: 0.588
+#&gt; i: 12, b0: 30.088, b1: -0.068, r2: 0.583
+#&gt; i: 13, b0: 30.083, b1: -0.068, r2: 0.588
+#&gt; i: 14, b0: 30.088, b1: -0.068, r2: 0.587
+#&gt; i: 15, b0: 30.022, b1: -0.068, r2: 0.584
+#&gt; i: 16, b0: 30.085, b1: -0.068, r2: 0.584
+#&gt; i: 17, b0: 30.046, b1: -0.068, r2: 0.587
+#&gt; i: 18, b0: 30.071, b1: -0.068, r2: 0.584
+#&gt; i: 19, b0: 30.136, b1: -0.068, r2: 0.589
+#&gt; i: 20, b0: 30.034, b1: -0.068, r2: 0.582
+#&gt; i: 21, b0: 30.016, b1: -0.068, r2: 0.588
+#&gt; i: 22, b0: 30.073, b1: -0.068, r2: 0.588
+#&gt; i: 23, b0: 30.147, b1: -0.068, r2: 0.587
+#&gt; i: 24, b0: 30.071, b1: -0.068, r2: 0.588
+#&gt; i: 25, b0: 30.077, b1: -0.068, r2: 0.59
+#&gt; i: 26, b0: 30.034, b1: -0.068, r2: 0.587
+#&gt; i: 27, b0: 30.065, b1: -0.068, r2: 0.585
+#&gt; i: 28, b0: 30.061, b1: -0.068, r2: 0.585
+#&gt; i: 29, b0: 30.049, b1: -0.068, r2: 0.586
+#&gt; i: 30, b0: 30.127, b1: -0.068, r2: 0.586
+#&gt; i: 31, b0: 30.078, b1: -0.068, r2: 0.583
+#&gt; i: 32, b0: 30.108, b1: -0.068, r2: 0.587
+#&gt; i: 33, b0: 30.067, b1: -0.068, r2: 0.586
+#&gt; i: 34, b0: 30.086, b1: -0.068, r2: 0.587
+#&gt; i: 35, b0: 30.101, b1: -0.068, r2: 0.589
+#&gt; i: 36, b0: 30.042, b1: -0.068, r2: 0.588
+#&gt; i: 37, b0: 30.024, b1: -0.068, r2: 0.584
+#&gt; i: 38, b0: 30.146, b1: -0.068, r2: 0.588
+#&gt; i: 39, b0: 30.089, b1: -0.068, r2: 0.585
+#&gt; i: 40, b0: 30.147, b1: -0.069, r2: 0.589
+#&gt; i: 41, b0: 30.089, b1: -0.068, r2: 0.587
+#&gt; i: 42, b0: 30.066, b1: -0.068, r2: 0.585
+#&gt; i: 43, b0: 30.064, b1: -0.068, r2: 0.584
+#&gt; i: 44, b0: 30.139, b1: -0.069, r2: 0.588
+#&gt; i: 45, b0: 30.075, b1: -0.068, r2: 0.589
+#&gt; i: 46, b0: 30.065, b1: -0.068, r2: 0.59
+#&gt; i: 47, b0: 30.088, b1: -0.068, r2: 0.586
+#&gt; i: 48, b0: 30.051, b1: -0.068, r2: 0.586
+#&gt; i: 49, b0: 30.116, b1: -0.068, r2: 0.588
+#&gt; i: 50, b0: 30.101, b1: -0.068, r2: 0.588
+#&gt; i: 51, b0: 30.107, b1: -0.068, r2: 0.584
+#&gt; i: 52, b0: 30.093, b1: -0.068, r2: 0.585
+#&gt; i: 53, b0: 30.088, b1: -0.068, r2: 0.585
+#&gt; i: 54, b0: 30.062, b1: -0.068, r2: 0.587
+#&gt; i: 55, b0: 30.068, b1: -0.068, r2: 0.587
+#&gt; i: 56, b0: 30.067, b1: -0.068, r2: 0.586
+#&gt; i: 57, b0: 30.045, b1: -0.068, r2: 0.586
+#&gt; i: 58, b0: 30.038, b1: -0.068, r2: 0.585
+#&gt; i: 59, b0: 30.131, b1: -0.068, r2: 0.589
+#&gt; i: 60, b0: 30.089, b1: -0.068, r2: 0.588
+#&gt; i: 61, b0: 30.075, b1: -0.068, r2: 0.584
+#&gt; i: 62, b0: 30.06, b1: -0.068, r2: 0.583
+#&gt; i: 63, b0: 30.139, b1: -0.068, r2: 0.59
+#&gt; i: 64, b0: 30.074, b1: -0.068, r2: 0.584
+#&gt; i: 65, b0: 30.094, b1: -0.068, r2: 0.587
+#&gt; i: 66, b0: 30.028, b1: -0.068, r2: 0.587
+#&gt; i: 67, b0: 30.102, b1: -0.068, r2: 0.587
+#&gt; i: 68, b0: 30.043, b1: -0.068, r2: 0.586
+#&gt; i: 69, b0: 30.032, b1: -0.068, r2: 0.583
+#&gt; i: 70, b0: 30.088, b1: -0.068, r2: 0.587
+#&gt; i: 71, b0: 30.081, b1: -0.068, r2: 0.588
+#&gt; i: 72, b0: 30.103, b1: -0.068, r2: 0.589
+#&gt; i: 73, b0: 30.098, b1: -0.068, r2: 0.588
+#&gt; i: 74, b0: 30.108, b1: -0.068, r2: 0.589
+#&gt; i: 75, b0: 30.096, b1: -0.068, r2: 0.586
+#&gt; i: 76, b0: 30.104, b1: -0.068, r2: 0.584
+#&gt; i: 77, b0: 30.067, b1: -0.068, r2: 0.585
+#&gt; i: 78, b0: 30.092, b1: -0.068, r2: 0.588
+#&gt; i: 79, b0: 30.086, b1: -0.068, r2: 0.584
+#&gt; i: 80, b0: 30.04, b1: -0.068, r2: 0.586
+#&gt; i: 81, b0: 30.069, b1: -0.068, r2: 0.587
+#&gt; i: 82, b0: 30.128, b1: -0.068, r2: 0.587
+#&gt; i: 83, b0: 30.091, b1: -0.068, r2: 0.586
+#&gt; i: 84, b0: 30.114, b1: -0.068, r2: 0.586
+#&gt; i: 85, b0: 30.084, b1: -0.068, r2: 0.586
+#&gt; i: 86, b0: 30.049, b1: -0.068, r2: 0.585
+#&gt; i: 87, b0: 30.095, b1: -0.068, r2: 0.586
+#&gt; i: 88, b0: 30.012, b1: -0.068, r2: 0.586
+#&gt; i: 89, b0: 30.066, b1: -0.068, r2: 0.587
+#&gt; i: 90, b0: 30.063, b1: -0.068, r2: 0.587
+#&gt; i: 91, b0: 30.034, b1: -0.068, r2: 0.583
+#&gt; i: 92, b0: 30.13, b1: -0.068, r2: 0.585
+#&gt; i: 93, b0: 30.043, b1: -0.068, r2: 0.585
+#&gt; i: 94, b0: 30.033, b1: -0.068, r2: 0.583
+#&gt; i: 95, b0: 30.098, b1: -0.068, r2: 0.586
+#&gt; i: 96, b0: 30.07, b1: -0.068, r2: 0.586
+#&gt; i: 97, b0: 30.082, b1: -0.068, r2: 0.585
+#&gt; i: 98, b0: 30.03, b1: -0.068, r2: 0.585
+#&gt; i: 99, b0: 30.046, b1: -0.068, r2: 0.585
+#&gt; i: 100, b0: 30.051, b1: -0.068, r2: 0.585
+toc()
+#&gt; 71.804 sec elapsed</code></pre>
+</div>
+<div id="check-if-in-tolerance-region" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Check if in tolerance region</h1>
+<p>Let’s define the region of tolerance such that:</p>
+<pre class="r"><code>tol_rel &lt;- .05
+tol_abs &lt;- tol_rel</code></pre>
+<p>Check for first value manually:</p>
+<pre class="r"><code>is_in_tolerance(asis = out$b0[1],
+                tobe = coef(reference_model)[1],
+                tol_rel = .05,
+                tol_abs = .05 * sd(mtcars$mpg))
+#&gt; [1] TRUE</code></pre>
+<p>Okay, now check in a loop all values.</p>
+<div id="b0" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> b0</h2>
+<pre class="r"><code>out &lt;- 
+out |&gt; 
+  mutate(b0_in_tolerance = map_lgl(b0, ~ is_in_tolerance(asis = .x,
+                                               tobe = coef(reference_model)[1],
+                                               tol_rel = tol_rel,
+                                               tol_abs = tol_rel * sd(mtcars$mpg))),
+         b0_diff_abs = coef(reference_model)[1] - b0,
+         b0_diff_rel = b0_diff_abs / coef(reference_model)[1])</code></pre>
+</div>
+<div id="b1" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> b1</h2>
+<pre class="r"><code>out &lt;- 
+out |&gt; 
+  mutate(b1_in_tolerance = map_lgl(b1, ~ is_in_tolerance(asis = .x,
+                                               tobe = coef(reference_model)[2],
+                                               tol_rel = tol_rel,
+                                               tol_abs = tol_rel * sd(mtcars$mpg))),
+         b1_diff_abs = coef(reference_model)[2] - b1,
+         b1_diff_rel = b1_diff_abs / coef(reference_model)[2])</code></pre>
+</div>
+<div id="r2" class="section level2" number="4.3">
+<h2><span class="header-section-number">4.3</span> R2</h2>
+<pre class="r"><code>out &lt;- 
+out |&gt; 
+  mutate(r2_in_tolerance = map_lgl(r2, ~ is_in_tolerance(asis = .x,
+                                               tobe = r2(reference_model)$R2_Bayes,
+                                               tol_rel = tol_rel,
+                                               tol_abs = tol_rel)),
+         r2_diff_abs = r2(reference_model)$R2_Bayes - r2,
+         r2_diff_rel = r2_diff_abs / coef(reference_model)[2])</code></pre>
+</div>
+<div id="count" class="section level2" number="4.4">
+<h2><span class="header-section-number">4.4</span> Count</h2>
+<pre class="r"><code>count(out, b0_in_tolerance)
+#&gt; # A tibble: 1 × 2
+#&gt;   b0_in_tolerance     n
+#&gt;   &lt;lgl&gt;           &lt;int&gt;
+#&gt; 1 TRUE              100
+count(out, b1_in_tolerance)
+#&gt; # A tibble: 1 × 2
+#&gt;   b1_in_tolerance     n
+#&gt;   &lt;lgl&gt;           &lt;int&gt;
+#&gt; 1 TRUE              100
+count(out, r2_in_tolerance)
+#&gt; # A tibble: 1 × 2
+#&gt;   r2_in_tolerance     n
+#&gt;   &lt;lgl&gt;           &lt;int&gt;
+#&gt; 1 TRUE              100</code></pre>
+</div>
+</div>
+<div id="check-variability" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Check variability</h1>
+<pre class="r"><code>out |&gt; 
+  select(-id) |&gt; 
+  describe_distribution(range = TRUE) 
+#&gt; Variable    |      Mean |       SD |      IQR |                 Range | Skewness | Kurtosis |   n | n_Missing
+#&gt; -------------------------------------------------------------------------------------------------------------
+#&gt; b0          |     30.08 |     0.03 |     0.04 |        [30.01, 30.15] |     0.25 |    -0.32 | 100 |         0
+#&gt; b1          |     -0.07 | 1.97e-04 | 2.51e-04 |        [-0.07, -0.07] |    -0.60 |     0.19 | 100 |         0
+#&gt; r2          |      0.59 | 1.81e-03 | 2.86e-03 |          [0.58, 0.59] |    -0.04 |    -0.53 | 100 |         0
+#&gt; b0_diff_abs |      0.04 |     0.03 |     0.04 |         [-0.03, 0.10] |    -0.25 |    -0.32 | 100 |         0
+#&gt; b0_diff_rel |  1.32e-03 | 1.04e-03 | 1.33e-03 | [-1.02e-03, 3.48e-03] |    -0.25 |    -0.32 | 100 |         0
+#&gt; b1_diff_abs | -1.31e-04 | 1.97e-04 | 2.51e-04 | [-4.79e-04, 4.98e-04] |     0.60 |     0.19 | 100 |         0
+#&gt; b1_diff_rel |  1.93e-03 | 2.89e-03 | 3.67e-03 | [-7.31e-03, 7.02e-03] |    -0.60 |     0.19 | 100 |         0
+#&gt; r2_diff_abs | -2.71e-04 | 1.81e-03 | 2.86e-03 | [-4.53e-03, 3.92e-03] |     0.04 |    -0.53 | 100 |         0
+#&gt; r2_diff_rel |  3.97e-03 |     0.03 |     0.04 |         [-0.06, 0.07] |    -0.04 |    -0.53 | 100 |         0</code></pre>
+<p>In comparison, the SD of the y-variable (<code>mpg</code>) is:</p>
+<pre class="r"><code>describe_distribution(mtcars |&gt; select(mpg))
+#&gt; Variable |  Mean |   SD |  IQR |          Range | Skewness | Kurtosis |  n | n_Missing
+#&gt; --------------------------------------------------------------------------------------
+#&gt; mpg      | 20.09 | 6.03 | 7.53 | [10.40, 33.90] |     0.67 |    -0.02 | 32 |         0</code></pre>
+<pre class="r"><code>plot_density(out |&gt; select(-id))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="conclusions" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Conclusions</h1>
+<p>The <em>relative</em> deviations of the coefficients from the reference model are in the domaine of <span class="math inline">\(10^{-3}\)</span>.
+Hence, setting the maximum deviation to <span class="math inline">\(10-^{2}\)</span> should be save.</p>
+</div>
+<div id="reproducibility" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value
+#&gt;  version  R version 4.2.1 (2022-06-23)
+#&gt;  os       macOS Big Sur ... 10.16
+#&gt;  system   x86_64, darwin17.0
+#&gt;  ui       X11
+#&gt;  language (EN)
+#&gt;  collate  en_US.UTF-8
+#&gt;  ctype    en_US.UTF-8
+#&gt;  tz       Europe/Berlin
+#&gt;  date     2023-12-13
+#&gt;  pandoc   3.1.1 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/ (via rmarkdown)
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package        * version  date (UTC) lib source
+#&gt;  abind            1.4-5    2016-07-21 [1] CRAN (R 4.2.0)
+#&gt;  backports        1.4.1    2021-12-13 [1] CRAN (R 4.2.0)
+#&gt;  base64enc        0.1-3    2015-07-28 [1] CRAN (R 4.2.0)
+#&gt;  bayesplot        1.10.0   2022-11-16 [1] CRAN (R 4.2.0)
+#&gt;  bayestestR     * 0.13.1   2023-04-07 [1] CRAN (R 4.2.0)
+#&gt;  blogdown         1.18     2023-06-19 [1] CRAN (R 4.2.0)
+#&gt;  bookdown         0.36     2023-10-16 [1] CRAN (R 4.2.0)
+#&gt;  boot             1.3-28.1 2022-11-22 [1] CRAN (R 4.2.0)
+#&gt;  bslib            0.5.1    2023-08-11 [1] CRAN (R 4.2.0)
+#&gt;  cachem           1.0.8    2023-05-01 [1] CRAN (R 4.2.0)
+#&gt;  callr            3.7.3    2022-11-02 [1] CRAN (R 4.2.0)
+#&gt;  checkmate        2.2.0    2023-04-27 [1] CRAN (R 4.2.0)
+#&gt;  cli              3.6.1    2023-03-23 [1] CRAN (R 4.2.0)
+#&gt;  coda             0.19-4   2020-09-30 [1] CRAN (R 4.2.0)
+#&gt;  codetools        0.2-19   2023-02-01 [1] CRAN (R 4.2.0)
+#&gt;  colorout       * 1.3-0    2023-11-08 [1] Github (jalvesaq/colorout@8384882)
+#&gt;  colorspace       2.1-0    2023-01-23 [1] CRAN (R 4.2.0)
+#&gt;  colourpicker     1.3.0    2023-08-21 [1] CRAN (R 4.2.0)
+#&gt;  correlation    * 0.8.4    2023-04-06 [1] CRAN (R 4.2.1)
+#&gt;  crayon           1.5.2    2022-09-29 [1] CRAN (R 4.2.1)
+#&gt;  crosstalk        1.2.1    2023-11-23 [1] CRAN (R 4.2.1)
+#&gt;  curl             5.1.0    2023-10-02 [1] CRAN (R 4.2.0)
+#&gt;  data.table       1.14.8   2023-02-17 [1] CRAN (R 4.2.0)
+#&gt;  DataExplorer   * 0.8.2    2020-12-15 [1] CRAN (R 4.2.0)
+#&gt;  datawizard     * 0.9.0    2023-09-15 [1] CRAN (R 4.2.0)
+#&gt;  devtools         2.4.5    2022-10-11 [1] CRAN (R 4.2.1)
+#&gt;  digest           0.6.33   2023-07-07 [1] CRAN (R 4.2.0)
+#&gt;  distributional   0.3.2    2023-03-22 [1] CRAN (R 4.2.0)
+#&gt;  dplyr          * 1.1.3    2023-09-03 [1] CRAN (R 4.2.0)
+#&gt;  DT               0.30     2023-10-05 [1] CRAN (R 4.2.0)
+#&gt;  dygraphs         1.1.1.6  2018-07-11 [1] CRAN (R 4.2.0)
+#&gt;  easystats      * 0.7.0    2023-11-05 [1] CRAN (R 4.2.1)
+#&gt;  effectsize     * 0.8.6    2023-09-14 [1] CRAN (R 4.2.0)
+#&gt;  ellipsis         0.3.2    2021-04-29 [1] CRAN (R 4.2.0)
+#&gt;  emmeans          1.8.9    2023-10-17 [1] CRAN (R 4.2.0)
+#&gt;  estimability     1.4.1    2022-08-05 [1] CRAN (R 4.2.0)
+#&gt;  evaluate         0.21     2023-05-05 [1] CRAN (R 4.2.0)
+#&gt;  fansi            1.0.5    2023-10-08 [1] CRAN (R 4.2.0)
+#&gt;  farver           2.1.1    2022-07-06 [1] CRAN (R 4.2.0)
+#&gt;  fastmap          1.1.1    2023-02-24 [1] CRAN (R 4.2.0)
+#&gt;  forcats        * 1.0.0    2023-01-29 [1] CRAN (R 4.2.0)
+#&gt;  fs               1.6.3    2023-07-20 [1] CRAN (R 4.2.0)
+#&gt;  generics         0.1.3    2022-07-05 [1] CRAN (R 4.2.0)
+#&gt;  ggplot2        * 3.4.4    2023-10-12 [1] CRAN (R 4.2.0)
+#&gt;  glue             1.6.2    2022-02-24 [1] CRAN (R 4.2.0)
+#&gt;  gridExtra        2.3      2017-09-09 [1] CRAN (R 4.2.0)
+#&gt;  gtable           0.3.4    2023-08-21 [1] CRAN (R 4.2.0)
+#&gt;  gtools           3.9.4    2022-11-27 [1] CRAN (R 4.2.0)
+#&gt;  highr            0.10     2022-12-22 [1] CRAN (R 4.2.0)
+#&gt;  hms              1.1.3    2023-03-21 [1] CRAN (R 4.2.0)
+#&gt;  htmltools        0.5.6.1  2023-10-06 [1] CRAN (R 4.2.0)
+#&gt;  htmlwidgets      1.6.2    2023-03-17 [1] CRAN (R 4.2.0)
+#&gt;  httpuv           1.6.11   2023-05-11 [1] CRAN (R 4.2.0)
+#&gt;  igraph           1.5.1    2023-08-10 [1] CRAN (R 4.2.0)
+#&gt;  inline           0.3.19   2021-05-31 [1] CRAN (R 4.2.0)
+#&gt;  insight        * 0.19.7   2023-11-26 [1] CRAN (R 4.2.1)
+#&gt;  jquerylib        0.1.4    2021-04-26 [1] CRAN (R 4.2.0)
+#&gt;  jsonlite         1.8.7    2023-06-29 [1] CRAN (R 4.2.0)
+#&gt;  knitr            1.45     2023-10-30 [1] CRAN (R 4.2.1)
+#&gt;  labeling         0.4.3    2023-08-29 [1] CRAN (R 4.2.0)
+#&gt;  later            1.3.1    2023-05-02 [1] CRAN (R 4.2.0)
+#&gt;  lattice          0.21-8   2023-04-05 [1] CRAN (R 4.2.0)
+#&gt;  lifecycle        1.0.4    2023-11-07 [1] CRAN (R 4.2.1)
+#&gt;  lme4             1.1-34   2023-07-04 [1] CRAN (R 4.2.0)
+#&gt;  loo              2.6.0    2023-03-31 [1] CRAN (R 4.2.0)
+#&gt;  lubridate      * 1.9.3    2023-09-27 [1] CRAN (R 4.2.0)
+#&gt;  magrittr         2.0.3    2022-03-30 [1] CRAN (R 4.2.0)
+#&gt;  markdown         1.11     2023-10-19 [1] CRAN (R 4.2.0)
+#&gt;  MASS             7.3-60   2023-05-04 [1] CRAN (R 4.2.0)
+#&gt;  Matrix           1.5-4.1  2023-05-18 [1] CRAN (R 4.2.0)
+#&gt;  matrixStats      0.63.0   2022-11-18 [1] CRAN (R 4.2.0)
+#&gt;  memoise          2.0.1    2021-11-26 [1] CRAN (R 4.2.0)
+#&gt;  mime             0.12     2021-09-28 [1] CRAN (R 4.2.0)
+#&gt;  miniUI           0.1.1.1  2018-05-18 [1] CRAN (R 4.2.0)
+#&gt;  minqa            1.2.5    2022-10-19 [1] CRAN (R 4.2.1)
+#&gt;  modelbased     * 0.8.6    2023-01-13 [1] CRAN (R 4.2.1)
+#&gt;  multcomp         1.4-25   2023-06-20 [1] CRAN (R 4.2.0)
+#&gt;  munsell          0.5.0    2018-06-12 [1] CRAN (R 4.2.0)
+#&gt;  mvtnorm          1.2-2    2023-06-08 [1] CRAN (R 4.2.0)
+#&gt;  networkD3        0.4      2017-03-18 [1] CRAN (R 4.2.0)
+#&gt;  nlme             3.1-162  2023-01-31 [1] CRAN (R 4.2.0)
+#&gt;  nloptr           2.0.3    2022-05-26 [1] CRAN (R 4.2.0)
+#&gt;  parameters     * 0.21.3   2023-11-02 [1] CRAN (R 4.2.1)
+#&gt;  performance    * 0.10.8   2023-10-30 [1] CRAN (R 4.2.1)
+#&gt;  pillar           1.9.0    2023-03-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgbuild         1.4.0    2022-11-27 [1] CRAN (R 4.2.0)
+#&gt;  pkgconfig        2.0.3    2019-09-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgload          1.3.2.1  2023-07-08 [1] CRAN (R 4.2.0)
+#&gt;  plyr             1.8.8    2022-11-11 [1] CRAN (R 4.2.0)
+#&gt;  png              0.1-8    2022-11-29 [1] CRAN (R 4.2.0)
+#&gt;  posterior        1.5.0    2023-10-31 [1] CRAN (R 4.2.1)
+#&gt;  prada          * 0.2.2    2023-12-08 [1] local
+#&gt;  prettyunits      1.1.1    2020-01-24 [1] CRAN (R 4.2.0)
+#&gt;  processx         3.8.2    2023-06-30 [1] CRAN (R 4.2.0)
+#&gt;  profvis          0.3.8    2023-05-02 [1] CRAN (R 4.2.0)
+#&gt;  promises         1.2.1    2023-08-10 [1] CRAN (R 4.2.0)
+#&gt;  ps               1.7.5    2023-04-18 [1] CRAN (R 4.2.0)
+#&gt;  purrr          * 1.0.2    2023-08-10 [1] CRAN (R 4.2.0)
+#&gt;  QuickJSR         1.0.5    2023-09-03 [1] CRAN (R 4.2.0)
+#&gt;  R6               2.5.1    2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  Rcpp           * 1.0.11   2023-07-06 [1] CRAN (R 4.2.0)
+#&gt;  RcppParallel     5.1.7    2023-02-27 [1] CRAN (R 4.2.0)
+#&gt;  readr          * 2.1.4    2023-02-10 [1] CRAN (R 4.2.0)
+#&gt;  remotes          2.4.2.1  2023-07-18 [1] CRAN (R 4.2.0)
+#&gt;  report         * 0.5.8    2023-12-07 [1] CRAN (R 4.2.1)
+#&gt;  reshape2         1.4.4    2020-04-09 [1] CRAN (R 4.2.0)
+#&gt;  rlang            1.1.1    2023-04-28 [1] CRAN (R 4.2.0)
+#&gt;  rmarkdown        2.25     2023-09-18 [1] CRAN (R 4.2.0)
+#&gt;  rstan            2.32.3   2023-10-15 [1] CRAN (R 4.2.0)
+#&gt;  rstanarm       * 2.26.1   2023-09-13 [1] CRAN (R 4.2.0)
+#&gt;  rstantools       2.3.1.1  2023-07-18 [1] CRAN (R 4.2.0)
+#&gt;  rstudioapi       0.15.0   2023-07-07 [1] CRAN (R 4.2.0)
+#&gt;  sandwich         3.0-2    2022-06-15 [1] CRAN (R 4.2.0)
+#&gt;  sass             0.4.7    2023-07-15 [1] CRAN (R 4.2.0)
+#&gt;  scales           1.2.1    2022-08-20 [1] CRAN (R 4.2.0)
+#&gt;  see            * 0.8.1    2023-11-03 [1] CRAN (R 4.2.1)
+#&gt;  sessioninfo      1.2.2    2021-12-06 [1] CRAN (R 4.2.0)
+#&gt;  shiny            1.8.0    2023-11-17 [1] CRAN (R 4.2.1)
+#&gt;  shinyjs          2.1.0    2021-12-23 [1] CRAN (R 4.2.0)
+#&gt;  shinystan        2.6.0    2022-03-03 [1] CRAN (R 4.2.0)
+#&gt;  shinythemes      1.2.0    2021-01-25 [1] CRAN (R 4.2.0)
+#&gt;  StanHeaders      2.26.28  2023-09-07 [1] CRAN (R 4.2.0)
+#&gt;  stringi          1.7.12   2023-01-11 [1] CRAN (R 4.2.0)
+#&gt;  stringr        * 1.5.1    2023-11-14 [1] CRAN (R 4.2.1)
+#&gt;  survival         3.5-5    2023-03-12 [1] CRAN (R 4.2.0)
+#&gt;  tensorA          0.36.2   2020-11-19 [1] CRAN (R 4.2.0)
+#&gt;  TH.data          1.1-2    2023-04-17 [1] CRAN (R 4.2.0)
+#&gt;  threejs          0.3.3    2020-01-21 [1] CRAN (R 4.2.0)
+#&gt;  tibble         * 3.2.1    2023-03-20 [1] CRAN (R 4.2.0)
+#&gt;  tictoc         * 1.2      2023-04-23 [1] CRAN (R 4.2.0)
+#&gt;  tidyr          * 1.3.0    2023-01-24 [1] CRAN (R 4.2.0)
+#&gt;  tidyselect       1.2.0    2022-10-10 [1] CRAN (R 4.2.0)
+#&gt;  tidyverse      * 2.0.0    2023-02-22 [1] CRAN (R 4.2.0)
+#&gt;  timechange       0.2.0    2023-01-11 [1] CRAN (R 4.2.0)
+#&gt;  tzdb             0.4.0    2023-05-12 [1] CRAN (R 4.2.0)
+#&gt;  urlchecker       1.0.1    2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  usethis          2.2.2    2023-07-06 [1] CRAN (R 4.2.0)
+#&gt;  utf8             1.2.3    2023-01-31 [1] CRAN (R 4.2.0)
+#&gt;  V8               4.4.0    2023-10-09 [1] CRAN (R 4.2.0)
+#&gt;  vctrs            0.6.4    2023-10-12 [1] CRAN (R 4.2.0)
+#&gt;  withr            2.5.2    2023-10-30 [1] CRAN (R 4.2.1)
+#&gt;  xfun             0.40     2023-08-09 [1] CRAN (R 4.2.0)
+#&gt;  xtable           1.8-4    2019-04-21 [1] CRAN (R 4.2.0)
+#&gt;  xts              0.13.1   2023-04-16 [1] CRAN (R 4.2.0)
+#&gt;  yaml             2.3.7    2023-01-23 [1] CRAN (R 4.2.0)
+#&gt;  zoo              1.8-12   2023-04-13 [1] CRAN (R 4.2.0)
+#&gt; 
+#&gt;  [1] /Users/sebastiansaueruser/Rlibs
+#&gt;  [2] /Library/Frameworks/R.framework/Versions/4.2/Resources/library
+#&gt; 
+#&gt; ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>

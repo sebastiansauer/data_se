@@ -1,0 +1,382 @@
+---
+title: Estimating population effect size, some thoughts
+author: Sebastian Sauer
+date: '2021-03-04'
+slug: estimating-population-effect-size-some-thoughts
+categories:
+  - rstats
+tags:
+  - simulation
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#motivation"><span class="toc-section-number">2</span> Motivation</a></li>
+<li><a href="#true-value-of-the-parameter"><span class="toc-section-number">3</span> True value of the parameter</a></li>
+<li><a href="#drawing-samples"><span class="toc-section-number">4</span> Drawing samples</a></li>
+<li><a href="#define-some-constants"><span class="toc-section-number">5</span> Define some constants</a></li>
+<li><a href="#simulating-samples"><span class="toc-section-number">6</span> Simulating samples</a>
+<ul>
+<li><a href="#summayfunction-to-compute-sample-statistics"><span class="toc-section-number">6.1</span> SummayFunction to compute sample statistics</a></li>
+<li><a href="#run-the-function-multiple-k-times"><span class="toc-section-number">6.2</span> Run the function multiple (<span class="math inline">\(k\)</span>) times</a></li>
+<li><a href="#run-the-summary-function-k-times-for-all-sample-sizes"><span class="toc-section-number">6.3</span> Run the summary function <span class="math inline">\(k\)</span> times for all sample sizes</a></li>
+</ul></li>
+<li><a href="#plot-the-results"><span class="toc-section-number">7</span> Plot the results</a>
+<ul>
+<li><a href="#estimated-population-mean"><span class="toc-section-number">7.1</span> Estimated population mean</a></li>
+<li><a href="#width-of-the-ci"><span class="toc-section-number">7.2</span> Width of the CI</a></li>
+</ul></li>
+<li><a href="#summarise-the-results"><span class="toc-section-number">8</span> Summarise the results</a>
+<ul>
+<li><a href="#compute-summaries-per-sample-size"><span class="toc-section-number">8.1</span> Compute summaries per sample size</a></li>
+<li><a href="#plot-the-summarized-results"><span class="toc-section-number">8.2</span> Plot the (summarized) results</a></li>
+</ul></li>
+<li><a href="#conclusions"><span class="toc-section-number">9</span> Conclusions</a>
+<ul>
+<li><a href="#small-sample-may-suffice"><span class="toc-section-number">9.1</span> Small sample may suffice</a></li>
+<li><a href="#situations-in-which-small-samples-will-not-suffice"><span class="toc-section-number">9.2</span> Situations in which small samples will not suffice</a></li>
+</ul></li>
+<li><a href="#reproducibility"><span class="toc-section-number">10</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling</code></pre>
+</div>
+<div id="motivation" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Motivation</h1>
+<p>In some sense, science is about estimating the effect sizes in a population, such as <span class="math inline">\(\mu\)</span>. In the most basic form, perhaps, the question is nothing more than whether <span class="math inline">\(\mu=0\)</span> or not.</p>
+<p>Given a population of limited size, we might be tempted to say, let’s measure all instances (such as individuals) of the population to come up wit the “real” <span class="math inline">\(\mu\)</span>. For concreteness, the population might consist of parts produced by some machine, or papers written by some scientists, which is the same for the question we are looking at now.</p>
+<p>In this post, we will simulate the effect of sample sizes on population parameter estimates, in particular <span class="math inline">\(\mu\)</span>, but without of loss of generality, this applies to other type of population parameter in the same way. Of note, effect sizes can be converted from one to one other, such as <span class="math inline">\(r, OR, SMD, RR\)</span>, and the like.</p>
+</div>
+<div id="true-value-of-the-parameter" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> True value of the parameter</h1>
+<p>Let’s decide on the true population parameter value. I argue that it is impossible, or at least unlikely, that the absolute value of this parameter is large. It it were large, we had no doubts about it. For instance, the effect size of water in the face of thirst is large. The effect of parachutes on falling speed is large. No need for estimating population parameter values.</p>
+<p>For the sake of concreteness, I will speak of the “effectiveness of some medical intervention” in the following when I refer to the parameter value of <span class="math inline">\(\mu\)</span>.</p>
+<p>On the other hand, if the value of the parameter is not large (in absolute terms), we arrive at the question whether the value is zero or not. I doubt that more precise values can be estimated in most practical cases. For example, to be confident that <span class="math inline">\(\mu=0.42\)</span> rather than <span class="math inline">\(\mu=0.271\)</span> (in SMD units) is beyond hope given the large amount of uncertainty we face even (or particularly) in modern science.</p>
+<p>Hence, let’s assume that <span class="math inline">\(\mu=0.5\)</span> in the following. For the sake of simplicity, I will assume that the parameter under investigation is normally distributed. However, more ink could (and should) be spilled on this question.</p>
+<pre class="r"><code>mu &lt;- 0.5</code></pre>
+<p>As I think the uncertainty is large, we must allow for a relatively large standard deviation of the distribution of effects. Some reasons why I think the uncertainty in our population parameter value is lage include: publication bias, researcher degrees of freedom, variety in protocols and operationalization, plain errors in the course of a study, trickiness of nature, and more.</p>
+<p>Hence, let’s take <span class="math inline">\(\sigma=.5\)</span>.</p>
+<pre class="r"><code>s &lt;- 0.5</code></pre>
+<p>In sum:</p>
+<p><span class="math display">\[\mu \sim \mathfreac{N}(0.5, 0.5)\]</span></p>
+<p>What is the probability to observere a sample value larger less than zero?</p>
+<pre class="r"><code>p0 &lt;- pnorm(q = 0, mean = 0.5, sd = .5) %&gt;% round(2)
+p0
+#&gt; [1] 0.16</code></pre>
+<p>In other words, we think that the probability that <span class="math inline">\(\mu \le 0\)</span> equals to 0.16; let’s call it <span class="math inline">\(p_0\)</span>.</p>
+<p>Given this model, we assume that the probability that the treatment is effective equals to <span class="math inline">\(p_1 = 1-p_0\)</span>, that is</p>
+<pre class="r"><code>p1 &lt;- 1 - p0
+p1
+#&gt; [1] 0.84</code></pre>
+<p>And so forth.</p>
+</div>
+<div id="drawing-samples" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Drawing samples</h1>
+<p>Let’s draw multiple sample for different samples sizes and see how precisely we will measure the (true) population value. Than we can plot the precision of the population value estimation as a function of the sample size. In other words, we conduct some kind of power analysis.</p>
+</div>
+<div id="define-some-constants" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Define some constants</h1>
+<p>Let’s define some auxiliary constants.</p>
+<p>We’ll draw <span class="math inline">\(k\)</span> sample of a given size:</p>
+<pre class="r"><code>k &lt;- 100</code></pre>
+<p>Let’s check sample sizes according to the log 2 sequence:</p>
+<pre class="r"><code>x &lt;- 1:15
+n &lt;- 2^x
+
+n
+#&gt;  [1]     2     4     8    16    32    64   128   256   512  1024  2048  4096
+#&gt; [13]  8192 16384 32768</code></pre>
+</div>
+<div id="simulating-samples" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Simulating samples</h1>
+<div id="summayfunction-to-compute-sample-statistics" class="section level2" number="6.1">
+<h2><span class="header-section-number">6.1</span> SummayFunction to compute sample statistics</h2>
+<pre class="r"><code>comp_sample_stats &lt;- function(sample_size,
+                              mu, 
+                              sigma) {
+  # draws sample and computes summary stats
+  
+  sample_temp &lt;- rnorm(n = sample_size, 
+                       mean = mu, 
+                       sd = sigma)
+  sample_mean &lt;- mean(sample_temp)
+  sample_sd &lt;- sd(sample_temp)
+  sample_se &lt;- sample_sd / sqrt(n)
+  sample_ci_u &lt;- sample_mean + 2 * sample_se
+  sample_ci_l &lt;- sample_mean - 2 * sample_se
+  mu_in_ci &lt;- (mu &gt; sample_ci_l) &amp; (mu &lt; sample_ci_u)
+  zero_in_ci &lt;- (sample_ci_l &lt; 0) &amp; (sample_ci_u &gt; 0)
+  
+  sample_stats &lt;- 
+    tibble(
+      avg = sample_mean,
+      stddev = sample_sd,
+      se = sample_se,
+      ci_u = sample_ci_u,
+      ci_l = sample_ci_l,
+      mu_in_ci = mu_in_ci,
+      zero_in_ci = zero_in_ci
+    )
+  
+  return(sample_stats)
+}</code></pre>
+</div>
+<div id="run-the-function-multiple-k-times" class="section level2" number="6.2">
+<h2><span class="header-section-number">6.2</span> Run the function multiple (<span class="math inline">\(k\)</span>) times</h2>
+<pre class="r"><code>
+# sample_size &lt;- 30  # delete me later!
+
+comp_sample_stats_many_samples &lt;-
+  function(sample_size,
+           mu, 
+           sigma,
+           k  # number of repetitions
+           ) {
+  # draws sample and computes summary stats
+  # for k multiples samples
+  # of a fixed sample size
+
+  many_samples_results &lt;-
+    1:k %&gt;% 
+    map_dfr( ~ comp_sample_stats(sample_size = sample_size,
+                             mu = mu,
+                             sigma = s),
+             .id = &quot;id&quot;) %&gt;% 
+    mutate(n = sample_size,
+           id = as.numeric(id))
+  
+  return(many_samples_results)
+  }</code></pre>
+</div>
+<div id="run-the-summary-function-k-times-for-all-sample-sizes" class="section level2" number="6.3">
+<h2><span class="header-section-number">6.3</span> Run the summary function <span class="math inline">\(k\)</span> times for all sample sizes</h2>
+<pre class="r"><code>simulated_samples &lt;-
+  n %&gt;% 
+  map_dfr( ~ comp_sample_stats_many_samples(
+    sample_size = .x,
+    mu = mu,
+    sigma = s,
+    k = k)) %&gt;% 
+    mutate(ci_width = ci_u - ci_l)</code></pre>
+</div>
+</div>
+<div id="plot-the-results" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Plot the results</h1>
+<p>Remeber that all results presented here hinge of the assumption stated above. In particular, we have simulated <span class="math inline">\(k = 100\)</span> samples.</p>
+<div id="estimated-population-mean" class="section level2" number="7.1">
+<h2><span class="header-section-number">7.1</span> Estimated population mean</h2>
+<pre class="r"><code>p1 &lt;- simulated_samples %&gt;% 
+  ggplot() +
+  aes(x = n, y = avg) +
+  geom_jitter(alpha = .03)
+
+p1</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>As can be seen, all sample sizes greater than small do precisely show the true parameter (<span class="math inline">\(mu=0.5\)</span>).</p>
+<p>Let’s zoom in.</p>
+<pre class="r"><code>p1 +
+  xlim(0, 1024)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="100%" style="display: block; margin: auto;" />
+And even closer:</p>
+<pre class="r"><code>p1 +
+  xlim(0, 256)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-12-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Larger sample sizes yield stable estimates, as seen above. But even the difference between <span class="math inline">\(n=128\)</span> and <span class="math inline">\(n=128\)</span> (<span class="math inline">\(2^7, 2^8\)</span>) appears negligible, from a practical point of view, given the large uncertainties associated with research study results in practice. Let’s remember that we should try to be more precise as it is possible (don’t estimate the age of the earth in seconds, rather in millions of years).</p>
+<p>It appears that a sample size of 128 or even 64 is sufficiently precise to estimate the population effect size.</p>
+</div>
+<div id="width-of-the-ci" class="section level2" number="7.2">
+<h2><span class="header-section-number">7.2</span> Width of the CI</h2>
+<pre class="r"><code>p2 &lt;- simulated_samples %&gt;% 
+  ggplot() +
+  aes(x = factor(n), y = ci_width) +
+  geom_boxplot(aes(group = n)) 
+
+p2</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-13-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Again, zoom in:</p>
+<pre class="r"><code>p3 &lt;- simulated_samples %&gt;% 
+  filter(n &lt;= 1024) %&gt;% 
+  ggplot() +
+  aes(x = factor(n), y = ci_width) +
+  geom_boxplot(aes(group = n)) 
+
+p3</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>We can see that the width of the CI remains constant after an initial stabilizing phase. So, at say, <span class="math inline">\(n=32\)</span> we already have stable width estimates.</p>
+</div>
+</div>
+<div id="summarise-the-results" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Summarise the results</h1>
+<div id="compute-summaries-per-sample-size" class="section level2" number="8.1">
+<h2><span class="header-section-number">8.1</span> Compute summaries per sample size</h2>
+<pre class="r"><code>simulated_samples_summarized &lt;- simulated_samples %&gt;% 
+  group_by(n)  %&gt;% 
+  summarise(across(
+    .cols = everything(),
+    .fn = list(avg = mean, sd = sd),
+    .names = &quot;{.col}_{.fn}&quot;))  
+
+glimpse(simulated_samples_summarized)
+#&gt; Rows: 15
+#&gt; Columns: 19
+#&gt; $ n              &lt;dbl&gt; 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8…
+#&gt; $ id_avg         &lt;dbl&gt; 50.5, 50.5, 50.5, 50.5, 50.5, 50.5, 50.5, 50.5, 50.5, 5…
+#&gt; $ id_sd          &lt;dbl&gt; 28.8757, 28.8757, 28.8757, 28.8757, 28.8757, 28.8757, 2…
+#&gt; $ avg_avg        &lt;dbl&gt; 0.4641198, 0.4601394, 0.5191425, 0.4979736, 0.5113036, …
+#&gt; $ avg_sd         &lt;dbl&gt; 0.403764406, 0.271859795, 0.182014436, 0.115415684, 0.0…
+#&gt; $ stddev_avg     &lt;dbl&gt; 0.3901300, 0.4498725, 0.4770262, 0.4808355, 0.4969101, …
+#&gt; $ stddev_sd      &lt;dbl&gt; 0.291619823, 0.170001687, 0.126538119, 0.086169598, 0.0…
+#&gt; $ se_avg         &lt;dbl&gt; 0.06244360, 0.07200590, 0.07635208, 0.07696179, 0.07953…
+#&gt; $ se_sd          &lt;dbl&gt; 0.1091820, 0.1011893, 0.1020481, 0.0999563, 0.1023639, …
+#&gt; $ ci_u_avg       &lt;dbl&gt; 0.5890070, 0.6041512, 0.6718467, 0.6518971, 0.6703729, …
+#&gt; $ ci_u_sd        &lt;dbl&gt; 0.4627397, 0.3363836, 0.2745602, 0.2309151, 0.2234326, …
+#&gt; $ ci_l_avg       &lt;dbl&gt; 0.3392326, 0.3161276, 0.3664384, 0.3440500, 0.3522342, …
+#&gt; $ ci_l_sd        &lt;dbl&gt; 0.4552902, 0.3414320, 0.2723706, 0.2307593, 0.2240294, …
+#&gt; $ mu_in_ci_avg   &lt;dbl&gt; 0.2066667, 0.3120000, 0.3833333, 0.4840000, 0.5346667, …
+#&gt; $ mu_in_ci_sd    &lt;dbl&gt; 0.40504930, 0.46346435, 0.48636055, 0.49991060, 0.49896…
+#&gt; $ zero_in_ci_avg &lt;dbl&gt; 0.12000000, 0.13533333, 0.09466667, 0.09466667, 0.09466…
+#&gt; $ zero_in_ci_sd  &lt;dbl&gt; 0.3250699, 0.3421933, 0.2928516, 0.2928516, 0.2928516, …
+#&gt; $ ci_width_avg   &lt;dbl&gt; 0.2497744, 0.2880236, 0.3054083, 0.3078472, 0.3181386, …
+#&gt; $ ci_width_sd    &lt;dbl&gt; 0.4367281, 0.4047573, 0.4081926, 0.3998252, 0.4094558, …</code></pre>
+</div>
+<div id="plot-the-summarized-results" class="section level2" number="8.2">
+<h2><span class="header-section-number">8.2</span> Plot the (summarized) results</h2>
+<pre class="r"><code>simulated_samples_summarized %&gt;% 
+  ggplot() +
+  aes(x = n, y = avg_avg, 
+      ymin = avg_avg - avg_sd,
+      ymax = avg_avg + avg_sd
+      ) +
+  geom_ribbon(alpha = .5) +
+  geom_point() +
+  xlim(0, 128) +
+  labs(x = &quot;Sample size&quot;,
+       y = &quot;Average across 100 samples&quot;,
+       caption = &quot;The ribbon shows the interval [mean ± se]&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-16-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="conclusions" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Conclusions</h1>
+<div id="small-sample-may-suffice" class="section level2" number="9.1">
+<h2><span class="header-section-number">9.1</span> Small sample may suffice</h2>
+<p>Under well-defined situations such as the one presented here, small samples are sufficient.</p>
+<p>However, it must be stressed that this comfortable conclusions hinges on the assumptions stated above.</p>
+</div>
+<div id="situations-in-which-small-samples-will-not-suffice" class="section level2" number="9.2">
+<h2><span class="header-section-number">9.2</span> Situations in which small samples will not suffice</h2>
+<p>The standard errors (for the mean value) increases as a function of variability (standard deviation, ie., sigma) in the population. The well-known formula for SE is valid only in the normal distribution scenario. If we assumed different distributions for the population parameter <span class="math inline">\(\mu\)</span>, we would arrive, in most situation, at much larger samples sizes. We might event encounter situations, such as for Cauchy distribution, where there are no mean values at all, and hence we are lost in complete ignorance about the precision of our estimates.</p>
+</div>
+</div>
+<div id="reproducibility" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.0.2 (2020-06-22)
+#&gt;  os       macOS  10.16                
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2021-03-04                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version     date       lib source                             
+#&gt;  assertthat    0.2.1       2019-03-21 [1] CRAN (R 4.0.0)                     
+#&gt;  backports     1.2.1       2020-12-09 [1] CRAN (R 4.0.2)                     
+#&gt;  blogdown      1.1         2021-01-19 [1] CRAN (R 4.0.2)                     
+#&gt;  bookdown      0.21.6      2021-02-02 [1] Github (rstudio/bookdown@6c7346a)  
+#&gt;  broom         0.7.5       2021-02-19 [1] CRAN (R 4.0.2)                     
+#&gt;  bslib         0.2.4.9000  2021-02-02 [1] Github (rstudio/bslib@b3cd7a9)     
+#&gt;  cachem        1.0.4       2021-02-13 [1] CRAN (R 4.0.2)                     
+#&gt;  callr         3.5.1       2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  cellranger    1.1.0       2016-07-27 [1] CRAN (R 4.0.0)                     
+#&gt;  cli           2.3.1       2021-02-23 [1] CRAN (R 4.0.2)                     
+#&gt;  codetools     0.2-16      2018-12-24 [2] CRAN (R 4.0.2)                     
+#&gt;  colorspace    2.0-0       2020-11-11 [1] CRAN (R 4.0.2)                     
+#&gt;  crayon        1.4.1       2021-02-08 [1] CRAN (R 4.0.2)                     
+#&gt;  DBI           1.1.1       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  dbplyr        2.1.0       2021-02-03 [1] CRAN (R 4.0.2)                     
+#&gt;  debugme       1.1.0       2017-10-22 [1] CRAN (R 4.0.0)                     
+#&gt;  desc          1.2.0       2018-05-01 [1] CRAN (R 4.0.0)                     
+#&gt;  devtools      2.3.2       2020-09-18 [1] CRAN (R 4.0.2)                     
+#&gt;  digest        0.6.27      2020-10-24 [1] CRAN (R 4.0.2)                     
+#&gt;  dplyr       * 1.0.4       2021-02-02 [1] CRAN (R 4.0.2)                     
+#&gt;  ellipsis      0.3.1       2020-05-15 [1] CRAN (R 4.0.0)                     
+#&gt;  evaluate      0.14        2019-05-28 [1] CRAN (R 4.0.0)                     
+#&gt;  fansi         0.4.2       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  farver        2.0.3       2020-01-16 [1] CRAN (R 4.0.0)                     
+#&gt;  fastmap       1.1.0       2021-01-25 [1] CRAN (R 4.0.2)                     
+#&gt;  forcats     * 0.5.1       2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  fs            1.5.0       2020-07-31 [1] CRAN (R 4.0.2)                     
+#&gt;  generics      0.1.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  ggplot2     * 3.3.3       2020-12-30 [1] CRAN (R 4.0.2)                     
+#&gt;  glue          1.4.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  gtable        0.3.0       2019-03-25 [1] CRAN (R 4.0.0)                     
+#&gt;  haven         2.3.1       2020-06-01 [1] CRAN (R 4.0.0)                     
+#&gt;  highr         0.8         2019-03-20 [1] CRAN (R 4.0.0)                     
+#&gt;  hms           1.0.0       2021-01-13 [1] CRAN (R 4.0.2)                     
+#&gt;  htmltools     0.5.1.1     2021-01-22 [1] CRAN (R 4.0.2)                     
+#&gt;  httr          1.4.2       2020-07-20 [1] CRAN (R 4.0.2)                     
+#&gt;  jquerylib     0.1.3       2020-12-17 [1] CRAN (R 4.0.2)                     
+#&gt;  jsonlite      1.7.2       2020-12-09 [1] CRAN (R 4.0.2)                     
+#&gt;  knitr         1.31        2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  labeling      0.4.2       2020-10-20 [1] CRAN (R 4.0.2)                     
+#&gt;  lifecycle     1.0.0       2021-02-15 [1] CRAN (R 4.0.2)                     
+#&gt;  lubridate     1.7.9.2     2020-11-13 [1] CRAN (R 4.0.2)                     
+#&gt;  magrittr      2.0.1       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  memoise       2.0.0       2021-01-26 [1] CRAN (R 4.0.2)                     
+#&gt;  modelr        0.1.8       2020-05-19 [1] CRAN (R 4.0.0)                     
+#&gt;  munsell       0.5.0       2018-06-12 [1] CRAN (R 4.0.0)                     
+#&gt;  pillar        1.5.0       2021-02-22 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgbuild      1.2.0       2020-12-15 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgconfig     2.0.3       2019-09-22 [1] CRAN (R 4.0.0)                     
+#&gt;  pkgload       1.2.0       2021-02-23 [1] CRAN (R 4.0.2)                     
+#&gt;  prettyunits   1.1.1       2020-01-24 [1] CRAN (R 4.0.0)                     
+#&gt;  processx      3.4.5       2020-11-30 [1] CRAN (R 4.0.2)                     
+#&gt;  ps            1.5.0       2020-12-05 [1] CRAN (R 4.0.2)                     
+#&gt;  purrr       * 0.3.4       2020-04-17 [1] CRAN (R 4.0.0)                     
+#&gt;  R6            2.5.0       2020-10-28 [1] CRAN (R 4.0.2)                     
+#&gt;  Rcpp          1.0.6       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  readr       * 1.4.0       2020-10-05 [1] CRAN (R 4.0.2)                     
+#&gt;  readxl        1.3.1       2019-03-13 [1] CRAN (R 4.0.0)                     
+#&gt;  remotes       2.2.0       2020-07-21 [1] CRAN (R 4.0.2)                     
+#&gt;  reprex        1.0.0       2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  rlang         0.4.10      2020-12-30 [1] CRAN (R 4.0.2)                     
+#&gt;  rmarkdown     2.7         2021-02-19 [1] CRAN (R 4.0.2)                     
+#&gt;  rprojroot     2.0.2       2020-11-15 [1] CRAN (R 4.0.2)                     
+#&gt;  rstudioapi    0.13.0-9000 2021-02-11 [1] Github (rstudio/rstudioapi@9d21f50)
+#&gt;  rvest         0.3.6       2020-07-25 [1] CRAN (R 4.0.2)                     
+#&gt;  sass          0.3.1       2021-01-24 [1] CRAN (R 4.0.2)                     
+#&gt;  scales        1.1.1       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  sessioninfo   1.1.1       2018-11-05 [1] CRAN (R 4.0.0)                     
+#&gt;  stringi       1.5.3       2020-09-09 [1] CRAN (R 4.0.2)                     
+#&gt;  stringr     * 1.4.0       2019-02-10 [1] CRAN (R 4.0.0)                     
+#&gt;  testthat      3.0.2       2021-02-14 [1] CRAN (R 4.0.2)                     
+#&gt;  tibble      * 3.0.6       2021-01-29 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyr       * 1.1.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyselect    1.1.0       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  tidyverse   * 1.3.0       2019-11-21 [1] CRAN (R 4.0.0)                     
+#&gt;  usethis       2.0.1       2021-02-10 [1] CRAN (R 4.0.2)                     
+#&gt;  utf8          1.1.4       2018-05-24 [1] CRAN (R 4.0.0)                     
+#&gt;  vctrs         0.3.6       2020-12-17 [1] CRAN (R 4.0.2)                     
+#&gt;  withr         2.4.1       2021-01-26 [1] CRAN (R 4.0.2)                     
+#&gt;  xfun          0.21        2021-02-10 [1] CRAN (R 4.0.2)                     
+#&gt;  xml2          1.3.2       2020-04-23 [1] CRAN (R 4.0.0)                     
+#&gt;  yaml          2.2.1       2020-02-01 [1] CRAN (R 4.0.0)                     
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Rlibs
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre>
+</div>

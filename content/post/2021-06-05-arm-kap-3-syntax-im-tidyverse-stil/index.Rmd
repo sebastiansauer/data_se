@@ -1,0 +1,461 @@
+---
+title: ARM, Kap. 3 Syntax im Tidyverse-Stil
+author: ses
+date: '2021-06-05'
+slug: arm-kap-3-syntax-im-tidyverse-stil
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+```{r global-knitr-options, include=FALSE}
+knitr::opts_chunk$set(fig.pos = 'H',
+  fig.asp = 0.618,
+  fig.width = 5,
+  fig.cap = "", 
+  fig.path = "",
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.show = "hold")
+```
+
+
+
+# Einführung
+
+Dieser Post stellt den Code zum Kapitel 3 aus ARM vor, und zwar im Tidyverse-Stil.
+
+
+# Pakete laden
+
+```{r}
+library(tidyverse)
+library(arm)
+library(foreign)
+library(modelr)
+library(ggfortify)
+```
+
+
+# Daten laden
+
+Die Daten können [hier]() heruntergeladen werden als Zip-Datei. Danach muss man lokal entzippen und den Pfad am eigenen Rechner nennen. Tipp: Die Datendatei in den gleichen Ordner legen wie die Rmd-Datei; das erspart Rätseln über den korrekten Pfad.
+
+
+```{r}
+kidsiq_path <- "/Users/sebastiansaueruser/datasets/ARM_Data/child.iq/kidiq.dta"
+```
+
+Die Daten sind im Format der Statistik-Software [Stata](https://stat.ethz.ch/R-manual/R-devel/library/foreign/html/read.dta.html) gespeichert (`.dta`). Mit dem Paket `foreign` kann man solche Daten importieren.
+
+
+```{r}
+kidsiq <- read.dta(kidsiq_path)
+```
+
+```{r}
+kidsiq %>% 
+  slice_head(n=5)
+```
+
+# Ein Prädiktor
+
+
+## lm1: Binärer Prädiktor
+
+
+```{r}
+lm1 <- lm (kid_score ~ mom_hs, data = kidsiq)
+display(lm1)
+```
+
+
+### Diagramm
+
+```{r}
+kidsiq %>% 
+  ggplot(aes(x = mom_hs, y = kid_score)) +
+  geom_jitter(width = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_x_continuous(breaks = c(0, 1))
+```
+
+
+### Unterschied im Mittelwert
+
+```{r}
+kidsiq_summary <- 
+  kidsiq %>% 
+  group_by(mom_hs) %>% 
+  summarise(kid_score = mean(kid_score, na.rm = TRUE))
+
+kidsiq_summary
+```
+
+
+Differenz der Mittelwerte:
+
+```{r}
+kidsiq_summary %>% 
+  summarise(kid_score[1] - kid_score[2])
+```
+
+
+Das entspricht der Steigung von `lm1`:
+
+```{r}
+coef(lm1)
+```
+
+
+## lm2: Ein kontinuierlicher Prädiktor
+
+```{r}
+lm2 <- lm(kid_score ~ mom_iq, data = kidsiq)
+display(lm2)
+```
+
+```{r}
+ggplot(kidsiq) +
+  aes(x = mom_iq, y = kid_score) +
+  geom_point() +
+  geom_abline(intercept = 25.8, slope = 0.61, color = "blue")
+```
+
+
+Oder so:
+
+
+
+```{r}
+ggplot(kidsiq) +
+  aes(x = mom_iq, y = kid_score) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+
+# Mehrere Prädiktoren
+
+
+## lm3: Ohne Interaktionseffekt
+
+```{r}
+lm3 <- lm(kid_score ~ mom_hs + mom_iq, data = kidsiq)
+display(lm3)
+```
+
+
+
+
+
+```{r}
+kidsiq %>% 
+  mutate(mom_hs = factor(mom_hs)) %>% 
+  ggplot() +
+  aes(x = mom_iq, y = kid_score, group = mom_hs) +
+  geom_point() +
+  geom_abline(slope = 0.56, intercept = 25.73, color = "grey20") +
+  geom_abline(slope = 0.56, intercept = 25.73+5.95, color = "red") 
+
+```
+
+
+
+## lm4: Mit Interaktionseffekt
+
+
+```{r}
+lm4 <- lm(kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq, data = kidsiq)
+display(lm4)
+```
+
+
+
+```{r}
+kidsiq %>% 
+  mutate(mom_hs = factor(mom_hs)) %>% 
+  ggplot() +
+  aes(x = mom_iq, y = kid_score, group = mom_hs) +
+  geom_point() +
+  geom_abline(slope = 0.97, intercept = -11.48, color = "grey20") +
+  geom_abline(slope = 0.97-0.48, intercept = -11.48+51.27, color = "red") 
+
+```
+
+
+Oder so:
+
+```{r}
+kidsiq %>% 
+  mutate(mom_hs = factor(mom_hs)) %>% 
+  ggplot() +
+  aes(x = mom_iq, y = kid_score, group = mom_hs) +
+  geom_point() +
+  geom_smooth(aes(color = mom_hs),
+              method = "lm", se = FALSE)
+```
+
+
+Mit Verlängerung der X-Achse zum Achsenabschnitt:
+
+
+```{r}
+kidsiq %>% 
+  mutate(mom_hs = factor(mom_hs)) %>% 
+  ggplot() +
+  aes(x = mom_iq, y = kid_score, group = mom_hs) +
+  geom_point() +
+  geom_abline(slope = 0.97, intercept = -11.48, color = "grey20") +
+  geom_abline(slope = 0.97-0.48, intercept = -11.48+51.27, color = "red") +
+  lims(x = c(0, 150), y = c(-20, 150))
+```
+
+
+
+# Eingeschränkter Wertebereich
+
+```{r}
+kidsiq %>% 
+  summarise(max_mom_iq = max(mom_iq),
+            min_mom_iq = min(mom_iq))
+```
+
+## lm5: Regressionsmodell
+
+```{r}
+lm5 <-
+  kidsiq %>% 
+  filter(mom_iq >= 85 & mom_iq <= 115) %>% 
+  lm(kid_score ~ mom_iq, data = .)
+```
+
+
+```{r}
+display(lm5)
+```
+
+Vergleich mit uneingeschränktem Wertebereich:
+
+```{r}
+display(lm2)
+```
+
+
+
+```{r}
+kidsiq %>% 
+  filter(mom_iq >= 85 & mom_iq <= 115) %>% 
+  ggplot() +
+  aes(x = mom_iq, y = kid_score) +
+  geom_point() +
+  geom_abline(intercept = 25.8, slope = 0.61, color = "blue") +
+  lims(x = c(70, 140))
+```
+
+
+# Visualisierung von Ungewissheit im Model
+
+
+Der *Standardfehler* `se` ist ein Maß für unsere Ungewissheit in der Regressionsgeraden:
+
+```{r}
+ggplot(kidsiq) +
+  aes(x = mom_iq, y = kid_score) +
+  geom_point() +
+  geom_smooth(method = "lm", se = TRUE)
+```
+
+
+
+## Variation eines Prädiktors und anderen konstant gehalten
+
+### Variation von `mom_iq` 
+
+Und `mom_hs` halten wir auf dem Mittelwert konstant:
+
+```{r}
+kidsiq %>% 
+  summarise(mean(mom_hs))
+```
+
+Ohne Visualisierung der Ungewissheit des Modells, nur mit einem Prädiktor auf dem Mittelwert fixiert:
+
+```{r}
+kidsiq %>% 
+  data_grid(mom_iq = seq_range(mom_iq, n = 20)) %>% 
+  mutate(mom_hs = 0.79) %>% 
+  add_predictions(lm3) %>% 
+  ggplot(aes(x = mom_iq)) +
+  geom_point(data = kidsiq, aes(y = kid_score)) +
+  geom_line(aes(y = pred), color = "red")
+```
+
+Oder so, jetzt auch mit Visualisierung des Standardfehlers, also mit Visualisierung der Ungewissheit des Modells:
+
+```{r fig.width=8}
+kidsiq %>% 
+  mutate(mom_hs = .79) %>% 
+  ggplot(aes(x = mom_iq, y = kid_score)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Zusammenhang (Kovariation) von mom_iq und kid_score\nwenn die übrigen Prädiktoren konstant gehalten sind (auf dem Mittelwert)")
+```
+
+
+
+### Kovariation mit `mom_iq`
+
+```{r}
+kidsiq %>% 
+  summarise(mean(mom_iq))
+```
+
+
+
+
+```{r}
+kidsiq %>% 
+  mutate(mom_iq = 100) %>% 
+  ggplot(aes(x = mom_hs, y = kid_score)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Zusammenhang (Kovariation) von mom_hs und kid_score\nwenn die übrigen Prädiktoren konstant gehalten sind (auf dem Mittelwert)") +
+  scale_x_continuous(breaks = c(0, 1)) +
+  geom_label(data = kidsiq_summary,
+    aes(label = round(kid_score, 2)))
+
+```
+
+
+# Annahmen der Regressionsanalyse
+
+
+
+## Additivität
+
+$$\hat{y} = \beta_0 + \beta_1x_1 +  \beta_2x_2 + \ldots$$
+
+Bei Verletzung z.B.
+
+### Log-Transformation
+
+$$y=abc \quad \leftrightarrow \quad \text{log} y = \text{log} a + \text{log} b + \text{log}$$  
+
+
+
+```{r}
+df <-
+  tibble(
+    x1 = 1:10,
+    x2 = 1:10,
+    x3 = 1:10,
+    y = x1*x2*x3)
+```
+
+
+```{r}
+df %>% 
+  mutate(y_log = x1 + x2 + x3)
+```
+
+
+### Interaktionen hinzufügen
+
+## Linearität
+
+
+Hier ist die Linearität verletzt:
+
+```{r}
+df <-
+  tibble(
+    x = 1:10,
+    y1 = x^2,
+    y2 = 2^x)
+```
+
+
+```{r out.width=c("40%", "40%"), fig.show = "hold"}
+df %>% 
+  ggplot(aes(x = x, y = y1)) +
+  geom_line()
+
+df %>% 
+  ggplot(aes(x = x, y = y2)) +
+  geom_line()
+```
+
+Durch eine passende Transformation kann die Linearität wieder hergestellt werden:
+
+
+```{r out.width=c("40%", "40%"), fig.show = "hold"}
+df %>% 
+  ggplot(aes(x = x, y = sqrt(y1))) +
+  geom_line()
+
+df %>% 
+  ggplot(aes(x = x, y = log(y2))) +
+  geom_line()
+```
+
+
+## Visualisierung der Residen, um Verletzungen der Annahmen zu entdecken
+
+## Additivität
+
+```{r}
+autoplot(lm3, which = 1)
+```
+
+Wenn es keine Verletzungen gibt, sollten sich die Residen ohne Muster um die $y=0$ herum verteilen. Hier sind die Residuen für mittlere Werte etwas erhöht und and den Randbereichen etwas zu gering. Insgesamt ist die Verletzung nicht gravierend.
+
+
+## Linearität
+
+SD der Residuen
+
+```{r}
+kidsiq %>% 
+  add_residuals(lm2) %>% 
+  summarise(sd(resid))
+```
+
+
+```{r}
+kidsiq %>% 
+  add_residuals(lm2) %>% 
+  ggplot(aes(x = mom_iq, y = resid)) +
+  geom_ref_line(h = c(0)) +
+  geom_hline(yintercept = c( -18, +18), 
+             color = "grey60",
+             linetype = "dashed") +
+  geom_point() +
+  labs(title = "Residuen vs. Prädiktor",
+       caption = "Gestrichtelte Linien zeigen ±1SD")
+```
+
+Hier zeigt sich nur Rauschen: Die Residuen sind ohne erkennbares Muster um $y=0$ herum verteilt. Es ist keine Verletzung der Linearitätsannahme erkennbar.
+
+
+
+# Vorhersage
+
+
+Nicht ausgeführt.
+
+
+
+# Referenz
+
+
+S. auch den [Post zu ARM, Kap. 4](/2021/06/15/arm-kap-4-syntax-im-tidyverse-stil/)
+

@@ -1,0 +1,503 @@
+---
+title: Grading a prediction contest
+author: Sebastian Sauer
+date: '2021-01-20'
+slug: grading-a-prediction-contest
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Motivation
+
+
+Being a teacher (in some part of my life), I conducted a prediction contest. Students had to predict a bunch of values as precisely as possible. That's the sort of stuff data scientist do (or are said to do). As far as I am concerned, I was looking at a convenient way of grading the prediction data. Here's an attempt.
+
+I'm sorry that post is not fully reproducible. The reason is a privacy rights of my students and that I do not want to fully undisclosure the data set I used, because I might use it for upcoming student cohorts. Teachers: Feel free to contact me if you like to know more about the data set.
+
+
+
+# Setup
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(testthat)
+library(data.table)
+library(glue)
+library(here)
+library(skimr)
+```
+
+
+Use `?data.table` etc. for help on the packages.
+
+
+
+# Helper functions
+
+## Function to parse data
+
+
+One trouble is that the CSV files I expected can be in different formats: standard CSV, CSV2 (semicolon delimiter, comma decimal). That's why we need to come up with a more general data parsing function. Unfortunately, and to my suprise, I found no existing funtion that was able to deal with that matter (no, even `fread` did not).
+
+
+```{r fun-try-readcsv}
+try_readcsv <- function(file, verbose = FALSE) {
+  
+  # import csv file:
+  x <- data.table::fread(file, header = TRUE)
+  
+  # if more than 2 columns, only select first and last one:
+  if (ncol(x) > 2) {
+    x <- x %>% 
+      select(1, last_col())
+  }
+  
+  # stop if only one column:
+  if (ncol(x) == 1) stop("Only 1 column! There should be (at least) two: ID and predictions.")
+  
+  # set names:
+  names(x) <- c("id", "pred")
+  
+  # replace commas with dots to deal with German locale:
+  x <-
+    x %>% 
+    mutate(across(where(is.character), 
+                  .fns = ~ str_replace_all(., 
+                                           pattern = ",",
+                                           replacement = ".")))
+  
+  # check how many columns where found in each CSV file:
+  if (verbose == TRUE) {print("Ncol: "); print(ncol(x))}
+  return(x)
+  
+} 
+
+```
+
+
+
+## Function to compute $R^2$
+
+
+```{r}
+r2 <- function(predicted, observed) {
+  
+  rss <- sum((predicted - observed) ^ 2)  ## residual sum of squares
+  tss <- sum((observed - mean(observed)) ^ 2)  ## total sum of squares
+  rsq <- 1 - rss/tss
+  
+  return(rsq)
+  
+}
+```
+
+
+
+## Function to compute $MSE$
+
+
+Mean Squared Error
+
+```{r}
+mse <- function(predicted, observed) {
+  
+  mse <- mean((predicted - observed) ^ 2)  ## mean residual sum of squares
+ 
+  return(mse)
+  
+}
+```
+
+
+
+
+## Function to compute generalized error function
+
+
+```{r}
+gen_error <- function(predicted, observed, degree = 1) {
+  
+  generr <- mean(abs(predicted - observed) ^ degree)  ## mean residual sum of absolute errors to the `degree` power
+
+  return(generr)
+  
+}
+```
+
+
+
+
+# Import solution (true) data (ie., solution)
+
+
+Define solution file name, and check whether this file name exists:
+
+```{r}
+solution_filename <- paste0("/Users/sebastiansaueruser/Google Drive/Lehre/Lehre_AKTUELL/2020-WiSe/WisMeth/Prognose-Wettbewerb/Prognose-Material/Material-nur-fuer-Lehrende/test_df_teacher.csv")
+
+stopifnot(file.exists(solution_filename))
+```
+
+Import the solution data:
+
+```{r import-solution-data}
+test_df_teacher <- read_csv(solution_filename)
+
+test_df_teacher <-
+  test_df_teacher %>% 
+  mutate(id = row_number()) %>% 
+  select(id, pay)
+```
+
+
+# Parse the data
+
+
+Get the list of existing files.
+
+
+Here's the project path; in your case it will be different.
+
+```{r}
+proj_path <- "/Users/sebastiansaueruser/Google Drive/Lehre/Lehre_AKTUELL/2020-WiSe/WisMeth/Prognose-Wettbewerb/Prognose-Material"
+```
+
+```{r}
+subm_path <- paste0(proj_path, "/Submissions/")
+
+submissions <- list.files(path = subm_path,
+                          pattern = "\\.csv$",
+                          recursive = TRUE,
+                          full.names = TRUE)
+```
+
+
+
+
+
+Here is the list of CSV files:
+
+```{r}
+submissions %>% 
+  head()
+```
+
+No worries. That are anonymized data files.
+
+
+
+The length of this vector should match the number of students (or student teams) we expect:
+
+
+```{r}
+length(submissions)
+```
+
+
+
+# Build master data frame
+
+
+We build a list data frame for a tidyverse style data manipulation.
+
+
+## List df where each submission is one row
+
+
+```{r subm_df1}
+subm_df <-
+  # create column file submission names:
+  tibble(filepath = submissions) %>% 
+  
+  # cut the path away, leave only the file name:
+  mutate(filename = str_extract(filepath, "/[^/]*.csv$")) %>% 
+  
+  # create list column with submission data:
+  mutate(subm_data = purrr::map(.x = filepath,
+                                .f = ~ try_readcsv(.x))) %>% 
+  
+  # unnest the columns of the list column:
+  unnest_wider(subm_data)
+```
+
+
+See:
+
+```{r}
+subm_df
+```
+
+
+
+
+Check if all values of `pred` are of type `character`:
+
+```{r}
+map_chr(subm_df$pred, class)
+```
+
+Which is the case. This is an artifact of data import; some CSV files had a German decimal delimiter (dot) whereas others used the standard (comma). So, a robust strategy is to parse those strange numbers all as characters. Then replace the delimiting commas with dots. Then transform to numeric. See the import function above for details.
+
+
+## Change character to numeric
+
+We need to convert `pred` to numeric:
+
+
+```{r}
+subm_df2 <-
+  subm_df %>% 
+  # render character into numeric (still a list column, hence we need the `map`):
+  mutate(pred_num = map(pred, as.numeric))
+```
+
+
+Check if all values *still* are of type character:
+
+
+```{r}
+subm_df2$pred_num %>% 
+  map_chr(class)  %>% 
+  unique() 
+```
+Nope. Numeric, as it should be.
+
+
+More programmatically:
+
+```{r}
+subm_df2$pred_num %>% 
+  map_chr(class)  %>% 
+  unique() %>% 
+  length() %>% 
+  expect_equal(1)
+```
+
+
+
+## Add observed (true) values
+
+
+```{r}
+subm_df3 <-
+  subm_df2 %>% 
+  # add y-value (to be predicted), again a list column:
+  mutate(observed = list(test_df_teacher$pay)) 
+```
+
+
+See:
+
+```{r}
+head(subm_df3)
+```
+
+
+
+## Check lengths of submissions
+
+```{r}
+subm_df3$id %>% 
+  map_dbl(length) %>% 
+  unique() 
+```
+
+```{r}
+subm_df3$id %>% 
+  map_dbl(length) %>% 
+  unique() %>% 
+  length() %>% 
+  expect_equal(1)
+```
+
+
+
+Each submission should consist of 300 entries in this example.
+
+
+# Compute accuracy ($R^2$ etc.)
+
+
+
+```{r}
+subm_df4 <-
+  subm_df3 %>% 
+  mutate(r2 = map2(.x = pred_num, 
+                     .y = observed, 
+                     .f = ~ r2(.x, .y)),
+         mse = map2(.x = pred_num, 
+                     .y = observed, 
+                     .f = ~ mse(.x, .y)),
+         mae = map2(.x = pred_num, 
+                     .y = observed, 
+                     .f = ~ gen_error(.x, .y))) %>% 
+  unnest(r2)
+```
+
+
+See:
+
+```{r}
+subm_df4 %>% 
+  glimpse()
+```
+
+
+
+## Check distribution of $R^2$
+
+
+
+```{r}
+subm_df4 %>%  
+  filter(between(r2,0, 1)) %>% 
+  summarise(r2_mean = mean(r2),
+            r2_sd = sd(r2),
+            r2_med = median(r2),
+            r2_iqr = IQR(r2),
+            r2_min = min(r2),
+            r2_max = max(r2))
+```
+
+
+
+
+```{r}
+subm_df4 %>% 
+  filter(between(r2, 0, 1)) %>% 
+  ggplot(aes(x = r2)) +
+  geom_histogram()
+```
+
+
+
+## Number of distinct values for $R^2$
+
+```{r}
+length(unique(subm_df4$r2))
+```
+
+
+
+# Grading
+
+
+
+## Note-4.0 model
+
+
+```{r}
+note4_r2 <- 0.01
+```
+
+
+
+
+## Note-1.0 model
+
+
+```{r}
+note1_r2 <- 0.83
+```
+
+
+
+## Grades in sequence
+
+There are 10 grades (from 4.0 to 1.0), plus the 5 (fail), plus the "supra-best" (only to define the maximum threshold), giving 12 grades in total.
+
+```{r}
+grades_df <-
+  tibble(thresholds = c(0, 
+                        seq(from = 0.01, to = 0.83, 
+                            length.out = 9), .85, 1),
+         thresholds2 = c(0, 
+                         seq(from = .51, to = 1, 
+                             length.out = 11)),
+         grades = c(5, 4, 3.7, 3.3, 3.0, 2.7, 2.3, 2, 1.7, 1.3, 1, .7)) %>% 
+  mutate(id = nrow(.):1)
+grades_df
+```
+
+
+
+## Map grades to individual $R^2$ values of the students
+
+
+```{r}
+subm_df5 <-
+  subm_df4 %>% 
+  mutate(grade_id = map_dbl(r2,
+                         .f = ~ {`>`(grades_df$thresholds, .x) %>% sum()} )) %>% 
+  left_join(grades_df %>% select(-c(thresholds, thresholds2)), 
+            by = c("grade_id" = "id"))
+```
+
+
+
+## Grade distribution
+
+
+
+```{r}
+subm_df5 %>% 
+  select(grades) %>% 
+  skim()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

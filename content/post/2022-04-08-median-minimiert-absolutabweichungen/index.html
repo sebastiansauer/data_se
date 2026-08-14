@@ -1,0 +1,214 @@
+---
+title: Median minimiert Absolutabweichungen
+author: Sebastian Sauer
+date: '2022-04-08'
+slug: median-minimiert-absolutabweichungen
+categories:
+  - rstats
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#behauptung"><span class="toc-section-number">1</span> Behauptung</a></li>
+<li><a href="#beweis-1"><span class="toc-section-number">2</span> Beweis 1</a></li>
+<li><a href="#beweis-2"><span class="toc-section-number">3</span> Beweis 2</a></li>
+<li><a href="#quellen"><span class="toc-section-number">4</span> Quellen</a></li>
+<li><a href="#reproducibility"><span class="toc-section-number">5</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<pre class="r"><code>library(tidyverse)</code></pre>
+<div id="behauptung" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Behauptung</h1>
+<p>Der Median <span class="math inline">\(md\)</span> minimiert die Absolutabweichungen der <span class="math inline">\(x_i\)</span> zu einem Wert <span class="math inline">\(c\)</span>, eben der ist Median:</p>
+<p><span class="math inline">\(\text{arg min}_c \sum_{i=1}^n|(x_i - c)|\)</span>.</p>
+<p>Mit anderen Worten: Es gibt keine andere Zahl, für die obige Summe einen kleineren Wert liefert,
+so die Behauptung.</p>
+<p>Nennen wir die Summe der Absolutabweichungen <span class="math inline">\(e(c) = \sum_{i=1}^n|(x_i - c)|\)</span>.</p>
+</div>
+<div id="beweis-1" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Beweis 1</h1>
+<p>Betrachten wir zwei reelle Zahlen, <span class="math inline">\(a &lt; b\)</span>.
+Dann ist unser Ziel</p>
+<p><span class="math display">\[dist(a,b) = |c - a| + |x+c|\]</span></p>
+<p>Dieser Ausdruck erreicht sein Minimum wenn <span class="math inline">\(a \le c \le b\)</span>.</p>
+<p>Das kann gezeigt werden, indem man <code>dist</code> für die drei Fälle berechnet:</p>
+<ol style="list-style-type: decimal">
+<li><span class="math inline">\(c &lt; a\)</span></li>
+<li><span class="math inline">\(a \le c \le b\)</span></li>
+<li><span class="math inline">\(b &lt; c\)</span></li>
+</ol>
+<p>Die folgenden Abbildungen veranschaulichen diese drei Fälle.</p>
+<pre class="r"><code>d1 &lt;-
+  tibble(
+    point = c(&quot;a&quot;, &quot;c&quot;, &quot;b&quot;),
+    y = c(0, 0, 0),
+    x = c(0, 1, 2)
+  )
+
+ggplot(d1, aes(x, y)) +
+  theme_minimal() +
+  geom_label(aes(label = point)) +
+  labs(title = &quot;A&quot;)
+
+
+d2 &lt;-
+  tibble(
+    point = c(&quot;c&quot;, &quot;a&quot;, &quot;b&quot;),
+    y = c(0, 0, 0),
+    x = c(0, 1, 2)
+  )
+
+ggplot(d2, aes(x, y)) +
+  theme_minimal() +
+  geom_label(aes(label = point)) +
+  labs(title = &quot;B&quot;)
+
+
+
+d3 &lt;-
+  tibble(
+    point = c(&quot;a&quot;, &quot;b&quot;, &quot;c&quot;),
+    y = c(0, 0, 0),
+    x = c(0, 1, 2)
+  )
+
+ggplot(d3, aes(x, y)) +
+  theme_minimal() +
+  geom_label(aes(label = point)) +
+  labs(title = &quot;C&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-2.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-3.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Als nächstes betrachten wir den allgemeinen Fall mit <span class="math inline">\(n\)</span> Beobachtungen.</p>
+<p>Zunächst sortieren wir die Werte aufsteigend als <span class="math inline">\(s_1, s_2, \ldots, s_n\)</span>.</p>
+<p>Aus dem kleinsten und größten Wert, <span class="math inline">\(s_1, s_n\)</span> bilden wir ein Paar.
+Wie oben erläutert, ist <span class="math inline">\(dist(s_1, s_n)\)</span> minimal wenn <span class="math inline">\(s_1 \le c \le s_n\)</span>.
+Wir entfernen daher die beiden Elemente <span class="math inline">\(s_1, s_n\)</span> aus der Liste und
+wiederholen die Prozedur bis höchsten ein Element in unserer Liste verbleibt.</p>
+<p>Wenn ein Element <span class="math inline">\(s_i\)</span> übrig ist, dann ist <span class="math inline">\(c=s_i\)</span> und <span class="math inline">\(s_i\)</span> minimiert <span class="math inline">\(dist(c - s_i)\)</span>.
+Dieses Element liegt auch zwischen allen anderen Paaren.</p>
+<p>Bei einer geraden Zahl an Elementen wird zum Schluss kein Element in der Liste übrig bleiben.
+Wie im oberen Fall liegt dann der Median (irgendwo) zwischen den beiden Elementen des innersten Paars und damit auch zwischen allen Paaren.</p>
+</div>
+<div id="beweis-2" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Beweis 2</h1>
+<p>Leiten wir <span class="math inline">\(e(c)\)</span> ab, bekommen wir:</p>
+<p><span class="math inline">\(\sum_{i=1}^n \text{sign}(x_i - c)\)</span></p>
+<p>Dieser Ausdruck ist genau dann Null, wenn es gleich viele positive wie negative Elemente gibt.
+Das passiert wenn <span class="math inline">\(c = \text{median}(x_1, x_2, \ldots, x_n)\)</span>.</p>
+<p>Dabei gibt <span class="math inline">\(\text{sign}(\cdot)\)</span> das Vorzeichen zurück.
+Wir zählen also, viele Elemente größer sind als <span class="math inline">\(c\)</span> und wie viele kleiner.</p>
+<p>Zur Definition von <span class="math inline">\(sign\)</span>: <span class="math inline">\(\text{sign} := \frac{d |x|}{dx}\)</span>.</p>
+</div>
+<div id="quellen" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Quellen</h1>
+<p>Es gibt viele Orte, wo man die Ableitung nachlesen kann, z.B. <a href="https://math.stackexchange.com/questions/113270/the-median-minimizes-the-sum-of-absolute-deviations-the-ell-1-norm">diese</a> ist nützlich.</p>
+</div>
+<div id="reproducibility" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.1.3 (2022-03-10)
+#&gt;  os       macOS Big Sur/Monterey 10.16
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2022-04-08                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version date       lib source                            
+#&gt;  assertthat    0.2.1   2019-03-21 [1] CRAN (R 4.1.0)                    
+#&gt;  backports     1.4.1   2021-12-13 [1] CRAN (R 4.1.0)                    
+#&gt;  blogdown      1.8     2022-02-16 [2] CRAN (R 4.1.2)                    
+#&gt;  bookdown      0.24.2  2021-10-15 [1] Github (rstudio/bookdown@ba51c26) 
+#&gt;  brio          1.1.3   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  broom         0.7.12  2022-01-28 [1] CRAN (R 4.1.2)                    
+#&gt;  bslib         0.3.1   2021-10-06 [1] CRAN (R 4.1.0)                    
+#&gt;  cachem        1.0.6   2021-08-19 [1] CRAN (R 4.1.0)                    
+#&gt;  callr         3.7.0   2021-04-20 [1] CRAN (R 4.1.0)                    
+#&gt;  cellranger    1.1.0   2016-07-27 [1] CRAN (R 4.1.0)                    
+#&gt;  cli           3.2.0   2022-02-14 [1] CRAN (R 4.1.2)                    
+#&gt;  codetools     0.2-18  2020-11-04 [2] CRAN (R 4.1.3)                    
+#&gt;  colorout    * 1.2-2   2022-01-04 [1] Github (jalvesaq/colorout@79931fd)
+#&gt;  colorspace    2.0-3   2022-02-21 [1] CRAN (R 4.1.2)                    
+#&gt;  crayon        1.5.0   2022-02-14 [1] CRAN (R 4.1.2)                    
+#&gt;  DBI           1.1.2   2021-12-20 [1] CRAN (R 4.1.0)                    
+#&gt;  dbplyr        2.1.1   2021-04-06 [1] CRAN (R 4.1.0)                    
+#&gt;  desc          1.4.0   2021-09-28 [1] CRAN (R 4.1.0)                    
+#&gt;  devtools      2.4.3   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  digest        0.6.29  2021-12-01 [1] CRAN (R 4.1.0)                    
+#&gt;  dplyr       * 1.0.8   2022-02-08 [1] CRAN (R 4.1.2)                    
+#&gt;  ellipsis      0.3.2   2021-04-29 [1] CRAN (R 4.1.0)                    
+#&gt;  evaluate      0.14    2019-05-28 [1] CRAN (R 4.1.0)                    
+#&gt;  fansi         1.0.2   2022-01-14 [1] CRAN (R 4.1.2)                    
+#&gt;  fastmap       1.1.0   2021-01-25 [2] CRAN (R 4.1.0)                    
+#&gt;  forcats     * 0.5.1   2021-01-27 [1] CRAN (R 4.1.0)                    
+#&gt;  fs            1.5.2   2021-12-08 [1] CRAN (R 4.1.0)                    
+#&gt;  generics      0.1.2   2022-01-31 [1] CRAN (R 4.1.2)                    
+#&gt;  ggplot2     * 3.3.5   2021-06-25 [2] CRAN (R 4.1.0)                    
+#&gt;  glue          1.6.2   2022-02-24 [1] CRAN (R 4.1.2)                    
+#&gt;  gtable        0.3.0   2019-03-25 [1] CRAN (R 4.1.0)                    
+#&gt;  haven         2.4.3   2021-08-04 [1] CRAN (R 4.1.0)                    
+#&gt;  hms           1.1.1   2021-09-26 [1] CRAN (R 4.1.0)                    
+#&gt;  htmltools     0.5.2   2021-08-25 [1] CRAN (R 4.1.0)                    
+#&gt;  httr          1.4.2   2020-07-20 [1] CRAN (R 4.1.0)                    
+#&gt;  jquerylib     0.1.4   2021-04-26 [1] CRAN (R 4.1.0)                    
+#&gt;  jsonlite      1.7.3   2022-01-17 [1] CRAN (R 4.1.2)                    
+#&gt;  knitr         1.37    2021-12-16 [1] CRAN (R 4.1.0)                    
+#&gt;  lifecycle     1.0.1   2021-09-24 [1] CRAN (R 4.1.0)                    
+#&gt;  lubridate     1.8.0   2021-10-07 [1] CRAN (R 4.1.0)                    
+#&gt;  magrittr      2.0.2   2022-01-26 [1] CRAN (R 4.1.2)                    
+#&gt;  memoise       2.0.0   2021-01-26 [2] CRAN (R 4.1.0)                    
+#&gt;  modelr        0.1.8   2020-05-19 [1] CRAN (R 4.1.0)                    
+#&gt;  munsell       0.5.0   2018-06-12 [1] CRAN (R 4.1.0)                    
+#&gt;  pillar        1.7.0   2022-02-01 [1] CRAN (R 4.1.2)                    
+#&gt;  pkgbuild      1.2.0   2020-12-15 [2] CRAN (R 4.1.0)                    
+#&gt;  pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.1.0)                    
+#&gt;  pkgload       1.2.4   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  prettyunits   1.1.1   2020-01-24 [1] CRAN (R 4.1.0)                    
+#&gt;  processx      3.5.2   2021-04-30 [1] CRAN (R 4.1.0)                    
+#&gt;  ps            1.6.0   2021-02-28 [1] CRAN (R 4.1.0)                    
+#&gt;  purrr       * 0.3.4   2020-04-17 [1] CRAN (R 4.1.0)                    
+#&gt;  R6            2.5.1   2021-08-19 [1] CRAN (R 4.1.0)                    
+#&gt;  Rcpp          1.0.8   2022-01-13 [1] CRAN (R 4.1.2)                    
+#&gt;  readr       * 2.1.2   2022-01-30 [1] CRAN (R 4.1.2)                    
+#&gt;  readxl        1.3.1   2019-03-13 [1] CRAN (R 4.1.0)                    
+#&gt;  remotes       2.4.0   2021-06-02 [2] CRAN (R 4.1.0)                    
+#&gt;  reprex        2.0.1   2021-08-05 [1] CRAN (R 4.1.0)                    
+#&gt;  rlang         1.0.2   2022-03-04 [1] CRAN (R 4.1.2)                    
+#&gt;  rmarkdown     2.11    2021-09-14 [1] CRAN (R 4.1.0)                    
+#&gt;  rprojroot     2.0.2   2020-11-15 [2] CRAN (R 4.1.0)                    
+#&gt;  rstudioapi    0.13    2020-11-12 [1] CRAN (R 4.1.0)                    
+#&gt;  rvest         1.0.2   2021-10-16 [1] CRAN (R 4.1.0)                    
+#&gt;  sass          0.4.0   2021-05-12 [1] CRAN (R 4.1.0)                    
+#&gt;  scales        1.1.1   2020-05-11 [1] CRAN (R 4.1.0)                    
+#&gt;  sessioninfo   1.1.1   2018-11-05 [2] CRAN (R 4.1.0)                    
+#&gt;  stringi       1.7.6   2021-11-29 [1] CRAN (R 4.1.0)                    
+#&gt;  stringr     * 1.4.0   2019-02-10 [1] CRAN (R 4.1.0)                    
+#&gt;  testthat      3.1.2   2022-01-20 [1] CRAN (R 4.1.2)                    
+#&gt;  tibble      * 3.1.6   2021-11-07 [1] CRAN (R 4.1.0)                    
+#&gt;  tidyr       * 1.2.0   2022-02-01 [1] CRAN (R 4.1.2)                    
+#&gt;  tidyselect    1.1.2   2022-02-21 [1] CRAN (R 4.1.2)                    
+#&gt;  tidyverse   * 1.3.1   2021-04-15 [1] CRAN (R 4.1.0)                    
+#&gt;  tzdb          0.1.2   2021-07-20 [2] CRAN (R 4.1.0)                    
+#&gt;  usethis       2.0.1   2021-02-10 [2] CRAN (R 4.1.0)                    
+#&gt;  utf8          1.2.2   2021-07-24 [1] CRAN (R 4.1.0)                    
+#&gt;  vctrs         0.3.8   2021-04-29 [1] CRAN (R 4.1.0)                    
+#&gt;  withr         2.5.0   2022-03-03 [1] CRAN (R 4.1.2)                    
+#&gt;  xfun          0.29    2021-12-14 [1] CRAN (R 4.1.0)                    
+#&gt;  xml2          1.3.3   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  yaml          2.2.2   2022-01-25 [1] CRAN (R 4.1.2)                    
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Library/R/x86_64/4.1/library
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.1/Resources/library</code></pre>
+</div>

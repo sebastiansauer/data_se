@@ -1,0 +1,137 @@
+---
+title: Zeilenweise Operationen (tidyverse-Stil)
+author: Sebastian Sauer
+date: '2021-05-27'
+slug: zeilenweise-operationen-tidyverse-stil
+categories:
+  
+tags:
+  - datawrangling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+# Aufgabe
+
+Berechnen Sie Zeilensummen! ... Oder Zeilen-Mittelwerte oder eine andere zeilenbasierte Funktion.
+
+
+# Setup
+
+```{r}
+library(tidyverse)  # Datenjudo
+```
+
+
+# Daten erzeugen
+
+
+```{r}
+d <- tribble(
+  ~"x1", ~"x2", ~"x3",
+  1, 2, 3,
+  4, 5, 6,
+  7, 8, 9
+)
+d
+```
+
+
+# Spalten addieren, die Erste
+
+```{r}
+d %>% 
+  mutate(summe = x1 + x2 + x3) %>% 
+  mutate(mw = (x1 + x2 + x3)/3)
+```
+
+Läuft!
+
+# Spalten addieren, die Zweite
+
+
+```{r}
+d %>% 
+  mutate(summe = sum(c(x1, x2, x3)),
+         mw = mean(c(x1, x2, x3)))
+```
+
+Läuft nicht!
+
+Leider "verstehen" `sum` und `mean` nicht die zeilenweisen Operationen. Wir müssen ihnen erst vorab verklickern, dass sie zeilenoperiert arbeiten sollen. Das geht mit dem Befehl `rowwise`, den wir in den Code von oben einfügen:
+
+```{r}
+d %>% 
+  rowwise() %>% 
+  mutate(summe = sum(c(x1, x2, x3)),
+         mw = mean(c(x1, x2, x3)))
+```
+
+Läuft!
+
+
+# Spalten addieren, die Dritte
+
+Das Prinzip `rowwise` funktioniert mit beliebigen Befehlen, die zeilenweise arbeiten sollen. 
+
+Es gibt auch ein paar praktische Hilfen, etwa wenn man nicht alle Spalten händisch aufführen will oder kann:
+
+```{r}
+cols_to_sum <- c("x1", "x2", "x3")
+```
+
+
+
+```{r}
+d %>% 
+  rowwise() %>% 
+  mutate(summe = sum(across(any_of(cols_to_sum)))
+         )
+```
+
+
+`any_of()` sagt sinngemäß "nimm jede (any) Spalte aus diesem Vektor". Allerdings muss dieser Befehl innerhalb von `select()` oder `across`()` gesetzt werden -- nur innerhalb von Tidyverse-Befehlen, die Spalten auswählen, funktioniert er.
+
+
+# Von erster Spalte bis zu letzter Spalte
+
+
+```{r}
+d %>% 
+  select(1:last_col()) %>% 
+  rowwise() %>% 
+  mutate(summe = sum(across(everything()))
+         )
+```
+
+
+
+# Fazit
+
+Möchte man Funktionen über Spalten hinweg aber *zeilenweise* ausführen, so hilft der Befehl `rowwise()`. Möchte man die spaltenweise Orientierung der Tabelle wieder aufheben, so hilft `ungroup()`.
+
+
+
+
+

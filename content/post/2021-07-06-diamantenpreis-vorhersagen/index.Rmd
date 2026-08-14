@@ -1,0 +1,621 @@
+---
+title: Vorhersage-Modellierung des Diamantenpreises
+author: Sebastian Sauer
+date: '2021-07-06'
+slug: diamantenpreis-vorhersagen
+categories:
+  - rstats
+tags:
+  - prediction
+  - modeling
+output: 
+  blogdown::html_page:
+    toc: TRUE
+    number_sections: TRUE
+---
+
+
+
+```{r global-knitr-options, include=FALSE}
+knitr::opts_chunk$set(fig.pos = 'H',
+  fig.asp = 0.618,
+  fig.width = 5,
+  fig.cap = "", 
+  fig.path = "",
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = FALSE,
+  fig.show = "hold")
+```
+
+
+# Vorbereitung
+
+## Forschungsfrage
+
+
+*Welche Prädiktoren lassen den Preis einen Diamanten vorhersagen?*
+
+Wir möchten also den Preis von Diamanten - basierend auf einer Reihe von Prädiktoren - möglichst exakt vorhersagen ($R^2$).
+
+
+## Aufgabe 
+
+Berechnen Sie die Vorhersagen und auch das R-Quadrat im Test-Datensatz!
+
+
+
+## Pakete laden
+
+```{r message = FALSE}
+library(tidyverse)
+library(fastDummies)
+library(janitor)
+library(corrr)
+library(ggfortify)
+library(modelr)
+library(tidymodels)
+library(leaps)
+```
+
+
+## Daten laden
+
+```{r}
+train <- read_csv("https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/diamonds/diamonds_train.csv")
+
+test <- read_csv("https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/diamonds/diamonds_test.csv")
+
+solution <- read_csv("https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/diamonds/diamonds_solution.csv")
+```
+
+
+## ID-Spalte ergänzen
+
+```{r}
+test <-
+  test %>% 
+  mutate(id = 1:nrow(.))
+```
+
+
+```{r}
+solution <-
+  solution %>% 
+  mutate(id = 1:nrow(.))
+```
+
+
+
+# Vorwissen
+
+Etwas Recherche oder Vorwissen zeigt, dass beim Diamantenpreis die "4C" entscheidend sind: Color, Clarity, **Carat**, Cut.
+
+Entsprechend sind diese 4 Prädiktoren gute Kandidaten für ein Modell.
+
+Tipp: Haben zwei Prädiktoren jeweils einen starken *Haupteffekt* (der Effekt einer einzelnen Variablen im Gegensatz zu einem Interaktionseffekt), macht es *häufig* Sinn, ihre Interaktion mitaufzunehmen (s. Gelman und Hill, 2007, Kap. 3 oder 4). Der Umkehrschluss gilt nicht.
+
+
+# Woran erkennt man einen "starken Haupteffekt"?
+
+1. Am Zuwachs von $R^2$, wenn man den Prädiktor mitaufnimmt
+2. Am Regressiongewicht -- aber nur, wenn die Prädiktoren (z-)standardisiert sind.
+
+
+
+
+
+# Wichtige Prädiktoren
+
+
+## train2
+
+```{r}
+train2 <- train %>% 
+  dummy_cols(remove_selected_columns = TRUE,
+             select_columns = c("cut", "color", "clarity"),
+             remove_first_dummy = TRUE) %>% 
+  clean_names()
+```
+
+
+```{r}
+train2 %>% glimpse()
+```
+
+
+## test2
+
+```{r}
+test2 <- test %>% 
+  dummy_cols(remove_selected_columns = TRUE,
+             select_columns = c("cut", "color", "clarity")) %>% 
+  clean_names()
+```
+
+
+
+```{r}
+train2 %>% 
+  correlate() %>% 
+  focus(price) %>% 
+  arrange(-abs(price)) %>% 
+  filter(abs(price) > 0.1)
+```
+
+
+# Feature Engineering
+
+Das Volumen berechnet sich als das Produkt von Länge, Breite und Höhe:
+
+```{r}
+train2 %>% 
+  mutate(volume = x*y*z) %>% 
+  correlate() %>% 
+  focus(volume)
+```
+
+## train3/test3
+
+```{r}
+train3 <- 
+  train2 %>% 
+  mutate(volume = x*y*z)
+```
+
+
+```{r}
+test3 <- 
+  test2 %>% 
+  mutate(volume = x*y*z) 
+```
+
+
+## Korrelation
+
+
+```{r}
+train3 %>% 
+  correlate() %>% 
+  focus(price) %>% 
+  arrange(-abs(price)) %>% 
+  filter(abs(price) > 0.1)
+```
+
+
+## `preds_important`
+
+```{r}
+preds_important <- 
+  train3 %>% 
+  correlate() %>% 
+  focus(price) %>% 
+  arrange(-abs(price)) %>% 
+  filter(abs(price) > 0.1) %>% 
+  filter(!(term %in% c("x", "y", "z"))) %>% 
+  pull(term)
+```
+
+
+Wenn man Volumen im Modell hat, sind `x`, `y` und `z` vermutlich unnötig.
+
+
+```{r}
+preds_important
+```
+
+
+# Funktionale Form der Zusammenhänge
+
+
+```{r}
+train3 %>% 
+  select(carat, depth, table, price, volume) %>%
+  pivot_longer(cols = -price) %>% 
+  ggplot() +
+  aes(x = value, y = price) +
+  geom_point() +
+  geom_smooth() +
+  facet_wrap(~ name, scales = "free")
+```
+
+# Filtern
+
+
+
+```{r}
+train3 %>% 
+  select(carat, depth, table, price, volume) %>%
+  pivot_longer(cols = everything()) %>% 
+  ggplot() +
+  aes(x = value) +
+  geom_histogram() +
+  facet_wrap(~ name, scales = "free")
+```
+
+## train4
+
+```{r}
+train4 <-
+  train3 %>% 
+  filter(carat < 2.5)
+```
+
+```{r}
+test4 <- test3
+```
+
+
+# Transformationen
+
+
+
+## Log-Transformation (train5)
+
+
+```{r}
+train5 <-
+  train4 %>% 
+  mutate(price_log = log(price),
+         carat_log = log(carat),
+         carat_cuberoot = carat^(1/3)) %>% 
+  select(-price)
+```
+
+
+
+```{r}
+test5 <-
+  test4 %>% 
+  mutate(price_log = log(price),
+         carat_log = log(carat),
+         carat_cuberoot = carat^(1/3)) %>% 
+  select(-price)
+```
+
+
+## z-Transformation (train6)
+
+```{r}
+train6 <- 
+  train5 %>% 
+  mutate(across(
+    .cols = c(carat:z, volume),
+    .fns = ~ (.x - mean(.x)) / sd(.x),
+    .names = "{col}_z"
+  ))
+```
+
+
+```{r}
+test6 <- 
+  test5 %>% 
+  mutate(across(
+    .cols = c(carat:z, volume),
+    .fns = ~ (.x - mean(.x)) / sd(.x),
+    .names = "{col}_z"
+  ))
+```
+
+
+
+Allerdings sind die negativen Werte nicht mehr für das Logarithmieren zu gebrauchen.
+
+
+
+# Vorhersage-Modellierung
+
+## lm1
+
+
+```{r}
+lm1 <-
+  train4 %>% 
+  select(any_of(preds_important), price) %>% 
+  filter(price > 0) %>% 
+  lm(log(price) ~ . , data = .)
+```
+
+
+```{r}
+summary(lm1)$adj.r.squared
+```
+
+```{r}
+coef(lm1)
+```
+
+
+
+
+## lm2
+
+
+
+```{r}
+lm2 <- 
+  train4 %>% 
+  select(any_of(preds_important), price) %>% 
+  lm(log(price) ~ log(carat) + clarity_si2 + table + color_e, data = .)
+```
+
+
+```{r}
+summary(lm2)$adj.r.sq
+```
+
+
+```{r}
+coef(lm2)
+```
+
+
+
+```{r}
+autoplot(lm2, which = 1)  # ggfortify
+```
+
+
+## lm3
+
+
+
+```{r}
+lm3 <- 
+  train4 %>% 
+  select(any_of(preds_important), price) %>% 
+  lm(log(price) ~ log(carat) + clarity_si2 + color_e + log(carat)*clarity_si2 + clarity_si2*color_e, data = .)
+```
+
+
+```{r}
+summary(lm3)$adj.r.sq
+```
+
+
+
+```{r}
+autoplot(lm3, which = 1) + # ggfortify
+  labs(subtitle = "lm3")
+```
+
+
+## lm4
+
+
+
+
+
+```{r}
+lm4 <- 
+  train4 %>% 
+  select(any_of(preds_important), price) %>% 
+  lm(log(price) ~ log(carat) + clarity_si2 + color_e, 
+     data = .)
+```
+
+
+```{r}
+summary(lm4)$adj.r.sq
+```
+
+
+
+```{r}
+autoplot(lm4, which = 1) + # ggfortify
+  labs(subtitle = "lm4")
+```
+
+
+
+## lm5
+
+
+
+```{r}
+lm5 <- 
+  train4 %>% 
+  select(any_of(preds_important), price) %>% 
+  lm(price ~ ., 
+     data = .)
+```
+
+
+```{r}
+summary(lm5)$adj.r.sq
+```
+
+
+
+```{r}
+autoplot(lm5, which = 1) + # ggfortify
+  labs(subtitle = "lm5")
+```
+
+
+
+## lm6
+
+
+
+```{r}
+lm6 <- 
+  train4 %>% 
+  lm(price ~ ., 
+     data = .)
+```
+
+
+```{r}
+summary(lm6)$adj.r.sq
+```
+
+
+
+```{r}
+autoplot(lm6, which = 1) + # ggfortify
+  labs(subtitle = "lm6")
+```
+
+
+
+## lm7: regsubsets
+
+
+
+
+```{r}
+lm7 <- regsubsets(price_log ~ .,
+                  nvmax = 27,
+                  data = train5)
+```
+
+
+```{r}
+lm7_sum <- summary(lm7)
+
+tibble(adjr2 = lm7_sum$adjr2,
+       id = 1:length(lm7_sum$adjr2)) %>% 
+  ggplot() +
+  aes(x = id, y = adjr2) +
+  geom_point() +
+  geom_line()
+```
+
+
+
+```{r}
+preds_lm7 <- 
+  coef(lm7, 12) %>% 
+  names() %>% 
+  purrr::discard(~ identical(.x, "(Intercept)"))
+
+preds_lm7
+```
+
+
+
+Dieses Modell mit `r `length(preds_lm7)` Prädiktoren könnte sinnvoll sein: hohes R-Quadrat, aber noch vor der "Abflachung", also sparsam in den Prädiktoren.
+
+
+### Achtung
+
+Automatisierte Verfahren wie die Best-Subset-Analyse können auch zu falschen Ergebnissen führen; man sollte sich nicht blindlings verlassen.
+
+
+## lm8
+
+```{r}
+lm8 <- 
+  train5 %>% 
+  select(any_of(preds_lm7), price_log) %>% 
+  lm(price_log ~ ., .)
+```
+
+
+
+```{r}
+summary(lm8)$adj.r.sq
+```
+
+```{r}
+coef(lm8)
+```
+
+
+## lm9: Schrittweise Regression
+
+
+```{r}
+lm9 <- regsubsets(price ~ .,
+                  method = "forward",
+                  data = train3)
+```
+
+(Hier nicht weiter ausgeführt)
+
+# Predict
+
+
+## Vorhersagen hinzufügen
+
+```{r}
+test6 <- 
+  test5 %>% 
+  add_predictions(lm1, var = "pred_lm1") %>% 
+  add_predictions(lm2, var = "pred_log_lm2") %>% 
+  add_predictions(lm3, var = "pred_log_lm3") %>% 
+  add_predictions(lm4, var = "pred_log_lm4") %>% 
+  add_predictions(lm5, var = "pred_lm5")  %>% 
+  add_predictions(lm6, var = "pred_lm6") %>% 
+  add_predictions(lm8, var = "pred_log_lm8")
+```
+
+
+
+```{r}
+test6 %>% 
+  select(contains("pred")) %>% 
+  slice(1:5)
+```
+
+
+## Zurücktransformieren
+
+Delogarithmieren, d.h. die Exp.funktion anwenden:
+
+```{r}
+test7 <-
+  test6 %>% 
+  mutate(pred_lm2 = exp(pred_log_lm2),
+         pred_lm3 = exp(pred_log_lm3),
+         pred_lm4 = exp(pred_log_lm4),
+         pred_lm8 = exp(pred_log_lm8))
+```
+
+
+```{r}
+test7 %>% 
+  select(contains("pred")) %>% 
+  slice(1:5)
+```
+
+
+# Test-R2
+
+
+
+```{r}
+solutions2 <-
+  solution %>% select(id, price)
+
+r2_tab <- 
+  test7 %>% 
+  select(id, contains("pred")) %>% 
+  left_join(solutions2) %>% 
+  summarise(r2_lm1 = rsq_vec(price, pred_lm1),
+            r2_lm2 = rsq_vec(price, pred_lm2),
+            r2_lm3 = rsq_vec(price, pred_lm3),
+            r2_lm4 = rsq_vec(price, pred_lm4),
+            r2_lm5 = rsq_vec(price, pred_lm5),
+            r2_lm6 = rsq_vec(price, pred_lm6),
+            r2_lm8 = rsq_vec(price, pred_lm8))  %>%  
+  pivot_longer(everything(),
+               names_to = "model",
+               values_to = "r2")
+
+r2_tab %>% 
+  arrange(-r2)
+```
+
+
+# Fazit 
+
+Das beste Modell ist also:
+
+```{r}
+r2_tab %>% 
+  slice_max(r2, n = 1)
+```
+

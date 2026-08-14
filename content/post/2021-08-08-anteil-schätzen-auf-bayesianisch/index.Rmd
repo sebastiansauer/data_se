@@ -1,0 +1,203 @@
+---
+title: Anteil schätzen auf bayesianisch
+author: Sebastian Sauer
+date: '2021-08-08'
+slug: anteil-schätzen-auf-bayesianisch
+draft: true
+categories:
+  - rstats
+tags:
+  - Bayes
+---
+
+```{r global-knitr-options, include=FALSE}
+knitr::opts_chunk$set(fig.pos = 'H',
+  fig.asp = 0.618,
+  fig.width = 5,
+  fig.cap = "", 
+  fig.path = "",
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = FALSE,
+  fig.show = "hold")
+```
+
+
+
+```{r}
+library(tidyverse)
+library(broom)
+library(broom.mixed)
+```
+
+
+
+# Anteile schätzen
+
+Seien $X$ die Daten einer Stichprobe mit $s=6$ Treffern bei $n=9$ Versuchen, wobei $X \sim \text{Binom(n, p)}.
+
+
+
+Unser Ziel ist es, den Anteil $\pi$ (für die Anzahl der Treffer in der Population) zu schätzen. 
+
+Dafür probieren wir verschiedene Implementationen der Bayes-Inferenz in R aus.
+
+
+
+# Daten
+
+
+```{r}
+s <- 6  # Treffer (successes)
+f <- 3  # Nieten (failures)
+n <- 9
+```
+
+
+```{r}
+d <- tibble(
+  outcome = c(rep(1, s), rep(0, f))
+)
+```
+
+```{r}
+glimpse(d)
+```
+
+
+
+# Modell
+
+$$S ~ \text{Binom}(9, p)
+
+p ~ \text{unif}(0,1)$$
+
+
+# `rethinking` - Quadratische Approximation
+
+```{r}
+library(rethinking)
+```
+
+
+
+
+
+```{r}
+m1 <- quap(
+  alist(
+    s ~ dbinom(s+f, p),
+    p ~ dunif(0, 1)
+  ),
+  data = list(s = 6, f = 3)
+)
+```
+
+```{r}
+precis(m1)
+```
+
+
+# `rstanarm`
+
+
+## m2
+
+```{r}
+library(rstanarm)
+```
+
+```{r}
+m2 <- stan_glm(outcome ~ 1,
+               family = binomial(link = "logit"),
+               data = d,
+               refresh = 0)  # keinen Output zeigen
+```
+
+
+```{r}
+print(m2)
+```
+
+Informationen zu den voreingestellten Prior-Verteilungen (default priors) bekommt man so:
+
+
+```{r}
+prior_summary(m2)
+```
+
+
+Wie man sieht, wird als Standard für den Logit eine Normalverteilung gewählt mit Mittelwert (location) von Null, was gut passt.
+
+
+## m3
+
+Und so kann man die Prior-Werte ändern.
+
+Wählen wir einen flachen (gleichverteilter) Prior:
+
+```{r}
+m3 <- stan_glm(outcome ~ 1,
+               family = binomial(link = "logit"),
+               prior_intercept = NULL,
+               data = d,
+               refresh = 0)  # keinen Output zeigen
+```
+
+
+```{r}
+print(m3)
+```
+
+
+```{r}
+prior_summary(m3)
+```
+
+
+
+Weitere Infos zur Aussage:
+
+```{r}
+summary(m3)
+```
+
+
+```{r}
+tidy(m3)
+```
+
+
+
+# `brms` 
+
+Dier Abschnitt beasiert auf [dieser Quelle](https://bookdown.org/content/4857/small-worlds-and-large-worlds.html#making-the-model-go).
+
+
+```{r}
+library(brms)
+```
+
+
+
+
+
+
+# `glm` 
+
+
+```{r}
+m5 <- glm(outcome ~ 1, data = d,
+          family = "binomial")
+```
+
+
+```{r}
+tidy(m5)
+```
+
+```{r}
+exp(0.7)
+```
+

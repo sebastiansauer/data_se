@@ -1,0 +1,122 @@
+---
+title: Working with list columns - an example
+author: Sebastian Sauer
+date: '2024-10-13'
+slug: working-with-list-columns-an-example
+categories:
+  - rstats
+tags:
+  - loops
+  - purrr
+  - list
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+# Introduction
+
+In this post, I want to show you how to work with list columns in R. List columns are a powerful feature of the `tidyverse` that allow you to store multiple objects in a single column of a data frame. This can be useful when you have a list of objects that you want to keep together, such as a list of data frames or a list of models.
+
+
+# Example data
+
+```{r}
+my_path <- paste0(here::here(),"/content/post/2024-10-13-working-with-list-columns-an-example/df_with_list_columns.rds")
+
+file.exists(my_path)
+
+df <- read_rds(my_path)
+```
+
+
+# Add list column 1
+
+```{r}
+df |>  
+  mutate(id_is_seq_1_to_n = map_lgl(data, function(df) identical(df$id, 1:88)))
+```
+
+
+
+
+# Add list column 2
+
+```{r}
+df |>  
+  mutate(id_is_seq_1_to_n = map_lgl(data, ~ identical(.x$id, 1:88)))
+```
+
+
+# Extract list column
+
+If we pull the list columns `data`, we will get a list of data frames:
+
+```{r}
+df |> 
+  pull(data) |> 
+  str()
+```
+
+Same thing using the dollar operator:
+
+```{r}
+df$data |> 
+  str()
+```
+
+Or double brackets:
+
+```{r}
+df[["data"]] |> 
+  str()
+```
+
+
+Pulling only the n-th element can be achieved like this:
+
+```{r}
+df$data[[1]] |> 
+  str()
+```
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

@@ -1,0 +1,269 @@
+---
+title: Empirische Verteilungsfunktion
+author: Sebastian Sauer
+date: '2022-05-02'
+slug: empirische-verteilungsfunktion
+categories:
+  - rstats
+tags:
+  - rstats
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# R-Pakete
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+theme_set(theme_minimal())  # Stylesheet für ggplot2
+```
+
+
+
+# Hintergrund
+
+Will man eine Verteilung untersuchen, sind Verteilungsfunktion $F$ und Quantilsfunktion $F^{-1}$ wichtige Größen.
+Nicht nur für theoretische, sondern auch für empirische Verteilungen kann man diese Funktionen anwenden.
+
+Allerdings ist die Umsetzung in R vielleicht nicht ganz klar. Daher soll dieser Post zeigen,
+wie man eine empirische Verteilungfunktion und Quantilsfunktion in R berechnet.
+
+
+
+# Verteilungsfunktion der Normalverteilung
+
+
+Für eine Normalverteilung kann man sich Quantile und Verteilungsfunktion einfach in R ausgeben lassen.
+
+
+Wert der Verteilungsfunktion bei $x=0$:
+
+```{r}
+pnorm(q = 0)
+```
+
+Ausgehend von einer Standardnormalverteilung sagt uns R, dass der Wert der Verteilungsfunktion $F(0)=0.5$ beträgt.
+
+
+
+Quantile, z.B. $F^{-1}(0.5)$:
+
+```{r}
+qnorm(p = .5)
+```
+
+Passt!
+
+Das Plotten geht analog:
+
+```{r}
+ggplot(tibble(x = c(-3, 3)), aes(x = x)) +
+  stat_function(fun = pnorm) +
+  labs(title = "Verteilungsfunktion F der Normalverteilung")
+```
+
+
+# Empirische Verteilungsfunktion
+
+
+
+Erzeugen wir uns (standard-)normalverteilte Daten:
+
+```{r}
+d_normal <-
+  tibble(x = rnorm(n = 1e04))
+```
+
+
+## Tidyverse
+
+Die empirische Verteilungsfunktion für $x=0$ kann man, so mit dem Tidyverse bekommen
+
+
+
+### Tidyverse 1
+
+Dann zählen wir den Anteil der Beobachtungen (Zeilen), die dem gesuchten Wert der Verteilungsfunktion entsprechen,
+z.B. $x=0$:
+
+
+```{r}
+d_normal %>% 
+  count(x <= 0)
+```
+
+Also etwa 50%.
+
+
+### Tidyverse 2
+
+So geht es auch, recht umständlich allerdings:
+
+
+Zunächst erzeugen wir die kumulierte Verteilung.
+
+```{r}
+d_normal <-
+  d_normal %>% 
+  mutate(x_cume_dist = cume_dist(x))
+```
+
+
+
+Dann lesen wir den Wert von `x_cume_dist` an der gewünschten Stelle von `x` aus:
+
+```{r}
+d_normal %>% 
+  filter(x <= 0) %>% 
+  summarise(max(x_cume_dist))
+```
+
+
+
+### Plotten der ECDF
+
+Und so kann man die empirische Verteilungsfunktion plotten, auch genannt *empirical cumulative density function* (ecdf):
+
+
+```{r}
+d_normal %>%
+  ggplot(aes(x = x)) +
+  stat_ecdf(geom = "step")
+```
+
+
+
+### Quantile
+
+
+Zur Erinnerung: Das $p$-Quantil ist der Wert, der von $p\cdot100$ Prozent der Beobachtungen der Verteilung nicht überschritten wird.
+
+Anschaulich: Wir schneiden den Anteil $p$ links von der Verteilung ab, und fragen uns, bei welchem Wert $x$ wir die Schere ansetzen müssen.
+
+
+Quantil für $p=.5$:
+
+```{r}
+d_normal %>% 
+  filter(percent_rank(x) <= .5) %>% 
+  summarise(max(x))
+```
+
+Also etwa Null, passt.
+
+
+## Base R
+
+
+
+### Quantile
+
+Mit Base R geht es schön einfach:
+
+```{r}
+quantile(d_normal$x, prob = .5)
+```
+
+
+Oder, etwas mehr Tidyverse-Stil:
+
+```{r}
+d_normal %>% 
+  summarise(x_50perc = quantile(x, prob = .5))
+```
+
+
+### ECDF
+
+mit `ecdf(x)` erzeugt man *eine Funktion* und zwar eine, die die kumulierten Anteile für `x` wiedergibt:
+
+```{r}
+F <- ecdf(d_normal$x)
+```
+
+Wenn einmal definiert, können wir die Funktion bequem befragen.
+
+Hey `F`, was ist dein Wert bei $x=0$?
+
+```{r}
+F(0)
+```
+
+50%! Passt
+
+
+### Plot
+
+`ecdf()` hat auch eine Plot-Methode:
+
+```{r}
+plot(ecdf(d_normal$x))
+```
+
+
+## Mosaic
+
+
+```{r}
+library(mosaic)
+```
+
+
+Mit `{{mosaic}}`` geht das auch schön einfach:
+
+
+### ECDF
+
+Was ist der kumulierte Anteil für `x=0`:
+
+```{r}
+pdata( ~ x, q = 0, data = d_normal)
+```
+
+
+### Quantile
+
+Was ist das Quantil für `p = .5`:
+
+```{r}
+qdata(~ x, p = 1/2, data = d_normal)
+```
+
+Etwa Null, passt!
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

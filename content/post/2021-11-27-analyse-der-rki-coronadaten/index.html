@@ -1,0 +1,3093 @@
+---
+title: "Analyse einiger RKI-Coronadaten: Eine reproduzierbare Fallstudie"
+author: Sebastian Sauer
+date: '2021-11-27'
+slug: analyse-der-rki-coronadaten
+categories:
+  - rstats
+tags:
+  - covid19
+  - tutorial
+  - eda
+  - regression
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#r-pakete"><span class="toc-section-number">1</span> R-Pakete</a></li>
+<li><a href="#hintergrund"><span class="toc-section-number">2</span> Hintergrund</a></li>
+<li><a href="#inzidenzen-in-deutschland---daten-vom-rki"><span class="toc-section-number">3</span> Inzidenzen in Deutschland - Daten vom RKI</a></li>
+<li><a href="#hospitalisierungen-in-deutschland"><span class="toc-section-number">4</span> Hospitalisierungen in Deutschland</a>
+<ul>
+<li><a href="#adjustierte-daten"><span class="toc-section-number">4.1</span> Adjustierte Daten</a>
+<ul>
+<li><a href="#daten-importieren"><span class="toc-section-number">4.1.1</span> Daten importieren</a></li>
+<li><a href="#eda"><span class="toc-section-number">4.1.2</span> EDA</a></li>
+</ul></li>
+<li><a href="#unadjustierte-daten"><span class="toc-section-number">4.2</span> Unadjustierte Daten</a>
+<ul>
+<li><a href="#daten-importieren-1"><span class="toc-section-number">4.2.1</span> Daten importieren</a></li>
+<li><a href="#eda-1"><span class="toc-section-number">4.2.2</span> EDA</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#impfungen-in-deutschland"><span class="toc-section-number">5</span> Impfungen in Deutschland</a>
+<ul>
+<li><a href="#neueste-daten"><span class="toc-section-number">5.1</span> Neueste Daten</a>
+<ul>
+<li><a href="#daten-laden"><span class="toc-section-number">5.1.1</span> Daten laden</a></li>
+<li><a href="#eda-2"><span class="toc-section-number">5.1.2</span> EDA</a></li>
+</ul></li>
+<li><a href="#impfquoten-im-zeitverlauf"><span class="toc-section-number">5.2</span> Impfquoten im Zeitverlauf</a>
+<ul>
+<li><a href="#daten-laden-1"><span class="toc-section-number">5.2.1</span> Daten laden 1</a></li>
+<li><a href="#daten-laden-2"><span class="toc-section-number">5.2.2</span> Daten laden 2</a></li>
+</ul></li>
+<li><a href="#eda-3"><span class="toc-section-number">5.3</span> EDA</a>
+<ul>
+<li><a href="#impfquote-deutschland-im-zeitverlauf"><span class="toc-section-number">5.3.1</span> Impfquote Deutschland im Zeitverlauf</a></li>
+<li><a href="#impfquote-der-bundesländer-im-zeitverlauf"><span class="toc-section-number">5.3.2</span> Impfquote der Bundesländer im Zeitverlauf</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#daten-joinen"><span class="toc-section-number">6</span> Daten joinen</a></li>
+<li><a href="#zusammenhangsanalysen"><span class="toc-section-number">7</span> Zusammenhangsanalysen</a>
+<ul>
+<li><a href="#zusammenhang-von-impfquote-und-hospitalisierung"><span class="toc-section-number">7.1</span> Zusammenhang von Impfquote und Hospitalisierung</a>
+<ul>
+<li><a href="#im-zeitverlauf"><span class="toc-section-number">7.1.1</span> Im Zeitverlauf</a></li>
+<li><a href="#korrelation-nach-bundesland"><span class="toc-section-number">7.1.2</span> Korrelation nach Bundesland</a></li>
+<li><a href="#pro-quartal"><span class="toc-section-number">7.1.3</span> Pro Quartal</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#fazit-zum-zusammenhang-von-hospitalisierung-und-impfquote"><span class="toc-section-number">8</span> Fazit zum Zusammenhang von Hospitalisierung und Impfquote</a>
+<ul>
+<li><a href="#deskriptiv"><span class="toc-section-number">8.1</span> Deskriptiv</a></li>
+<li><a href="#aber-worum-geht-es-uns-eigentlich"><span class="toc-section-number">8.2</span> Aber worum geht es uns eigentlich?</a>
+<ul>
+<li><a href="#kausalmodell-1"><span class="toc-section-number">8.2.1</span> Kausalmodell 1</a></li>
+<li><a href="#kausalmodell-2"><span class="toc-section-number">8.2.2</span> Kausalmodell 2</a></li>
+<li><a href="#interpretation-hängt-vom-kausalmodell-ab"><span class="toc-section-number">8.2.3</span> Interpretation hängt vom Kausalmodell ab</a></li>
+</ul></li>
+<li><a href="#wo-sind-hier-die-modelle"><span class="toc-section-number">8.3</span> Wo sind hier die Modelle?</a></li>
+<li><a href="#interpretation-hängt-von-der-gesamten-befundlage-ab"><span class="toc-section-number">8.4</span> Interpretation hängt von der gesamten Befundlage ab</a></li>
+<li><a href="#notiz-zum-umgang-mit-fehlinformationen"><span class="toc-section-number">8.5</span> Notiz zum Umgang mit Fehlinformationen</a></li>
+</ul></li>
+<li><a href="#sessioninfo"><span class="toc-section-number">9</span> sessionInfo</a></li>
+</ul>
+</div>
+
+<div id="r-pakete" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> R-Pakete</h1>
+</div>
+<div id="hintergrund" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Hintergrund</h1>
+<p>Die Corona-Epidemie beherrscht (wieder) die Nachrichten, Gespräche und Gedanken.
+Zu Recht, aus zwei Gründen.
+Zum einen sind die Zahlen jetzt schon besorgniserregend, wenn nicht furchtbar.
+Zum anderen haben <a href="https://www.nature.com/articles/s41567-020-0921-x?report=reader">Pandemien das Potenzial zu krassen Extremwerten</a>.</p>
+<p>Dazu kommt, dass Falschmeldungen kursieren.
+Schlimmer noch als reine Unwahrheit sind Halbwahrheiten.
+Damit ist die Unsitte gemeint, einen einzelnen, (vielleicht) korrekten Fakt aufzugreifen,
+und damit eine vielschichtige Forschungsfrage für beantwortet zu erklären.
+Das gleicht dem Versuch, von einem 500-Teile-Puzzle ein Stück gefunden zu haben,
+und nun zu reklamieren, man wisse, wie das ganze Puzzle aussieht.
+Eher in Forschungsvokablen: Auf Basis einer Studie gibt man vor,
+eine Antwort auf eine breite Forschungsfrage zu geben,
+ohne zu erwähnen, dass es noch 50 anders geartete Studien gibt,
+die zu (evtl.) anderen Ergebnissen kommen.</p>
+<p>Der Vergleich mehrerer Gruppen ist immer problematisch,
+problematisch in dem Maße, wie sich die Gruppen in unbekannter Weise unterscheiden.
+So ist es beispielsweise schwierig,
+die Übersterblichkeit in Deutschland in 2020 und 2021 zu vergleichen.
+Auf die Übersterblichkeit wirken viele Faktoren ein;
+so könnten etwa die Kontaktbeschränkungen dazu geführt haben,
+dass die Grippe sich nicht so ausbreiten konnte.
+Dadurch wurden Krankheits- und Todesfälle vermieden;
+man könnte aber auch (fälschlich) schlussfolgern,
+dass Corona doch “nicht so schlimm” gewesen war.
+Viele weitere Unterschiede sind denkbar;
+etwas Deltavariante vs. den Ursprungsvirus und so weiter.</p>
+<p>Der Vergleich zwischen Ländern ist aus dem gleichen Grund noch schwieriger.
+Länder unterscheiden sich in vielen Hinsichten;
+im Hinblick auf Corona sind vermutlich klimatorische Unterschiede entscheidend.
+In einem warmen Land wird - bei gleicher Kontakt- oder Impfsituation -
+sicherlich weniger Fälle auftreten als in einem kalten Land.
+Das ist nur einer von vielen Unterschieden,
+die eine Rolle spielen können
+und uns zeigen,
+warum die Menschen Experimente erfunden haben,
+um die Vergleichbarkeit von Gruppen gewährleisten zu können.</p>
+<p>Neben der Vergleichbarkeit der Daten spielt natürlich auch die Datenqualität
+(neben und über die Vergleichbarkeit der Datenqualität hinaus) eine wichtige Rolle.
+In Deutschland leistet das RKI gute Arbeit,
+Daten auf möglichst hohem Niveau zu sammeln.
+Praktischerweise sind diese Daten auch öffentlich und komfortabel zugänglich.</p>
+<p>Im Lichte der bisher (in jüngerer Geschichte) nicht dagewesesen gesundheitlichen
+Gefährdungen durch die Epidemie und auch gesellschaftliche Brisanz ist die Frage
+nach den Fakten zu Corona und ihren Auswirkungen von höchstem Belang.</p>
+<p>Grund genug, sich die Daten und Analysen zu Corona auf <em>reproduzierbare</em> Art und Weise,
+also transparent und für alle nachprüfbar, anzuschauen.</p>
+</div>
+<div id="inzidenzen-in-deutschland---daten-vom-rki" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Inzidenzen in Deutschland - Daten vom RKI</h1>
+<p>Das <a href="https://www.rki.de/DE/Home/homepage_node.html">Robert-Koch-Institut</a> (RKI) stellt die Daten zu den Corona-Infektionen <a href="https://github.com/robert-koch-institut/SARS-CoV-2_Infektionen_in_Deutschland">hier</a> öffentlich zum Herunerladen bereit.</p>
+<p>Die <a href="https://github.com/robert-koch-institut/SARS-CoV-2_Infektionen_in_Deutschland/blob/master/Aktuell_Deutschland_SarsCov2_Infektionen.csv">CSV-Datei mit den aktuellen Daten</a> ist groß; 150 MB (26.11.21).</p>
+<p>Die Daten werden unter der <a href="https://github.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland#lizenz">CC-BY-Lizenz bereitgestellt vom RKI.</a></p>
+</div>
+<div id="hospitalisierungen-in-deutschland" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Hospitalisierungen in Deutschland</h1>
+<p>Aufgrund der großen Dateigröße fangen wir mit einer kleineren Datei an.
+<a href="https://github.com/robert-koch-institut/COVID-19-Hospitalisierungen_in_Deutschland">Die Datei mit den Hospitalisierungen</a> ist viel kleiner (3MB).</p>
+<p>Es wird auch ein adjustierter Datensatz bereitgestellt:</p>
+<blockquote>
+<p>Zwischen dem Beginn des Krankenhausaufenthalts eines COVID-19-Falles und dem Zeitpunkt, an dem diese Information am RKI eingeht, entsteht ein zeitlicher Verzug. Um den Trend der Anzahl von Hospitalisierungen und der 7-Tage-Hospitalisierungsinzidenz besser bewerten zu können, ergänzen wir die berichtete Hospitalisierungsinzidenz um eine Schätzung der zu erwartenden Anzahl an verzögert berichteten Hospitalisierungen. Neben den Daten der gemeldeten COVID-19-Hospitalisierungen auf Bundes- und Länderebene wird daher ein Nowcasting der Anzahl hospitalisierter Fälle und der 7-Tage-Hospitalisierungsinzidenz auf Bundesebene durchgeführt. Ziel ist die Schätzung der Anzahl von hospitalisierten COVID-19-Fällen mit Meldedatum innerhalb der sieben vorhergehenden Tage - inklusive der noch nicht an das RKI berichteten Hospitalisierungen.</p>
+</blockquote>
+<p>Schauen wir uns den neuesten (adjustierten) Datensatz näher an.</p>
+<p>Zur Berechnung der adjustierten 7T-Inzidenz schreibt das RKI <a href="https://github.com/robert-koch-institut/COVID-19-Hospitalisierungen_in_Deutschland#berechnung-der-adjustierten-7-tage-hospitalisierungsinzidenz">hier</a>:</p>
+<blockquote>
+<p>Die adjustierte 7-Tage-Hospitalisierungsinzidenz berechnet sich aus der adjustierten Anzahl der hospitalisierten COVID-19-Fälle der letzten sieben Tage (vorherig des Berichtsdatums) und der Bevölkerungszahl. Zur einheitlichen Darstellung wird die Inzidenz auf 100.000 Bevölkerung normiert.</p>
+</blockquote>
+<div id="adjustierte-daten" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> Adjustierte Daten</h2>
+<div id="daten-importieren" class="section level3" number="4.1.1">
+<h3><span class="header-section-number">4.1.1</span> Daten importieren</h3>
+<p>Weitere Informationen - wie das Codebook (d.h. die Erläuterungen zu den Variablen)
+- finden Sie auf dem <a href="https://github.com/robert-koch-institut/COVID-19-Hospitalisierungen_in_Deutschland">Github-Repo des RKI</a>.</p>
+<pre class="r"><code>hosp_file &lt;- &quot;https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Hospitalisierungen_in_Deutschland/master/Archiv/2021-11-24_Deutschland_adjustierte-COVID-19-Hospitalisierungen.csv&quot;
+
+hosp_adj &lt;- read_csv(hosp_file)  # adj wie &quot;adjustiert&quot;</code></pre>
+</div>
+<div id="eda" class="section level3" number="4.1.2">
+<h3><span class="header-section-number">4.1.2</span> EDA</h3>
+<pre class="r"><code>hosp_adj %&gt;% 
+  ggplot() +
+  aes(x = Datum, y = PS_adjustierte_7T_Hospitalisierung_Inzidenz) +
+  geom_line() </code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="unadjustierte-daten" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> Unadjustierte Daten</h2>
+<div id="daten-importieren-1" class="section level3" number="4.2.1">
+<h3><span class="header-section-number">4.2.1</span> Daten importieren</h3>
+<pre class="r"><code>hosp_latest_file &lt;- &quot;https://github.com/robert-koch-institut/COVID-19-Hospitalisierungen_in_Deutschland/raw/master/Archiv/2021-11-27_Deutschland_COVID-19-Hospitalisierungen.csv&quot;
+
+hosp_latest &lt;- read_csv(hosp_latest_file)</code></pre>
+</div>
+<div id="eda-1" class="section level3" number="4.2.2">
+<h3><span class="header-section-number">4.2.2</span> EDA</h3>
+<div id="bundesgebiet" class="section level4" number="4.2.2.1">
+<h4><span class="header-section-number">4.2.2.1</span> Bundesgebiet</h4>
+<pre class="r"><code>hosp_latest %&gt;% 
+  filter(Bundesland == &quot;Bundesgebiet&quot;) %&gt;% 
+  ggplot() +
+  aes(x = Datum, y = `7T_Hospitalisierung_Inzidenz`) +
+  geom_line(aes(color = Altersgruppe)) +
+  scale_color_brewer(type = &quot;qual&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="nach-bundesland" class="section level4" number="4.2.2.2">
+<h4><span class="header-section-number">4.2.2.2</span> Nach Bundesland</h4>
+<pre class="r"><code>hosp_latest %&gt;% 
+  filter(Bundesland != &quot;Bundesgebiet&quot;) %&gt;% 
+  ggplot() +
+  aes(x = Datum, y = `7T_Hospitalisierung_Inzidenz`) +
+  geom_line(aes(color = Altersgruppe)) +
+  scale_color_brewer(type = &quot;qual&quot;) +
+  facet_wrap(~ Bundesland)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>hosp_latest %&gt;% 
+  filter(Bundesland != &quot;Bundesgebiet&quot;) %&gt;% 
+  filter(Datum == max(Datum)) %&gt;% 
+  select(-Bundesland_Id, -`7T_Hospitalisierung_Faelle`) %&gt;% 
+  mutate(Bundesland = factor(Bundesland)) %&gt;% 
+  group_by(Bundesland) %&gt;% 
+  summarise(Inz_7T_Hosp = mean(`7T_Hospitalisierung_Inzidenz`)) %&gt;% 
+  ggplot() +
+  aes(y = fct_reorder(Bundesland, Inz_7T_Hosp), x = Inz_7T_Hosp) +
+  geom_col()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="nach-datum" class="section level4" number="4.2.2.3">
+<h4><span class="header-section-number">4.2.2.3</span> Nach Datum</h4>
+<p>Erstellen wir ein paar weitere Variablen, die das Datum widerspiegeln:</p>
+<pre class="r"><code>hosp_latest &lt;-
+hosp_latest %&gt;% 
+  mutate(Monat = month(Datum),
+         Woche = week(Datum),
+         Quartal = quarter(Datum),
+         Jahr = year(Datum)) %&gt;% 
+  select(Datum, Monat, Woche, Quartal, Jahr, everything())</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div id="impfungen-in-deutschland" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Impfungen in Deutschland</h1>
+<p>Weitere Informationen - wie das Codebook (d.h. die Erläuterungen zu den Variablen)
+- finden Sie auf dem <a href="https://github.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland">Github-Repo des RKI</a>.</p>
+<div id="neueste-daten" class="section level2" number="5.1">
+<h2><span class="header-section-number">5.1</span> Neueste Daten</h2>
+<div id="daten-laden" class="section level3" number="5.1.1">
+<h3><span class="header-section-number">5.1.1</span> Daten laden</h3>
+<p>Von <a href="https://github.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland">diesem Github-Repo</a> kann man sich die Impfdaten beim RKI herunterladen.</p>
+<p>Die Daten werden sogar pro Landkreis bereitgestellt.
+Wir begnügen uns hier aber mit den Daten pro Bundesland.</p>
+<pre class="r"><code>vacc_file_latest &lt;- &quot;https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland/master/Archiv/2021-11-27_Deutschland_Impfquoten_COVID-19.csv&quot;
+
+vacc_latest &lt;- read_csv(vacc_file_latest)</code></pre>
+<pre class="r"><code>glimpse(vacc_latest)</code></pre>
+<pre><code>## Rows: 18
+## Columns: 22
+## $ Datum                   &lt;date&gt; 2021-11-26, 2021-11-26, 2021-11-26, 2021-11-2…
+## $ Bundesland              &lt;chr&gt; &quot;Deutschland&quot;, &quot;Schleswig-Holstein&quot;, &quot;Hamburg&quot;…
+## $ BundeslandId_Impfort    &lt;chr&gt; &quot;00&quot;, &quot;01&quot;, &quot;02&quot;, &quot;03&quot;, &quot;04&quot;, &quot;05&quot;, &quot;06&quot;, &quot;07&quot;…
+## $ Impfungen_gesamt        &lt;dbl&gt; 121165530, 4496736, 2866180, 11883793, 1147170…
+## $ Impfungen_gesamt_min1   &lt;dbl&gt; 59121827, 2189818, 1412757, 5868583, 563007, 1…
+## $ Impfungen_gesamt_voll   &lt;dbl&gt; 56862343, 2115139, 1373514, 5621902, 544534, 1…
+## $ Impfungen_gesamt_boost  &lt;dbl&gt; 8611480, 323441, 176822, 812783, 84998, 200130…
+## $ Impfquote_gesamt_min1   &lt;dbl&gt; 71.1, 75.2, 76.3, 73.3, 82.8, 75.1, 71.0, 72.3…
+## $ Impfquote_12bis17_min1  &lt;dbl&gt; 51.9, 65.3, 53.2, 59.1, 55.2, 58.8, 52.0, 53.8…
+## $ Impfquote_18plus_min1   &lt;dbl&gt; 81.8, 87.2, 88.5, 84.0, 95.6, 86.3, 81.8, 82.9…
+## $ Impfquote_18bis59_min1  &lt;dbl&gt; 74.3, 81.0, 83.5, 74.5, 92.2, 78.7, 75.1, 74.2…
+## $ Impfquote_60plus_min1   &lt;dbl&gt; 87.2, 90.2, 88.7, 90.3, 94.8, 90.7, 87.3, 89.9…
+## $ Impfquote_gesamt_voll   &lt;dbl&gt; 68.4, 72.7, 74.1, 70.2, 80.1, 71.7, 67.5, 68.1…
+## $ Impfquote_12bis17_voll  &lt;dbl&gt; 45.9, 58.6, 48.8, 52.6, 50.9, 53.2, 45.6, 46.6…
+## $ Impfquote_18plus_voll   &lt;dbl&gt; 79.0, 84.6, 86.2, 80.8, 92.7, 82.6, 78.1, 78.4…
+## $ Impfquote_18bis59_voll  &lt;dbl&gt; 75.3, 81.5, 85.8, 76.6, 92.3, 79.4, 74.8, 73.9…
+## $ Impfquote_60plus_voll   &lt;dbl&gt; 86.0, 90.0, 87.4, 88.5, 93.3, 88.8, 84.7, 86.5…
+## $ Impfquote_gesamt_boost  &lt;dbl&gt; 10.4, 11.1, 9.5, 10.2, 12.5, 11.2, 9.1, 10.0, …
+## $ Impfquote_12bis17_boost &lt;dbl&gt; 1.0, 0.4, 1.2, 1.1, 0.5, 1.1, 1.0, 1.2, 0.9, 1…
+## $ Impfquote_18plus_boost  &lt;dbl&gt; 12.3, 13.3, 11.4, 12.1, 14.9, 13.4, 10.9, 11.8…
+## $ Impfquote_18bis59_boost &lt;dbl&gt; 6.9, 6.5, 6.9, 6.8, 7.6, 7.6, 6.0, 6.3, 5.9, 8…
+## $ Impfquote_60plus_boost  &lt;dbl&gt; 22.6, 25.2, 22.8, 22.0, 29.8, 24.4, 20.6, 21.9…</code></pre>
+<p>Die Datei gibt die Impfquote für einen Tag (hier 27.11.21) wieder.</p>
+</div>
+<div id="eda-2" class="section level3" number="5.1.2">
+<h3><span class="header-section-number">5.1.2</span> EDA</h3>
+<pre class="r"><code>vacc_latest %&gt;% 
+  #filter(Bundesland != &quot;Deutschland&quot;) %&gt;% 
+  mutate(Bundesland = factor(Bundesland)) %&gt;% 
+  ggplot() +
+  aes(y = fct_reorder(Bundesland, Impfquote_gesamt_voll), 
+      x = Impfquote_gesamt_voll) +
+  geom_col() +
+  labs(title = &quot;Impfquote am 27.11.2021&quot;,
+       caption = &quot;Datenquelle: RKI&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Und hier als Vektor der Impfquoten (genauer gesagt: <code>Impfquote_gesamt_voll</code>), absteigend sortiert:</p>
+<pre class="r"><code>vacc_latest_df &lt;-
+  vacc_latest %&gt;% 
+  filter(!Bundesland %in% c(&quot;Bundesressorts&quot;, &quot;Deutschland&quot;)) %&gt;% 
+  mutate(Bundesland = factor(Bundesland)) %&gt;% 
+  select(Bundesland, Impfquote_gesamt_voll) %&gt;% 
+  arrange(-Impfquote_gesamt_voll)
+
+vacc_latest_df %&gt;%   
+  gt() %&gt;% 
+  tab_options(
+              heading.align = &quot;left&quot;
+              )</code></pre>
+<div id="qwltjqmjyx" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#qwltjqmjyx .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#qwltjqmjyx .gt_heading {
+  background-color: #FFFFFF;
+  text-align: left;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#qwltjqmjyx .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#qwltjqmjyx .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#qwltjqmjyx .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#qwltjqmjyx .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#qwltjqmjyx .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#qwltjqmjyx .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#qwltjqmjyx .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#qwltjqmjyx .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#qwltjqmjyx .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#qwltjqmjyx .gt_group_heading {
+  padding: 8px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#qwltjqmjyx .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#qwltjqmjyx .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#qwltjqmjyx .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#qwltjqmjyx .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#qwltjqmjyx .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 12px;
+}
+
+#qwltjqmjyx .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#qwltjqmjyx .gt_first_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+}
+
+#qwltjqmjyx .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#qwltjqmjyx .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#qwltjqmjyx .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#qwltjqmjyx .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#qwltjqmjyx .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#qwltjqmjyx .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding: 4px;
+}
+
+#qwltjqmjyx .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#qwltjqmjyx .gt_sourcenote {
+  font-size: 90%;
+  padding: 4px;
+}
+
+#qwltjqmjyx .gt_left {
+  text-align: left;
+}
+
+#qwltjqmjyx .gt_center {
+  text-align: center;
+}
+
+#qwltjqmjyx .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#qwltjqmjyx .gt_font_normal {
+  font-weight: normal;
+}
+
+#qwltjqmjyx .gt_font_bold {
+  font-weight: bold;
+}
+
+#qwltjqmjyx .gt_font_italic {
+  font-style: italic;
+}
+
+#qwltjqmjyx .gt_super {
+  font-size: 65%;
+}
+
+#qwltjqmjyx .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 65%;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Bundesland</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Impfquote_gesamt_voll</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">Bremen</td>
+<td class="gt_row gt_right">80.1</td></tr>
+    <tr><td class="gt_row gt_center">Saarland</td>
+<td class="gt_row gt_right">74.8</td></tr>
+    <tr><td class="gt_row gt_center">Hamburg</td>
+<td class="gt_row gt_right">74.1</td></tr>
+    <tr><td class="gt_row gt_center">Schleswig-Holstein</td>
+<td class="gt_row gt_right">72.7</td></tr>
+    <tr><td class="gt_row gt_center">Nordrhein-Westfalen</td>
+<td class="gt_row gt_right">71.7</td></tr>
+    <tr><td class="gt_row gt_center">Niedersachsen</td>
+<td class="gt_row gt_right">70.2</td></tr>
+    <tr><td class="gt_row gt_center">Berlin</td>
+<td class="gt_row gt_right">69.0</td></tr>
+    <tr><td class="gt_row gt_center">Rheinland-Pfalz</td>
+<td class="gt_row gt_right">68.1</td></tr>
+    <tr><td class="gt_row gt_center">Hessen</td>
+<td class="gt_row gt_right">67.5</td></tr>
+    <tr><td class="gt_row gt_center">Mecklenburg-Vorpommern</td>
+<td class="gt_row gt_right">66.8</td></tr>
+    <tr><td class="gt_row gt_center">Bayern</td>
+<td class="gt_row gt_right">66.6</td></tr>
+    <tr><td class="gt_row gt_center">Baden-Württemberg</td>
+<td class="gt_row gt_right">66.5</td></tr>
+    <tr><td class="gt_row gt_center">Sachsen-Anhalt</td>
+<td class="gt_row gt_right">64.9</td></tr>
+    <tr><td class="gt_row gt_center">Thüringen</td>
+<td class="gt_row gt_right">62.4</td></tr>
+    <tr><td class="gt_row gt_center">Brandenburg</td>
+<td class="gt_row gt_right">62.0</td></tr>
+    <tr><td class="gt_row gt_center">Sachsen</td>
+<td class="gt_row gt_right">58.0</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p>Und wir speichern die Reihenfolge der Bundesländer nach Impfquote für spätere Verwendung in einem Vektor:</p>
+<pre class="r"><code>bundeslaender_nach_impfquote &lt;- 
+  vacc_latest_df %&gt;% 
+  pull(Bundesland) %&gt;% 
+  fct_inorder()  # Faktorstufen ordnen entsprechend ihrer empirischen Reihenfolge
+
+bundeslaender_nach_impfquote</code></pre>
+<pre><code>##  [1] Bremen                 Saarland               Hamburg               
+##  [4] Schleswig-Holstein     Nordrhein-Westfalen    Niedersachsen         
+##  [7] Berlin                 Rheinland-Pfalz        Hessen                
+## [10] Mecklenburg-Vorpommern Bayern                 Baden-Württemberg     
+## [13] Sachsen-Anhalt         Thüringen              Brandenburg           
+## [16] Sachsen               
+## 16 Levels: Bremen Saarland Hamburg Schleswig-Holstein ... Sachsen</code></pre>
+</div>
+</div>
+<div id="impfquoten-im-zeitverlauf" class="section level2" number="5.2">
+<h2><span class="header-section-number">5.2</span> Impfquoten im Zeitverlauf</h2>
+<div id="daten-laden-1" class="section level3" number="5.2.1">
+<h3><span class="header-section-number">5.2.1</span> Daten laden 1</h3>
+<pre class="r"><code>vacc_time_file &lt;- &quot;https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland/master/Archiv/2021-11-24_Deutschland_Bundeslaender_COVID-19-Impfungen.csv&quot;
+
+vacc_time &lt;- read_csv(vacc_time_file)</code></pre>
+<pre class="r"><code>glimpse(vacc_time)</code></pre>
+<pre><code>## Rows: 33,773
+## Columns: 5
+## $ Impfdatum            &lt;date&gt; 2020-12-27, 2020-12-27, 2020-12-27, 2020-12-27, …
+## $ BundeslandId_Impfort &lt;chr&gt; &quot;01&quot;, &quot;02&quot;, &quot;03&quot;, &quot;04&quot;, &quot;04&quot;, &quot;05&quot;, &quot;05&quot;, &quot;06&quot;, &quot;…
+## $ Impfstoff            &lt;chr&gt; &quot;Comirnaty&quot;, &quot;Comirnaty&quot;, &quot;Comirnaty&quot;, &quot;Comirnaty…
+## $ Impfserie            &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 2, 1, 2, 1, 1, 1, 1, 1, 1, 1, 1…
+## $ Anzahl               &lt;dbl&gt; 808, 443, 373, 511, 3, 8721, 9, 2712, 2, 1252, 26…</code></pre>
+<p>Diese Datei gibt uns nicht direkt die Impfquoten, sondern die Anzahl der Impfungen pro Bundesland pro Tag.
+Einfacher ist es vielleicht, die Dateien zu suchen, die uns die Impfquoten schon komfortabel zur Verfügung stellen.</p>
+</div>
+<div id="daten-laden-2" class="section level3" number="5.2.2">
+<h3><span class="header-section-number">5.2.2</span> Daten laden 2</h3>
+<div id="relevante-daten-finden" class="section level4" number="5.2.2.1">
+<h4><span class="header-section-number">5.2.2.1</span> Relevante Daten finden</h4>
+<p>Im RKI-Repo finden sich dazu Dateien mit dem Namen <code>JJJJ-MM-TT_Deutschland_Impfquoten_COVID-19.csv</code>.</p>
+<p>Unser Plan muss wohl sein, alle diese Dateien zusammenzutragen und dann in eine Tabelle (Dataframe) zusammenzufügen.</p>
+<p>Da ich das Repo auf meine Festplatte heruntergeladen habe,
+kann ich recht komfortabel eine Liste der relevanten Dateien bekommen:</p>
+<pre class="r"><code>vacc_dir &lt;- &quot;/Users/sebastiansaueruser/github-repos/COVID-19-Impfungen_in_Deutschland/Archiv&quot;
+
+search_term &lt;- &quot;^\\d{4}-\\d{2}-\\d{2}_Deutschland_Impfquoten_COVID-19.csv$&quot;
+
+vacc_time_files &lt;- 
+  list.files(path = vacc_dir,
+             pattern = search_term)</code></pre>
+<pre class="r"><code>head(vacc_time_files)</code></pre>
+<pre><code>## [1] &quot;2021-09-17_Deutschland_Impfquoten_COVID-19.csv&quot;
+## [2] &quot;2021-09-18_Deutschland_Impfquoten_COVID-19.csv&quot;
+## [3] &quot;2021-09-20_Deutschland_Impfquoten_COVID-19.csv&quot;
+## [4] &quot;2021-09-21_Deutschland_Impfquoten_COVID-19.csv&quot;
+## [5] &quot;2021-09-22_Deutschland_Impfquoten_COVID-19.csv&quot;
+## [6] &quot;2021-09-23_Deutschland_Impfquoten_COVID-19.csv&quot;</code></pre>
+<pre class="r"><code>length(vacc_time_files)</code></pre>
+<pre><code>## [1] 58</code></pre>
+<p>Wir haben also Daten von 58 Daten.</p>
+</div>
+<div id="daten-importieren-2" class="section level4" number="5.2.2.2">
+<h4><span class="header-section-number">5.2.2.2</span> Daten importieren</h4>
+<p>Zwar liegen die Daten auch auf meinem Rechner, aber für die geneigten Lesis ist es vermutlich einfacher, die Daten direkt vom RKI-Repo zu importieren.</p>
+<p>Dafür müssen wir zuerst für jede Datei den Pfad vorne anfügen:</p>
+<pre class="r"><code>vacc_path &lt;- &quot;https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland/master/Archiv&quot;
+
+vacc_time_files_w_path &lt;-
+  paste0(vacc_path, &quot;/&quot;, vacc_time_files)</code></pre>
+<pre class="r"><code>head(vacc_time_files_w_path)</code></pre>
+<pre><code>## [1] &quot;https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland/master/Archiv/2021-09-17_Deutschland_Impfquoten_COVID-19.csv&quot;
+## [2] &quot;https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland/master/Archiv/2021-09-18_Deutschland_Impfquoten_COVID-19.csv&quot;
+## [3] &quot;https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland/master/Archiv/2021-09-20_Deutschland_Impfquoten_COVID-19.csv&quot;
+## [4] &quot;https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland/master/Archiv/2021-09-21_Deutschland_Impfquoten_COVID-19.csv&quot;
+## [5] &quot;https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland/master/Archiv/2021-09-22_Deutschland_Impfquoten_COVID-19.csv&quot;
+## [6] &quot;https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland/master/Archiv/2021-09-23_Deutschland_Impfquoten_COVID-19.csv&quot;</code></pre>
+<p>Könnte klappen…</p>
+<p>Jetzt “mappen” wir auf jeden Dateinamen die Funktion <code>read_csv</code>:</p>
+<pre class="r"><code>tic()
+vacc_time_df &lt;- 
+  vacc_time_files_w_path %&gt;% 
+  map_df(read_csv)
+toc()</code></pre>
+<pre><code>## 7.404 sec elapsed</code></pre>
+<p>Da das etwas Zeit kostet,
+macht es vielleicht Sinn, den Datensatz lokal abzuspeichern.</p>
+<pre class="r"><code>write_csv(vacc_time_df,
+          file = &quot;/Users/sebastiansaueruser/datasets/Covid/vacc_time_df.csv&quot;)</code></pre>
+<p>Halt, besser noch in diesem Repo,
+damit die Daten für Sie einfach zugreifbar sind:</p>
+<pre class="r"><code>write_csv(vacc_time_df,
+          file = &quot;static/datasets/vacc_time_df.csv&quot;)</code></pre>
+<p>Nämlich so:</p>
+<pre class="r"><code>vacc_time_df &lt;-
+  read_csv(&quot;https://raw.githubusercontent.com/sebastiansauer/sesa-blog/main/static/datasets/vacc_time_df.csv&quot;)</code></pre>
+<p>Sie können <a href="https://raw.githubusercontent.com/sebastiansauer/sesa-blog/main/static/datasets/vacc_time_df.csv">hier</a> die Daten herunterladen.</p>
+</div>
+</div>
+</div>
+<div id="eda-3" class="section level2" number="5.3">
+<h2><span class="header-section-number">5.3</span> EDA</h2>
+<div id="impfquote-deutschland-im-zeitverlauf" class="section level3" number="5.3.1">
+<h3><span class="header-section-number">5.3.1</span> Impfquote Deutschland im Zeitverlauf</h3>
+<pre class="r"><code>vacc_time_df %&gt;% 
+  filter(Bundesland == &quot;Deutschland&quot;) %&gt;% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll) +
+  geom_line()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-23-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="impfquote-der-bundesländer-im-zeitverlauf" class="section level3" number="5.3.2">
+<h3><span class="header-section-number">5.3.2</span> Impfquote der Bundesländer im Zeitverlauf</h3>
+<pre class="r"><code>vacc_time_df %&gt;% 
+  filter(!Bundesland %in% c(&quot;Deutschland&quot;, &quot;Bundesressorts&quot;)) %&gt;% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll) +
+  geom_line() +
+  facet_wrap(~ Bundesland, ncol = 4)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-24-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>vacc_time_df %&gt;% 
+  filter(Bundesland != &quot;Deutschland&quot;) %&gt;% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll, color = Bundesland) +
+  geom_line() +
+  scale_color_viridis_d()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-25-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Die Daten reichen von … bis … :</p>
+<pre class="r"><code>vacc_time_df %&gt;% 
+  filter(Datum == min(Datum)) %&gt;% 
+  pull(Datum)</code></pre>
+<pre><code>##  [1] &quot;2021-09-16&quot; &quot;2021-09-16&quot; &quot;2021-09-16&quot; &quot;2021-09-16&quot; &quot;2021-09-16&quot;
+##  [6] &quot;2021-09-16&quot; &quot;2021-09-16&quot; &quot;2021-09-16&quot; &quot;2021-09-16&quot; &quot;2021-09-16&quot;
+## [11] &quot;2021-09-16&quot; &quot;2021-09-16&quot; &quot;2021-09-16&quot; &quot;2021-09-16&quot; &quot;2021-09-16&quot;
+## [16] &quot;2021-09-16&quot; &quot;2021-09-16&quot; &quot;2021-09-16&quot;</code></pre>
+<pre class="r"><code>vacc_time_df %&gt;% 
+  filter(Datum == max(Datum)) %&gt;% 
+  pull(Datum)</code></pre>
+<pre><code>##  [1] &quot;2021-11-23&quot; &quot;2021-11-23&quot; &quot;2021-11-23&quot; &quot;2021-11-23&quot; &quot;2021-11-23&quot;
+##  [6] &quot;2021-11-23&quot; &quot;2021-11-23&quot; &quot;2021-11-23&quot; &quot;2021-11-23&quot; &quot;2021-11-23&quot;
+## [11] &quot;2021-11-23&quot; &quot;2021-11-23&quot; &quot;2021-11-23&quot; &quot;2021-11-23&quot; &quot;2021-11-23&quot;
+## [16] &quot;2021-11-23&quot; &quot;2021-11-23&quot; &quot;2021-11-23&quot;</code></pre>
+<p>Noch ein ganz nettes Detail:
+Sortieren wir die Legende nach der Höhe der Impfquote.</p>
+<p>Zuerst brauchen wir eine nach Impfquote geordnete Liste.
+Die haben wir oben schon mal erstellt:</p>
+<pre class="r"><code>bundeslaender_nach_impfquote</code></pre>
+<pre><code>##  [1] Bremen                 Saarland               Hamburg               
+##  [4] Schleswig-Holstein     Nordrhein-Westfalen    Niedersachsen         
+##  [7] Berlin                 Rheinland-Pfalz        Hessen                
+## [10] Mecklenburg-Vorpommern Bayern                 Baden-Württemberg     
+## [13] Sachsen-Anhalt         Thüringen              Brandenburg           
+## [16] Sachsen               
+## 16 Levels: Bremen Saarland Hamburg Schleswig-Holstein ... Sachsen</code></pre>
+<pre class="r"><code>vacc_time_df %&gt;% 
+  filter(Bundesland != &quot;Deutschland&quot;) %&gt;% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll, color = Bundesland) +
+  geom_line() +
+  scale_color_viridis_d(breaks = bundeslaender_nach_impfquote)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-29-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Häufig ist es sinnvoll, Liniendiagramme mit mehreren Linien gleich mit dem passenden Label zu versehen.
+Probieren wir das:</p>
+<pre class="r"><code>vacc_time_df %&gt;% 
+  filter(Bundesland != &quot;Deutschland&quot;) %&gt;% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll, color = Bundesland) +
+  geom_line() +
+  scale_color_viridis_d(breaks = NULL) +
+  geom_label(data = vacc_time_df %&gt;% filter(Datum == max(Datum)),
+             aes(label = Bundesland),
+             size = 2)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-30-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Hm. Die Position der Labels ist nicht gut.
+Vielleicht etwas dezenter?</p>
+<pre class="r"><code>vacc_time_df %&gt;% 
+  filter(Bundesland != &quot;Deutschland&quot;) %&gt;% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll, color = Bundesland) +
+  geom_line() +
+  scale_color_viridis_d(breaks = NULL) +
+  geom_text(data = vacc_time_df %&gt;% filter(Datum == max(Datum),
+                                           Bundesland != &quot;Deutschland&quot;),
+             aes(label = Bundesland),
+             size = 2,
+             nudge_x = +5)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-31-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Naja, ok.</p>
+<p>Oder vielleicht mit <code>geom_label_repel()</code>, das versucht, Überschneidungen der Labels zu verhindern:</p>
+<pre class="r"><code>vacc_time_df %&gt;% 
+  filter(Bundesland != &quot;Deutschland&quot;) %&gt;% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll, color = Bundesland) +
+  geom_line() +
+  scale_color_viridis_d(breaks = NULL) +
+  geom_label_repel(data = vacc_time_df %&gt;% filter(Datum == max(Datum),
+                                                  Bundesland != &quot;Deutschland&quot;),
+             aes(label = Bundesland))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-32-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Hm, alles andere als perfekt. Aber lassen wir es damit gut sein und
+wenden uns wichtigeren Themen zu.
+Es ist allzu leicht, sich in (vielleicht ganz unterhaltsamen) Details zu verstricken.</p>
+<p><a href="http://rolandtanglao.com/2018/10/01/p1-directlabels-in-r-labels-at-the-end-of-lines/">Hier</a> gibt es noch ein interessantes Paket,
+um Liniendiagramme mit Labels zu versehen.</p>
+<p>Probieren wir das doch mal aus:</p>
+<pre class="r"><code>vacc_time_df %&gt;% 
+  filter(Bundesland != &quot;Deutschland&quot;) %&gt;% 
+  ggplot() +
+  aes(x = Datum, 
+      y = Impfquote_gesamt_voll, 
+      color = Bundesland) +
+  geom_line() +
+  scale_x_date(limits = c(min(vacc_time_df$Datum),
+                                max(vacc_time_df$Datum)+30)) +
+  scale_color_viridis_d(breaks = NULL) +
+  geom_dl(aes(label = Bundesland),
+          method = list(dl.trans(x = x + 0.2), &quot;last.points&quot;, cex = 0.8)) </code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-33-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+</div>
+<div id="daten-joinen" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Daten joinen</h1>
+<p>“Verheiraten” wir die Daten zu Impfquoten und Hospitalisierungen.</p>
+<p>Das geht mit einem <code>join</code>.
+Das Argument <code>by</code> gibt den “Schlüssel” (ID) an,
+anhand dessen Zeilen aus den beiden Tabellen “verheiratet” werden.</p>
+<p><a href="https://github.com/gadenbuie/tidyexplain#inner-join">Hier</a> findet sich eine gute visuelle Erklärung.</p>
+<pre class="r"><code>hosp_vacc &lt;- 
+  hosp_latest %&gt;% 
+  inner_join(vacc_latest %&gt;% select(-c(Bundesland, Datum)),
+             by = c(&quot;Bundesland_Id&quot; = &quot;BundeslandId_Impfort&quot;))</code></pre>
+<p>Beim <code>inner_join</code> werden nur Zeilen übernommen,
+für die es in beiden Tabellen eine Entsprechung (einen Wert für die ID-Variable) gibt.</p>
+</div>
+<div id="zusammenhangsanalysen" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Zusammenhangsanalysen</h1>
+<p>Vielleicht ist der wichtigste Hinweis an dieser Stelle,
+dass Beobachtungsdaten (also nicht von guten Experimenten stammend)
+keine Aussagen über Kausaleinflüsse erlauben -
+oder nur unter starken Annahmen.</p>
+<div id="zusammenhang-von-impfquote-und-hospitalisierung" class="section level2" number="7.1">
+<h2><span class="header-section-number">7.1</span> Zusammenhang von Impfquote und Hospitalisierung</h2>
+<div id="im-zeitverlauf" class="section level3" number="7.1.1">
+<h3><span class="header-section-number">7.1.1</span> Im Zeitverlauf</h3>
+<p>Hier stellt sich die Frage, auf welchen Zeitrahmen wir aggregieren,
+um eine Korrelation zu berechnen?
+Je kürzer der Zeitrahmen, desto instabiler die Schätzwerte.
+Je länger der Zeitrahmen, desto mehr werden Veränderungen im Zeitverlauf unter den Teppich gekehrt.
+In so einer Situation ist es vielleicht am besten,
+sich den Koeffizienten in hoher zeitlicher Auflösung anzuschauen,
+um dann zu entscheiden, wie sehr man aggregieren kann.</p>
+<pre class="r"><code>korr_vacc_hosp &lt;- 
+  hosp_vacc %&gt;% 
+  select(Jahr,
+         Woche, Impfquote_gesamt_voll, 
+         Inz_7T_Hosp = `7T_Hospitalisierung_Inzidenz`) %&gt;% 
+  filter(Jahr == 2021) %&gt;% 
+  group_by(Woche) %&gt;% 
+  summarise(Korr_Woche = cor(Impfquote_gesamt_voll,
+                             Inz_7T_Hosp))</code></pre>
+<pre class="r"><code>korr_vacc_hosp_joined &lt;- 
+  korr_vacc_hosp %&gt;% 
+  left_join(hosp_vacc %&gt;% select(Datum, Woche, Monat, Quartal)) %&gt;% 
+  group_by(Woche) %&gt;% 
+  filter(row_number() == 1)</code></pre>
+<div id="korrelation-nach-woche" class="section level4" number="7.1.1.1">
+<h4><span class="header-section-number">7.1.1.1</span> Korrelation nach Woche</h4>
+<pre class="r"><code>korr_vacc_hosp_joined %&gt;% 
+  mutate(Quartal = factor(Quartal)) %&gt;% 
+  ggplot() +
+  aes(y = Korr_Woche) +
+  geom_rect(aes(
+    x = NULL,
+    y = NULL,
+    xmin = Woche-1, 
+    xmax = Woche, 
+    ymin = -Inf,
+    ymax = +Inf,
+    fill = Quartal),
+    alpha = .5) +
+  scale_fill_manual(values = c(&quot;grey&quot;, &quot;lightgreen&quot;, &quot;darkgreen&quot;, &quot;indianred4&quot;)) +
+    geom_hline(yintercept = 0, color = &quot;white&quot;, size = 2) +
+  geom_point(alpha = .7, aes(x = Woche)) +
+  geom_line(aes(x = Woche)) +
+  labs(title = &quot;Korrelation von Hospitalisierung und Impfquote pro Woche&quot;,
+       caption = &quot;Quartale des Jahres 2021 sind eingefärbt. Datenquelle: RKI&quot;,
+       x = &quot;Kalenderwoche 2021&quot;,
+       y = &quot;Korrelation (Wochenbasis)&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-37-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Die positive Korrelation im Sommer 2021 - je mehr Impfung, desto mehr Hospitalisierung - ist vor dem Hintergrund der extrem niedrigen Inzidenzzahlen in dieser Zeit zu sehen.</p>
+</div>
+<div id="korrelation-nach-monat" class="section level4" number="7.1.1.2">
+<h4><span class="header-section-number">7.1.1.2</span> Korrelation nach Monat</h4>
+<pre class="r"><code>korr_vacc_hosp_monat &lt;- 
+  hosp_vacc %&gt;% 
+  select(Jahr,
+         Monat, 
+         Impfquote_gesamt_voll, 
+         Inz_7T_Hosp = `7T_Hospitalisierung_Inzidenz`) %&gt;% 
+  filter(Jahr == 2021) %&gt;% 
+  group_by(Monat) %&gt;% 
+  summarise(Korr_Monat = cor(Impfquote_gesamt_voll,
+                             Inz_7T_Hosp))</code></pre>
+<pre class="r"><code>korr_vacc_hosp_monat %&gt;% 
+  gt() %&gt;% 
+  fmt_number(2, decimals = 2)</code></pre>
+<div id="cpvenkwqtu" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#cpvenkwqtu .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#cpvenkwqtu .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#cpvenkwqtu .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#cpvenkwqtu .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#cpvenkwqtu .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#cpvenkwqtu .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#cpvenkwqtu .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#cpvenkwqtu .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#cpvenkwqtu .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#cpvenkwqtu .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#cpvenkwqtu .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#cpvenkwqtu .gt_group_heading {
+  padding: 8px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#cpvenkwqtu .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#cpvenkwqtu .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#cpvenkwqtu .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#cpvenkwqtu .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#cpvenkwqtu .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 12px;
+}
+
+#cpvenkwqtu .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#cpvenkwqtu .gt_first_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+}
+
+#cpvenkwqtu .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#cpvenkwqtu .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#cpvenkwqtu .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#cpvenkwqtu .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#cpvenkwqtu .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#cpvenkwqtu .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding: 4px;
+}
+
+#cpvenkwqtu .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#cpvenkwqtu .gt_sourcenote {
+  font-size: 90%;
+  padding: 4px;
+}
+
+#cpvenkwqtu .gt_left {
+  text-align: left;
+}
+
+#cpvenkwqtu .gt_center {
+  text-align: center;
+}
+
+#cpvenkwqtu .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#cpvenkwqtu .gt_font_normal {
+  font-weight: normal;
+}
+
+#cpvenkwqtu .gt_font_bold {
+  font-weight: bold;
+}
+
+#cpvenkwqtu .gt_font_italic {
+  font-style: italic;
+}
+
+#cpvenkwqtu .gt_super {
+  font-size: 65%;
+}
+
+#cpvenkwqtu .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 65%;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Monat</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Korr_Monat</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_right">1</td>
+<td class="gt_row gt_right">&minus;0.14</td></tr>
+    <tr><td class="gt_row gt_right">2</td>
+<td class="gt_row gt_right">&minus;0.08</td></tr>
+    <tr><td class="gt_row gt_right">3</td>
+<td class="gt_row gt_right">&minus;0.13</td></tr>
+    <tr><td class="gt_row gt_right">4</td>
+<td class="gt_row gt_right">&minus;0.17</td></tr>
+    <tr><td class="gt_row gt_right">5</td>
+<td class="gt_row gt_right">&minus;0.17</td></tr>
+    <tr><td class="gt_row gt_right">6</td>
+<td class="gt_row gt_right">&minus;0.05</td></tr>
+    <tr><td class="gt_row gt_right">7</td>
+<td class="gt_row gt_right">0.15</td></tr>
+    <tr><td class="gt_row gt_right">8</td>
+<td class="gt_row gt_right">0.33</td></tr>
+    <tr><td class="gt_row gt_right">9</td>
+<td class="gt_row gt_right">0.21</td></tr>
+    <tr><td class="gt_row gt_right">10</td>
+<td class="gt_row gt_right">&minus;0.12</td></tr>
+    <tr><td class="gt_row gt_right">11</td>
+<td class="gt_row gt_right">&minus;0.26</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<pre class="r"><code>korr_vacc_hosp_monat_joined &lt;- 
+  korr_vacc_hosp_monat %&gt;% 
+  left_join(hosp_vacc %&gt;% select(Datum, Monat, Quartal)) %&gt;% 
+  group_by(Monat) %&gt;% 
+  filter(row_number() == 1)</code></pre>
+<pre class="r"><code>korr_vacc_hosp_monat_joined %&gt;% 
+  mutate(Quartal = factor(Quartal)) %&gt;% 
+  ggplot() +
+  aes(y = Korr_Monat) +
+  geom_rect(aes(
+    x = NULL,
+    y = NULL,
+    xmin = Monat-1, 
+    xmax = Monat, 
+    ymin = -Inf,
+    ymax = +Inf,
+    fill = Quartal),
+    alpha = .5) +
+  scale_fill_manual(values = c(&quot;grey&quot;, &quot;lightgreen&quot;, &quot;darkgreen&quot;, &quot;indianred4&quot;)) +
+    geom_hline(yintercept = 0, color = &quot;white&quot;, size = 2) +
+  geom_point(alpha = .7, aes(x = Monat)) +
+  geom_line(aes(x = Monat)) +
+  labs(title = &quot;Korrelation von Hospitalisierung und Impfquote pro Monat&quot;,
+       caption = &quot;Quartale des Jahres 2021 sind eingefärbt. Datenquelle: RKI&quot;,
+       x = &quot;Kalenderwoche 2021&quot;,
+       y = &quot;Korrelation (Wochenbasis)&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-41-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Insgesamt ergibt sich ein ähnliches Bild,
+wenn man noch Monat oder nach Woche aggregiert und dann die Korrelation jeweils berechnet.</p>
+</div>
+</div>
+<div id="korrelation-nach-bundesland" class="section level3" number="7.1.2">
+<h3><span class="header-section-number">7.1.2</span> Korrelation nach Bundesland</h3>
+<div id="november-2021" class="section level4" number="7.1.2.1">
+<h4><span class="header-section-number">7.1.2.1</span> November 2021</h4>
+<pre class="r"><code>hosp_vacc %&gt;% 
+  filter(Monat == 11, Bundesland != &quot;Bundesgebiet&quot;) %&gt;% 
+  select(I = Impfquote_gesamt_voll,
+         H = `7T_Hospitalisierung_Inzidenz`,
+         B = Bundesland) %&gt;% 
+  group_by(B) %&gt;% 
+  summarise(I = mean(I),
+            H = mean(H)) %&gt;% 
+  ggplot() +
+  aes(x = I,
+      y = H) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;) +
+  labs(x = &quot;Impfquote (vollständig)&quot;,
+       y = &quot;7Tage-Hospitalisierungsquote&quot;,
+       title = &quot;Zusammenhang von Impfen und Hospitalisierung&quot;,
+       subtitle = &quot;Daten für November 2021, alle Altersgruppe&quot;,
+       caption = &quot;Datenquelle: RKI&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-42-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Fügen wir noch die Namen der Bundesländer zu den Punkten hinzu, aber vielleicht besser die Kurzform der Namen.</p>
+<pre class="r"><code>state_names &lt;- 
+  tibble::tribble(
+    ~Bundesland, ~Kurzform,                          ~state,
+    &quot;Deutschland&quot;,      &quot;DE&quot;,                       &quot;Germany&quot;,
+    &quot;Baden-Württemberg&quot;,      &quot;BW&quot;,             &quot;Baden-Württemberg&quot;,
+    &quot;Bayern&quot;,      &quot;BY&quot;,          &quot;Bavaria (FreeState)&quot;,
+    &quot;Berlin&quot;,      &quot;BE&quot;,                        &quot;Berlin&quot;,
+    &quot;Brandenburg&quot;,      &quot;BB&quot;,                   &quot;Brandenburg&quot;,
+    &quot;Bremen&quot;,      &quot;HB&quot;,       &quot;Bremen (Hanseatic City)&quot;,
+    &quot;Hamburg&quot;,      &quot;HH&quot;,      &quot;Hamburg (Hanseatic City)&quot;,
+    &quot;Hessen&quot;,      &quot;HE&quot;,                         &quot;Hesse&quot;,
+    &quot;Mecklenburg-Vorpommern&quot;,      &quot;MV&quot;, &quot;Mecklenburg-Western Pomerania&quot;,
+    &quot;Niedersachsen&quot;,      &quot;NI&quot;,                  &quot;Lower Saxony&quot;,
+    &quot;Nordrhein-Westfalen&quot;,      &quot;NW&quot;,        &quot;North Rhine-Westphalia&quot;,
+    &quot;Rheinland-Pfalz&quot;,      &quot;RP&quot;,          &quot;Rhineland-Palatinate&quot;,
+    &quot;Saarland&quot;,      &quot;SL&quot;,                      &quot;Saarland&quot;,
+    &quot;Sachsen&quot;,      &quot;SN&quot;,           &quot;Saxony (Free tate)&quot;,
+    &quot;Sachsen-Anhalt&quot;,      &quot;ST&quot;,                 &quot;Saxony-Anhalt&quot;,
+    &quot;Schleswig-Holstein&quot;,      &quot;SH&quot;,            &quot;Schleswig-Holstein&quot;,
+    &quot;Thüringen&quot;,      &quot;TH&quot;,        &quot;Thuringia (Free State)&quot;,
+    &quot;Bundesgebiet&quot;,                &quot;De&quot;, &quot;Federal area&quot;
+  )</code></pre>
+<pre class="r"><code>state_names %&gt;% 
+  gt()</code></pre>
+<div id="jszurpbgjm" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#jszurpbgjm .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#jszurpbgjm .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#jszurpbgjm .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#jszurpbgjm .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#jszurpbgjm .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#jszurpbgjm .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#jszurpbgjm .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#jszurpbgjm .gt_group_heading {
+  padding: 8px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#jszurpbgjm .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#jszurpbgjm .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#jszurpbgjm .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#jszurpbgjm .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#jszurpbgjm .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 12px;
+}
+
+#jszurpbgjm .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#jszurpbgjm .gt_first_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#jszurpbgjm .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#jszurpbgjm .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding: 4px;
+}
+
+#jszurpbgjm .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_sourcenote {
+  font-size: 90%;
+  padding: 4px;
+}
+
+#jszurpbgjm .gt_left {
+  text-align: left;
+}
+
+#jszurpbgjm .gt_center {
+  text-align: center;
+}
+
+#jszurpbgjm .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#jszurpbgjm .gt_font_normal {
+  font-weight: normal;
+}
+
+#jszurpbgjm .gt_font_bold {
+  font-weight: bold;
+}
+
+#jszurpbgjm .gt_font_italic {
+  font-style: italic;
+}
+
+#jszurpbgjm .gt_super {
+  font-size: 65%;
+}
+
+#jszurpbgjm .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 65%;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Bundesland</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Kurzform</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">state</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">Deutschland</td>
+<td class="gt_row gt_left">DE</td>
+<td class="gt_row gt_left">Germany</td></tr>
+    <tr><td class="gt_row gt_left">Baden-Württemberg</td>
+<td class="gt_row gt_left">BW</td>
+<td class="gt_row gt_left">Baden-Württemberg</td></tr>
+    <tr><td class="gt_row gt_left">Bayern</td>
+<td class="gt_row gt_left">BY</td>
+<td class="gt_row gt_left">Bavaria (FreeState)</td></tr>
+    <tr><td class="gt_row gt_left">Berlin</td>
+<td class="gt_row gt_left">BE</td>
+<td class="gt_row gt_left">Berlin</td></tr>
+    <tr><td class="gt_row gt_left">Brandenburg</td>
+<td class="gt_row gt_left">BB</td>
+<td class="gt_row gt_left">Brandenburg</td></tr>
+    <tr><td class="gt_row gt_left">Bremen</td>
+<td class="gt_row gt_left">HB</td>
+<td class="gt_row gt_left">Bremen (Hanseatic City)</td></tr>
+    <tr><td class="gt_row gt_left">Hamburg</td>
+<td class="gt_row gt_left">HH</td>
+<td class="gt_row gt_left">Hamburg (Hanseatic City)</td></tr>
+    <tr><td class="gt_row gt_left">Hessen</td>
+<td class="gt_row gt_left">HE</td>
+<td class="gt_row gt_left">Hesse</td></tr>
+    <tr><td class="gt_row gt_left">Mecklenburg-Vorpommern</td>
+<td class="gt_row gt_left">MV</td>
+<td class="gt_row gt_left">Mecklenburg-Western Pomerania</td></tr>
+    <tr><td class="gt_row gt_left">Niedersachsen</td>
+<td class="gt_row gt_left">NI</td>
+<td class="gt_row gt_left">Lower Saxony</td></tr>
+    <tr><td class="gt_row gt_left">Nordrhein-Westfalen</td>
+<td class="gt_row gt_left">NW</td>
+<td class="gt_row gt_left">North Rhine-Westphalia</td></tr>
+    <tr><td class="gt_row gt_left">Rheinland-Pfalz</td>
+<td class="gt_row gt_left">RP</td>
+<td class="gt_row gt_left">Rhineland-Palatinate</td></tr>
+    <tr><td class="gt_row gt_left">Saarland</td>
+<td class="gt_row gt_left">SL</td>
+<td class="gt_row gt_left">Saarland</td></tr>
+    <tr><td class="gt_row gt_left">Sachsen</td>
+<td class="gt_row gt_left">SN</td>
+<td class="gt_row gt_left">Saxony (Free tate)</td></tr>
+    <tr><td class="gt_row gt_left">Sachsen-Anhalt</td>
+<td class="gt_row gt_left">ST</td>
+<td class="gt_row gt_left">Saxony-Anhalt</td></tr>
+    <tr><td class="gt_row gt_left">Schleswig-Holstein</td>
+<td class="gt_row gt_left">SH</td>
+<td class="gt_row gt_left">Schleswig-Holstein</td></tr>
+    <tr><td class="gt_row gt_left">Thüringen</td>
+<td class="gt_row gt_left">TH</td>
+<td class="gt_row gt_left">Thuringia (Free State)</td></tr>
+    <tr><td class="gt_row gt_left">Bundesgebiet</td>
+<td class="gt_row gt_left">De</td>
+<td class="gt_row gt_left">Federal area</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p><a href="https://www.destatis.de/DE/Methoden/abkuerzung-bundeslaender-DE-EN.html">Quelle</a></p>
+<p>Joinen wir die Kürzel der Bundesländer:</p>
+<pre class="r"><code>hosp_vacc2 &lt;- 
+  hosp_vacc %&gt;% 
+  left_join(state_names)</code></pre>
+<pre class="r"><code>hosp_vacc_bundesland_nov &lt;- 
+hosp_vacc %&gt;% 
+  filter(Monat == 11, Bundesland != &quot;Bundesgebiet&quot;) %&gt;% 
+  select(I = Impfquote_gesamt_voll,
+         H = `7T_Hospitalisierung_Inzidenz`,
+         Bundesland) %&gt;% 
+  group_by(Bundesland) %&gt;% 
+  summarise(I = mean(I),
+            H = mean(H)) %&gt;% 
+  left_join(state_names %&gt;% select(-state))
+
+
+hosp_vacc_bundesland_nov %&gt;% 
+  ggplot() +
+  aes(x = I,
+      y = H) +
+  geom_point(alpha = .5) +
+  geom_smooth(method = &quot;lm&quot;) +
+  labs(x = &quot;Impfquote (vollständig)&quot;,
+       y = &quot;7Tage-Hospitalisierungsquote&quot;,
+       title = &quot;Zusammenhang von Impfen und Hospitalisierung&quot;,
+       subtitle = &quot;Daten für November 2021, alle Altersgruppe&quot;,
+       caption = &quot;Datenquelle: RKI&quot;) +
+  geom_text(aes(label = Kurzform))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/hosp-vacc-bl-nov-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Und so sieht die zugehörige Tabelle aus:</p>
+<pre class="r"><code>hosp_vacc_bundesland_nov %&gt;% 
+  gt() %&gt;% 
+  fmt_number(3, decimals = 2)</code></pre>
+<div id="jszurpbgjm" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#jszurpbgjm .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#jszurpbgjm .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#jszurpbgjm .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#jszurpbgjm .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#jszurpbgjm .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#jszurpbgjm .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#jszurpbgjm .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#jszurpbgjm .gt_group_heading {
+  padding: 8px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#jszurpbgjm .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#jszurpbgjm .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#jszurpbgjm .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#jszurpbgjm .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#jszurpbgjm .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 12px;
+}
+
+#jszurpbgjm .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#jszurpbgjm .gt_first_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#jszurpbgjm .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#jszurpbgjm .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding: 4px;
+}
+
+#jszurpbgjm .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_sourcenote {
+  font-size: 90%;
+  padding: 4px;
+}
+
+#jszurpbgjm .gt_left {
+  text-align: left;
+}
+
+#jszurpbgjm .gt_center {
+  text-align: center;
+}
+
+#jszurpbgjm .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#jszurpbgjm .gt_font_normal {
+  font-weight: normal;
+}
+
+#jszurpbgjm .gt_font_bold {
+  font-weight: bold;
+}
+
+#jszurpbgjm .gt_font_italic {
+  font-style: italic;
+}
+
+#jszurpbgjm .gt_super {
+  font-size: 65%;
+}
+
+#jszurpbgjm .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 65%;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Bundesland</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">I</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">H</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Kurzform</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">Baden-Württemberg</td>
+<td class="gt_row gt_right">66.5</td>
+<td class="gt_row gt_right">10.48</td>
+<td class="gt_row gt_left">BW</td></tr>
+    <tr><td class="gt_row gt_left">Bayern</td>
+<td class="gt_row gt_right">66.6</td>
+<td class="gt_row gt_right">14.20</td>
+<td class="gt_row gt_left">BY</td></tr>
+    <tr><td class="gt_row gt_left">Berlin</td>
+<td class="gt_row gt_right">69.0</td>
+<td class="gt_row gt_right">13.08</td>
+<td class="gt_row gt_left">BE</td></tr>
+    <tr><td class="gt_row gt_left">Brandenburg</td>
+<td class="gt_row gt_right">62.0</td>
+<td class="gt_row gt_right">8.60</td>
+<td class="gt_row gt_left">BB</td></tr>
+    <tr><td class="gt_row gt_left">Bremen</td>
+<td class="gt_row gt_right">80.1</td>
+<td class="gt_row gt_right">7.24</td>
+<td class="gt_row gt_left">HB</td></tr>
+    <tr><td class="gt_row gt_left">Hamburg</td>
+<td class="gt_row gt_right">74.1</td>
+<td class="gt_row gt_right">7.43</td>
+<td class="gt_row gt_left">HH</td></tr>
+    <tr><td class="gt_row gt_left">Hessen</td>
+<td class="gt_row gt_right">67.5</td>
+<td class="gt_row gt_right">11.99</td>
+<td class="gt_row gt_left">HE</td></tr>
+    <tr><td class="gt_row gt_left">Mecklenburg-Vorpommern</td>
+<td class="gt_row gt_right">66.8</td>
+<td class="gt_row gt_right">7.29</td>
+<td class="gt_row gt_left">MV</td></tr>
+    <tr><td class="gt_row gt_left">Niedersachsen</td>
+<td class="gt_row gt_right">70.2</td>
+<td class="gt_row gt_right">4.69</td>
+<td class="gt_row gt_left">NI</td></tr>
+    <tr><td class="gt_row gt_left">Nordrhein-Westfalen</td>
+<td class="gt_row gt_right">71.7</td>
+<td class="gt_row gt_right">9.71</td>
+<td class="gt_row gt_left">NW</td></tr>
+    <tr><td class="gt_row gt_left">Rheinland-Pfalz</td>
+<td class="gt_row gt_right">68.1</td>
+<td class="gt_row gt_right">6.93</td>
+<td class="gt_row gt_left">RP</td></tr>
+    <tr><td class="gt_row gt_left">Saarland</td>
+<td class="gt_row gt_right">74.8</td>
+<td class="gt_row gt_right">5.95</td>
+<td class="gt_row gt_left">SL</td></tr>
+    <tr><td class="gt_row gt_left">Sachsen</td>
+<td class="gt_row gt_right">58.0</td>
+<td class="gt_row gt_right">17.78</td>
+<td class="gt_row gt_left">SN</td></tr>
+    <tr><td class="gt_row gt_left">Sachsen-Anhalt</td>
+<td class="gt_row gt_right">64.9</td>
+<td class="gt_row gt_right">10.14</td>
+<td class="gt_row gt_left">ST</td></tr>
+    <tr><td class="gt_row gt_left">Schleswig-Holstein</td>
+<td class="gt_row gt_right">72.7</td>
+<td class="gt_row gt_right">4.05</td>
+<td class="gt_row gt_left">SH</td></tr>
+    <tr><td class="gt_row gt_left">Thüringen</td>
+<td class="gt_row gt_right">62.4</td>
+<td class="gt_row gt_right">18.40</td>
+<td class="gt_row gt_left">TH</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+</div>
+</div>
+<div id="pro-quartal" class="section level3" number="7.1.3">
+<h3><span class="header-section-number">7.1.3</span> Pro Quartal</h3>
+<p>Aggregieren wir den Datensatz pro Quartal und pro Bundesland;:</p>
+<pre class="r"><code>hosp_vacc_bundesland_pro_Quartal &lt;- 
+  hosp_vacc %&gt;% 
+  filter(Bundesland != &quot;Bundesgebiet&quot;) %&gt;% 
+  select(I = Impfquote_gesamt_voll,
+         H = `7T_Hospitalisierung_Inzidenz`,
+         Bundesland,
+         Quartal) %&gt;% 
+  group_by(Bundesland, Quartal) %&gt;% 
+  summarise(I = mean(I),
+            H = mean(H)) %&gt;% 
+  left_join(state_names)</code></pre>
+<p>So sieht die zugehörige Tabelle aus (die ersten paar Zeilen)</p>
+<pre class="r"><code>hosp_vacc_bundesland_pro_Quartal %&gt;% 
+  ungroup() %&gt;% 
+  slice_head(n = 10) %&gt;% 
+  gt() %&gt;% 
+  fmt_number(3, decimals = 2)</code></pre>
+<div id="jszurpbgjm" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#jszurpbgjm .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#jszurpbgjm .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#jszurpbgjm .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#jszurpbgjm .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#jszurpbgjm .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#jszurpbgjm .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#jszurpbgjm .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#jszurpbgjm .gt_group_heading {
+  padding: 8px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#jszurpbgjm .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#jszurpbgjm .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#jszurpbgjm .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#jszurpbgjm .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#jszurpbgjm .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 12px;
+}
+
+#jszurpbgjm .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#jszurpbgjm .gt_first_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#jszurpbgjm .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#jszurpbgjm .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding: 4px;
+}
+
+#jszurpbgjm .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#jszurpbgjm .gt_sourcenote {
+  font-size: 90%;
+  padding: 4px;
+}
+
+#jszurpbgjm .gt_left {
+  text-align: left;
+}
+
+#jszurpbgjm .gt_center {
+  text-align: center;
+}
+
+#jszurpbgjm .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#jszurpbgjm .gt_font_normal {
+  font-weight: normal;
+}
+
+#jszurpbgjm .gt_font_bold {
+  font-weight: bold;
+}
+
+#jszurpbgjm .gt_font_italic {
+  font-style: italic;
+}
+
+#jszurpbgjm .gt_super {
+  font-size: 65%;
+}
+
+#jszurpbgjm .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 65%;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Bundesland</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">Quartal</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">I</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">H</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Kurzform</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">state</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">Baden-Württemberg</td>
+<td class="gt_row gt_right">1</td>
+<td class="gt_row gt_right">66.50</td>
+<td class="gt_row gt_right">7.053471</td>
+<td class="gt_row gt_left">BW</td>
+<td class="gt_row gt_left">Baden-Württemberg</td></tr>
+    <tr><td class="gt_row gt_left">Baden-Württemberg</td>
+<td class="gt_row gt_right">2</td>
+<td class="gt_row gt_right">66.50</td>
+<td class="gt_row gt_right">4.484780</td>
+<td class="gt_row gt_left">BW</td>
+<td class="gt_row gt_left">Baden-Württemberg</td></tr>
+    <tr><td class="gt_row gt_left">Baden-Württemberg</td>
+<td class="gt_row gt_right">3</td>
+<td class="gt_row gt_right">66.50</td>
+<td class="gt_row gt_right">1.323548</td>
+<td class="gt_row gt_left">BW</td>
+<td class="gt_row gt_left">Baden-Württemberg</td></tr>
+    <tr><td class="gt_row gt_left">Baden-Württemberg</td>
+<td class="gt_row gt_right">4</td>
+<td class="gt_row gt_right">66.50</td>
+<td class="gt_row gt_right">9.192524</td>
+<td class="gt_row gt_left">BW</td>
+<td class="gt_row gt_left">Baden-Württemberg</td></tr>
+    <tr><td class="gt_row gt_left">Bayern</td>
+<td class="gt_row gt_right">1</td>
+<td class="gt_row gt_right">66.60</td>
+<td class="gt_row gt_right">7.431370</td>
+<td class="gt_row gt_left">BY</td>
+<td class="gt_row gt_left">Bavaria (FreeState)</td></tr>
+    <tr><td class="gt_row gt_left">Bayern</td>
+<td class="gt_row gt_right">2</td>
+<td class="gt_row gt_right">66.60</td>
+<td class="gt_row gt_right">4.507567</td>
+<td class="gt_row gt_left">BY</td>
+<td class="gt_row gt_left">Bavaria (FreeState)</td></tr>
+    <tr><td class="gt_row gt_left">Bayern</td>
+<td class="gt_row gt_right">3</td>
+<td class="gt_row gt_right">66.60</td>
+<td class="gt_row gt_right">1.351724</td>
+<td class="gt_row gt_left">BY</td>
+<td class="gt_row gt_left">Bavaria (FreeState)</td></tr>
+    <tr><td class="gt_row gt_left">Bayern</td>
+<td class="gt_row gt_right">4</td>
+<td class="gt_row gt_right">66.60</td>
+<td class="gt_row gt_right">10.679581</td>
+<td class="gt_row gt_left">BY</td>
+<td class="gt_row gt_left">Bavaria (FreeState)</td></tr>
+    <tr><td class="gt_row gt_left">Berlin</td>
+<td class="gt_row gt_right">1</td>
+<td class="gt_row gt_right">69.00</td>
+<td class="gt_row gt_right">12.197863</td>
+<td class="gt_row gt_left">BE</td>
+<td class="gt_row gt_left">Berlin</td></tr>
+    <tr><td class="gt_row gt_left">Berlin</td>
+<td class="gt_row gt_right">2</td>
+<td class="gt_row gt_right">69.00</td>
+<td class="gt_row gt_right">3.624239</td>
+<td class="gt_row gt_left">BE</td>
+<td class="gt_row gt_left">Berlin</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<p>Dann updaten wir das letzte Diagramm, nur eben dieses Mal erstellen pro Quartal ein Diagramm.</p>
+<p>Zuvor legen wir noch schönere Bezeichnungen der Facetten an, nicht nur 1,2,3,4, sondern “1. Quartal,”2. Quartal” etc.:</p>
+<pre class="r"><code>Quartal_values &lt;- c(&quot;1. Quartal&quot;, &quot;2. Quartal&quot;,
+                    &quot;3. Quartal&quot;, &quot;4. Quartal&quot;)
+names(Quartal_values) &lt;- c(1:4)</code></pre>
+<p>Ansonsten ist es das gleiche Vorgehen wie eben auch:</p>
+<pre class="r"><code>hosp_vacc_bundesland_pro_Quartal %&gt;% 
+  ggplot() +
+  aes(x = I,
+      y = H) +
+  geom_point(alpha = .5) +
+  geom_smooth(method = &quot;lm&quot;) +
+  labs(x = &quot;Impfquote (vollständig)&quot;,
+       y = &quot;7Tage-Hospitalisierungsquote&quot;,
+       title = &quot;Zusammenhang von Impfen und Hospitalisierung&quot;,
+       subtitle = &quot;Aufgeteilt nach Quartale, aggregiert über alle Altersgruppe&quot;,
+       caption = &quot;Datenquelle: RKI&quot;) +
+  geom_text(aes(label = Kurzform)) +
+  facet_wrap(~ Quartal, labeller = labeller(Quartal = Quartal_values))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/corr-bundesland-quartal-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Wir sehen, dass es im 3. Quartal in der Inzidenz kaum Streuung gibt,
+was die sehr geringe Korrelation erklärt.</p>
+</div>
+</div>
+</div>
+<div id="fazit-zum-zusammenhang-von-hospitalisierung-und-impfquote" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Fazit zum Zusammenhang von Hospitalisierung und Impfquote</h1>
+<div id="deskriptiv" class="section level2" number="8.1">
+<h2><span class="header-section-number">8.1</span> Deskriptiv</h2>
+<p>Es fand sich ein negativer Zusammenhang von Hospitalisierung und Impfquote. Nur im Sommer,
+als die Hospitalisierung praktisch Null war und daher keine Streuung aufwies,
+fand sich (eine mathematisch notwendige Konsequenz) fast keine Korrelation.</p>
+</div>
+<div id="aber-worum-geht-es-uns-eigentlich" class="section level2" number="8.2">
+<h2><span class="header-section-number">8.2</span> Aber worum geht es uns eigentlich?</h2>
+<p>Warum haben wir uns überhaupt für die Frage nach dem Zusammenhang von Impfquote und Hospitalisierung interessiert?
+Interessiert uns <em>allein</em> der <em>deskriptive</em> Sachverhalt des Kovariierens der beiden Größen?
+Ich glaube nicht.
+Wenn wir hören, dass “Störche und Babies korreliert sind”,
+und vielleicht sogar Schmunzeln beim Gedanken,
+“wenn es viele Störche gibt, dann gibt es auch viele Babies (und umgekehrt)”,
+haben wir eine <em>kausale</em> Verbindung,
+einen ursächlichen Einfluss von Störchen auf Babies im Kopf.
+Ich meine, nur deswegen finden wir den Zusammenhang interessant.
+Unser Kopf (unsere Wahrnehmung) hat einen Filter für kausale Einflüsse.
+Evolutionär kann man das sicher gut erklären:
+Wenn man weiß, was die Ursache für ein Problem ist,
+hat bessere Karten, das Problem zu lösen,
+als derjenige, der keinen Schimmer hat,
+warum die Dinge gerade schieflaufen.
+Unser Hirn muss, könnte man aus evolutionäre Sicht behaupten,
+auf Kausalzusammenhänge getrimmt sein.</p>
+<p>Deswegen, meine ich, interessieren wir uns für den Zusammenhang
+von Impfquote und Inzidenz (der Hospitalisierung).
+Wir sind, naturgemäß und einsichtigerweise,
+sehr an dieser Frage interessiert, es ist eine sehr wichtige Frage.</p>
+<p>Allerdings: aus Korrelation kann man nicht einfach so Kausalzusammenhänge ableiten.</p>
+<p>Anders gesagt,
+wenn wir - vielleicht nur implizit - glauben,
+die Impfquote I ist die (eine) Ursache von Hospitalisierung H,
+haben wir z.B. dieses Kausalmodell im Kopf:</p>
+<div id="kausalmodell-1" class="section level3" number="8.2.1">
+<h3><span class="header-section-number">8.2.1</span> Kausalmodell 1</h3>
+<p>Kausalmodelle kann man mit <em>Directed Acyclic Graphs</em> (DAGs) darstellen.</p>
+<p>Also, ein Modell, das mit unserem impliziten Kausalmodell d’accord geht,
+sagt, sinngemäß:</p>
+<p>“Die Hospitalisierungsquote H wird von der Impfquote H beeinflusst.
+Natürlich spielen weitere, unbekannte Faktoren U eine Rolle;
+die haben aber nichts mit H zu tun.”</p>
+<p>Als DAG:</p>
+<pre class="r"><code>dag1 &lt;-
+  dagitty(
+    &#39;dag {
+    I [pos = &quot;0,1&quot;]
+    H [pos = &quot;1,0&quot;]
+    U [pos = &quot;0, -1&quot;]
+    I -&gt; H
+    U -&gt; H
+    }
+    &#39;
+  )
+plot(dag1)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-48-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Nur wenn U nichts mit I zu tun hat (zumindest in einem bestimmten Sinn nichts zu tun hat),
+können wir mit der Korrelation von I und H den kausalen Effekt wahrnehmen,
+dem wir vermutlich auf der Fährte sind,
+zumindest ist das ein lohnendes Ziel.</p>
+</div>
+<div id="kausalmodell-2" class="section level3" number="8.2.2">
+<h3><span class="header-section-number">8.2.2</span> Kausalmodell 2</h3>
+<p>Allerdings könnte die Wahrheit auch so aussehen:</p>
+<pre class="r"><code>dag2 &lt;-
+  dagitty(
+    &#39;dag {
+    I [pos = &quot;0,1&quot;]
+    H [pos = &quot;1,0&quot;]
+    U1 [pos = &quot;0, -1&quot;]
+    U2 [pos = &quot;-1,0&quot;]
+    I -&gt; H
+    U1 -&gt; H
+    U2 -&gt; U1
+    U2 -&gt; I
+    }
+    &#39;
+  )
+plot(dag2)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-49-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Jetzt ist die Korrelation (allgemeiner: der statistische Zusammenhang) von I mit H nicht mehr so unbedarft.
+U2 hat seine Finger im Spiel.
+U1 ist nämlich über U2 (eine weitere unbekannte oder ungemessene Größe) mit I (und weiter nach H) verbunden.
+Man spricht von einer <em>Konfundierung</em>:
+In der Assoziation von I mit H mischt sich ein weiterer kausaler Pfad:
+Der von U1-&gt;U2-&gt;I-&gt;H.
+Damit ist die Assoziation von I mit H die Summe (oder besser: die Mischung) von zwei Pfaden und man kann nicht ohne Weiteres sagen,
+welcher Pfad wieviel der Assoziation versursacht.
+Schlechte Nachrichten.
+Wenn wir aber U1 und U2 messen können,
+können wir wiederum Hoffnung schöpfen,
+die kausalen Pfade klar zu ziehen.</p>
+</div>
+<div id="interpretation-hängt-vom-kausalmodell-ab" class="section level3" number="8.2.3">
+<h3><span class="header-section-number">8.2.3</span> Interpretation hängt vom Kausalmodell ab</h3>
+<p>Ob wir also diese (oder eine andere) Korrelation interpretieren können
+(und interpretieren, so glaube ich, ist oft oder in hohem Maße eine kausale Sache) hängt vom Kausalmodell ab,
+an das wir glauben.</p>
+<p>Natürlich sind noch viele andere Kausalmodelle denkbar.
+Ja, die Sache ist kompliziert.</p>
+<p>Das ist übrigens der Grund,
+warum die Menschen Experimente erfunden haben.
+Mit Experimenten kann man diese gordischen Kausalknoten durchschneiden,
+und dann vergleichsweise einfach die Kausalstrukturen klären.
+Leider sind Experimente nicht immer möglich.</p>
+<p>Glücklicherweise im Fall der Frage
+“Was bringt Impfen gegen Corona?” schon.
+Da gibt es Experimente, die diese Frage untersuchen.
+Vermutlich sind diese Studien die besten Möglichkeiten,
+die kausale Frage nach der Wirksamkeit von Impfung zu klären.</p>
+<p>Natürlich, wenn man an ein Kausalmodell glaubt - bzw. es gut begründen kann - das die Vergleichbarkeit der Gruppen nahelegt,
+dann ist wieder alles gut.
+Wir wären also zurück beim Kausalmodell 1, oben.</p>
+</div>
+</div>
+<div id="wo-sind-hier-die-modelle" class="section level2" number="8.3">
+<h2><span class="header-section-number">8.3</span> Wo sind hier die Modelle?</h2>
+<p>Wäre es jetzt nicht allerhöchste Zeit,
+mit dem Modellieren anzufangen?
+Eine paar ausgefeilte Regressionsmodelle zu prüfen?
+An sich ja.
+Leider gibt es zwei Probleme.
+Erstens muss man weitere Daten, also Kennwerte weiterer Messgrößen (Variablen) haben,
+die man dann in einer multiplen Analyse (eine Regression mit mehreren Prädiktoren) untersuchen kann.
+Und natürlich nicht irgendwelche Daten, sondern “die richtigen”.
+Das führt uns zum zweiten Problem.
+Die verbreitete Praxis, alle Daten, die man hat,
+in ein Regressionsmodell zu “kippen” und dann das Beste zu hoffen,
+ist der falsche Weg.</p>
+<p>Das Hinzunehmen von Prädiktoren ohne ein stimmiges Kausalmodell
+kann genauso viel schaden wie nützen.</p>
+<p>Anders gesagt: Ohne ein (stimmiges) Kausalmodell kann man sich
+das Modellieren schenken,
+wenn es darum geht, “echte Effekte”,
+Kausaleffekte also, zu schätzen.</p>
+<p>Geht es einem hingegen “nur” darum,
+vorhersagen zu machen,
+etwa “Wie viele Coronafälle sind für nächste Woche zu erwarten?”,
+dann ist kein Kausalmodell nötig (obwohl auch nützlich).
+Vorhersagen kann man anhand rein statistischer Zusammenhänge tätigen.
+In der Regel geht es einem aber
+(in solchen Situationen wie der hier untersuchten Forschungsfrage)
+um kausale Fragen, die ohne ein Kausalmodell kaum zu beantworten sind.</p>
+<p>Natürlich könnte man argumentieren,
+ein Kausalmodell sei einem wurscht,
+man will sich nur an den statistischen Zusammenhängen erfreuen.
+So eine Behauptung gleicht der Aussage,
+man interessiere sich “einfach so” für den
+Zusammenhang von Störchen und Babies.</p>
+<p><img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Scheinkorrelation_Storchenpopulation_Geburtenzahl.jpg?download" width="100%" style="display: block; margin: auto;" /></p>
+<p><a href="https://commons.wikimedia.org/wiki/File:Scheinkorrelation_Storchenpopulation_Geburtenzahl.jpg">Quelle: Herbert Kuhl, Wikimedia</a></p>
+<p>Etwas Googeln liefert ein paar weitere schöne Beispiele
+für Korrelationen ohne Anspruch an Kausalität:</p>
+<ul>
+<li>Höhe des Deutschen Meisters im Stabhochsprung bei den Deutschen Hallenmeisterschaften und Anzahl der für Versuche und andere wissenschaftliche Zwecke verwendeten Kaninchen</li>
+<li>Geldvermögen der privaten Haushalte (orange) und Zahl der Patienten, die aus Krankenhäusern entlassen wurden und bei denen “Bestimmte infektiöse und parasitäre Krankheiten” diagnostiziert wurden</li>
+<li>Beschäftigte auf Campingplätzen und Erntemenge von Gurken auf dem Freiland</li>
+</ul>
+<p><a href="https://scheinkorrelation.jimdofree.com/">Quelle</a></p>
+<p>In allen diesen Beispielen fand sich eine (fast) perfekte Korrelation (0.9-1).
+Es fällt mir schwer,
+mir vorzustellen,
+dass man sich “rein deskriptiv” für diese Zusammenhänge interessiert.</p>
+<p>Kurz gesagt: Modellieren macht nur Sinn,
+wenn man ein Kausalmodell hat;
+zumindest wenn man eine kausale Frage beantworten möchte.</p>
+<p>Ich will nicht abstreiten,
+dass es hier nicht möglich wäre,
+ein stimmiges Kausalmodell zu erstellen.
+Allerdings ist sehr viel mehr Wissen nötig
+als eine einfache Korrelation.</p>
+<p>Für die Zwecke dieser Fallstudie lassen wir es an dieser Stelle bewenden.</p>
+</div>
+<div id="interpretation-hängt-von-der-gesamten-befundlage-ab" class="section level2" number="8.4">
+<h2><span class="header-section-number">8.4</span> Interpretation hängt von der gesamten Befundlage ab</h2>
+<p>Eine schwierige Frage zu beantworten sollte nicht auf Basis einer einzelnen Studie,
+gerade wenn diese verschiedene Kausalinterpretationen erlaubt, passieren.
+Die “Gesamtantwort” muss im Lichte der Zusammenschau aller verfügbaren Ergebnissen geschehen.
+Das ist das Gleiche wie zu sagen,
+dass man ein Puzzle nicht anhand eines einzelnen Puzzlestücks einschätzen kann (in aller Regel).</p>
+<p>Was die Wirksamkeit der Corona-Impfung betrifft,
+sprechen die verfügbaren Daten, vor allem die aus hoch qualitativen Studien,
+zugunsten der Wirksamkeit der Impfung.</p>
+<p>Beispiele für hoch qualitative Studien zur Wirksamkeit der Corona-Impfung sind z.B. <a href="https://www.zotero.org/groups/4519707/covid_vaccination_effects">hier</a> zu finden.</p>
+<p>Leider ist Corona so eine Art Puzzle,
+das (durch Mutationen des Genoms) seine Form andauernd und vielleicht sogar massiv ändern kann.
+Und natürlich sind noch viele Fragen zur Biologie des Virus offen.
+So muss ein Fazit in diesem wie in vielen Fällen vorläufig bleiben.</p>
+<p>Immerhin haben wir die Impfung, die, in Zusammenschau der verfügbaren Daten,
+offenbar - Stand heute - hoch wirksam ist.
+In so kurzer Zeit eine so wirksame Therapie entwickelt zu haben,
+ist vermutlich ein großer, vielleicht historischer Erfolg,
+der Wissenschaft.</p>
+</div>
+<div id="notiz-zum-umgang-mit-fehlinformationen" class="section level2" number="8.5">
+<h2><span class="header-section-number">8.5</span> Notiz zum Umgang mit Fehlinformationen</h2>
+<p>Leider kursieren eine Menge von Fehlinformationen zum Thema Corona-Impfung (im Internet).
+Eine ausführliche Beschäftigung damit würde den Rahmen dieses Posts sprengen.
+Nur zwei Notizen zu den Methoden, die gerne verwendet werden.
+Zum einen wird ein Befund herausgegriffen und verabsolutiert.
+Es wird nicht versucht, eine Zusammenschau von Informationen anzustrengend.
+Zum anderen wird gerne ein “Fakt” berichtet - etwa zur Frage, wie wirksam eine Corona-Impfung ist,
+der zwar nicht falsch ist, aber Wesentliches außen vor lässt.
+So wird vielleicht von einer möglichen Ursache gesprochen,
+aber eine zweite außen vorgelassen.
+Oder es wird von einem Fall mit schweren Nebenwirkungen einer Impfung berichtet, aber nicht davon,
+dass eine viel größere Zahl von Menschenleben durch die Impfung gerettet wurde.</p>
+<p>Zum Glück gibt es auch viele gute Berichtserstattung,
+z.B. - eine Replik auf einen Fall ähnlich gelagert
+zu dem gerade Beschriebenen - <a href="https://www.tagesschau.de/faktenfinder/impfquote-uebersterblichkeit-101.html">hier</a>.</p>
+</div>
+</div>
+<div id="sessioninfo" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> sessionInfo</h1>
+<pre class="r"><code>sessioninfo::session_info()</code></pre>
+<pre><code>## ─ Session info ───────────────────────────────────────────────────────────────
+##  setting  value                       
+##  version  R version 4.1.0 (2021-05-18)
+##  os       macOS Big Sur 10.16         
+##  system   x86_64, darwin17.0          
+##  ui       X11                         
+##  language (EN)                        
+##  collate  en_US.UTF-8                 
+##  ctype    en_US.UTF-8                 
+##  tz       Europe/Berlin               
+##  date     2021-12-09                  
+## 
+## ─ Packages ───────────────────────────────────────────────────────────────────
+##  package      * version   date       lib source                           
+##  abind          1.4-5     2016-07-21 [1] CRAN (R 4.1.0)                   
+##  assertthat     0.2.1     2019-03-21 [1] CRAN (R 4.1.0)                   
+##  backports      1.2.1     2020-12-09 [1] CRAN (R 4.1.0)                   
+##  blogdown       1.4       2021-07-23 [2] CRAN (R 4.1.0)                   
+##  bookdown       0.24.2    2021-10-15 [1] Github (rstudio/bookdown@ba51c26)
+##  boot           1.3-28    2021-05-03 [2] CRAN (R 4.1.0)                   
+##  broom          0.7.9     2021-07-27 [1] CRAN (R 4.1.0)                   
+##  bslib          0.3.1     2021-10-06 [1] CRAN (R 4.1.0)                   
+##  car            3.0-11    2021-06-27 [2] CRAN (R 4.1.0)                   
+##  carData        3.0-4     2020-05-22 [2] CRAN (R 4.1.0)                   
+##  cellranger     1.1.0     2016-07-27 [1] CRAN (R 4.1.0)                   
+##  cli            3.1.0     2021-10-27 [1] CRAN (R 4.1.0)                   
+##  colorspace     2.0-2     2021-06-24 [1] CRAN (R 4.1.0)                   
+##  corrr        * 0.4.3     2020-11-24 [2] CRAN (R 4.1.0)                   
+##  crayon         1.4.2     2021-10-29 [1] CRAN (R 4.1.0)                   
+##  crul           1.1.0     2021-02-15 [1] CRAN (R 4.1.0)                   
+##  curl           4.3.2     2021-06-23 [1] CRAN (R 4.1.0)                   
+##  dagitty      * 0.3-1     2021-01-21 [1] CRAN (R 4.1.0)                   
+##  data.table     1.14.2    2021-09-27 [1] CRAN (R 4.1.0)                   
+##  DBI            1.1.1     2021-01-15 [1] CRAN (R 4.1.0)                   
+##  dbplyr         2.1.1     2021-04-06 [1] CRAN (R 4.1.0)                   
+##  digest         0.6.28    2021-09-23 [1] CRAN (R 4.1.0)                   
+##  directlabels * 2021.1.13 2021-01-16 [1] CRAN (R 4.1.0)                   
+##  dplyr        * 1.0.7     2021-06-18 [1] CRAN (R 4.1.0)                   
+##  DT             0.19.1    2021-10-15 [1] Github (rstudio/DT@e223814)      
+##  ellipsis       0.3.2     2021-04-29 [1] CRAN (R 4.1.0)                   
+##  evaluate       0.14      2019-05-28 [1] CRAN (R 4.1.0)                   
+##  fansi          0.5.0     2021-05-25 [1] CRAN (R 4.1.0)                   
+##  fastmap        1.1.0     2021-01-25 [2] CRAN (R 4.1.0)                   
+##  forcats      * 0.5.1     2021-01-27 [1] CRAN (R 4.1.0)                   
+##  foreign        0.8-81    2020-12-22 [2] CRAN (R 4.1.0)                   
+##  fs             1.5.0     2020-07-31 [1] CRAN (R 4.1.0)                   
+##  generics       0.1.1     2021-10-25 [1] CRAN (R 4.1.0)                   
+##  ggplot2      * 3.3.5     2021-06-25 [1] CRAN (R 4.1.0)                   
+##  ggrepel      * 0.9.1     2021-01-15 [2] CRAN (R 4.1.0)                   
+##  glue           1.5.1     2021-11-30 [1] CRAN (R 4.1.0)                   
+##  gt           * 0.3.1     2021-08-07 [1] CRAN (R 4.1.0)                   
+##  gtable         0.3.0     2019-03-25 [1] CRAN (R 4.1.0)                   
+##  haven          2.4.1     2021-04-23 [1] CRAN (R 4.1.0)                   
+##  hms            1.1.1     2021-09-26 [1] CRAN (R 4.1.0)                   
+##  htmltools      0.5.2     2021-08-25 [1] CRAN (R 4.1.0)                   
+##  htmlwidgets    1.5.4     2021-09-08 [1] CRAN (R 4.1.0)                   
+##  httpcode       0.3.0     2020-04-10 [1] CRAN (R 4.1.0)                   
+##  httpuv         1.6.3     2021-09-09 [1] CRAN (R 4.1.0)                   
+##  httr           1.4.2     2020-07-20 [1] CRAN (R 4.1.0)                   
+##  jquerylib      0.1.4     2021-04-26 [1] CRAN (R 4.1.0)                   
+##  jsonlite       1.7.2     2020-12-09 [1] CRAN (R 4.1.0)                   
+##  knitr          1.36      2021-09-29 [1] CRAN (R 4.1.0)                   
+##  later          1.3.0     2021-08-18 [1] CRAN (R 4.1.0)                   
+##  lifecycle      1.0.1     2021-09-24 [1] CRAN (R 4.1.0)                   
+##  lubridate    * 1.7.10    2021-02-26 [1] CRAN (R 4.1.0)                   
+##  magrittr       2.0.1     2020-11-17 [1] CRAN (R 4.1.0)                   
+##  MASS           7.3-54    2021-05-03 [2] CRAN (R 4.1.0)                   
+##  mime           0.12      2021-09-28 [1] CRAN (R 4.1.0)                   
+##  miniUI         0.1.1.1   2018-05-18 [1] CRAN (R 4.1.0)                   
+##  modelr         0.1.8     2020-05-19 [1] CRAN (R 4.1.0)                   
+##  munsell        0.5.0     2018-06-12 [1] CRAN (R 4.1.0)                   
+##  openxlsx       4.2.3     2020-10-27 [1] CRAN (R 4.1.0)                   
+##  pillar         1.6.4     2021-10-18 [1] CRAN (R 4.1.0)                   
+##  pkgconfig      2.0.3     2019-09-22 [1] CRAN (R 4.1.0)                   
+##  plyr           1.8.6     2020-03-03 [1] CRAN (R 4.1.0)                   
+##  promises       1.2.0.1   2021-02-11 [2] CRAN (R 4.1.0)                   
+##  purrr        * 0.3.4     2020-04-17 [1] CRAN (R 4.1.0)                   
+##  quadprog       1.5-8     2019-11-20 [1] CRAN (R 4.1.0)                   
+##  R6             2.5.1     2021-08-19 [1] CRAN (R 4.1.0)                   
+##  Rcpp           1.0.7     2021-07-07 [1] CRAN (R 4.1.0)                   
+##  rcrossref    * 1.1.0     2020-10-02 [1] CRAN (R 4.1.0)                   
+##  readr        * 2.0.0     2021-07-20 [1] CRAN (R 4.1.0)                   
+##  readxl         1.3.1     2019-03-13 [1] CRAN (R 4.1.0)                   
+##  reprex         2.0.0     2021-04-02 [1] CRAN (R 4.1.0)                   
+##  rio            0.5.26    2021-03-01 [1] CRAN (R 4.1.0)                   
+##  rlang          0.4.12    2021-10-18 [1] CRAN (R 4.1.0)                   
+##  rmarkdown      2.11      2021-09-14 [1] CRAN (R 4.1.0)                   
+##  rstatix      * 0.7.0     2021-02-13 [1] CRAN (R 4.1.0)                   
+##  rstudioapi     0.13      2020-11-12 [1] CRAN (R 4.1.0)                   
+##  rvest          1.0.0     2021-03-09 [1] CRAN (R 4.1.0)                   
+##  sass           0.4.0     2021-05-12 [1] CRAN (R 4.1.0)                   
+##  scales         1.1.1     2020-05-11 [1] CRAN (R 4.1.0)                   
+##  sessioninfo    1.1.1     2018-11-05 [2] CRAN (R 4.1.0)                   
+##  shiny          1.7.1     2021-10-02 [1] CRAN (R 4.1.0)                   
+##  stringi        1.7.5     2021-10-04 [1] CRAN (R 4.1.0)                   
+##  stringr      * 1.4.0     2019-02-10 [1] CRAN (R 4.1.0)                   
+##  tibble       * 3.1.6     2021-11-07 [1] CRAN (R 4.1.0)                   
+##  tictoc       * 1.0.1     2021-04-19 [2] CRAN (R 4.1.0)                   
+##  tidyr        * 1.1.4     2021-09-27 [1] CRAN (R 4.1.0)                   
+##  tidyselect     1.1.1     2021-04-30 [1] CRAN (R 4.1.0)                   
+##  tidyverse    * 1.3.1     2021-04-15 [1] CRAN (R 4.1.0)                   
+##  tzdb           0.1.2     2021-07-20 [2] CRAN (R 4.1.0)                   
+##  utf8           1.2.2     2021-07-24 [1] CRAN (R 4.1.0)                   
+##  V8             3.4.2     2021-05-01 [1] CRAN (R 4.1.0)                   
+##  vctrs          0.3.8     2021-04-29 [1] CRAN (R 4.1.0)                   
+##  withr          2.4.2     2021-04-18 [1] CRAN (R 4.1.0)                   
+##  xfun           0.28      2021-11-04 [1] CRAN (R 4.1.0)                   
+##  xml2           1.3.2     2020-04-23 [1] CRAN (R 4.1.0)                   
+##  xtable         1.8-4     2019-04-21 [1] CRAN (R 4.1.0)                   
+##  yaml           2.2.1     2020-02-01 [1] CRAN (R 4.1.0)                   
+##  zip            2.2.0     2021-05-31 [2] CRAN (R 4.1.0)                   
+## 
+## [1] /Users/sebastiansaueruser/Library/R/x86_64/4.1/library
+## [2] /Library/Frameworks/R.framework/Versions/4.1/Resources/library</code></pre>
+</div>

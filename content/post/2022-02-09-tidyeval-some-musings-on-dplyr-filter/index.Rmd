@@ -1,0 +1,136 @@
+---
+title: tidyeval, some musings on dplyr::filter
+author: Sebastian Sauer
+date: '2022-02-09'
+slug: tidyeval-some-musings-on-dplyr-filter
+categories:
+  - rstats
+tags:
+  - tutorial
+---
+
+
+
+```{r global-knitr-options, include=FALSE}
+  knitr::opts_chunk$set(
+  fig.pos = 'H',
+  fig.asp = 0.618,
+  fig.align='center',
+  fig.width = 5,
+  out.width = "100%",
+  fig.cap = "", 
+  dpi = 300,
+  # tidy = TRUE,
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = FALSE,
+  fig.show = "hold")
+```
+
+
+
+
+# Programming with the tidyverse
+
+
+... Is not exactly self-evident. It actually requires some head wrapping, at
+least in my experience. 
+In this post, we are exploring some aspects on programming when filtering rows.
+Let's see.
+
+
+
+# Setup
+
+```{r}
+library(tidyverse)
+```
+
+
+
+
+# Some filtering chunk
+
+
+Let's say we would like to filter observations according to some variable and a given threshold in some data set:
+
+
+
+```{r}
+mtcars %>% 
+  filter(hp > 200)
+```
+
+
+Of course, that's a toy problem, but for the sake of the tidyverse programming thing,
+it may be a helpful start to keep things straight.
+
+Now, say, instead of `200`, we abstract it to `threshold`, a variable giving the filter value:
+
+
+```{r}
+threshold <- 200
+
+mtcars %>% 
+  filter(hp > threshold)
+```
+
+Works! So `filter` is able to digest a variable, at least at the right hand side of the filter expression.
+
+
+# Now let's abstract it to a function
+
+
+```{r}
+filter_fun <- function(data, threshold){
+  
+  data %>% 
+    filter(hp > threshold)
+}
+```
+
+
+Let's try it:
+
+
+```{r}
+filter_fun(mtcars, 200)
+```
+
+
+Works!
+
+
+
+# Actract variable to be filtered
+
+
+
+```{r}
+filter_fun <- function(data, col, threshold){
+  
+  data %>% 
+    filter({{col}} > threshold)
+}
+```
+
+
+
+Let's try it:
+
+
+```{r}
+filter_fun(mtcars, hp, 200)
+```
+
+Works!
+
+
+We can make use of the "curly curly" operator as in `{{col}}` to explain to the tidyverse function
+that what now comes is a variable, and *not* a column name in the present data frame.
+
+
+
+
+

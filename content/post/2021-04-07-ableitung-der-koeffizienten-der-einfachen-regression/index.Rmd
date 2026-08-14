@@ -1,0 +1,216 @@
+---
+title: Ableitung der Koeffizienten der einfachen Regression
+author: Sebastian Sauer
+date: '2022-05-23'
+slug: ableitung-der-koeffizienten-der-einfachen-regression
+categories:
+  - statistics
+tags:
+  - regression
+  - modelling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+```{r}
+library(tidyverse)
+```
+
+
+
+# Was ist die Regression?
+
+
+In diesem Post geht es um die einfache Regression (d.h. mit einem Prädiktor); genauer gesagt um die Frage, wie man auf die Formeln der Koeffizienten der einfachen Regression kommt. 
+
+
+Gehen wir von einigen zweidimensionalen Datenpunkten aus, die zu einem Phänomen gemessen wurden: ${(x_1, y_1), (x_2, y_2), \ldots, (x_n,y_n)}$.
+
+Gehen wir weiter davon aus, dass der Zusammenhang *in Wirklichkeit* von einer Geraden erklärt werden kann:
+
+$$\hat{y}=b_0 + b_1x.$$
+
+Eine Gerade kann durch zwei Koeffizienten definiert werden, den Achsenabschnitt $b_0$ und die Steigung $b_1$.
+
+Für jeden Datenpunkt $y_i$ können wir die Abweichung (den Fehler) zum vorhergesagten Wert $\hat{y_i}$ ausrechnen:
+
+$$e_i = y_i - \hat{y_i}$$
+
+Nennen wir die Summe der quadrierten Fehler $e_i$ im Folgenden $QS$ (für Quadratsumme):
+
+
+
+\begin{align*}
+QS &= \sum_{i=1}^{n}e_i^2\\
+QS &=  \sum_{i=1}^{n}(y_i - \hat{y_i})^2\\
+QS &=  \sum_{i=1}^{n}(y_i - b_0 - b_1x_i)^2 
+\end{align*}
+
+Alle Summen belaufen sich über die Beobachtungen $1,2,i,...,n$.
+
+
+Betrachten wir das an einem Datenbeispiel:
+
+```{r}
+d <- mtcars
+lm1 <- lm(mpg ~ hp, data = d)
+
+d <-
+  d %>% 
+  mutate(pred = predict(lm1),
+         resid = residuals(lm1))
+
+```
+
+Jetzt visualisieren wir die Residuen (Abweichungen, Fehler):
+
+```{r}
+ggplot(d, 
+       aes(x = hp, y = mpg)) +
+  geom_smooth(method = "lm", se = FALSE, color = "dodgerblue") +
+  geom_segment(aes(xend = hp, yend = pred), alpha = .5) +
+  geom_point() +
+  geom_hline(yintercept = mean(d$mpg), 
+             color = "grey60", linetype = "dashed") +
+  geom_vline(xintercept = mean(d$hp), 
+             color = "grey60", linetype = "dashed") + 
+  annotate("point", x = mean(d$hp), y = mean(d$mpg),
+           size = 5, color = "red", alpha = .5)
+```
+
+Die blaue Gerade ist die Regressionsgerade; die vertikalen Balken stellen die Residuen dar und die gestrichelten Linien repräsentieren jeweils die Mittelwerte von `hp` bzw. `mpg`. Man beachte, dass der Schnittpunkt der Mittelwertslinien auf der Regressionsgeraden liegt.
+
+
+
+# Wie findet man die Regressionsgerade?
+
+
+Um die Koeffizienten der Regressionsgeraden zu bestimmen, können wir die *Methode der kleinsten Quadrate (least squares bzw. ordinary least squares)* verwenden. 
+Diese Methode gibt uns diejenigen Koeffizienten der Regressionsgeraden (also $b_0$ und $b_1$), 
+die die *Quadratsumme (QS) der Residuen* $e_i$ *minimieren*.
+
+Um die Quadratsumme zu minimieren, bilden wir jeweils die erste (parzielle) Ableitung und setzen diese Null. 
+Anschließend löst man nach dem gesuchten Koeffizienten auf. Beginnen wir mit $b_0$.
+
+
+
+## $b_0$
+
+Wir leiten nach $\beta_0$ ab (Kettenregel) und setzen die Gleichung Null:
+
+$$\frac{\partial{QS}}{\partial{\beta_0}} = \sum 2\left(y_i - \beta_0 - \beta_1x_i\right)^1 (-1) = 0$$
+
+Teilen durch -2:
+
+$$\sum \left(y_i - \beta_0 - \beta_1x_i\right) = 0$$
+
+Auflösen nach $\beta_0$, der gesuchten Größe:
+
+$$\sum \beta_0 = \sum y_i -\beta_1 \sum x_i$$
+$\sum \beta_0 = n\beta_0$:
+
+$$n\beta_0 = \sum y_i -\beta_1 \sum x_i \\$$
+
+Teilen durch $n$:
+
+$$\beta_0 = \frac{1}{n}\sum y_i -\beta_1 \frac{1}{n}\sum x_i  \tag{1}$$
+
+Kürzer fassen:
+
+$$\beta_0 = \bar y - \beta_1 \bar x$$
+
+
+
+Das Ergebnis zeigt auch, dass der Punkt $(\bar{x}, \bar{y})$ auf der Regressionsgerade liegt.
+
+
+## $b_1$
+
+Analog verfahren wir für den zweiten Koeffizienten, $b_1$. 
+Wieder bilden wir die parzielle Ableitung, setzen diese Null und lösen nach dem gesuchten Koeffizienten auf. Das Nachdifferenzieren (Kettenregel) liefert allerdings ein anderes Ergebnis:
+
+
+
+$$\frac{\partial{S}}{\partial{\beta_1}} = \sum 2\left(y_i - \beta_0 - \beta_1x_i\right)^1 (-x_i) = 0$$
+Gleichung multiplizieren mit $-1/2$ und letzten Faktor, $x_i$ nach vorne ziehen:
+
+$$\sum x_i \left(y_i - \beta_0 - \beta_1x_i\right) = 0$$
+Summenzeichen auflösen:
+
+$$\sum x_iy_i - \beta_0 \sum x_i - \beta_1 \sum x_i^2 = 0 \tag{2}$$
+
+
+
+Jetzt setzen wir $(1)$ in $(2)$ ein:
+
+
+
+$$\sum x_iy_i - \left( \frac{1}{n}\sum y_i -\beta_1 \frac{1}{n}\sum x_i\right) \sum x_i - \beta_1 \sum x_i^2 = 0$$
+
+Klammer auflösen:
+
+$$\sum x_iy_i - \frac{1}{n} \sum x_i \sum y_i + \beta_1 \frac{1}{n} \left( \sum x_i \right) ^2 - \beta_1 \sum x_i^2 = 0$$
+
+
+Alle Terme mit $\beta_1$ auf die rechte Seite bringen:
+
+$$\sum x_iy_i - \frac{1}{n} \sum x_i \sum y_i  = - \beta_1 \frac{1}{n} \left( \sum x_i \right) ^2 + \beta_1 \sum x_i^2$$
+
+$\beta_1$ vor die Klammer ziehen:
+
+$$\sum x_iy_i - \frac{1}{n} \sum x_i \sum y_i  =  \beta_1 \left(\sum x_i^2 - \frac{1}{n} \left( \sum x_i \right) ^2 \right)$$
+
+Nach $\beta_1$ auflösen:
+
+$$\beta_1  = \frac{\sum x_iy_i - \frac{1}{n} \sum x_i \sum y_i}{\sum x_i^2 - \frac{1}{n} \left( \sum x_i \right) ^2 } = \frac{cov(x,y)}{var(x)}$$
+
+Wie man sieht, kann $\beta_1$ als das Verhältnis von Kovarianz zu Varianz dargestellt werden.
+
+
+
+## Weitere Umformung von $b_1$
+
+\begin{align*}
+b_1 &= \frac{cov(x,y)}{s^2(x)} \\
+&= \frac{cov(x,y)}{s^2(x)} \cdot \frac{s(y)}{s(y)} \\
+&= \frac{cov(x,y)}{s(x)s(y)}  \cdot \frac{s(y)}{s(x)} \\
+&= cor(x,y) \cdot \frac{s(y)}{s(x)}
+\end{align*}
+
+# Quellenangabe
+
+Dies Post ist eine kommentierte und leicht angepasste Version von [diesem Post auf StackExchange](https://math.stackexchange.com/questions/716826/derivation-of-simple-linear-regression-parameters).
+
+
+# Fazit
+
+
+In diesem Post ging es um die Ableitung der Formeln der Regressionskoeffizienten, zumindest der einfachen Regression. Dabei wurden grundlegende Algebra und partielle Ableitungen verwendet. Wir haben also bewiesen, dass die Regressionskoeffizienten die Form haben, wie sie gewöhnlich in einführenden, angewandten Lehrbüchern gezeigt werden. 
+
+Für die Ableitung der multiplen Regression sind Ansätze auf Basis der linearen Algebra praktischer.
+
+
+
+
+

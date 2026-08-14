@@ -1,0 +1,156 @@
+---
+title: Logistic regression using z-standardized values
+author: Sebastian Sauer
+date: '2023-12-20'
+slug: logistic-regression-using-z-standardized-values
+categories:
+  - rstats
+tags:
+  - regression
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(easystats)
+```
+
+
+# Data
+
+```{r}
+data(mtcars)
+```
+
+
+
+# Motivation
+
+In this post, we'll investigate the consequence of z-standardizing the predictor variables, and in addition the outcome variable in a simple logistic regression setting.
+
+>   Do some coefficients change as a result of standardizing the values?
+
+
+# EDA
+
+
+```{r}
+mtcars |> 
+  group_by(am) |> 
+  summarise(mpg_Avg = mean(mpg))
+```
+
+As we can see, `am=1`, i.e., manual (gear shifting) cars have a better mpg value.
+
+# Model with raw values
+
+
+```{r}
+mod_raw <- glm(am ~ mpg, data = mtcars, family = "binomial")
+parameters(mod_raw, exponentiate = TRUE)
+```
+
+The odds ratio of 1.36 means that for every one-unit increase in mpg, the odds of a car having an *manual* transmission increase by 36%.
+
+Note that the logistic regression (in R) models the *second* level of the outcome variable ([see here for more information](https://data-se.netlify.app/2022/02/11/die-logististische-regression-glm-modelliert-die-zweite-stufe/)).
+
+
+# Model with `am` as factor-Variable
+
+```{r}
+mtcars <-
+  mtcars |> 
+  mutate(am_f = factor(am))
+
+levels(mtcars$am_f)
+```
+
+
+```{r}
+mod_raw_f <- glm(am ~ mpg, data = mtcars, family = "binomial")
+parameters(mod_raw, exponentiate = TRUE)
+```
+
+Identical!
+
+
+# Visualizing
+
+```{r}
+pred_df <-
+  tibble(
+    mpg = seq(min(mtcars$mpg), max(mtcars$mpg), by = .1),
+    am_pred = predict(mod_raw, type = "response", newdata = tibble(mpg))
+  )
+
+ggplot(mtcars) +
+  aes(x = mpg, y = am) +
+  geom_point() +
+  geom_line(data = pred_df, aes(x = mpg, y = am_pred), color = "blue") +
+  labs(title = "Predicting manual gear shifting",
+       subtitle = "Logistic model")
+```
+
+
+# Standardizing predictors
+
+```{r}
+mtcars_z <- 
+mtcars |> 
+  mutate(across(c(everything(),-am), ~standardize(.x)))
+```
+
+
+
+# Model with z-scaled predictors
+
+
+```{r}
+mod_z <- glm(am ~ mpg, data = mtcars_z, family = "binomial")
+parameters(mod_z, exponentiate = TRUE)
+```
+# Model with all variables z-scaled
+
+Note that it makes no sense to z-scale the outcome variable of a logistic regression.
+
+
+
+# Conclusion
+
+As can be seen the Odds ratio gets really big after standardization.
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

@@ -1,0 +1,158 @@
+---
+title: 'Programming the tidyverse: quoted and unqouted parameters'
+author: Sebastian Sauer
+date: '2022-03-11'
+slug: programming-the-tidyverse-quoted-and-unqouted-parameters
+categories:
+  - rstats
+tags:
+  - tutorial
+  - tidyverse
+  - programming
+  - tidyeval
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+# Motivation
+
+
+If a project reaches some level of complexity, sooner or later, more systematical meausures of coding need to be employed.
+
+Using the tidyverse ecosystem, programming - instead of interactive use - 
+may be something different or unusual and it may take some time to wrap your head around it.
+
+In this post, I'll show how to deal with a standard situation (using tidyvserse' nonstandard evaluation).
+More precisely, there are two (complementary) situations we'll address:
+
+1. How to work with a *nonquoted* (bare, no quotation marks) parameter in a function call, e.g., `draw_cool_diagram(mtcars, hp)`.
+
+2. 1. How to work with a *nquoted* (with quotation marks) parameter in a function call, e.g., `draw_cool_diagram(mtcars, "hp")`.
+
+
+
+# First: Quoted (string) parameter
+
+
+For the ease of comprehension, 
+let's make a very simple function:
+A function that pulls a column out of tibble,
+returning a vector of the values.
+
+The point is that we use a string as parameter value in the function
+that uses tidyverse commands internally.
+
+
+```{r}
+pull_string <- function(data, var){
+  
+  var_symbol <- as.name(var)
+  
+  out <- 
+  data %>% 
+    pull({{var_symbol}})
+  
+  return(out)
+}
+```
+
+Ok, here's comes the function call, note the *quoted* parameter "hp":
+
+```{r}
+out1 <- pull_string(mtcars, "hp")
+out1
+```
+
+
+
+The "curly curly" {{ operator provides the candy here. 
+It explains to the tidyverse function that `var_symbol` needs to evaluated in the environment of the data frame.
+
+Note that we first translated `var` from a string to a symbol, using `as.name()`:
+
+
+```{r}
+as.name("hp")
+```
+
+Next to `as.name()` the curly-curly operator can be made use of.
+
+
+# Second: Unquoted parameter
+
+Ok, let's move on, next, the *unquoted* parameter in our function.
+
+```{r}
+pull_unquoted <- function(data, var) {
+  
+  out <-
+    data %>% 
+    pull({{var}})
+  
+  return(out)
+}
+
+out2 <- pull_unquoted(mtcars, hp)
+out2
+```
+
+Even more simple than method 1. Here, 
+we don't need to translate `var` to a symbol,
+because we already got in unquoted, ie., as a "symbol".
+
+
+# Check
+
+Did it work out?
+
+
+```{r}
+identical(out1, out2)
+```
+
+Seems so!
+
+
+
+# Bonus
+
+To translate from symbol to string, 
+we can use the following expression:
+
+```{r}
+deparse(substitute(var))
+```
+
+
+
+
+

@@ -1,0 +1,2274 @@
+---
+title: 'Fallstudie: Modellierung von Flugverspätungen'
+author: Sebastian Sauer
+date: '2021-03-10'
+slug: fallstudie-modellierung-von-flugverspätungen
+categories:
+  - rstats
+tags:
+  - tutorial
+  - modeling
+  - prediction
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#hintergrund-und-forschungsfrage"><span class="toc-section-number">1</span> Hintergrund und Forschungsfrage</a></li>
+<li><a href="#pakete-laden"><span class="toc-section-number">2</span> Pakete laden</a></li>
+<li><a href="#daten-laden"><span class="toc-section-number">3</span> Daten laden</a></li>
+<li><a href="#flights2-nicht-benötigte-variablen-entfernen-und-id-hinzufügen"><span class="toc-section-number">4</span> flights2: Nicht benötigte Variablen entfernen und ID hinzufügen</a></li>
+<li><a href="#aufteilung-in-train--und-testsample"><span class="toc-section-number">5</span> Aufteilung in Train- und Testsample</a></li>
+<li><a href="#flights_train2-flights_test2"><span class="toc-section-number">6</span> flights_train2, flights_test2</a></li>
+<li><a href="#lm0-nullmodell"><span class="toc-section-number">7</span> lm0: Nullmodell</a></li>
+<li><a href="#lm1-origin"><span class="toc-section-number">8</span> lm1: origin</a></li>
+<li><a href="#lm2-all-in"><span class="toc-section-number">9</span> lm2: All in</a></li>
+<li><a href="#flights_train3-textvariablen-in-faktorvariablen-umwandeln"><span class="toc-section-number">10</span> flights_train3: Textvariablen in Faktorvariablen umwandeln</a>
+<ul>
+<li><a href="#flights_test3"><span class="toc-section-number">10.1</span> flights_test3</a></li>
+</ul></li>
+<li><a href="#flights_train4-faktorstufen-zusammenfassen"><span class="toc-section-number">11</span> flights_train4: Faktorstufen zusammenfassen</a>
+<ul>
+<li><a href="#flights_test4"><span class="toc-section-number">11.1</span> flights_test4</a></li>
+</ul></li>
+<li><a href="#lm3-alle-zusammengefassten-faktorvariablen"><span class="toc-section-number">12</span> lm3: Alle zusammengefassten Faktorvariablen</a></li>
+<li><a href="#lm4-alle-metrischen-variablen"><span class="toc-section-number">13</span> lm4: Alle metrischen Variablen</a></li>
+<li><a href="#lm5-alle-metrischen-und-alle-zusammengefassten-nominalen-variablen"><span class="toc-section-number">14</span> lm5: Alle metrischen und alle (zusammengefassten) nominalen Variablen</a></li>
+<li><a href="#wetter-daten-ergänzen"><span class="toc-section-number">15</span> Wetter-Daten ergänzen</a>
+<ul>
+<li><a href="#wetterdaten-laden"><span class="toc-section-number">15.1</span> Wetterdaten laden</a></li>
+<li><a href="#flights_train5-wetterdaten-mit-flugdaten-verheiraten"><span class="toc-section-number">15.2</span> flights_train5: Wetterdaten mit Flugdaten verheiraten</a></li>
+</ul></li>
+<li><a href="#flights_train6"><span class="toc-section-number">16</span> flights_train6</a></li>
+<li><a href="#lm6-plus-wetterdaten"><span class="toc-section-number">17</span> lm6: Plus Wetterdaten</a>
+<ul>
+<li><a href="#r2-im-testsample"><span class="toc-section-number">17.1</span> R2 im Testsample</a></li>
+</ul></li>
+<li><a href="#lm7-rohe-gewalt"><span class="toc-section-number">18</span> lm7: Rohe Gewalt</a>
+<ul>
+<li><a href="#zeitabschätzung"><span class="toc-section-number">18.1</span> Zeitabschätzung</a></li>
+<li><a href="#best-subsets-ergebnisse"><span class="toc-section-number">18.2</span> Best Subsets – Ergebnisse</a></li>
+<li><a href="#vorwärts-rückwärts-schrittweise-regression"><span class="toc-section-number">18.3</span> Vorwärts-/Rückwärts-Schrittweise Regression</a></li>
+</ul></li>
+<li><a href="#lm8-bestes-modell-aus-der-best-subset-analyse"><span class="toc-section-number">19</span> lm8: Bestes Modell aus der Best-Subset-Analyse</a>
+<ul>
+<li><a href="#r2-im-testdatensatz"><span class="toc-section-number">19.1</span> R2 im Testdatensatz</a></li>
+</ul></li>
+<li><a href="#prüfen-der-modellqualität"><span class="toc-section-number">20</span> Prüfen der Modellqualität</a></li>
+<li><a href="#einreichen"><span class="toc-section-number">21</span> Einreichen</a>
+<ul>
+<li><a href="#csv-datei-erstellen-zum-einreichen"><span class="toc-section-number">21.1</span> CSV-Datei erstellen zum Einreichen</a></li>
+</ul></li>
+<li><a href="#was-noch"><span class="toc-section-number">22</span> Was noch?</a></li>
+<li><a href="#tidymodels"><span class="toc-section-number">23</span> Tidymodels</a></li>
+<li><a href="#reproducibility"><span class="toc-section-number">24</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="hintergrund-und-forschungsfrage" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Hintergrund und Forschungsfrage</h1>
+<p>Wir untersuchen die Forschungsfrage <em>Was sind Prädiktoren von Flugverspätungen</em>. Dazu nutzen wir lineare Modelle als Modellierungsmethoden.</p>
+<p>Dieser Post knüpft an <a href="https://data-se.netlify.app/2021/03/08/eda-zu-flugversp%C3%A4tungen/">den Post zur explorativen Datenanalyse der Flugverspätungen</a> an (es gibt auch <a href="https://www.youtube.com/watch?v=t8i_qTonuLM">hier, Teil 1</a> und <a href="https://youtu.be/AeBqwr2U7MA">hier, Teil 2</a> ein Video zu diesem EDA-Post).</p>
+</div>
+<div id="pakete-laden" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Pakete laden</h1>
+<pre class="r"><code>library(&quot;tidymodels&quot;)  # Datenmodellierung
+library(&quot;tidyverse&quot;)  # data wrangling
+library(&quot;conflicted&quot;)  # Name clashes finden
+library(&quot;leaps&quot;)  # Rohe Gewalt
+library(&quot;skimr&quot;)  # deskriptive Statistiken komfortabel
+library(&quot;ggfortify&quot;)  # Modellannahmen grafisch prüfen
+library(&quot;tictoc&quot;)  # Rechenzeit messen</code></pre>
+</div>
+<div id="daten-laden" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Daten laden</h1>
+<pre class="r"><code>library(&quot;nycflights13&quot;)
+data(flights)</code></pre>
+</div>
+<div id="flights2-nicht-benötigte-variablen-entfernen-und-id-hinzufügen" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> flights2: Nicht benötigte Variablen entfernen und ID hinzufügen</h1>
+<pre class="r"><code>flights2 &lt;-
+  flights %&gt;% 
+  select(-c(year, arr_delay)) %&gt;% 
+  drop_na(dep_delay) %&gt;% 
+  mutate(id = row_number()) %&gt;% 
+  select(id, everything())  # id nach vorne ziehen</code></pre>
+</div>
+<div id="aufteilung-in-train--und-testsample" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Aufteilung in Train- und Testsample</h1>
+<p>Der Hintergrund zur Idee der Aufteilung in Train- und Test-Stichprobe kann z.b. <a href="https://www.tmwr.org/splitting.html">hier</a> oder <a href="https://www.springer.com/de/book/9783658215866">hier</a>, Kapitel 15, nachgelesen werden.</p>
+<pre class="r"><code>flights_split &lt;- initial_split(flights2, 
+                               strata = dep_delay,
+                               na.rm = TRUE)</code></pre>
+</div>
+<div id="flights_train2-flights_test2" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> flights_train2, flights_test2</h1>
+<pre class="r"><code>set.seed(42)  # Reproduzierbarkeit
+flights_train2 &lt;- training(flights_split)
+flights_test2 &lt;- testing(flights_split)</code></pre>
+<p>Die “wirkliche Welt” (was immer das ist) besorgt die Aufteilung von Train- und Test-Sampel für Sie automatisch. Sagen wir, Sie arbeiten für die Flughafen-Aufsicht von New York. Dann haben Sie einen Erfahrungsschatz an Flügen aus der Vergangenheit in Ihrer Datenbank (Train-Sample). Einige Tages kommt Ihr Chef zu Ihnen und sagt: “Rechnen Sie mir mal die zu erwartende Verspätung der Flüge <em>im nächsten Monat</em> aus!”. Da <em>heute</em> nicht klar ist, wie die Verspätung der Flüge <em>in der Zukunft</em> (nächsten Monat) sein wird, stellen die Flüge des nächsten Monats das Test-Sample dar.</p>
+<p>Übrigens: In der Prüfung besorgt das Aufteilen von Train- und Test-Sample netterweise Ihr Dozent…</p>
+</div>
+<div id="lm0-nullmodell" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> lm0: Nullmodell</h1>
+<p>Eigentlich nicht nötig, das Nullmodell, primär aus didaktischen Gründen berechnet, um zu zeigen, dass in diesem Fall <span class="math inline">\(R^2\)</span> wirklich gleich Null ist.</p>
+<pre class="r"><code>lm0 &lt;- lm(dep_delay ~ 1, data = flights_train2)
+glance(lm0)</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="9%" />
+<col width="12%" />
+<col width="8%" />
+<col width="9%" />
+<col width="7%" />
+<col width="2%" />
+<col width="8%" />
+<col width="7%" />
+<col width="7%" />
+<col width="9%" />
+<col width="11%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">r.squared</th>
+<th align="right">adj.r.squared</th>
+<th align="right">sigma</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+<th align="right">df</th>
+<th align="right">logLik</th>
+<th align="right">AIC</th>
+<th align="right">BIC</th>
+<th align="right">deviance</th>
+<th align="right">df.residual</th>
+<th align="right">nobs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0</td>
+<td align="right">0</td>
+<td align="right">40.14855</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">NA</td>
+<td align="right">-1259418</td>
+<td align="right">2518840</td>
+<td align="right">2518861</td>
+<td align="right">397152640</td>
+<td align="right">246387</td>
+<td align="right">246388</td>
+</tr>
+</tbody>
+</table>
+<p>Mit <code>glance</code> bekommt man das <span class="math inline">\(R^2\)</span> (neben einem Haufen anderen Zeugs, was wir jetzt nicht brauchen). Man könnte z.B. auch <code>summary(lm1)</code> out <code>arm::display(lm1)</code>. Es gibt verschiedene Möglichkeiten.</p>
+</div>
+<div id="lm1-origin" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> lm1: origin</h1>
+<pre class="r"><code>lm1 &lt;- lm(dep_delay ~ origin, data = flights_train2)</code></pre>
+<pre class="r"><code>tidy(lm1)  # tidy zeit die (geschätzten) Regressionsgewichte (Betas)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">term</th>
+<th align="right">estimate</th>
+<th align="right">std.error</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">(Intercept)</td>
+<td align="right">15.132723</td>
+<td align="right">0.1350185</td>
+<td align="right">112.07890</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">originJFK</td>
+<td align="right">-3.084897</td>
+<td align="right">0.1944907</td>
+<td align="right">-15.86141</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">originLGA</td>
+<td align="right">-4.846399</td>
+<td align="right">0.1983607</td>
+<td align="right">-24.43226</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<p>Man vergleiche:</p>
+<pre class="r"><code>flights_train2 %&gt;% 
+  drop_na(dep_delay) %&gt;% 
+  group_by(origin) %&gt;% 
+  summarise(delay_avg = mean(dep_delay)) %&gt;% 
+  mutate(delay_delta = delay_avg - delay_avg[1])</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">origin</th>
+<th align="right">delay_avg</th>
+<th align="right">delay_delta</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">EWR</td>
+<td align="right">15.13272</td>
+<td align="right">0.000000</td>
+</tr>
+<tr class="even">
+<td align="left">JFK</td>
+<td align="right">12.04783</td>
+<td align="right">-3.084897</td>
+</tr>
+<tr class="odd">
+<td align="left">LGA</td>
+<td align="right">10.28632</td>
+<td align="right">-4.846399</td>
+</tr>
+</tbody>
+</table>
+<p>Der Mittelwertsvergleich und das Modell <code>lm1</code> sind faktisch informationsgleich.</p>
+<p>Aber leider ist es um die Modellgüte nicht so gut bestellt (eigentlich eher “grottenschlecht”):</p>
+<pre class="r"><code>glance(lm1)[1]</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">r.squared</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0.0025138</td>
+</tr>
+</tbody>
+</table>
+<p>Die eckigen Klammern erlauben in R ein <em>bestimmtes</em> Element von mehreren auszuwählen. <code>glance(lm1)</code> liefert eine Tabelle mit mehreren Spalten (und einer Zeile) zurück; mit <code>glance(lm1)[1]</code> bekommt man das erste Element dieser Tabelle, das heißt die erste Spalte. Natürlich können Sie einfach <code>glance(lm1)</code> eingeben, wenn Sie das lieber mögen.</p>
+</div>
+<div id="lm2-all-in" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> lm2: All in</h1>
+<pre class="r"><code># NICHT AUSFÜHREN
+#lm2_all_in &lt;- lm(dep_delay ~ ., data = flights_train2)</code></pre>
+<p>Modell <code>lm2_all_in</code> ist hier <em>keine</em> gute Idee, da nominale Prädiktoren in Indikatorvariablen umgewandelt werden. Hat ein nominaler Prädiktor sehr viele Stufen (wie hier), so resultieren sehr viele Indikatorvariablen, was dem Regressionsmodell Probleme bereiten kann (bei mir hängt sich R auf). Besser ist es in dem Fall, die Anzahl der Stufen von nominalskalierten Variablen vorab zu begrenzen.</p>
+<p>Bei kleineren Datensätzen (weniger Variablen, weniger Fälle) lohnt es sich aber oft, das “All-in-Modell” auszuprobieren, als Referenzmaßstab für andere Modelle.</p>
+</div>
+<div id="flights_train3-textvariablen-in-faktorvariablen-umwandeln" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> flights_train3: Textvariablen in Faktorvariablen umwandeln</h1>
+<p>Begrenzen wir zunächst die Anzahl der Stufen der nominal skalierten Variablen:</p>
+<pre class="r"><code>flights_train3 &lt;- 
+  flights_train2 %&gt;% 
+  mutate(across(
+    .cols = where(is.character),
+    .fns = as.factor))</code></pre>
+<p>Wem das <code>across</code> zu kompliziert ist, der kann auch alternativ (synonym) jede Variable einzeln in einen Faktor umwandeln und zwar so:</p>
+<pre class="r"><code>flights_train3a &lt;- 
+  flights_train2 %&gt;% 
+  mutate(tailnum = as.factor(tailnum),
+         origin = as.factor(origin),
+         dest = as.factor(dest),
+         carrier = as.factor(carrier)
+      )</code></pre>
+<p>Das ist einfacher als mit <code>across</code>, aber dafür mehr Tipperei.</p>
+<p>Wir müssen die Transformationen, die wir auf das Train-Sample anwenden, auch auf das Test-Sample anwenden:</p>
+<div id="flights_test3" class="section level2" number="10.1">
+<h2><span class="header-section-number">10.1</span> flights_test3</h2>
+<pre class="r"><code>flights_test3 &lt;- 
+  flights_test2 %&gt;% 
+  mutate(across(
+    .cols = where(is.character),
+    .fns = as.factor))</code></pre>
+<pre class="r"><code>flights_train3 %&gt;% 
+  select(where(is.factor)) %&gt;% 
+  names()
+#&gt; [1] &quot;carrier&quot; &quot;tailnum&quot; &quot;origin&quot;  &quot;dest&quot;</code></pre>
+<p>Z.B. <code>dest</code> hat viele Stufen:</p>
+<pre class="r"><code>flights_train3 %&gt;% 
+  count(dest, sort = TRUE)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">dest</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ORD</td>
+<td align="right">12592</td>
+</tr>
+<tr class="even">
+<td align="left">ATL</td>
+<td align="right">12573</td>
+</tr>
+<tr class="odd">
+<td align="left">LAX</td>
+<td align="right">12120</td>
+</tr>
+<tr class="even">
+<td align="left">BOS</td>
+<td align="right">11311</td>
+</tr>
+<tr class="odd">
+<td align="left">MCO</td>
+<td align="right">10445</td>
+</tr>
+<tr class="even">
+<td align="left">CLT</td>
+<td align="right">10275</td>
+</tr>
+<tr class="odd">
+<td align="left">SFO</td>
+<td align="right">9890</td>
+</tr>
+<tr class="even">
+<td align="left">FLL</td>
+<td align="right">8866</td>
+</tr>
+<tr class="odd">
+<td align="left">MIA</td>
+<td align="right">8715</td>
+</tr>
+<tr class="even">
+<td align="left">DCA</td>
+<td align="right">6872</td>
+</tr>
+<tr class="odd">
+<td align="left">DTW</td>
+<td align="right">6813</td>
+</tr>
+<tr class="even">
+<td align="left">DFW</td>
+<td align="right">6325</td>
+</tr>
+<tr class="odd">
+<td align="left">RDU</td>
+<td align="right">5846</td>
+</tr>
+<tr class="even">
+<td align="left">TPA</td>
+<td align="right">5544</td>
+</tr>
+<tr class="odd">
+<td align="left">IAH</td>
+<td align="right">5370</td>
+</tr>
+<tr class="even">
+<td align="left">DEN</td>
+<td align="right">5300</td>
+</tr>
+<tr class="odd">
+<td align="left">MSP</td>
+<td align="right">5287</td>
+</tr>
+<tr class="even">
+<td align="left">PBI</td>
+<td align="right">4849</td>
+</tr>
+<tr class="odd">
+<td align="left">BNA</td>
+<td align="right">4582</td>
+</tr>
+<tr class="even">
+<td align="left">LAS</td>
+<td align="right">4504</td>
+</tr>
+<tr class="odd">
+<td align="left">SJU</td>
+<td align="right">4356</td>
+</tr>
+<tr class="even">
+<td align="left">IAD</td>
+<td align="right">4029</td>
+</tr>
+<tr class="odd">
+<td align="left">PHX</td>
+<td align="right">3469</td>
+</tr>
+<tr class="even">
+<td align="left">BUF</td>
+<td align="right">3422</td>
+</tr>
+<tr class="odd">
+<td align="left">CLE</td>
+<td align="right">3312</td>
+</tr>
+<tr class="even">
+<td align="left">STL</td>
+<td align="right">3135</td>
+</tr>
+<tr class="odd">
+<td align="left">MDW</td>
+<td align="right">3057</td>
+</tr>
+<tr class="even">
+<td align="left">SEA</td>
+<td align="right">2884</td>
+</tr>
+<tr class="odd">
+<td align="left">CVG</td>
+<td align="right">2792</td>
+</tr>
+<tr class="even">
+<td align="left">MSY</td>
+<td align="right">2762</td>
+</tr>
+<tr class="odd">
+<td align="left">RSW</td>
+<td align="right">2648</td>
+</tr>
+<tr class="even">
+<td align="left">CMH</td>
+<td align="right">2563</td>
+</tr>
+<tr class="odd">
+<td align="left">PIT</td>
+<td align="right">2103</td>
+</tr>
+<tr class="even">
+<td align="left">CHS</td>
+<td align="right">2075</td>
+</tr>
+<tr class="odd">
+<td align="left">SAN</td>
+<td align="right">2069</td>
+</tr>
+<tr class="even">
+<td align="left">MKE</td>
+<td align="right">2039</td>
+</tr>
+<tr class="odd">
+<td align="left">JAX</td>
+<td align="right">1952</td>
+</tr>
+<tr class="even">
+<td align="left">SLC</td>
+<td align="right">1886</td>
+</tr>
+<tr class="odd">
+<td align="left">BTV</td>
+<td align="right">1873</td>
+</tr>
+<tr class="even">
+<td align="left">AUS</td>
+<td align="right">1790</td>
+</tr>
+<tr class="odd">
+<td align="left">RIC</td>
+<td align="right">1760</td>
+</tr>
+<tr class="even">
+<td align="left">ROC</td>
+<td align="right">1760</td>
+</tr>
+<tr class="odd">
+<td align="left">PWM</td>
+<td align="right">1733</td>
+</tr>
+<tr class="even">
+<td align="left">HOU</td>
+<td align="right">1542</td>
+</tr>
+<tr class="odd">
+<td align="left">IND</td>
+<td align="right">1493</td>
+</tr>
+<tr class="even">
+<td align="left">MCI</td>
+<td align="right">1420</td>
+</tr>
+<tr class="odd">
+<td align="left">BWI</td>
+<td align="right">1288</td>
+</tr>
+<tr class="even">
+<td align="left">MEM</td>
+<td align="right">1275</td>
+</tr>
+<tr class="odd">
+<td align="left">SYR</td>
+<td align="right">1259</td>
+</tr>
+<tr class="even">
+<td align="left">PHL</td>
+<td align="right">1180</td>
+</tr>
+<tr class="odd">
+<td align="left">GSO</td>
+<td align="right">1133</td>
+</tr>
+<tr class="even">
+<td align="left">ORF</td>
+<td align="right">1091</td>
+</tr>
+<tr class="odd">
+<td align="left">DAY</td>
+<td align="right">1026</td>
+</tr>
+<tr class="even">
+<td align="left">PDX</td>
+<td align="right">999</td>
+</tr>
+<tr class="odd">
+<td align="left">SRQ</td>
+<td align="right">887</td>
+</tr>
+<tr class="even">
+<td align="left">SDF</td>
+<td align="right">843</td>
+</tr>
+<tr class="odd">
+<td align="left">XNA</td>
+<td align="right">765</td>
+</tr>
+<tr class="even">
+<td align="left">MHT</td>
+<td align="right">689</td>
+</tr>
+<tr class="odd">
+<td align="left">BQN</td>
+<td align="right">653</td>
+</tr>
+<tr class="even">
+<td align="left">CAK</td>
+<td align="right">639</td>
+</tr>
+<tr class="odd">
+<td align="left">SNA</td>
+<td align="right">621</td>
+</tr>
+<tr class="even">
+<td align="left">GSP</td>
+<td align="right">618</td>
+</tr>
+<tr class="odd">
+<td align="left">OMA</td>
+<td align="right">587</td>
+</tr>
+<tr class="even">
+<td align="left">SAV</td>
+<td align="right">565</td>
+</tr>
+<tr class="odd">
+<td align="left">GRR</td>
+<td align="right">549</td>
+</tr>
+<tr class="even">
+<td align="left">HNL</td>
+<td align="right">549</td>
+</tr>
+<tr class="odd">
+<td align="left">SAT</td>
+<td align="right">504</td>
+</tr>
+<tr class="even">
+<td align="left">LGB</td>
+<td align="right">499</td>
+</tr>
+<tr class="odd">
+<td align="left">TYS</td>
+<td align="right">436</td>
+</tr>
+<tr class="even">
+<td align="left">MSN</td>
+<td align="right">400</td>
+</tr>
+<tr class="odd">
+<td align="left">DSM</td>
+<td align="right">398</td>
+</tr>
+<tr class="even">
+<td align="left">STT</td>
+<td align="right">391</td>
+</tr>
+<tr class="odd">
+<td align="left">BDL</td>
+<td align="right">317</td>
+</tr>
+<tr class="even">
+<td align="left">ALB</td>
+<td align="right">315</td>
+</tr>
+<tr class="odd">
+<td align="left">BGR</td>
+<td align="right">293</td>
+</tr>
+<tr class="even">
+<td align="left">PSE</td>
+<td align="right">288</td>
+</tr>
+<tr class="odd">
+<td align="left">BUR</td>
+<td align="right">278</td>
+</tr>
+<tr class="even">
+<td align="left">OKC</td>
+<td align="right">262</td>
+</tr>
+<tr class="odd">
+<td align="left">PVD</td>
+<td align="right">260</td>
+</tr>
+<tr class="even">
+<td align="left">SJC</td>
+<td align="right">256</td>
+</tr>
+<tr class="odd">
+<td align="left">TUL</td>
+<td align="right">232</td>
+</tr>
+<tr class="even">
+<td align="left">SMF</td>
+<td align="right">224</td>
+</tr>
+<tr class="odd">
+<td align="left">OAK</td>
+<td align="right">223</td>
+</tr>
+<tr class="even">
+<td align="left">BHM</td>
+<td align="right">205</td>
+</tr>
+<tr class="odd">
+<td align="left">ACK</td>
+<td align="right">199</td>
+</tr>
+<tr class="even">
+<td align="left">ABQ</td>
+<td align="right">196</td>
+</tr>
+<tr class="odd">
+<td align="left">AVL</td>
+<td align="right">175</td>
+</tr>
+<tr class="even">
+<td align="left">EGE</td>
+<td align="right">165</td>
+</tr>
+<tr class="odd">
+<td align="left">MVY</td>
+<td align="right">152</td>
+</tr>
+<tr class="even">
+<td align="left">CRW</td>
+<td align="right">105</td>
+</tr>
+<tr class="odd">
+<td align="left">ILM</td>
+<td align="right">78</td>
+</tr>
+<tr class="even">
+<td align="left">CAE</td>
+<td align="right">74</td>
+</tr>
+<tr class="odd">
+<td align="left">TVC</td>
+<td align="right">72</td>
+</tr>
+<tr class="even">
+<td align="left">MYR</td>
+<td align="right">42</td>
+</tr>
+<tr class="odd">
+<td align="left">CHO</td>
+<td align="right">31</td>
+</tr>
+<tr class="even">
+<td align="left">BZN</td>
+<td align="right">23</td>
+</tr>
+<tr class="odd">
+<td align="left">EYW</td>
+<td align="right">14</td>
+</tr>
+<tr class="even">
+<td align="left">PSP</td>
+<td align="right">14</td>
+</tr>
+<tr class="odd">
+<td align="left">JAC</td>
+<td align="right">12</td>
+</tr>
+<tr class="even">
+<td align="left">HDN</td>
+<td align="right">11</td>
+</tr>
+<tr class="odd">
+<td align="left">MTJ</td>
+<td align="right">9</td>
+</tr>
+<tr class="even">
+<td align="left">SBN</td>
+<td align="right">9</td>
+</tr>
+<tr class="odd">
+<td align="left">ANC</td>
+<td align="right">6</td>
+</tr>
+<tr class="even">
+<td align="left">LEX</td>
+<td align="right">1</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>flights_train3 %&gt;%
+  count(dest) %&gt;%
+  ggplot() +
+  aes(y = fct_reorder(dest, n), x = n) +
+  geom_col()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-17-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="flights_train4-faktorstufen-zusammenfassen" class="section level1" number="11">
+<h1><span class="header-section-number">11</span> flights_train4: Faktorstufen zusammenfassen</h1>
+<pre class="r"><code>flights_train4 &lt;-
+  flights_train3 %&gt;% 
+  mutate(across(
+    .cols = where(is.factor),
+    .fns = fct_lump_prop, prop = .025
+  ))</code></pre>
+<pre class="r"><code>flights_train4a &lt;-
+  flights_train3 %&gt;% 
+  mutate(dest  = fct_lump_prop(f = dest, 
+                               prop = .025))</code></pre>
+<pre class="r"><code>flights_train4a %&gt;% 
+  count(dest)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">dest</th>
+<th align="right">n</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">ATL</td>
+<td align="right">12573</td>
+</tr>
+<tr class="even">
+<td align="left">BOS</td>
+<td align="right">11311</td>
+</tr>
+<tr class="odd">
+<td align="left">CLT</td>
+<td align="right">10275</td>
+</tr>
+<tr class="even">
+<td align="left">DCA</td>
+<td align="right">6872</td>
+</tr>
+<tr class="odd">
+<td align="left">DFW</td>
+<td align="right">6325</td>
+</tr>
+<tr class="even">
+<td align="left">DTW</td>
+<td align="right">6813</td>
+</tr>
+<tr class="odd">
+<td align="left">FLL</td>
+<td align="right">8866</td>
+</tr>
+<tr class="even">
+<td align="left">LAX</td>
+<td align="right">12120</td>
+</tr>
+<tr class="odd">
+<td align="left">MCO</td>
+<td align="right">10445</td>
+</tr>
+<tr class="even">
+<td align="left">MIA</td>
+<td align="right">8715</td>
+</tr>
+<tr class="odd">
+<td align="left">ORD</td>
+<td align="right">12592</td>
+</tr>
+<tr class="even">
+<td align="left">SFO</td>
+<td align="right">9890</td>
+</tr>
+<tr class="odd">
+<td align="left">Other</td>
+<td align="right">129591</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>flights_train4 %&gt;%
+  count(dest) %&gt;%
+  ggplot() +
+  aes(y = fct_reorder(dest, n), x = n) +
+  geom_col()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-21-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Check:</p>
+<pre class="r"><code>flights_train4 %&gt;% 
+  select(where(is.factor)) %&gt;% 
+  summarise(nlevels_dest = nlevels(dest))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">nlevels_dest</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">13</td>
+</tr>
+</tbody>
+</table>
+<p>Oder alle Faktorvariablen auf einmal:</p>
+<pre class="r"><code>flights_train4 %&gt;% 
+  select(where(is.factor)) %&gt;% 
+  map_dfc(nlevels)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">carrier</th>
+<th align="right">tailnum</th>
+<th align="right">origin</th>
+<th align="right">dest</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">10</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">13</td>
+</tr>
+</tbody>
+</table>
+<p>Das sind jetzt Zahlen von Faktorstufen, mit denen wir arbeiten können.</p>
+<div id="flights_test4" class="section level2" number="11.1">
+<h2><span class="header-section-number">11.1</span> flights_test4</h2>
+<p>Vergessen wir nicht, die Transformation auch auf das Test-Sample anzuwenden:</p>
+<pre class="r"><code>flights_test4 &lt;-
+  flights_test3 %&gt;% 
+  mutate(across(
+    .cols = where(is.factor),
+    .fns = fct_lump_prop, prop = .025
+  ))</code></pre>
+</div>
+</div>
+<div id="lm3-alle-zusammengefassten-faktorvariablen" class="section level1" number="12">
+<h1><span class="header-section-number">12</span> lm3: Alle zusammengefassten Faktorvariablen</h1>
+<pre class="r"><code>lm3 &lt;- flights_train4 %&gt;% 
+  select(dep_delay, where(is.factor), -tailnum, -id) %&gt;% 
+  lm(dep_delay ~ ., data = .)</code></pre>
+<p>Der Punkt bei <code>dep_delay ~ .</code> meint “nimm alle Variablen im Datensatz (bis auf <code>dep_delay</code>)”.</p>
+<p>Der Punkt bei <code>data = .</code> nimm die Tabelle, wie sie dir im letzten Schritt mundgerecht aufbereitet wurde. Man hätte hier auch <code>flights_train4</code> schreiben können, aber dann hätten wir noch <code>tailnum</code> etc. entfernen müssen.</p>
+<p>Eigentlich brauchen wir nicht so viele Dezimalstellen …</p>
+<pre class="r"><code>options(digits = 2)</code></pre>
+<p><code>glance</code> zeigt das R-Quadrat (und einiges mehr, was hier jetzt nicht brauchen).</p>
+<pre class="r"><code>glance(lm3)  # R^2</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="9%" />
+<col width="12%" />
+<col width="8%" />
+<col width="9%" />
+<col width="7%" />
+<col width="2%" />
+<col width="8%" />
+<col width="7%" />
+<col width="7%" />
+<col width="9%" />
+<col width="11%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">r.squared</th>
+<th align="right">adj.r.squared</th>
+<th align="right">sigma</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+<th align="right">df</th>
+<th align="right">logLik</th>
+<th align="right">AIC</th>
+<th align="right">BIC</th>
+<th align="right">deviance</th>
+<th align="right">df.residual</th>
+<th align="right">nobs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0.0120133</td>
+<td align="right">0.0119211</td>
+<td align="right">39.90852</td>
+<td align="right">130.2453</td>
+<td align="right">0</td>
+<td align="right">23</td>
+<td align="right">-1257929</td>
+<td align="right">2515908</td>
+<td align="right">2516168</td>
+<td align="right">392381512</td>
+<td align="right">246364</td>
+<td align="right">246388</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>tidy(lm3)  # Modellkoeffizienten, also die Beta-Gewichte (&quot;estimate&quot;)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">term</th>
+<th align="right">estimate</th>
+<th align="right">std.error</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">(Intercept)</td>
+<td align="right">18.6110801</td>
+<td align="right">0.5632182</td>
+<td align="right">33.044171</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="even">
+<td align="left">carrierAA</td>
+<td align="right">-7.7840954</td>
+<td align="right">0.4917308</td>
+<td align="right">-15.829994</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="odd">
+<td align="left">carrierB6</td>
+<td align="right">-3.5670525</td>
+<td align="right">0.4116207</td>
+<td align="right">-8.665873</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="even">
+<td align="left">carrierDL</td>
+<td align="right">-7.0495136</td>
+<td align="right">0.4322994</td>
+<td align="right">-16.307018</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="odd">
+<td align="left">carrierEV</td>
+<td align="right">2.9860188</td>
+<td align="right">0.4598576</td>
+<td align="right">6.493356</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="even">
+<td align="left">carrierMQ</td>
+<td align="right">-5.9204247</td>
+<td align="right">0.4724111</td>
+<td align="right">-12.532356</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="odd">
+<td align="left">carrierUA</td>
+<td align="right">-4.9383977</td>
+<td align="right">0.4607246</td>
+<td align="right">-10.718762</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="even">
+<td align="left">carrierUS</td>
+<td align="right">-12.4725380</td>
+<td align="right">0.5694244</td>
+<td align="right">-21.903765</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="odd">
+<td align="left">carrierWN</td>
+<td align="right">1.4853670</td>
+<td align="right">0.5831405</td>
+<td align="right">2.547185</td>
+<td align="right">0.0108602</td>
+</tr>
+<tr class="even">
+<td align="left">carrierOther</td>
+<td align="right">-1.6794545</td>
+<td align="right">0.6073453</td>
+<td align="right">-2.765238</td>
+<td align="right">0.0056885</td>
+</tr>
+<tr class="odd">
+<td align="left">originJFK</td>
+<td align="right">-0.3188348</td>
+<td align="right">0.2827839</td>
+<td align="right">-1.127486</td>
+<td align="right">0.2595383</td>
+</tr>
+<tr class="even">
+<td align="left">originLGA</td>
+<td align="right">-1.6386743</td>
+<td align="right">0.2444494</td>
+<td align="right">-6.703531</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="odd">
+<td align="left">destBOS</td>
+<td align="right">-2.5196502</td>
+<td align="right">0.5619247</td>
+<td align="right">-4.483964</td>
+<td align="right">0.0000073</td>
+</tr>
+<tr class="even">
+<td align="left">destCLT</td>
+<td align="right">-0.6733737</td>
+<td align="right">0.6234772</td>
+<td align="right">-1.080029</td>
+<td align="right">0.2801302</td>
+</tr>
+<tr class="odd">
+<td align="left">destDCA</td>
+<td align="right">-0.6758758</td>
+<td align="right">0.6672185</td>
+<td align="right">-1.012975</td>
+<td align="right">0.3110730</td>
+</tr>
+<tr class="even">
+<td align="left">destDFW</td>
+<td align="right">-1.8925319</td>
+<td align="right">0.6953841</td>
+<td align="right">-2.721563</td>
+<td align="right">0.0064978</td>
+</tr>
+<tr class="odd">
+<td align="left">destDTW</td>
+<td align="right">-2.2827442</td>
+<td align="right">0.6088426</td>
+<td align="right">-3.749317</td>
+<td align="right">0.0001774</td>
+</tr>
+<tr class="even">
+<td align="left">destFLL</td>
+<td align="right">-0.7902433</td>
+<td align="right">0.5797189</td>
+<td align="right">-1.363149</td>
+<td align="right">0.1728368</td>
+</tr>
+<tr class="odd">
+<td align="left">destLAX</td>
+<td align="right">-3.7037920</td>
+<td align="right">0.5541243</td>
+<td align="right">-6.684046</td>
+<td align="right">0.0000000</td>
+</tr>
+<tr class="even">
+<td align="left">destMCO</td>
+<td align="right">-1.5642509</td>
+<td align="right">0.5531661</td>
+<td align="right">-2.827814</td>
+<td align="right">0.0046871</td>
+</tr>
+<tr class="odd">
+<td align="left">destMIA</td>
+<td align="right">-1.2900042</td>
+<td align="right">0.6062971</td>
+<td align="right">-2.127677</td>
+<td align="right">0.0333649</td>
+</tr>
+<tr class="even">
+<td align="left">destORD</td>
+<td align="right">1.5705786</td>
+<td align="right">0.5500706</td>
+<td align="right">2.855231</td>
+<td align="right">0.0043009</td>
+</tr>
+<tr class="odd">
+<td align="left">destSFO</td>
+<td align="right">-0.7571220</td>
+<td align="right">0.5814538</td>
+<td align="right">-1.302119</td>
+<td align="right">0.1928770</td>
+</tr>
+<tr class="even">
+<td align="left">destOther</td>
+<td align="right">-1.6264665</td>
+<td align="right">0.4091865</td>
+<td align="right">-3.974878</td>
+<td align="right">0.0000704</td>
+</tr>
+</tbody>
+</table>
+<p>Ein mageres R-Quadrat.</p>
+</div>
+<div id="lm4-alle-metrischen-variablen" class="section level1" number="13">
+<h1><span class="header-section-number">13</span> lm4: Alle metrischen Variablen</h1>
+<p>Was sind noch mal unsere metrischen Variablen:</p>
+<pre class="r"><code>flights_train4 %&gt;% 
+  select(where(is.numeric)) %&gt;% 
+  names()
+#&gt;  [1] &quot;id&quot;             &quot;month&quot;          &quot;day&quot;            &quot;dep_time&quot;      
+#&gt;  [5] &quot;sched_dep_time&quot; &quot;dep_delay&quot;      &quot;arr_time&quot;       &quot;sched_arr_time&quot;
+#&gt;  [9] &quot;flight&quot;         &quot;air_time&quot;       &quot;distance&quot;       &quot;hour&quot;          
+#&gt; [13] &quot;minute&quot;</code></pre>
+<p>Ok, jetzt eine Regression mit diesen Variablen (ober ohne die ID-Variable):</p>
+<pre class="r"><code>lm4 &lt;- 
+  flights_train4 %&gt;% 
+  select(dep_delay, where(is.numeric), -id) %&gt;% 
+  lm(dep_delay ~ ., data = .)</code></pre>
+<pre class="r"><code>glance(lm4)</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="9%" />
+<col width="12%" />
+<col width="8%" />
+<col width="9%" />
+<col width="7%" />
+<col width="2%" />
+<col width="8%" />
+<col width="7%" />
+<col width="7%" />
+<col width="9%" />
+<col width="11%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">r.squared</th>
+<th align="right">adj.r.squared</th>
+<th align="right">sigma</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+<th align="right">df</th>
+<th align="right">logLik</th>
+<th align="right">AIC</th>
+<th align="right">BIC</th>
+<th align="right">deviance</th>
+<th align="right">df.residual</th>
+<th align="right">nobs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0.1381879</td>
+<td align="right">0.1381528</td>
+<td align="right">37.14452</td>
+<td align="right">3936.327</td>
+<td align="right">0</td>
+<td align="right">10</td>
+<td align="right">-1235786</td>
+<td align="right">2471597</td>
+<td align="right">2471722</td>
+<td align="right">338706325</td>
+<td align="right">245490</td>
+<td align="right">245501</td>
+</tr>
+</tbody>
+</table>
+<p>Tja, das <span class="math inline">\(R^2\)</span> hat einen nicht gerade um …</p>
+</div>
+<div id="lm5-alle-metrischen-und-alle-zusammengefassten-nominalen-variablen" class="section level1" number="14">
+<h1><span class="header-section-number">14</span> lm5: Alle metrischen und alle (zusammengefassten) nominalen Variablen</h1>
+<p>Welche Variablen sind jetzt alle an Bord?</p>
+<pre class="r"><code>flights_train4 %&gt;% 
+  names()
+#&gt;  [1] &quot;id&quot;             &quot;month&quot;          &quot;day&quot;            &quot;dep_time&quot;      
+#&gt;  [5] &quot;sched_dep_time&quot; &quot;dep_delay&quot;      &quot;arr_time&quot;       &quot;sched_arr_time&quot;
+#&gt;  [9] &quot;carrier&quot;        &quot;flight&quot;         &quot;tailnum&quot;        &quot;origin&quot;        
+#&gt; [13] &quot;dest&quot;           &quot;air_time&quot;       &quot;distance&quot;       &quot;hour&quot;          
+#&gt; [17] &quot;minute&quot;         &quot;time_hour&quot;</code></pre>
+<p><code>time_hour</code> nehmen wir noch einmal raus, da es zum einen redundant ist zu <code>hour</code> etc. und zum anderen noch zusätzlicher Aufbereitung bedarf.</p>
+<pre class="r"><code>flights_train4 %&gt;% 
+  select(minute) %&gt;% 
+  skim()</code></pre>
+<table>
+<caption><span id="tab:unnamed-chunk-31">Table 14.1: </span>Data summary</caption>
+<tbody>
+<tr class="odd">
+<td align="left">Name</td>
+<td align="left">Piped data</td>
+</tr>
+<tr class="even">
+<td align="left">Number of rows</td>
+<td align="left">246388</td>
+</tr>
+<tr class="odd">
+<td align="left">Number of columns</td>
+<td align="left">1</td>
+</tr>
+<tr class="even">
+<td align="left">_______________________</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Column type frequency:</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">1</td>
+</tr>
+<tr class="odd">
+<td align="left">________________________</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Group variables</td>
+<td align="left">None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: numeric</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">p0</th>
+<th align="right">p25</th>
+<th align="right">p50</th>
+<th align="right">p75</th>
+<th align="right">p100</th>
+<th align="left">hist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">minute</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">26.25</td>
+<td align="right">19.31</td>
+<td align="right">0</td>
+<td align="right">8</td>
+<td align="right">29</td>
+<td align="right">44</td>
+<td align="right">59</td>
+<td align="left">▇▃▆▃▅</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>lm5 &lt;- 
+  flights_train4 %&gt;% 
+  select(-time_hour, -tailnum, -id, -minute) %&gt;%   # &quot;minute&quot; machte Probleme, besser rausnehmen
+  lm(dep_delay ~ ., data = .)</code></pre>
+<pre class="r"><code>glance(lm5)</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="9%" />
+<col width="12%" />
+<col width="8%" />
+<col width="9%" />
+<col width="7%" />
+<col width="2%" />
+<col width="8%" />
+<col width="7%" />
+<col width="7%" />
+<col width="9%" />
+<col width="11%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">r.squared</th>
+<th align="right">adj.r.squared</th>
+<th align="right">sigma</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+<th align="right">df</th>
+<th align="right">logLik</th>
+<th align="right">AIC</th>
+<th align="right">BIC</th>
+<th align="right">deviance</th>
+<th align="right">df.residual</th>
+<th align="right">nobs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0.1447169</td>
+<td align="right">0.1446019</td>
+<td align="right">37.00528</td>
+<td align="right">1258.602</td>
+<td align="right">0</td>
+<td align="right">33</td>
+<td align="right">-1234853</td>
+<td align="right">2469776</td>
+<td align="right">2470140</td>
+<td align="right">336140327</td>
+<td align="right">245467</td>
+<td align="right">245501</td>
+</tr>
+</tbody>
+</table>
+<p>Der Vorhersage-Gott ist nicht mit uns. Vielleicht sollten wir zu einem ehrlichen Metier als Schuhverkäufer umsatteln …</p>
+</div>
+<div id="wetter-daten-ergänzen" class="section level1" number="15">
+<h1><span class="header-section-number">15</span> Wetter-Daten ergänzen</h1>
+<div id="wetterdaten-laden" class="section level2" number="15.1">
+<h2><span class="header-section-number">15.1</span> Wetterdaten laden</h2>
+<pre class="r"><code>data(&quot;weather&quot;)</code></pre>
+<pre class="r"><code>glimpse(weather)
+#&gt; Rows: 26,115
+#&gt; Columns: 15
+#&gt; $ origin     &lt;chr&gt; &quot;EWR&quot;, &quot;EWR&quot;, &quot;EWR&quot;, &quot;EWR&quot;, &quot;EWR&quot;, &quot;EWR&quot;, &quot;EWR&quot;, &quot;EWR&quot;, &quot;EW…
+#&gt; $ year       &lt;int&gt; 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013, 2013,…
+#&gt; $ month      &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
+#&gt; $ day        &lt;int&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…
+#&gt; $ hour       &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, …
+#&gt; $ temp       &lt;dbl&gt; 39.02, 39.02, 39.02, 39.92, 39.02, 37.94, 39.02, 39.92, 39.…
+#&gt; $ dewp       &lt;dbl&gt; 26.06, 26.96, 28.04, 28.04, 28.04, 28.04, 28.04, 28.04, 28.…
+#&gt; $ humid      &lt;dbl&gt; 59.37, 61.63, 64.43, 62.21, 64.43, 67.21, 64.43, 62.21, 62.…
+#&gt; $ wind_dir   &lt;dbl&gt; 270, 250, 240, 250, 260, 240, 240, 250, 260, 260, 260, 330,…
+#&gt; $ wind_speed &lt;dbl&gt; 10.35702, 8.05546, 11.50780, 12.65858, 12.65858, 11.50780, …
+#&gt; $ wind_gust  &lt;dbl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, 20.…
+#&gt; $ precip     &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+#&gt; $ pressure   &lt;dbl&gt; 1012.0, 1012.3, 1012.5, 1012.2, 1011.9, 1012.4, 1012.2, 101…
+#&gt; $ visib      &lt;dbl&gt; 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10,…
+#&gt; $ time_hour  &lt;dttm&gt; 2013-01-01 01:00:00, 2013-01-01 02:00:00, 2013-01-01 03:00…</code></pre>
+<pre class="r"><code>skim(weather)</code></pre>
+<table>
+<caption><span id="tab:unnamed-chunk-36">Table 15.1: </span>Data summary</caption>
+<tbody>
+<tr class="odd">
+<td align="left">Name</td>
+<td align="left">weather</td>
+</tr>
+<tr class="even">
+<td align="left">Number of rows</td>
+<td align="left">26115</td>
+</tr>
+<tr class="odd">
+<td align="left">Number of columns</td>
+<td align="left">15</td>
+</tr>
+<tr class="even">
+<td align="left">_______________________</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Column type frequency:</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">character</td>
+<td align="left">1</td>
+</tr>
+<tr class="odd">
+<td align="left">numeric</td>
+<td align="left">13</td>
+</tr>
+<tr class="even">
+<td align="left">POSIXct</td>
+<td align="left">1</td>
+</tr>
+<tr class="odd">
+<td align="left">________________________</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Group variables</td>
+<td align="left">None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: character</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">min</th>
+<th align="right">max</th>
+<th align="right">empty</th>
+<th align="right">n_unique</th>
+<th align="right">whitespace</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">origin</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">3</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: numeric</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">p0</th>
+<th align="right">p25</th>
+<th align="right">p50</th>
+<th align="right">p75</th>
+<th align="right">p100</th>
+<th align="left">hist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">year</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">2013.00</td>
+<td align="right">0.00</td>
+<td align="right">2013.00</td>
+<td align="right">2013.00</td>
+<td align="right">2013.00</td>
+<td align="right">2013.00</td>
+<td align="right">2013.00</td>
+<td align="left">▁▁▇▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">month</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">6.50</td>
+<td align="right">3.44</td>
+<td align="right">1.00</td>
+<td align="right">4.00</td>
+<td align="right">7.00</td>
+<td align="right">9.00</td>
+<td align="right">12.00</td>
+<td align="left">▇▆▆▆▇</td>
+</tr>
+<tr class="odd">
+<td align="left">day</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">15.68</td>
+<td align="right">8.76</td>
+<td align="right">1.00</td>
+<td align="right">8.00</td>
+<td align="right">16.00</td>
+<td align="right">23.00</td>
+<td align="right">31.00</td>
+<td align="left">▇▇▇▇▆</td>
+</tr>
+<tr class="even">
+<td align="left">hour</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">11.49</td>
+<td align="right">6.91</td>
+<td align="right">0.00</td>
+<td align="right">6.00</td>
+<td align="right">11.00</td>
+<td align="right">17.00</td>
+<td align="right">23.00</td>
+<td align="left">▇▇▆▇▇</td>
+</tr>
+<tr class="odd">
+<td align="left">temp</td>
+<td align="right">1</td>
+<td align="right">1.00</td>
+<td align="right">55.26</td>
+<td align="right">17.79</td>
+<td align="right">10.94</td>
+<td align="right">39.92</td>
+<td align="right">55.40</td>
+<td align="right">69.98</td>
+<td align="right">100.04</td>
+<td align="left">▂▇▇▇▁</td>
+</tr>
+<tr class="even">
+<td align="left">dewp</td>
+<td align="right">1</td>
+<td align="right">1.00</td>
+<td align="right">41.44</td>
+<td align="right">19.39</td>
+<td align="right">-9.94</td>
+<td align="right">26.06</td>
+<td align="right">42.08</td>
+<td align="right">57.92</td>
+<td align="right">78.08</td>
+<td align="left">▁▆▇▇▆</td>
+</tr>
+<tr class="odd">
+<td align="left">humid</td>
+<td align="right">1</td>
+<td align="right">1.00</td>
+<td align="right">62.53</td>
+<td align="right">19.40</td>
+<td align="right">12.74</td>
+<td align="right">47.05</td>
+<td align="right">61.79</td>
+<td align="right">78.79</td>
+<td align="right">100.00</td>
+<td align="left">▁▆▇▇▆</td>
+</tr>
+<tr class="even">
+<td align="left">wind_dir</td>
+<td align="right">460</td>
+<td align="right">0.98</td>
+<td align="right">199.76</td>
+<td align="right">107.31</td>
+<td align="right">0.00</td>
+<td align="right">120.00</td>
+<td align="right">220.00</td>
+<td align="right">290.00</td>
+<td align="right">360.00</td>
+<td align="left">▆▂▆▇▇</td>
+</tr>
+<tr class="odd">
+<td align="left">wind_speed</td>
+<td align="right">4</td>
+<td align="right">1.00</td>
+<td align="right">10.52</td>
+<td align="right">8.54</td>
+<td align="right">0.00</td>
+<td align="right">6.90</td>
+<td align="right">10.36</td>
+<td align="right">13.81</td>
+<td align="right">1048.36</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">wind_gust</td>
+<td align="right">20778</td>
+<td align="right">0.20</td>
+<td align="right">25.49</td>
+<td align="right">5.95</td>
+<td align="right">16.11</td>
+<td align="right">20.71</td>
+<td align="right">24.17</td>
+<td align="right">28.77</td>
+<td align="right">66.75</td>
+<td align="left">▇▅▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">precip</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">0.00</td>
+<td align="right">0.03</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.21</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">pressure</td>
+<td align="right">2729</td>
+<td align="right">0.90</td>
+<td align="right">1017.90</td>
+<td align="right">7.42</td>
+<td align="right">983.80</td>
+<td align="right">1012.90</td>
+<td align="right">1017.60</td>
+<td align="right">1023.00</td>
+<td align="right">1042.10</td>
+<td align="left">▁▁▇▆▁</td>
+</tr>
+<tr class="odd">
+<td align="left">visib</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">9.26</td>
+<td align="right">2.06</td>
+<td align="right">0.00</td>
+<td align="right">10.00</td>
+<td align="right">10.00</td>
+<td align="right">10.00</td>
+<td align="right">10.00</td>
+<td align="left">▁▁▁▁▇</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: POSIXct</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="left">min</th>
+<th align="left">max</th>
+<th align="left">median</th>
+<th align="right">n_unique</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">time_hour</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="left">2013-01-01 01:00:00</td>
+<td align="left">2013-12-30 18:00:00</td>
+<td align="left">2013-07-01 14:00:00</td>
+<td align="right">8714</td>
+</tr>
+</tbody>
+</table>
+<p><code>wind_gust</code> hat zu viele fehlende Werte; diese Variable dürfen wir nicht verwenden.</p>
+</div>
+<div id="flights_train5-wetterdaten-mit-flugdaten-verheiraten" class="section level2" number="15.2">
+<h2><span class="header-section-number">15.2</span> flights_train5: Wetterdaten mit Flugdaten verheiraten</h2>
+<pre class="r"><code>flights_train5 &lt;- 
+  flights_train4 %&gt;% 
+  left_join(weather) %&gt;%  # &quot;verheiraten&quot;
+  select(-wind_gust)</code></pre>
+<p>Möchte man explizit angeben, anhand welcher Variablen man zusammenfügen möchte, so kann man dies mit dem Parameter <code>by</code> tun:</p>
+<pre><code>by = c(&quot;origin&quot;, &quot;month&quot; , &quot;day&quot;, &quot;hour&quot;)</code></pre>
+<p>Unter der Hilfeseite von <code>left_join</code> findet man mehr Infos: <code>?left_join</code>.</p>
+<pre class="r"><code>flights_test5 &lt;- 
+  flights_test4 %&gt;% 
+  left_join(weather) %&gt;% 
+  select(-wind_gust)</code></pre>
+</div>
+</div>
+<div id="flights_train6" class="section level1" number="16">
+<h1><span class="header-section-number">16</span> flights_train6</h1>
+<p>Bei der Gelegenheit löschen wir noch zwei Variablen, die wir bisher nicht benötigt haben.</p>
+<pre class="r"><code>flights_train6 &lt;- 
+  flights_train5 %&gt;% 
+  select(-time_hour, -tailnum, -minute)</code></pre>
+<pre class="r"><code>flights_test6 &lt;- 
+  flights_test5 %&gt;% 
+  select(-time_hour, -tailnum, -minute)</code></pre>
+</div>
+<div id="lm6-plus-wetterdaten" class="section level1" number="17">
+<h1><span class="header-section-number">17</span> lm6: Plus Wetterdaten</h1>
+<pre class="r"><code>lm6 &lt;- update(lm5, . ~ . + humid + wind_speed + precip + pressure + visib,
+              data = flights_train6)</code></pre>
+<pre class="r"><code>glance(lm6)</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="9%" />
+<col width="12%" />
+<col width="8%" />
+<col width="9%" />
+<col width="7%" />
+<col width="2%" />
+<col width="8%" />
+<col width="7%" />
+<col width="7%" />
+<col width="9%" />
+<col width="11%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">r.squared</th>
+<th align="right">adj.r.squared</th>
+<th align="right">sigma</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+<th align="right">df</th>
+<th align="right">logLik</th>
+<th align="right">AIC</th>
+<th align="right">BIC</th>
+<th align="right">deviance</th>
+<th align="right">df.residual</th>
+<th align="right">nobs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0.1620316</td>
+<td align="right">0.1618858</td>
+<td align="right">34.26088</td>
+<td align="right">1110.918</td>
+<td align="right">0</td>
+<td align="right">38</td>
+<td align="right">-1081500</td>
+<td align="right">2163080</td>
+<td align="right">2163492</td>
+<td align="right">256265775</td>
+<td align="right">218320</td>
+<td align="right">218359</td>
+</tr>
+</tbody>
+</table>
+<p>Ah. Etwas besser. Wettervorhersage macht’s möglich.</p>
+<p><span class="math inline">\(R^2\)</span> kann man auch so berechnen:</p>
+<pre class="r"><code>flights_train6_pred &lt;- 
+  flights_train6 %&gt;% 
+  mutate(lm6_pred = predict(lm6, newdata = .))
+
+flights_train6_pred %&gt;% 
+  rsq(truth = dep_delay,
+      estimate = lm6_pred)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">.metric</th>
+<th align="left">.estimator</th>
+<th align="right">.estimate</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">rsq</td>
+<td align="left">standard</td>
+<td align="right">0.1620316</td>
+</tr>
+</tbody>
+</table>
+<div id="r2-im-testsample" class="section level2" number="17.1">
+<h2><span class="header-section-number">17.1</span> R2 im Testsample</h2>
+<p>Berechnen wir jetzt die Modellgüte im Testsample.</p>
+<p>Fügen wir die Vorhersagewerte dem Testsample dazu:</p>
+<pre class="r"><code>flights_test6_pred &lt;-
+  flights_test6 %&gt;% 
+  mutate(pred_lm6 = predict(lm6, newdata = flights_test6))</code></pre>
+<pre class="r"><code>flights_test6_pred %&gt;% 
+  select(id, dep_delay, pred_lm6) %&gt;%
+  head()</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">id</th>
+<th align="right">dep_delay</th>
+<th align="right">pred_lm6</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">2</td>
+<td align="right">0.3247318</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="right">4</td>
+<td align="right">-1.4677357</td>
+</tr>
+<tr class="odd">
+<td align="right">11</td>
+<td align="right">-2</td>
+<td align="right">-0.1192573</td>
+</tr>
+<tr class="even">
+<td align="right">19</td>
+<td align="right">0</td>
+<td align="right">1.6611710</td>
+</tr>
+<tr class="odd">
+<td align="right">30</td>
+<td align="right">0</td>
+<td align="right">4.2525720</td>
+</tr>
+<tr class="even">
+<td align="right">49</td>
+<td align="right">-2</td>
+<td align="right">2.6402972</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>test_rsq &lt;- 
+ tibble(model = &quot;lm6&quot;) %&gt;% 
+  mutate(rsq = rsq_vec(truth = flights_test6_pred$dep_delay,
+                       estimate = flights_test6_pred$pred_lm6))
+
+test_rsq</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">model</th>
+<th align="right">rsq</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">lm6</td>
+<td align="right">0.1534751</td>
+</tr>
+</tbody>
+</table>
+<p>Prüfen wir noch, wie viele fehlende Werte es bei den vorhergesagten Werten gibt:</p>
+<pre class="r"><code>flights_test6_pred %&gt;% 
+  summarise(pred_isna = sum(is.na(pred_lm6)),
+            pred_isna_prop = pred_isna / nrow(flights_test6_pred))  # prop wie &quot;proportion&quot; (Anteil)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">pred_isna</th>
+<th align="right">pred_isna_prop</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">9352</td>
+<td align="right">0.1138641</td>
+</tr>
+</tbody>
+</table>
+<p>Da fehlende Werte u.U. mit dem Mittelwert (der übrigen prognostizierten Werte) aufgefüllt werden, erledigen wir das gleich, um den Effekt auf <span class="math inline">\(R^2\)</span> abzuschätzen:</p>
+<pre class="r"><code>flights_test6_pred2 &lt;- 
+flights_test6_pred %&gt;% 
+  mutate(pred_lm6 = replace_na(pred_lm6, mean(pred_lm6, na.rm = TRUE)))</code></pre>
+<pre class="r"><code>flights_test6_pred2 %&gt;% 
+  summarise(sum(is.na(pred_lm6)))</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">sum(is.na(pred_lm6))</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<p>Keine fehlenden Werte mehr.</p>
+<p>Wie sieht <span class="math inline">\(R^2\)</span> jetzt aus?</p>
+<pre class="r"><code>flights_test6_pred2 %&gt;% 
+  rsq(truth = dep_delay, estimate = pred_lm6)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">.metric</th>
+<th align="left">.estimator</th>
+<th align="right">.estimate</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">rsq</td>
+<td align="left">standard</td>
+<td align="right">0.1204287</td>
+</tr>
+</tbody>
+</table>
+<p>Etwas schlechter; das liegt an den vielen Werten, die jetzt eine schlechte Vorhersage machen, da sie mit dem Mittelwert aufgefüllt werden mussten.</p>
+</div>
+</div>
+<div id="lm7-rohe-gewalt" class="section level1" number="18">
+<h1><span class="header-section-number">18</span> lm7: Rohe Gewalt</h1>
+<p>Wir könnten einfach, etwas stumpfsinnig, <em>alle</em> Regressionsmodelle ausprobieren: Jeder der <span class="math inline">\(p\)</span> Prädiktoren könnte also entweder enthalten sein oder nicht. Natürlich würde das schnell zu Arbeit auswachsen, wenn man so viele Regressionsmodelle – <span class="math inline">\(2^p\)</span> – durchprobieren würde. Außerdem wird die Gefahr von Zufallsbefunden schnell riesig. Aber gut, man kann stumpfsinnige Arbeiten ja gut an den Computer delegieren. Und zum Schutz vor Überanpassung gibt es ein paar Behelfe. Probieren wir es aus; dazu nutzen wir das Paket <code>{leaps}</code>.</p>
+<pre class="r"><code>tic()  # Zeitmessung t1
+lm7 &lt;- regsubsets(dep_delay ~ ., 
+                  nvmax = 15,  # max. Anzahl von Prädiktoren
+                  data = flights_train6)
+#&gt; Reordering variables and trying again:
+toc()  # Zeitmessung t2
+#&gt; 41.618 sec elapsed</code></pre>
+<p>Der Punkt in der Regressionsformel</p>
+<p><code>dep_delay ~ .,</code></p>
+<p>bedeutet “nimm alle übrigen Variablen” (also alle außer der abhängigen Variablen).</p>
+<p>Je größer <code>nvmax</code>, desto länger die Rechenzeit, z.B. <span class="math inline">\(2^{15}=32768\)</span> Modelle, die berechnet werden müssen.</p>
+<p><em>Achtung:</em> <a href="https://statmodeling.stat.columbia.edu/2014/06/02/hate-stepwise-regression/">Einige Statistiker</a> (siehe auch <a href="https://towardsdatascience.com/stopping-stepwise-why-stepwise-selection-is-bad-and-what-you-should-use-instead-90818b3f52df">hier</a>) stehen solchen automatischen Verfahren kritisch gegenüber, sind also der Meinung, das sei Quatsch (andere wiederum nutzen diese Verfahren).</p>
+<div id="zeitabschätzung" class="section level2" number="18.1">
+<h2><span class="header-section-number">18.1</span> Zeitabschätzung</h2>
+<p>Ein kurze Sch+ätzung der Rechenzeit in Abhängikeit der Anzahl der Prädiktoren bei der Best-Subset-Methode; gehen wir von 1, 2 oder 5 Sekunden Rechenzeit (<code>exec_time</code>) pro Modell aus.</p>
+<pre class="r"><code>n_preds &lt;- 1:20
+exec_time &lt;- c(1, 2, 5)</code></pre>
+<pre class="r"><code>exec_time_df &lt;-
+  expand_grid(n_preds = n_preds,
+              exec_time_per_run = exec_time)</code></pre>
+<pre class="r"><code>exec_time_df &lt;- 
+  exec_time_df %&gt;% 
+  mutate(exec_time = 2^n_preds * exec_time_per_run) %&gt;% 
+  group_by(exec_time_per_run) %&gt;% 
+  mutate(exec_time_cum = cumsum(exec_time) / 60 / 60 / 60)</code></pre>
+<pre class="r"><code>head(exec_time_df)
+#&gt; # A tibble: 6 x 4
+#&gt; # Groups:   exec_time_per_run [3]
+#&gt;   n_preds exec_time_per_run exec_time exec_time_cum
+#&gt;     &lt;int&gt;             &lt;dbl&gt;     &lt;dbl&gt;         &lt;dbl&gt;
+#&gt; 1       1                 1         2    0.00000926
+#&gt; 2       1                 2         4    0.0000185 
+#&gt; 3       1                 5        10    0.0000463 
+#&gt; 4       2                 1         4    0.0000278 
+#&gt; 5       2                 2         8    0.0000556 
+#&gt; 6       2                 5        20    0.000139</code></pre>
+<pre class="r"><code>exec_time_df %&gt;% 
+  ggplot() +
+  aes(x = n_preds, 
+      y = exec_time_cum, 
+      color = factor(exec_time_per_run)) +
+  geom_line() +
+  labs(y = &quot;GesamtRechenzeit in Stunden&quot;,
+       x = &quot;Anzahl von Prädiktoren pro Modell&quot;,
+       col = &quot;Rechenzeit pro Modell&quot;,
+       title = &quot;Schätzung der Rechenzeit für eine Best-Subset-Regression&quot;) +
+  theme(legend.position = &quot;bottom&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-56-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Puh, das kann dauern, wenn man viele Prädiktoren hat.</p>
+</div>
+<div id="best-subsets-ergebnisse" class="section level2" number="18.2">
+<h2><span class="header-section-number">18.2</span> Best Subsets – Ergebnisse</h2>
+<p>Schauen wir uns die Ergebnisse an:</p>
+<pre class="r"><code>lm7_summary &lt;- summary(lm7)
+
+tibble(adjr2 = lm7_summary$adjr2,
+       r2 = lm7_summary$rsq,
+       bic = lm7_summary$bic,
+       id = 1:length(lm7_summary$adjr2)) %&gt;% 
+  pivot_longer(-id) %&gt;% 
+  ggplot() +
+  aes(x = id, y = value, color = name) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~ name, scales = &quot;free&quot;, nrow = 3) +
+  scale_x_continuous(breaks = 1:16)
+</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-57-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Das Modell mit 7 Prädiktoren könnte sinnvoll sein. Mit <code>coef(modellname, k)</code> können wir uns ausgeben lassen, welche Prädiktoren in dem Modell mit <code>k</code> Prädiktoren beinhaltet waren.</p>
+<pre class="r"><code>coef(lm7, 7) %&gt;% names()
+#&gt; [1] &quot;(Intercept)&quot;    &quot;dep_time&quot;       &quot;sched_dep_time&quot; &quot;arr_time&quot;      
+#&gt; [5] &quot;sched_arr_time&quot; &quot;carrierEV&quot;      &quot;wind_dir&quot;       &quot;visib&quot;</code></pre>
+</div>
+<div id="vorwärts-rückwärts-schrittweise-regression" class="section level2" number="18.3">
+<h2><span class="header-section-number">18.3</span> Vorwärts-/Rückwärts-Schrittweise Regression</h2>
+<p>Man kann <code>regsubsets</code> übrigens auch für eine schrittweise Regression benutzen:</p>
+<pre class="r"><code>lm7a &lt;- regsubsets(dep_delay ~ ., 
+           method = &quot;forward&quot;,  # Vorwärts-Schrittweise-Regression
+           nvmax = 15,  # max. Anzahl von Prädiktoren
+           data = flights_train6)
+#&gt; Reordering variables and trying again:</code></pre>
+<p>Das Modell mit <em>einem</em> Prädiktor findet das folgende Modell als das beste:</p>
+<pre class="r"><code>coef(lm7a, 1)
+#&gt;  (Intercept)     dep_time 
+#&gt; -15.31028825   0.01944815</code></pre>
+<p>Und entsprechend:</p>
+<pre class="r"><code>coef(lm7a, 2)
+#&gt; (Intercept)    dep_time    arr_time 
+#&gt; -6.10576901  0.03280038 -0.01805599</code></pre>
+<p>Und so weiter für 3, 4 oder mehr Prädiktoren.</p>
+<p>Im Unterschied zur Best-Subsets-Methode verbleiben Prädiktoren, wenn einmal aufgenommen ins Modell, immer im Modell.</p>
+<p>Die Schrittweise-Regression ist weniger rechenintiv, da weniger Modelle berechnet werden müssen und kann daher u.U. das beste Modell übersehen.</p>
+<p>Beide Verfahren der automatisierten Prädiktorenauswahl – Best-Subset und Schrittweise-Regression – werden von einigen Statistikern <a href="https://statmodeling.stat.columbia.edu/2014/06/02/hate-stepwise-regression/">kritisch gesehen</a>.</p>
+</div>
+</div>
+<div id="lm8-bestes-modell-aus-der-best-subset-analyse" class="section level1" number="19">
+<h1><span class="header-section-number">19</span> lm8: Bestes Modell aus der Best-Subset-Analyse</h1>
+<pre class="r"><code>flights_train7 &lt;-
+  flights_train6 %&gt;% 
+  mutate(carrierEV = fct_other(carrier, 
+                                  keep = &quot;EV&quot;)) </code></pre>
+<pre class="r"><code>flights_test7 &lt;-
+  flights_test6 %&gt;% 
+  mutate(carrierEV = fct_other(carrier, 
+                                  keep = &quot;EV&quot;)) </code></pre>
+<pre class="r"><code>lm8 &lt;- 
+  lm(dep_delay ~ dep_time + sched_dep_time + arr_time + carrierEV + wind_dir + sched_arr_time + visib,
+          data = flights_train7)
+
+glance(lm8)</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="9%" />
+<col width="12%" />
+<col width="8%" />
+<col width="9%" />
+<col width="7%" />
+<col width="2%" />
+<col width="8%" />
+<col width="7%" />
+<col width="7%" />
+<col width="9%" />
+<col width="11%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">r.squared</th>
+<th align="right">adj.r.squared</th>
+<th align="right">sigma</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+<th align="right">df</th>
+<th align="right">logLik</th>
+<th align="right">AIC</th>
+<th align="right">BIC</th>
+<th align="right">deviance</th>
+<th align="right">df.residual</th>
+<th align="right">nobs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0.1499841</td>
+<td align="right">0.1499592</td>
+<td align="right">36.90093</td>
+<td align="right">6018.739</td>
+<td align="right">0</td>
+<td align="right">7</td>
+<td align="right">-1200390</td>
+<td align="right">2400798</td>
+<td align="right">2400891</td>
+<td align="right">325132132</td>
+<td align="right">238773</td>
+<td align="right">238781</td>
+</tr>
+</tbody>
+</table>
+<p>Hm; nicht so gut.</p>
+<div id="r2-im-testdatensatz" class="section level2" number="19.1">
+<h2><span class="header-section-number">19.1</span> R2 im Testdatensatz</h2>
+<pre class="r"><code>flights_test7_pred &lt;-
+  flights_test7 %&gt;% 
+  mutate(pred_lm8 = predict(lm8, newdata = flights_test7)) %&gt;% 
+  select(id, dep_delay, pred_lm8)</code></pre>
+<pre class="r"><code>test_rsq &lt;- 
+  test_rsq %&gt;% 
+  bind_rows(tibble(
+    model = &quot;lm8&quot;,
+    rsq = rsq_vec(truth = flights_test7_pred$dep_delay,
+                  estimate = flights_test7_pred$pred_lm8)))
+
+test_rsq</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">model</th>
+<th align="right">rsq</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">lm6</td>
+<td align="right">0.1534751</td>
+</tr>
+<tr class="even">
+<td align="left">lm8</td>
+<td align="right">0.1396282</td>
+</tr>
+</tbody>
+</table>
+<p>Ein typischer Befund bei Regressionsanalysen (ohne Polynome): Im Testdatensatz ist <span class="math inline">\(R^2\)</span> etwas geringer als im Train-Datensatz. Bei Modellen mit Polynomen oder anderen flexiblen Modellen kann der Unterschied zwischen Train- und Test-Sample noch viel größer sein.</p>
+</div>
+</div>
+<div id="prüfen-der-modellqualität" class="section level1" number="20">
+<h1><span class="header-section-number">20</span> Prüfen der Modellqualität</h1>
+<pre class="r"><code>autoplot(lm6, which = 1)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-67-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Abweichungen von der Linearität finden sich besonders bei sehr kleinen und sehr großen Werten; das ist ein Hinweise, dass unser Modell nicht-lineare Zusammenhänge nicht erkannt. Das ist kein Wunder, schließlich besteht unser Modell nur aus linearen Termen.
+Interaktionen, Polynome oder logarithmische Transformationen könnten das Modell verbessern und eröffnen Raum für weitere Analysen.</p>
+</div>
+<div id="einreichen" class="section level1" number="21">
+<h1><span class="header-section-number">21</span> Einreichen</h1>
+<p>Das beste Modell im <em>Trainsample</em> reichen wir ein; in diesem Fall <code>lm6</code>. Wenn die Maßgabe ist, für <em>alle</em> Fälle des Datensatzes eine Vorhersage einzureichen, tun wir das natürlich:</p>
+<pre class="r"><code>flights6 &lt;- 
+flights_train6 %&gt;% 
+  bind_rows(flights_test6) </code></pre>
+<pre class="r"><code>flights6_pred &lt;- 
+  flights6 %&gt;% 
+  mutate(pred = predict(lm6, newdata = .)) %&gt;% 
+  select(id, pred)</code></pre>
+<pre class="r"><code>head(flights6_pred)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">id</th>
+<th align="right">pred</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">5</td>
+<td align="right">-0.1549456</td>
+</tr>
+<tr class="even">
+<td align="right">7</td>
+<td align="right">0.8112611</td>
+</tr>
+<tr class="odd">
+<td align="right">21</td>
+<td align="right">-1.7284946</td>
+</tr>
+<tr class="even">
+<td align="right">31</td>
+<td align="right">-4.1875960</td>
+</tr>
+<tr class="odd">
+<td align="right">34</td>
+<td align="right">6.2202257</td>
+</tr>
+<tr class="even">
+<td align="right">35</td>
+<td align="right">-1.1899645</td>
+</tr>
+</tbody>
+</table>
+<p>Wie viele vorhergesagte Werte haben wir, bzw. welchen Anteil?</p>
+<pre class="r"><code>flights6_pred %&gt;% 
+  drop_na() %&gt;% 
+  nrow() / nrow(flights6_pred)
+#&gt; [1] 0.8862143</code></pre>
+<div id="csv-datei-erstellen-zum-einreichen" class="section level2" number="21.1">
+<h2><span class="header-section-number">21.1</span> CSV-Datei erstellen zum Einreichen</h2>
+<pre class="r"><code>write_csv(flights6_pred, file = &quot;Sauer_Sebastian_0123456_Prognose.csv&quot;)</code></pre>
+</div>
+</div>
+<div id="was-noch" class="section level1" number="22">
+<h1><span class="header-section-number">22</span> Was noch?</h1>
+<p>Ein nächster Schritt könnte sein, sich folgende Punkte anzuschauen:</p>
+<ul>
+<li>Interaktionen</li>
+<li>Polynome</li>
+<li>Voraussetzungen</li>
+</ul>
+<p>Eine Faustregel zu Interaktionen lautet: Wenn zwei Variablen jeweils einen starken Haupteffekt haben, lohnt es sich u.U., den Interaktionseffekt anzuschauen (vgl. Gelman &amp; Hill, 2007, S. 69).</p>
+</div>
+<div id="tidymodels" class="section level1" number="23">
+<h1><span class="header-section-number">23</span> Tidymodels</h1>
+<p>Das ständige Updaten des Test-Datensatzes nervt; mit <code>tidymodels</code> wird es komfortabler und man hat Zugang zu leistungsfähigeren Prognosemodellen. <a href="https://www.tmwr.org/">Hier</a> findet sich ein Einstieg und hier eine <a href="https://www.tidymodels.org/start/models/">Fallstudie mit Tutorial</a>.</p>
+</div>
+<div id="reproducibility" class="section level1" number="24">
+<h1><span class="header-section-number">24</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.1.0 (2021-05-18)
+#&gt;  os       macOS Big Sur 10.16         
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2021-06-24                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package      * version    date       lib source                        
+#&gt;  assertthat     0.2.1      2019-03-21 [1] CRAN (R 4.1.0)                
+#&gt;  backports      1.2.1      2020-12-09 [1] CRAN (R 4.1.0)                
+#&gt;  base64enc      0.1-3      2015-07-28 [1] CRAN (R 4.1.0)                
+#&gt;  blogdown       1.3        2021-04-14 [2] CRAN (R 4.1.0)                
+#&gt;  bookdown       0.22       2021-04-22 [2] CRAN (R 4.1.0)                
+#&gt;  broom        * 0.7.6      2021-04-05 [1] CRAN (R 4.1.0)                
+#&gt;  bslib          0.2.5.1    2021-05-18 [1] CRAN (R 4.1.0)                
+#&gt;  cachem         1.0.5      2021-05-15 [2] CRAN (R 4.1.0)                
+#&gt;  callr          3.7.0      2021-04-20 [1] CRAN (R 4.1.0)                
+#&gt;  cellranger     1.1.0      2016-07-27 [1] CRAN (R 4.1.0)                
+#&gt;  class          7.3-19     2021-05-03 [2] CRAN (R 4.1.0)                
+#&gt;  cli            2.5.0      2021-04-26 [1] CRAN (R 4.1.0)                
+#&gt;  codetools      0.2-18     2020-11-04 [2] CRAN (R 4.1.0)                
+#&gt;  colorspace     2.0-1      2021-05-04 [1] CRAN (R 4.1.0)                
+#&gt;  conflicted   * 1.0.4      2019-06-21 [1] CRAN (R 4.1.0)                
+#&gt;  crayon         1.4.1      2021-02-08 [1] CRAN (R 4.1.0)                
+#&gt;  DBI            1.1.1      2021-01-15 [1] CRAN (R 4.1.0)                
+#&gt;  dbplyr         2.1.1      2021-04-06 [1] CRAN (R 4.1.0)                
+#&gt;  desc           1.3.0      2021-03-05 [2] CRAN (R 4.1.0)                
+#&gt;  devtools       2.4.1      2021-05-05 [2] CRAN (R 4.1.0)                
+#&gt;  dials        * 0.0.9      2020-09-16 [1] CRAN (R 4.1.0)                
+#&gt;  DiceDesign     1.9        2021-02-13 [1] CRAN (R 4.1.0)                
+#&gt;  digest         0.6.27     2020-10-24 [1] CRAN (R 4.1.0)                
+#&gt;  dplyr        * 1.0.6      2021-05-05 [1] CRAN (R 4.1.0)                
+#&gt;  ellipsis       0.3.2      2021-04-29 [1] CRAN (R 4.1.0)                
+#&gt;  evaluate       0.14       2019-05-28 [1] CRAN (R 4.1.0)                
+#&gt;  fansi          0.5.0      2021-05-25 [1] CRAN (R 4.1.0)                
+#&gt;  farver         2.1.0      2021-02-28 [1] CRAN (R 4.1.0)                
+#&gt;  fastmap        1.1.0      2021-01-25 [2] CRAN (R 4.1.0)                
+#&gt;  forcats      * 0.5.1      2021-01-27 [1] CRAN (R 4.1.0)                
+#&gt;  foreach        1.5.1      2020-10-15 [2] CRAN (R 4.1.0)                
+#&gt;  fs             1.5.0      2020-07-31 [1] CRAN (R 4.1.0)                
+#&gt;  furrr          0.2.2      2021-01-29 [1] CRAN (R 4.1.0)                
+#&gt;  future         1.21.0     2020-12-10 [1] CRAN (R 4.1.0)                
+#&gt;  generics       0.1.0      2020-10-31 [1] CRAN (R 4.1.0)                
+#&gt;  ggfortify    * 0.4.11     2020-10-02 [2] CRAN (R 4.1.0)                
+#&gt;  ggplot2      * 3.3.4      2021-06-16 [1] CRAN (R 4.1.0)                
+#&gt;  globals        0.14.0     2020-11-22 [1] CRAN (R 4.1.0)                
+#&gt;  glue           1.4.2      2020-08-27 [1] CRAN (R 4.1.0)                
+#&gt;  gower          0.2.2      2020-06-23 [1] CRAN (R 4.1.0)                
+#&gt;  GPfit          1.0-8      2019-02-08 [1] CRAN (R 4.1.0)                
+#&gt;  gridExtra      2.3        2017-09-09 [2] CRAN (R 4.1.0)                
+#&gt;  gtable         0.3.0      2019-03-25 [1] CRAN (R 4.1.0)                
+#&gt;  haven          2.4.1      2021-04-23 [1] CRAN (R 4.1.0)                
+#&gt;  highr          0.9        2021-04-16 [1] CRAN (R 4.1.0)                
+#&gt;  hms            1.1.0      2021-05-17 [1] CRAN (R 4.1.0)                
+#&gt;  htmltools      0.5.1.1    2021-01-22 [1] CRAN (R 4.1.0)                
+#&gt;  httr           1.4.2      2020-07-20 [1] CRAN (R 4.1.0)                
+#&gt;  infer        * 0.5.4      2021-01-13 [1] CRAN (R 4.1.0)                
+#&gt;  ipred          0.9-11     2021-03-12 [1] CRAN (R 4.1.0)                
+#&gt;  iterators      1.0.13     2020-10-15 [2] CRAN (R 4.1.0)                
+#&gt;  jquerylib      0.1.4      2021-04-26 [1] CRAN (R 4.1.0)                
+#&gt;  jsonlite       1.7.2      2020-12-09 [1] CRAN (R 4.1.0)                
+#&gt;  knitr          1.33       2021-04-24 [1] CRAN (R 4.1.0)                
+#&gt;  labeling       0.4.2      2020-10-20 [1] CRAN (R 4.1.0)                
+#&gt;  lattice        0.20-44    2021-05-02 [2] CRAN (R 4.1.0)                
+#&gt;  lava           1.6.9      2021-03-11 [1] CRAN (R 4.1.0)                
+#&gt;  leaps        * 3.1        2020-01-16 [1] CRAN (R 4.1.0)                
+#&gt;  lhs            1.1.1      2020-10-05 [1] CRAN (R 4.1.0)                
+#&gt;  lifecycle      1.0.0      2021-02-15 [1] CRAN (R 4.1.0)                
+#&gt;  listenv        0.8.0      2019-12-05 [1] CRAN (R 4.1.0)                
+#&gt;  lubridate      1.7.10     2021-02-26 [1] CRAN (R 4.1.0)                
+#&gt;  magrittr       2.0.1      2020-11-17 [1] CRAN (R 4.1.0)                
+#&gt;  MASS           7.3-54     2021-05-03 [2] CRAN (R 4.1.0)                
+#&gt;  Matrix         1.3-4      2021-06-01 [2] CRAN (R 4.1.0)                
+#&gt;  memoise        2.0.0      2021-01-26 [2] CRAN (R 4.1.0)                
+#&gt;  modeldata    * 0.1.0      2020-10-22 [1] CRAN (R 4.1.0)                
+#&gt;  modelr         0.1.8      2020-05-19 [1] CRAN (R 4.1.0)                
+#&gt;  munsell        0.5.0      2018-06-12 [1] CRAN (R 4.1.0)                
+#&gt;  nnet           7.3-16     2021-05-03 [2] CRAN (R 4.1.0)                
+#&gt;  nycflights13 * 1.0.2      2021-04-12 [1] CRAN (R 4.1.0)                
+#&gt;  parallelly     1.25.0     2021-04-30 [1] CRAN (R 4.1.0)                
+#&gt;  parsnip      * 0.1.6      2021-05-27 [1] CRAN (R 4.1.0)                
+#&gt;  pillar         1.6.1      2021-05-16 [1] CRAN (R 4.1.0)                
+#&gt;  pkgbuild       1.2.0      2020-12-15 [2] CRAN (R 4.1.0)                
+#&gt;  pkgconfig      2.0.3      2019-09-22 [1] CRAN (R 4.1.0)                
+#&gt;  pkgload        1.2.1      2021-04-06 [2] CRAN (R 4.1.0)                
+#&gt;  plyr           1.8.6      2020-03-03 [1] CRAN (R 4.1.0)                
+#&gt;  prettyunits    1.1.1      2020-01-24 [1] CRAN (R 4.1.0)                
+#&gt;  printr       * 0.1.1      2021-01-27 [1] CRAN (R 4.1.0)                
+#&gt;  pROC           1.17.0.1   2021-01-13 [1] CRAN (R 4.1.0)                
+#&gt;  processx       3.5.2      2021-04-30 [1] CRAN (R 4.1.0)                
+#&gt;  prodlim        2019.11.13 2019-11-17 [1] CRAN (R 4.1.0)                
+#&gt;  ps             1.6.0      2021-02-28 [1] CRAN (R 4.1.0)                
+#&gt;  purrr        * 0.3.4      2020-04-17 [1] CRAN (R 4.1.0)                
+#&gt;  R6             2.5.0      2020-10-28 [1] CRAN (R 4.1.0)                
+#&gt;  Rcpp           1.0.6      2021-01-15 [1] CRAN (R 4.1.0)                
+#&gt;  readr        * 1.4.0      2020-10-05 [1] CRAN (R 4.1.0)                
+#&gt;  readxl         1.3.1      2019-03-13 [1] CRAN (R 4.1.0)                
+#&gt;  recipes      * 0.1.16     2021-04-16 [1] CRAN (R 4.1.0)                
+#&gt;  remotes        2.4.0      2021-06-02 [2] CRAN (R 4.1.0)                
+#&gt;  repr           1.1.3      2021-01-21 [1] CRAN (R 4.1.0)                
+#&gt;  reprex         2.0.0      2021-04-02 [1] CRAN (R 4.1.0)                
+#&gt;  rlang          0.4.11     2021-04-30 [1] CRAN (R 4.1.0)                
+#&gt;  rmarkdown      2.8        2021-05-07 [1] CRAN (R 4.1.0)                
+#&gt;  rpart          4.1-15     2019-04-12 [2] CRAN (R 4.1.0)                
+#&gt;  rprojroot      2.0.2      2020-11-15 [2] CRAN (R 4.1.0)                
+#&gt;  rsample      * 0.1.0      2021-05-08 [1] CRAN (R 4.1.0)                
+#&gt;  rstudioapi     0.13       2020-11-12 [1] CRAN (R 4.1.0)                
+#&gt;  rvest          1.0.0      2021-03-09 [1] CRAN (R 4.1.0)                
+#&gt;  sass           0.4.0      2021-05-12 [1] CRAN (R 4.1.0)                
+#&gt;  scales       * 1.1.1      2020-05-11 [1] CRAN (R 4.1.0)                
+#&gt;  sessioninfo    1.1.1      2018-11-05 [2] CRAN (R 4.1.0)                
+#&gt;  skimr        * 2.1.3      2021-03-07 [1] CRAN (R 4.1.0)                
+#&gt;  stringi        1.6.2      2021-05-17 [1] CRAN (R 4.1.0)                
+#&gt;  stringr      * 1.4.0      2019-02-10 [1] CRAN (R 4.1.0)                
+#&gt;  survival       3.2-11     2021-04-26 [2] CRAN (R 4.1.0)                
+#&gt;  testthat       3.0.2      2021-02-14 [2] CRAN (R 4.1.0)                
+#&gt;  tibble       * 3.1.2      2021-05-16 [1] CRAN (R 4.1.0)                
+#&gt;  tidymodels   * 0.1.3      2021-04-19 [1] CRAN (R 4.1.0)                
+#&gt;  tidyr        * 1.1.3      2021-03-03 [1] CRAN (R 4.1.0)                
+#&gt;  tidyselect     1.1.1      2021-04-30 [1] CRAN (R 4.1.0)                
+#&gt;  tidyverse    * 1.3.1      2021-04-15 [1] CRAN (R 4.1.0)                
+#&gt;  timeDate       3043.102   2018-02-21 [1] CRAN (R 4.1.0)                
+#&gt;  tune         * 0.1.5      2021-04-23 [1] CRAN (R 4.1.0)                
+#&gt;  usethis        2.0.1      2021-02-10 [2] CRAN (R 4.1.0)                
+#&gt;  utf8           1.2.1      2021-03-12 [1] CRAN (R 4.1.0)                
+#&gt;  vctrs          0.3.8      2021-04-29 [1] CRAN (R 4.1.0)                
+#&gt;  withr          2.4.2      2021-04-18 [1] CRAN (R 4.1.0)                
+#&gt;  workflows    * 0.2.2      2021-03-10 [1] CRAN (R 4.1.0)                
+#&gt;  workflowsets * 0.0.2      2021-04-16 [1] CRAN (R 4.1.0)                
+#&gt;  xfun           0.23       2021-05-15 [1] CRAN (R 4.1.0)                
+#&gt;  xml2           1.3.2      2020-04-23 [1] CRAN (R 4.1.0)                
+#&gt;  yaml           2.2.1.99   2021-06-18 [1] Github (viking/r-yaml@4788abe)
+#&gt;  yardstick    * 0.0.8      2021-03-28 [1] CRAN (R 4.1.0)                
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Library/R/x86_64/4.1/library
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.1/Resources/library</code></pre>
+</div>

@@ -1,0 +1,1492 @@
+<script src="index_files/header-attrs-2.5/header-attrs.js"></script>
+<link href="index_files/anchor-sections-1.0/anchor-sections.css" rel="stylesheet" />
+<script src="index_files/anchor-sections-1.0/anchor-sections.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#motivation"><span class="toc-section-number">1</span> Motivation</a></li>
+<li><a href="#load-packages"><span class="toc-section-number">2</span> Load packages</a></li>
+<li><a href="#load-data"><span class="toc-section-number">3</span> Load data</a></li>
+<li><a href="#data-preprocessing"><span class="toc-section-number">4</span> Data preprocessing</a>
+<ul>
+<li><a href="#classification-models"><span class="toc-section-number">4.1</span> Classification models</a></li>
+<li><a href="#add-survived-to-test-set"><span class="toc-section-number">4.2</span> Add Survived to test set</a></li>
+<li><a href="#merge-train-and-test"><span class="toc-section-number">4.3</span> Merge train and test</a></li>
+<li><a href="#nas"><span class="toc-section-number">4.4</span> NAs</a></li>
+</ul></li>
+<li><a href="#define-recipe"><span class="toc-section-number">5</span> Define recipe</a></li>
+<li><a href="#prepare-prep-the-recipe"><span class="toc-section-number">6</span> Prepare (<code>prep()</code>) the recipe</a></li>
+<li><a href="#difference-between-a-recipe-and-a-prepped-recipe"><span class="toc-section-number">7</span> Difference between a recipe and a prepped recipe</a></li>
+<li><a href="#check-prepped-data-set"><span class="toc-section-number">8</span> Check prepped data set</a></li>
+<li><a href="#juice-the-train-data"><span class="toc-section-number">9</span> Juice the train data</a></li>
+<li><a href="#bake-recipe-to-train-data"><span class="toc-section-number">10</span> Bake recipe to train data</a></li>
+<li><a href="#bake-recipe-to-test-data"><span class="toc-section-number">11</span> Bake recipe to test data</a></li>
+<li><a href="#model-1-glm"><span class="toc-section-number">12</span> Model 1: glm</a>
+<ul>
+<li><a href="#define-model"><span class="toc-section-number">12.1</span> Define model</a></li>
+<li><a href="#define-modelling-workflow"><span class="toc-section-number">12.2</span> Define modelling workflow</a></li>
+<li><a href="#fit-model"><span class="toc-section-number">12.3</span> Fit model</a></li>
+<li><a href="#extract-fit"><span class="toc-section-number">12.4</span> Extract fit</a></li>
+<li><a href="#predict-test-data"><span class="toc-section-number">12.5</span> Predict test data</a></li>
+<li><a href="#save-predictions-to-disk"><span class="toc-section-number">12.6</span> Save predictions to disk</a></li>
+</ul></li>
+<li><a href="#model-2-random-forests-1-without-tuning-wo-cv"><span class="toc-section-number">13</span> Model 2: Random forests 1 (without tuning, w/o cv)</a>
+<ul>
+<li><a href="#define-model-1"><span class="toc-section-number">13.1</span> Define model</a></li>
+<li><a href="#define-workflow"><span class="toc-section-number">13.2</span> Define workflow</a></li>
+<li><a href="#fit-model-1"><span class="toc-section-number">13.3</span> Fit model</a></li>
+<li><a href="#predict-test-data-1"><span class="toc-section-number">13.4</span> Predict test data</a></li>
+<li><a href="#save-predictions-to-disk-1"><span class="toc-section-number">13.5</span> Save predictions to disk</a></li>
+</ul></li>
+<li><a href="#model-3-random-forests-2-with-tuning-and-with-cv"><span class="toc-section-number">14</span> Model 3: Random forests 2 (with tuning and with CV)</a>
+<ul>
+<li><a href="#detect-cores"><span class="toc-section-number">14.1</span> Detect cores</a></li>
+<li><a href="#define-model-2"><span class="toc-section-number">14.2</span> Define model</a></li>
+<li><a href="#define-cross-validation-scheme"><span class="toc-section-number">14.3</span> Define cross validation scheme</a></li>
+<li><a href="#define-workflow-1"><span class="toc-section-number">14.4</span> Define workflow</a></li>
+<li><a href="#define-and-run-tune-grid"><span class="toc-section-number">14.5</span> Define and run tune grid</a></li>
+<li><a href="#view-results"><span class="toc-section-number">14.6</span> View results</a></li>
+<li><a href="#get-best-model"><span class="toc-section-number">14.7</span> Get best model</a></li>
+<li><a href="#final-fit"><span class="toc-section-number">14.8</span> Final fit</a></li>
+<li><a href="#legacy-code-do-not-run"><span class="toc-section-number">14.9</span> Legacy code, do not run</a></li>
+<li><a href="#fit-final-workflow"><span class="toc-section-number">14.10</span> Fit final workflow</a></li>
+<li><a href="#predict-test-data-2"><span class="toc-section-number">14.11</span> Predict test data</a></li>
+<li><a href="#save-predictions-to-disk-2"><span class="toc-section-number">14.12</span> Save predictions to disk</a></li>
+</ul></li>
+<li><a href="#model-4-boosted-trees-with-tuning"><span class="toc-section-number">15</span> Model 4: Boosted trees (with tuning)</a>
+<ul>
+<li><a href="#define-model-3"><span class="toc-section-number">15.1</span> Define model</a></li>
+<li><a href="#define-workflow-2"><span class="toc-section-number">15.2</span> Define workflow</a></li>
+<li><a href="#define-analysis-and-validation-oob-set"><span class="toc-section-number">15.3</span> Define analysis and validation (oob) set</a></li>
+<li><a href="#define-tune-grid"><span class="toc-section-number">15.4</span> Define tune grid</a></li>
+<li><a href="#get-best-model-1"><span class="toc-section-number">15.5</span> Get best model</a></li>
+<li><a href="#final-fit-1"><span class="toc-section-number">15.6</span> Final fit</a></li>
+<li><a href="#legacy-code-do-not-run-1"><span class="toc-section-number">15.7</span> Legacy code, do not run</a></li>
+<li><a href="#fit-final-workflow-1"><span class="toc-section-number">15.8</span> Fit final workflow</a></li>
+<li><a href="#predict-test-data-3"><span class="toc-section-number">15.9</span> Predict test data</a></li>
+<li><a href="#save-predictions-to-disk-3"><span class="toc-section-number">15.10</span> Save predictions to disk</a></li>
+</ul></li>
+<li><a href="#conclusions"><span class="toc-section-number">16</span> Conclusions</a></li>
+<li><a href="#similar-work"><span class="toc-section-number">17</span> Similar work</a></li>
+<li><a href="#more-advanced-work"><span class="toc-section-number">18</span> More advanced work</a></li>
+<li><a href="#reproducibility"><span class="toc-section-number">19</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="motivation" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Motivation</h1>
+<p>Let us predict survival at the <a href="https://www.kaggle.com/c/titanic">Titanic disaster</a> using the Kaggle competition data, download from <a href="https://www.kaggle.com/c/titanic/data">here</a>.</p>
+<p>We will make use of the <a href="https://www.tidymodels.org/start/models/">tidymodels</a> approach.</p>
+</div>
+<div id="load-packages" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(tidymodels)  # modelling
+library(broom)  # tidy model output
+library(DescTools)  # Pseudo R^2
+library(skimr)  # overview on descriptives
+library(gt) # nice tables</code></pre>
+</div>
+<div id="load-data" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Load data</h1>
+<pre class="r"><code>traindata_url &lt;- &quot;https://raw.githubusercontent.com/sebastiansauer/Statistiklehre/main/data/titanic/train.csv&quot;
+testdata_url &lt;- &quot;https://raw.githubusercontent.com/sebastiansauer/Statistiklehre/main/data/titanic/test.csv&quot; </code></pre>
+<pre class="r"><code>train &lt;- read_csv(traindata_url)
+test &lt;- read_csv(testdata_url)</code></pre>
+<pre class="r"><code>glimpse(train)
+#&gt; Rows: 891
+#&gt; Columns: 12
+#&gt; $ PassengerId &lt;dbl&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17…
+#&gt; $ Survived    &lt;dbl&gt; 0, 1, 1, 1, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 1, 0, 1, 0, …
+#&gt; $ Pclass      &lt;dbl&gt; 3, 1, 3, 1, 3, 3, 1, 3, 3, 2, 3, 1, 3, 3, 3, 2, 3, 2, 3, …
+#&gt; $ Name        &lt;chr&gt; &quot;Braund, Mr. Owen Harris&quot;, &quot;Cumings, Mrs. John Bradley (F…
+#&gt; $ Sex         &lt;chr&gt; &quot;male&quot;, &quot;female&quot;, &quot;female&quot;, &quot;female&quot;, &quot;male&quot;, &quot;male&quot;, &quot;ma…
+#&gt; $ Age         &lt;dbl&gt; 22, 38, 26, 35, 35, NA, 54, 2, 27, 14, 4, 58, 20, 39, 14,…
+#&gt; $ SibSp       &lt;dbl&gt; 1, 1, 0, 1, 0, 0, 0, 3, 0, 1, 1, 0, 0, 1, 0, 0, 4, 0, 1, …
+#&gt; $ Parch       &lt;dbl&gt; 0, 0, 0, 0, 0, 0, 0, 1, 2, 0, 1, 0, 0, 5, 0, 0, 1, 0, 0, …
+#&gt; $ Ticket      &lt;chr&gt; &quot;A/5 21171&quot;, &quot;PC 17599&quot;, &quot;STON/O2. 3101282&quot;, &quot;113803&quot;, &quot;3…
+#&gt; $ Fare        &lt;dbl&gt; 7.2500, 71.2833, 7.9250, 53.1000, 8.0500, 8.4583, 51.8625…
+#&gt; $ Cabin       &lt;chr&gt; NA, &quot;C85&quot;, NA, &quot;C123&quot;, NA, NA, &quot;E46&quot;, NA, NA, NA, &quot;G6&quot;, &quot;…
+#&gt; $ Embarked    &lt;chr&gt; &quot;S&quot;, &quot;C&quot;, &quot;S&quot;, &quot;S&quot;, &quot;S&quot;, &quot;Q&quot;, &quot;S&quot;, &quot;S&quot;, &quot;S&quot;, &quot;C&quot;, &quot;S&quot;, &quot;S…</code></pre>
+<p>The train data set lacks the “output” column, <code>Survived</code>, which makes sense.</p>
+<pre class="r"><code>dim(train)
+#&gt; [1] 891  12
+dim(test)
+#&gt; [1] 418  11</code></pre>
+</div>
+<div id="data-preprocessing" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Data preprocessing</h1>
+<div id="classification-models" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> Classification models</h2>
+<p>We will transform outcome variable from numeric to factor, which is necessary for many classification models.</p>
+<pre class="r"><code>train %&gt;% 
+  summarise(Survived_n_dist = n_distinct(Survived))
+#&gt; # A tibble: 1 x 1
+#&gt;   Survived_n_dist
+#&gt;             &lt;int&gt;
+#&gt; 1               2</code></pre>
+<pre class="r"><code>head(train$Survived)
+#&gt; [1] 0 1 1 1 0 0</code></pre>
+<pre class="r"><code>train &lt;- train %&gt;% 
+  mutate(Survived = as.factor(Survived))</code></pre>
+<pre class="r"><code>head(train$Survived)
+#&gt; [1] 0 1 1 1 0 0
+#&gt; Levels: 0 1</code></pre>
+</div>
+<div id="add-survived-to-test-set" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> Add Survived to test set</h2>
+<pre class="r"><code>test &lt;- 
+  test %&gt;% 
+  mutate(Survived = NA)</code></pre>
+</div>
+<div id="merge-train-and-test" class="section level2" number="4.3">
+<h2><span class="header-section-number">4.3</span> Merge train and test</h2>
+<pre class="r"><code>data &lt;-
+  train %&gt;% 
+  bind_rows(test)</code></pre>
+<pre class="r"><code>split_titanic &lt;- initial_time_split(data = data, prop = 891/1309)
+train2 &lt;- training(split_titanic)
+test2 &lt;- testing(split_titanic)</code></pre>
+</div>
+<div id="nas" class="section level2" number="4.4">
+<h2><span class="header-section-number">4.4</span> NAs</h2>
+<pre class="r"><code>skim(train)</code></pre>
+<table>
+<caption><span id="tab:unnamed-chunk-12">Table 4.1: </span>Data summary</caption>
+<tbody>
+<tr class="odd">
+<td align="left">Name</td>
+<td align="left">train</td>
+</tr>
+<tr class="even">
+<td align="left">Number of rows</td>
+<td align="left">891</td>
+</tr>
+<tr class="odd">
+<td align="left">Number of columns</td>
+<td align="left">12</td>
+</tr>
+<tr class="even">
+<td align="left">_______________________</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Column type frequency:</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">character</td>
+<td align="left">5</td>
+</tr>
+<tr class="odd">
+<td align="left">factor</td>
+<td align="left">1</td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">6</td>
+</tr>
+<tr class="odd">
+<td align="left">________________________</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Group variables</td>
+<td align="left">None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: character</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">min</th>
+<th align="right">max</th>
+<th align="right">empty</th>
+<th align="right">n_unique</th>
+<th align="right">whitespace</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Name</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">12</td>
+<td align="right">82</td>
+<td align="right">0</td>
+<td align="right">891</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Sex</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">4</td>
+<td align="right">6</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Ticket</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">3</td>
+<td align="right">18</td>
+<td align="right">0</td>
+<td align="right">681</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">Cabin</td>
+<td align="right">687</td>
+<td align="right">0.23</td>
+<td align="right">1</td>
+<td align="right">15</td>
+<td align="right">0</td>
+<td align="right">147</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">Embarked</td>
+<td align="right">2</td>
+<td align="right">1.00</td>
+<td align="right">1</td>
+<td align="right">1</td>
+<td align="right">0</td>
+<td align="right">3</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: factor</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="left">ordered</th>
+<th align="right">n_unique</th>
+<th align="left">top_counts</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Survived</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="left">FALSE</td>
+<td align="right">2</td>
+<td align="left">0: 549, 1: 342</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: numeric</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">p0</th>
+<th align="right">p25</th>
+<th align="right">p50</th>
+<th align="right">p75</th>
+<th align="right">p100</th>
+<th align="left">hist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">PassengerId</td>
+<td align="right">0</td>
+<td align="right">1.0</td>
+<td align="right">446.00</td>
+<td align="right">257.35</td>
+<td align="right">1.00</td>
+<td align="right">223.50</td>
+<td align="right">446.00</td>
+<td align="right">668.5</td>
+<td align="right">891.00</td>
+<td align="left">▇▇▇▇▇</td>
+</tr>
+<tr class="even">
+<td align="left">Pclass</td>
+<td align="right">0</td>
+<td align="right">1.0</td>
+<td align="right">2.31</td>
+<td align="right">0.84</td>
+<td align="right">1.00</td>
+<td align="right">2.00</td>
+<td align="right">3.00</td>
+<td align="right">3.0</td>
+<td align="right">3.00</td>
+<td align="left">▃▁▃▁▇</td>
+</tr>
+<tr class="odd">
+<td align="left">Age</td>
+<td align="right">177</td>
+<td align="right">0.8</td>
+<td align="right">29.70</td>
+<td align="right">14.53</td>
+<td align="right">0.42</td>
+<td align="right">20.12</td>
+<td align="right">28.00</td>
+<td align="right">38.0</td>
+<td align="right">80.00</td>
+<td align="left">▂▇▅▂▁</td>
+</tr>
+<tr class="even">
+<td align="left">SibSp</td>
+<td align="right">0</td>
+<td align="right">1.0</td>
+<td align="right">0.52</td>
+<td align="right">1.10</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">1.0</td>
+<td align="right">8.00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">Parch</td>
+<td align="right">0</td>
+<td align="right">1.0</td>
+<td align="right">0.38</td>
+<td align="right">0.81</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">0.00</td>
+<td align="right">0.0</td>
+<td align="right">6.00</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">Fare</td>
+<td align="right">0</td>
+<td align="right">1.0</td>
+<td align="right">32.20</td>
+<td align="right">49.69</td>
+<td align="right">0.00</td>
+<td align="right">7.91</td>
+<td align="right">14.45</td>
+<td align="right">31.0</td>
+<td align="right">512.33</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+</tbody>
+</table>
+<p>OK, for age, cabin, and embarked, we have some NAs. No NAs for <code>Survived</code> (outcome).</p>
+</div>
+</div>
+<div id="define-recipe" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Define recipe</h1>
+<pre class="r"><code>titanic_recipe &lt;- 
+  
+  # define model formula:
+  recipe(Survived ~ Pclass + Age + SibSp + Parch + Fare, data = train) %&gt;%
+  
+  # Use &quot;ID&quot; etc as ID, not as predictor:
+  #update_role(Ticket, Cabin, Name, PassengerId, Embarked,  
+   #         new_role = &quot;ID&quot;) %&gt;%   
+  
+  update_role( Pclass , Age , SibSp , Parch , Fare, new_role=&quot;predictor&quot;) %&gt;%
+  
+  # Convert outcome variable from numeric to factor, to indicate classification
+  # step_num2factor(Survived, levels = c(&quot;0&quot;, &quot;1&quot;)) %&gt;%   # not working, #todo
+  
+  # impute missing values:
+  step_knnimpute(all_predictors(), neighbors = 3) %&gt;%  
+  
+  # remove these vars:
+  #step_rm(Ticket, Cabin, Name, PassengerId, Embarked) %&gt;%   
+  
+  # convert character and factor type variables into dummy variables:
+  step_dummy(all_nominal(), -all_outcomes()) %&gt;%   
+  
+  # exclude near zero variance predictors:
+  step_nzv(all_predictors()) %&gt;%  
+  
+   # exclude highly correlated vars:
+  step_corr(all_predictors()) %&gt;% 
+  
+  # center (set mean to zero):
+  step_center(all_predictors(), -all_outcomes()) %&gt;%  
+  
+  # set sd=1 
+  step_scale(all_predictors(), -all_outcomes())   </code></pre>
+<pre class="r"><code>summary(titanic_recipe)
+#&gt; # A tibble: 6 x 4
+#&gt;   variable type    role      source  
+#&gt;   &lt;chr&gt;    &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;   
+#&gt; 1 Pclass   numeric predictor original
+#&gt; 2 Age      numeric predictor original
+#&gt; 3 SibSp    numeric predictor original
+#&gt; 4 Parch    numeric predictor original
+#&gt; 5 Fare     numeric predictor original
+#&gt; 6 Survived nominal outcome   original</code></pre>
+<p>That is only the recipe, not the data (however the data are stored in the object too).</p>
+<pre class="r"><code>titanic_recipe
+#&gt; Data Recipe
+#&gt; 
+#&gt; Inputs:
+#&gt; 
+#&gt;       role #variables
+#&gt;    outcome          1
+#&gt;  predictor          5
+#&gt; 
+#&gt; Operations:
+#&gt; 
+#&gt; K-nearest neighbor imputation for all_predictors()
+#&gt; Dummy variables from all_nominal(), -all_outcomes()
+#&gt; Sparse, unbalanced variable filter on all_predictors()
+#&gt; Correlation filter on all_predictors()
+#&gt; Centering for all_predictors(), -all_outcomes()
+#&gt; Scaling for all_predictors(), -all_outcomes()</code></pre>
+</div>
+<div id="prepare-prep-the-recipe" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Prepare (<code>prep()</code>) the recipe</h1>
+<pre class="r"><code>titanic_recipe_prepped &lt;-
+  titanic_recipe %&gt;% 
+  prep(verbose = TRUE) 
+#&gt; oper 1 step knnimpute [training] 
+#&gt; oper 2 step dummy [training] 
+#&gt; oper 3 step nzv [training] 
+#&gt; oper 4 step corr [training] 
+#&gt; oper 5 step center [training] 
+#&gt; oper 6 step scale [training] 
+#&gt; The retained training set is ~ 0.04 Mb  in memory.</code></pre>
+<pre class="r"><code>titanic_recipe_prepped
+#&gt; Data Recipe
+#&gt; 
+#&gt; Inputs:
+#&gt; 
+#&gt;       role #variables
+#&gt;    outcome          1
+#&gt;  predictor          5
+#&gt; 
+#&gt; Training data contained 891 data points and 177 incomplete rows. 
+#&gt; 
+#&gt; Operations:
+#&gt; 
+#&gt; K-nearest neighbor imputation for Age, SibSp, Parch, Fare, Pclass [trained]
+#&gt; Dummy variables were *not* created since no columns were selected. [trained]
+#&gt; Sparse, unbalanced variable filter removed no terms [trained]
+#&gt; Correlation filter removed no terms [trained]
+#&gt; Centering for Pclass, Age, SibSp, Parch, Fare [trained]
+#&gt; Scaling for Pclass, Age, SibSp, Parch, Fare [trained]</code></pre>
+<pre class="r"><code>summary(titanic_recipe_prepped)
+#&gt; # A tibble: 6 x 4
+#&gt;   variable type    role      source  
+#&gt;   &lt;chr&gt;    &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;   
+#&gt; 1 Pclass   numeric predictor original
+#&gt; 2 Age      numeric predictor original
+#&gt; 3 SibSp    numeric predictor original
+#&gt; 4 Parch    numeric predictor original
+#&gt; 5 Fare     numeric predictor original
+#&gt; 6 Survived nominal outcome   original</code></pre>
+<p>Note, from <code>help(prep)</code>:</p>
+<blockquote>
+<pre><code>training: A data frame or tibble that will be used to estimate parameters for preprocessing.</code></pre>
+</blockquote>
+</div>
+<div id="difference-between-a-recipe-and-a-prepped-recipe" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Difference between a recipe and a prepped recipe</h1>
+<p>Compare:</p>
+<pre class="r"><code>titanic_recipe
+#&gt; Data Recipe
+#&gt; 
+#&gt; Inputs:
+#&gt; 
+#&gt;       role #variables
+#&gt;    outcome          1
+#&gt;  predictor          5
+#&gt; 
+#&gt; Operations:
+#&gt; 
+#&gt; K-nearest neighbor imputation for all_predictors()
+#&gt; Dummy variables from all_nominal(), -all_outcomes()
+#&gt; Sparse, unbalanced variable filter on all_predictors()
+#&gt; Correlation filter on all_predictors()
+#&gt; Centering for all_predictors(), -all_outcomes()
+#&gt; Scaling for all_predictors(), -all_outcomes()</code></pre>
+<p>With:</p>
+<pre class="r"><code>titanic_recipe_prepped
+#&gt; Data Recipe
+#&gt; 
+#&gt; Inputs:
+#&gt; 
+#&gt;       role #variables
+#&gt;    outcome          1
+#&gt;  predictor          5
+#&gt; 
+#&gt; Training data contained 891 data points and 177 incomplete rows. 
+#&gt; 
+#&gt; Operations:
+#&gt; 
+#&gt; K-nearest neighbor imputation for Age, SibSp, Parch, Fare, Pclass [trained]
+#&gt; Dummy variables were *not* created since no columns were selected. [trained]
+#&gt; Sparse, unbalanced variable filter removed no terms [trained]
+#&gt; Correlation filter removed no terms [trained]
+#&gt; Centering for Pclass, Age, SibSp, Parch, Fare [trained]
+#&gt; Scaling for Pclass, Age, SibSp, Parch, Fare [trained]</code></pre>
+<p>For example, we see that the mean values for <code>Centering</code> have been <code>trained</code> during the <code>prep()</code> step. Note that the steps are still <em>not</em> applied to the data set. That is what <code>bake()</code> is for. AFAIK, <code>train()</code> will do that automatically, so no action needed for the test set in that regard.</p>
+<p>See <a href="https://www.tidymodels.org/find/recipes/">here</a> an complete of currently available preprocessing steps – more than 100 as to date.</p>
+</div>
+<div id="check-prepped-data-set" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Check prepped data set</h1>
+<p>Squize the juice out of the prepared recipe …</p>
+<pre class="r"><code>juice(titanic_recipe_prepped) %&gt;% 
+  head()
+#&gt; # A tibble: 6 x 6
+#&gt;   Pclass    Age  SibSp  Parch   Fare Survived
+#&gt;    &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt; &lt;fct&gt;   
+#&gt; 1  0.827 -0.536  0.433 -0.473 -0.502 0       
+#&gt; 2 -1.57   0.634  0.433 -0.473  0.786 1       
+#&gt; 3  0.827 -0.244 -0.474 -0.473 -0.489 1       
+#&gt; 4 -1.57   0.415  0.433 -0.473  0.420 1       
+#&gt; 5  0.827  0.415 -0.474 -0.473 -0.486 0       
+#&gt; 6  0.827 -0.414 -0.474 -0.473 -0.478 0</code></pre>
+<p>Are there any NAs in the prepped data set?</p>
+<pre class="r"><code>juice(titanic_recipe_prepped) %&gt;% 
+  map(~ sum(is.na(.x)))
+#&gt; $Pclass
+#&gt; [1] 0
+#&gt; 
+#&gt; $Age
+#&gt; [1] 0
+#&gt; 
+#&gt; $SibSp
+#&gt; [1] 0
+#&gt; 
+#&gt; $Parch
+#&gt; [1] 0
+#&gt; 
+#&gt; $Fare
+#&gt; [1] 0
+#&gt; 
+#&gt; $Survived
+#&gt; [1] 0</code></pre>
+</div>
+<div id="juice-the-train-data" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Juice the train data</h1>
+<pre class="r"><code>train_juice &lt;- juice(titanic_recipe_prepped)</code></pre>
+</div>
+<div id="bake-recipe-to-train-data" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> Bake recipe to train data</h1>
+<pre class="r"><code>bake(titanic_recipe_prepped, new_data = NULL)
+#&gt; # A tibble: 891 x 6
+#&gt;    Pclass    Age  SibSp  Parch    Fare Survived
+#&gt;     &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;   &lt;dbl&gt; &lt;fct&gt;   
+#&gt;  1  0.827 -0.536  0.433 -0.473 -0.502  0       
+#&gt;  2 -1.57   0.634  0.433 -0.473  0.786  1       
+#&gt;  3  0.827 -0.244 -0.474 -0.473 -0.489  1       
+#&gt;  4 -1.57   0.415  0.433 -0.473  0.420  1       
+#&gt;  5  0.827  0.415 -0.474 -0.473 -0.486  0       
+#&gt;  6  0.827 -0.414 -0.474 -0.473 -0.478  0       
+#&gt;  7 -1.57   1.81  -0.474 -0.473  0.396  0       
+#&gt;  8  0.827 -2.00   2.25   0.767 -0.224  0       
+#&gt;  9  0.827 -0.171 -0.474  2.01  -0.424  1       
+#&gt; 10 -0.369 -1.12   0.433 -0.473 -0.0429 1       
+#&gt; # … with 881 more rows</code></pre>
+</div>
+<div id="bake-recipe-to-test-data" class="section level1" number="11">
+<h1><span class="header-section-number">11</span> Bake recipe to test data</h1>
+<p>WARNING #todo</p>
+<pre class="r"><code>test_baked &lt;-
+  titanic_recipe_prepped %&gt;% 
+  bake(new_data = test)</code></pre>
+</div>
+<div id="model-1-glm" class="section level1" number="12">
+<h1><span class="header-section-number">12</span> Model 1: glm</h1>
+<div id="define-model" class="section level2" number="12.1">
+<h2><span class="header-section-number">12.1</span> Define model</h2>
+<pre class="r"><code>lr_mod &lt;- 
+  logistic_reg() %&gt;% 
+  set_engine(&quot;glm&quot;) %&gt;% 
+  set_mode(&quot;classification&quot;)</code></pre>
+<pre class="r"><code>lr_mod
+#&gt; Logistic Regression Model Specification (classification)
+#&gt; 
+#&gt; Computational engine: glm</code></pre>
+</div>
+<div id="define-modelling-workflow" class="section level2" number="12.2">
+<h2><span class="header-section-number">12.2</span> Define modelling workflow</h2>
+<pre class="r"><code>titanic_wf1 &lt;-
+  workflow() %&gt;% 
+  add_model(lr_mod) %&gt;% 
+  add_recipe(titanic_recipe)</code></pre>
+<pre class="r"><code>titanic_wf1
+#&gt; ══ Workflow ════════════════════════════════════════════════════════════════════
+#&gt; Preprocessor: Recipe
+#&gt; Model: logistic_reg()
+#&gt; 
+#&gt; ── Preprocessor ────────────────────────────────────────────────────────────────
+#&gt; 6 Recipe Steps
+#&gt; 
+#&gt; ● step_knnimpute()
+#&gt; ● step_dummy()
+#&gt; ● step_nzv()
+#&gt; ● step_corr()
+#&gt; ● step_center()
+#&gt; ● step_scale()
+#&gt; 
+#&gt; ── Model ───────────────────────────────────────────────────────────────────────
+#&gt; Logistic Regression Model Specification (classification)
+#&gt; 
+#&gt; Computational engine: glm</code></pre>
+</div>
+<div id="fit-model" class="section level2" number="12.3">
+<h2><span class="header-section-number">12.3</span> Fit model</h2>
+<pre class="r"><code>titanic_fit_lr &lt;-
+  titanic_wf1 %&gt;% 
+  fit(data = train)</code></pre>
+<p>Model performance on <em>train</em> data:</p>
+<pre class="r"><code>titanic_fit_lr %&gt;% 
+  pull_workflow_fit() %&gt;% 
+  tidy()
+#&gt; # A tibble: 6 x 5
+#&gt;   term        estimate std.error statistic  p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+#&gt; 1 (Intercept)   -0.526    0.0765     -6.88 6.05e-12
+#&gt; 2 Pclass        -0.853    0.107      -7.97 1.58e-15
+#&gt; 3 Age           -0.570    0.0933     -6.11 1.01e- 9
+#&gt; 4 SibSp         -0.312    0.0965     -3.24 1.21e- 3
+#&gt; 5 Parch          0.178    0.0837      2.12 3.38e- 2
+#&gt; 6 Fare           0.208    0.121       1.72 8.48e- 2</code></pre>
+<pre class="r"><code>titanic_fit_lr %&gt;% 
+  pull_workflow_fit() %&gt;% 
+  glance()
+#&gt; # A tibble: 1 x 8
+#&gt;   null.deviance df.null logLik   AIC   BIC deviance df.residual
+#&gt;           &lt;dbl&gt;   &lt;int&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;       &lt;int&gt;
+#&gt; 1         1187.     890  -514. 1040. 1069.    1028.         885
+#&gt; # … with 1 more variable: nobs &lt;int&gt;</code></pre>
+<pre class="r"><code>titanic_fit_lr %&gt;% 
+  pull_workflow_fit() %&gt;% 
+  summary() 
+#&gt;         Length Class        Mode     
+#&gt; lvl      2     -none-       character
+#&gt; spec     6     logistic_reg list     
+#&gt; fit     30     glm          list     
+#&gt; preproc  2     -none-       list     
+#&gt; elapsed  5     proc_time    numeric</code></pre>
+<pre class="r"><code>pull_workflow_prepped_recipe(titanic_fit_lr)
+#&gt; Data Recipe
+#&gt; 
+#&gt; Inputs:
+#&gt; 
+#&gt;       role #variables
+#&gt;    outcome          1
+#&gt;  predictor          5
+#&gt; 
+#&gt; Training data contained 891 data points and 177 incomplete rows. 
+#&gt; 
+#&gt; Operations:
+#&gt; 
+#&gt; K-nearest neighbor imputation for Age, SibSp, Parch, ... [trained]
+#&gt; Dummy variables were *not* created since no columns were selected. [trained]
+#&gt; Sparse, unbalanced variable filter removed no terms [trained]
+#&gt; Correlation filter removed no terms [trained]
+#&gt; Centering for Pclass, Age, SibSp, Parch, Fare [trained]
+#&gt; Scaling for Pclass, Age, SibSp, Parch, Fare [trained]</code></pre>
+<p>Hm, for some reason, not working. #todo</p>
+<pre class="r"><code>pull_workflow_fit %&gt;%
+  PseudoR2()
+#&gt; [1] NA</code></pre>
+</div>
+<div id="extract-fit" class="section level2" number="12.4">
+<h2><span class="header-section-number">12.4</span> Extract fit</h2>
+<pre class="r"><code>titanic_fit_lr %&gt;% 
+  pluck(&quot;fit&quot;)
+#&gt; $actions
+#&gt; $actions$model
+#&gt; $spec
+#&gt; Logistic Regression Model Specification (classification)
+#&gt; 
+#&gt; Computational engine: glm 
+#&gt; 
+#&gt; 
+#&gt; $formula
+#&gt; NULL
+#&gt; 
+#&gt; attr(,&quot;class&quot;)
+#&gt; [1] &quot;action_model&quot; &quot;action_fit&quot;   &quot;action&quot;      
+#&gt; 
+#&gt; 
+#&gt; $fit
+#&gt; parsnip model object
+#&gt; 
+#&gt; Fit time:  8ms 
+#&gt; 
+#&gt; Call:  stats::glm(formula = ..y ~ ., family = stats::binomial, data = data)
+#&gt; 
+#&gt; Coefficients:
+#&gt; (Intercept)       Pclass          Age        SibSp  
+#&gt;     -0.5264      -0.8532      -0.5700      -0.3123  
+#&gt;       Parch         Fare  
+#&gt;      0.1776       0.2081  
+#&gt; 
+#&gt; Degrees of Freedom: 890 Total (i.e. Null);  885 Residual
+#&gt; Null Deviance:       1187 
+#&gt; Residual Deviance: 1028  AIC: 1040
+#&gt; 
+#&gt; attr(,&quot;class&quot;)
+#&gt; [1] &quot;stage_fit&quot; &quot;stage&quot;</code></pre>
+</div>
+<div id="predict-test-data" class="section level2" number="12.5">
+<h2><span class="header-section-number">12.5</span> Predict test data</h2>
+<pre class="r"><code>test_with_pred &lt;-
+  test %&gt;% 
+  bind_cols(predict(titanic_fit_lr, test_baked)) %&gt;% 
+  rename(pred_glm1 = .pred_class)</code></pre>
+<pre class="r"><code>glimpse(test_with_pred)
+#&gt; Rows: 418
+#&gt; Columns: 13
+#&gt; $ PassengerId &lt;dbl&gt; 892, 893, 894, 895, 896, 897, 898, 899, 9…
+#&gt; $ Pclass      &lt;dbl&gt; 3, 3, 2, 3, 3, 3, 3, 2, 3, 3, 3, 1, 1, 2,…
+#&gt; $ Name        &lt;chr&gt; &quot;Kelly, Mr. James&quot;, &quot;Wilkes, Mrs. James (…
+#&gt; $ Sex         &lt;chr&gt; &quot;male&quot;, &quot;female&quot;, &quot;male&quot;, &quot;male&quot;, &quot;female…
+#&gt; $ Age         &lt;dbl&gt; 34.5, 47.0, 62.0, 27.0, 22.0, 14.0, 30.0,…
+#&gt; $ SibSp       &lt;dbl&gt; 0, 1, 0, 0, 1, 0, 0, 1, 0, 2, 0, 0, 1, 1,…
+#&gt; $ Parch       &lt;dbl&gt; 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0,…
+#&gt; $ Ticket      &lt;chr&gt; &quot;330911&quot;, &quot;363272&quot;, &quot;240276&quot;, &quot;315154&quot;, &quot;…
+#&gt; $ Fare        &lt;dbl&gt; 7.8292, 7.0000, 9.6875, 8.6625, 12.2875, …
+#&gt; $ Cabin       &lt;chr&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…
+#&gt; $ Embarked    &lt;chr&gt; &quot;Q&quot;, &quot;S&quot;, &quot;Q&quot;, &quot;S&quot;, &quot;S&quot;, &quot;S&quot;, &quot;Q&quot;, &quot;S&quot;, &quot;…
+#&gt; $ Survived    &lt;lgl&gt; NA, NA, NA, NA, NA, NA, NA, NA, NA, NA, N…
+#&gt; $ pred_glm1   &lt;fct&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,…</code></pre>
+</div>
+<div id="save-predictions-to-disk" class="section level2" number="12.6">
+<h2><span class="header-section-number">12.6</span> Save predictions to disk</h2>
+<pre class="r"><code>test_with_pred %&gt;% 
+  select(PassengerId, Survived = pred_glm1) %&gt;% 
+  write_csv(file = &quot;titanic-glm1.csv&quot;)</code></pre>
+</div>
+</div>
+<div id="model-2-random-forests-1-without-tuning-wo-cv" class="section level1" number="13">
+<h1><span class="header-section-number">13</span> Model 2: Random forests 1 (without tuning, w/o cv)</h1>
+<div id="define-model-1" class="section level2" number="13.1">
+<h2><span class="header-section-number">13.1</span> Define model</h2>
+<pre class="r"><code>rf_mod1 &lt;- 
+  rand_forest() %&gt;% 
+  set_engine(&quot;ranger&quot;) %&gt;% 
+  set_mode(&quot;classification&quot;)</code></pre>
+<pre class="r"><code>rf_mod1
+#&gt; Random Forest Model Specification (classification)
+#&gt; 
+#&gt; Computational engine: ranger</code></pre>
+</div>
+<div id="define-workflow" class="section level2" number="13.2">
+<h2><span class="header-section-number">13.2</span> Define workflow</h2>
+<pre class="r"><code>rf_workflow1 &lt;- 
+  workflow() %&gt;% 
+  add_model(rf_mod1) %&gt;% 
+  add_recipe(titanic_recipe)</code></pre>
+</div>
+<div id="fit-model-1" class="section level2" number="13.3">
+<h2><span class="header-section-number">13.3</span> Fit model</h2>
+<pre class="r"><code>rf_fit1 &lt;- 
+  rf_workflow1 %&gt;% 
+  fit(data = train)</code></pre>
+<pre class="r"><code>rf_fit1
+#&gt; ══ Workflow [trained] ══════════════════════════════════════════
+#&gt; Preprocessor: Recipe
+#&gt; Model: rand_forest()
+#&gt; 
+#&gt; ── Preprocessor ────────────────────────────────────────────────
+#&gt; 6 Recipe Steps
+#&gt; 
+#&gt; ● step_knnimpute()
+#&gt; ● step_dummy()
+#&gt; ● step_nzv()
+#&gt; ● step_corr()
+#&gt; ● step_center()
+#&gt; ● step_scale()
+#&gt; 
+#&gt; ── Model ───────────────────────────────────────────────────────
+#&gt; Ranger result
+#&gt; 
+#&gt; Call:
+#&gt;  ranger::ranger(x = maybe_data_frame(x), y = y, num.threads = 1,      verbose = FALSE, seed = sample.int(10^5, 1), probability = TRUE) 
+#&gt; 
+#&gt; Type:                             Probability estimation 
+#&gt; Number of trees:                  500 
+#&gt; Sample size:                      891 
+#&gt; Number of independent variables:  5 
+#&gt; Mtry:                             2 
+#&gt; Target node size:                 10 
+#&gt; Variable importance mode:         none 
+#&gt; Splitrule:                        gini 
+#&gt; OOB prediction error (Brier s.):  0.184434</code></pre>
+</div>
+<div id="predict-test-data-1" class="section level2" number="13.4">
+<h2><span class="header-section-number">13.4</span> Predict test data</h2>
+<pre class="r"><code>rf1_preds &lt;- 
+  rf_fit1 %&gt;% 
+  predict(new_data = test_baked) %&gt;% 
+  bind_cols(test) %&gt;% 
+  select(-Survived) %&gt;% 
+  select(PassengerId, Survived = .pred_class)</code></pre>
+<pre class="r"><code>glimpse(rf1_preds)
+#&gt; Rows: 418
+#&gt; Columns: 2
+#&gt; $ PassengerId &lt;dbl&gt; 892, 893, 894, 895, 896, 897, 898, 899, 9…
+#&gt; $ Survived    &lt;fct&gt; 0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 0,…</code></pre>
+</div>
+<div id="save-predictions-to-disk-1" class="section level2" number="13.5">
+<h2><span class="header-section-number">13.5</span> Save predictions to disk</h2>
+<pre class="r"><code>pred_rf1 %&gt;% 
+  write_csv(file = &quot;titanic-rf1.csv&quot;)</code></pre>
+</div>
+</div>
+<div id="model-3-random-forests-2-with-tuning-and-with-cv" class="section level1" number="14">
+<h1><span class="header-section-number">14</span> Model 3: Random forests 2 (with tuning and with CV)</h1>
+<div id="detect-cores" class="section level2" number="14.1">
+<h2><span class="header-section-number">14.1</span> Detect cores</h2>
+<pre class="r"><code>cores &lt;- parallel::detectCores()
+cores
+#&gt; [1] 8</code></pre>
+</div>
+<div id="define-model-2" class="section level2" number="14.2">
+<h2><span class="header-section-number">14.2</span> Define model</h2>
+<pre class="r"><code>rf_mod2 &lt;- 
+  rand_forest(mtry = tune(), min_n = tune(), trees = 1000) %&gt;% 
+  set_engine(&quot;ranger&quot;, num.threads = cores) %&gt;% 
+  set_mode(&quot;classification&quot;)</code></pre>
+<pre class="r"><code>rf_mod2
+#&gt; Random Forest Model Specification (classification)
+#&gt; 
+#&gt; Main Arguments:
+#&gt;   mtry = tune()
+#&gt;   trees = 1000
+#&gt;   min_n = tune()
+#&gt; 
+#&gt; Engine-Specific Arguments:
+#&gt;   num.threads = cores
+#&gt; 
+#&gt; Computational engine: ranger</code></pre>
+<p>Parameters that can be tuned:</p>
+<pre class="r"><code>rf_mod2 %&gt;%    
+  parameters()  
+#&gt; Collection of 2 parameters for tuning
+#&gt; 
+#&gt;  identifier  type    object
+#&gt;        mtry  mtry nparam[?]
+#&gt;       min_n min_n nparam[+]
+#&gt; 
+#&gt; Model parameters needing finalization:
+#&gt;    # Randomly Selected Predictors (&#39;mtry&#39;)
+#&gt; 
+#&gt; See `?dials::finalize` or `?dials::update.parameters` for more information.</code></pre>
+</div>
+<div id="define-cross-validation-scheme" class="section level2" number="14.3">
+<h2><span class="header-section-number">14.3</span> Define cross validation scheme</h2>
+<pre class="r"><code>train_cv &lt;- vfold_cv(train, v = 10)</code></pre>
+<p>10-times CV:</p>
+<pre class="r"><code>train_cv
+#&gt; #  10-fold cross-validation 
+#&gt; # A tibble: 10 x 2
+#&gt;    splits           id    
+#&gt;    &lt;list&gt;           &lt;chr&gt; 
+#&gt;  1 &lt;split [801/90]&gt; Fold01
+#&gt;  2 &lt;split [802/89]&gt; Fold02
+#&gt;  3 &lt;split [802/89]&gt; Fold03
+#&gt;  4 &lt;split [802/89]&gt; Fold04
+#&gt;  5 &lt;split [802/89]&gt; Fold05
+#&gt;  6 &lt;split [802/89]&gt; Fold06
+#&gt;  7 &lt;split [802/89]&gt; Fold07
+#&gt;  8 &lt;split [802/89]&gt; Fold08
+#&gt;  9 &lt;split [802/89]&gt; Fold09
+#&gt; 10 &lt;split [802/89]&gt; Fold10</code></pre>
+</div>
+<div id="define-workflow-1" class="section level2" number="14.4">
+<h2><span class="header-section-number">14.4</span> Define workflow</h2>
+<pre class="r"><code>rf_workflow2 &lt;- 
+  workflow() %&gt;% 
+  add_model(rf_mod2) %&gt;% 
+  add_recipe(titanic_recipe)</code></pre>
+<pre class="r"><code>rf_workflow2
+#&gt; ══ Workflow ════════════════════════════════════════════════════
+#&gt; Preprocessor: Recipe
+#&gt; Model: rand_forest()
+#&gt; 
+#&gt; ── Preprocessor ────────────────────────────────────────────────
+#&gt; 6 Recipe Steps
+#&gt; 
+#&gt; ● step_knnimpute()
+#&gt; ● step_dummy()
+#&gt; ● step_nzv()
+#&gt; ● step_corr()
+#&gt; ● step_center()
+#&gt; ● step_scale()
+#&gt; 
+#&gt; ── Model ───────────────────────────────────────────────────────
+#&gt; Random Forest Model Specification (classification)
+#&gt; 
+#&gt; Main Arguments:
+#&gt;   mtry = tune()
+#&gt;   trees = 1000
+#&gt;   min_n = tune()
+#&gt; 
+#&gt; Engine-Specific Arguments:
+#&gt;   num.threads = cores
+#&gt; 
+#&gt; Computational engine: ranger</code></pre>
+</div>
+<div id="define-and-run-tune-grid" class="section level2" number="14.5">
+<h2><span class="header-section-number">14.5</span> Define and run tune grid</h2>
+<pre class="r"><code>set.seed(42)
+
+t1 &lt;- Sys.time()
+rf_res2 &lt;- 
+  rf_workflow2 %&gt;% 
+  tune_grid(resamples = train_cv,
+            grid = 25,
+            control = control_grid(save_pred = TRUE),
+            metrics = metric_set(roc_auc))
+t2 &lt;- Sys.time()
+
+t2 - t1
+#&gt; Time difference of 2.344543 mins</code></pre>
+<p>It may be worthwhile to save the object to disk, in order to save computation time:</p>
+<pre class="r"><code>saveRDS(rf_res2, file = &quot;rf_res2.rds&quot;)</code></pre>
+</div>
+<div id="view-results" class="section level2" number="14.6">
+<h2><span class="header-section-number">14.6</span> View results</h2>
+<pre class="r"><code>rf_res2 %&gt;% 
+  collect_metrics()
+#&gt; # A tibble: 25 x 8
+#&gt;     mtry min_n .metric .estimator  mean     n std_err .config   
+#&gt;    &lt;int&gt; &lt;int&gt; &lt;chr&gt;   &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;     
+#&gt;  1     3    11 roc_auc binary     0.775    10  0.0160 Preproces…
+#&gt;  2     1    18 roc_auc binary     0.774    10  0.0150 Preproces…
+#&gt;  3     3    26 roc_auc binary     0.782    10  0.0149 Preproces…
+#&gt;  4     2     7 roc_auc binary     0.782    10  0.0163 Preproces…
+#&gt;  5     1    20 roc_auc binary     0.773    10  0.0154 Preproces…
+#&gt;  6     2     6 roc_auc binary     0.780    10  0.0164 Preproces…
+#&gt;  7     5    27 roc_auc binary     0.778    10  0.0156 Preproces…
+#&gt;  8     4    16 roc_auc binary     0.774    10  0.0157 Preproces…
+#&gt;  9     5    15 roc_auc binary     0.768    10  0.0160 Preproces…
+#&gt; 10     3    24 roc_auc binary     0.782    10  0.0149 Preproces…
+#&gt; # … with 15 more rows</code></pre>
+<pre class="r"><code>rf_res2 %&gt;% 
+  show_best(metric = &quot;roc_auc&quot;)
+#&gt; # A tibble: 5 x 8
+#&gt;    mtry min_n .metric .estimator  mean     n std_err .config    
+#&gt;   &lt;int&gt; &lt;int&gt; &lt;chr&gt;   &lt;chr&gt;      &lt;dbl&gt; &lt;int&gt;   &lt;dbl&gt; &lt;chr&gt;      
+#&gt; 1     3    24 roc_auc binary     0.782    10  0.0149 Preprocess…
+#&gt; 2     3    26 roc_auc binary     0.782    10  0.0149 Preprocess…
+#&gt; 3     2     7 roc_auc binary     0.782    10  0.0163 Preprocess…
+#&gt; 4     2    35 roc_auc binary     0.781    10  0.0146 Preprocess…
+#&gt; 5     2     5 roc_auc binary     0.780    10  0.0159 Preprocess…</code></pre>
+<pre class="r"><code>autoplot(rf_res2)</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-50-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="get-best-model" class="section level2" number="14.7">
+<h2><span class="header-section-number">14.7</span> Get best model</h2>
+<pre class="r"><code>rf_best2 &lt;- 
+  rf_res2 %&gt;% 
+  select_best(metric = &quot;roc_auc&quot;)
+rf_best2
+#&gt; # A tibble: 1 x 3
+#&gt;    mtry min_n .config              
+#&gt;   &lt;int&gt; &lt;int&gt; &lt;chr&gt;                
+#&gt; 1     3    24 Preprocessor1_Model10</code></pre>
+</div>
+<div id="final-fit" class="section level2" number="14.8">
+<h2><span class="header-section-number">14.8</span> Final fit</h2>
+<pre class="r"><code>rf_final_wf2 &lt;- 
+  rf_workflow2 %&gt;% 
+  finalize_workflow(rf_best2)</code></pre>
+<p>So, here is the best model:</p>
+<pre class="r"><code>rf_final_wf2
+#&gt; ══ Workflow ════════════════════════════════════════════════════
+#&gt; Preprocessor: Recipe
+#&gt; Model: rand_forest()
+#&gt; 
+#&gt; ── Preprocessor ────────────────────────────────────────────────
+#&gt; 6 Recipe Steps
+#&gt; 
+#&gt; ● step_knnimpute()
+#&gt; ● step_dummy()
+#&gt; ● step_nzv()
+#&gt; ● step_corr()
+#&gt; ● step_center()
+#&gt; ● step_scale()
+#&gt; 
+#&gt; ── Model ───────────────────────────────────────────────────────
+#&gt; Random Forest Model Specification (classification)
+#&gt; 
+#&gt; Main Arguments:
+#&gt;   mtry = 3
+#&gt;   trees = 1000
+#&gt;   min_n = 24
+#&gt; 
+#&gt; Engine-Specific Arguments:
+#&gt;   num.threads = cores
+#&gt; 
+#&gt; Computational engine: ranger</code></pre>
+<p>Let us fit this model to the train data:</p>
+<pre class="r"><code>last_rf_mod2 &lt;- 
+  rf_final_wf2 %&gt;% 
+  fit(data = train)</code></pre>
+<pre class="r"><code>last_rf_mod2
+#&gt; ══ Workflow [trained] ══════════════════════════════════════════
+#&gt; Preprocessor: Recipe
+#&gt; Model: rand_forest()
+#&gt; 
+#&gt; ── Preprocessor ────────────────────────────────────────────────
+#&gt; 6 Recipe Steps
+#&gt; 
+#&gt; ● step_knnimpute()
+#&gt; ● step_dummy()
+#&gt; ● step_nzv()
+#&gt; ● step_corr()
+#&gt; ● step_center()
+#&gt; ● step_scale()
+#&gt; 
+#&gt; ── Model ───────────────────────────────────────────────────────
+#&gt; Ranger result
+#&gt; 
+#&gt; Call:
+#&gt;  ranger::ranger(x = maybe_data_frame(x), y = y, mtry = min_cols(~3L,      x), num.trees = ~1000, min.node.size = min_rows(~24L, x),      num.threads = ~cores, verbose = FALSE, seed = sample.int(10^5,          1), probability = TRUE) 
+#&gt; 
+#&gt; Type:                             Probability estimation 
+#&gt; Number of trees:                  1000 
+#&gt; Sample size:                      891 
+#&gt; Number of independent variables:  5 
+#&gt; Mtry:                             3 
+#&gt; Target node size:                 24 
+#&gt; Variable importance mode:         none 
+#&gt; Splitrule:                        gini 
+#&gt; OOB prediction error (Brier s.):  0.1850163</code></pre>
+</div>
+<div id="legacy-code-do-not-run" class="section level2" number="14.9">
+<h2><span class="header-section-number">14.9</span> Legacy code, do not run</h2>
+<pre class="r"><code>  # rand_forest(mtry = rf_best2[[&quot;mtry&quot;]][1], 
+  #             min_n = rf_best2[[&quot;min_n&quot;]][1], 
+  #             trees = 1000) %&gt;% 
+  # set_engine(&quot;ranger&quot;, 
+  #            num.threads = cores, 
+  #            importance = &quot;impurity&quot;) %&gt;% 
+  # set_mode(&quot;classification&quot;)</code></pre>
+<p>Update workflow with best fit parameters</p>
+<pre class="r"><code># last_rf_workflow2 &lt;- 
+#   rf_workflow2 %&gt;% 
+#   update_model(last_rf_mod)</code></pre>
+</div>
+<div id="fit-final-workflow" class="section level2" number="14.10">
+<h2><span class="header-section-number">14.10</span> Fit final workflow</h2>
+<pre class="r"><code>set.seed(345)
+last_rf_fit2 &lt;- 
+  last_rf_mod2 %&gt;% 
+  last_fit(split_titanic)</code></pre>
+</div>
+<div id="predict-test-data-2" class="section level2" number="14.11">
+<h2><span class="header-section-number">14.11</span> Predict test data</h2>
+<pre class="r"><code>rf2_preds &lt;- 
+last_rf_fit2 %&gt;% 
+  collect_predictions() %&gt;% 
+  select(-Survived) %&gt;% 
+  select(PassengerID = .row, Survived = .pred_class) </code></pre>
+<pre class="r"><code>glimpse(rf2_preds)
+#&gt; Rows: 418
+#&gt; Columns: 2
+#&gt; $ PassengerID &lt;int&gt; 892, 893, 894, 895, 896, 897, 898, 899, 9…
+#&gt; $ Survived    &lt;fct&gt; 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0,…</code></pre>
+</div>
+<div id="save-predictions-to-disk-2" class="section level2" number="14.12">
+<h2><span class="header-section-number">14.12</span> Save predictions to disk</h2>
+<pre class="r"><code>rf2_preds %&gt;% 
+  write_csv(file = &quot;titanic-rf2.csv&quot;)</code></pre>
+</div>
+</div>
+<div id="model-4-boosted-trees-with-tuning" class="section level1" number="15">
+<h1><span class="header-section-number">15</span> Model 4: Boosted trees (with tuning)</h1>
+<div id="define-model-3" class="section level2" number="15.1">
+<h2><span class="header-section-number">15.1</span> Define model</h2>
+<pre class="r"><code>boost_mod &lt;- 
+  boost_tree(mtry = tune(), 
+             min_n = tune(), 
+             learn_rate = tune(),
+             tree_depth = tune()) %&gt;% 
+  set_engine(&quot;xgboost&quot;, num.threads = cores) %&gt;% 
+  set_mode(&quot;classification&quot;)</code></pre>
+<pre class="r"><code>boost_mod
+#&gt; Boosted Tree Model Specification (classification)
+#&gt; 
+#&gt; Main Arguments:
+#&gt;   mtry = tune()
+#&gt;   min_n = tune()
+#&gt;   tree_depth = tune()
+#&gt;   learn_rate = tune()
+#&gt; 
+#&gt; Engine-Specific Arguments:
+#&gt;   num.threads = cores
+#&gt; 
+#&gt; Computational engine: xgboost</code></pre>
+<p>Translate to <code>xgboost()</code> specs:</p>
+<pre class="r"><code>translate(boost_mod)
+#&gt; Boosted Tree Model Specification (classification)
+#&gt; 
+#&gt; Main Arguments:
+#&gt;   mtry = tune()
+#&gt;   min_n = tune()
+#&gt;   tree_depth = tune()
+#&gt;   learn_rate = tune()
+#&gt; 
+#&gt; Engine-Specific Arguments:
+#&gt;   num.threads = cores
+#&gt; 
+#&gt; Computational engine: xgboost 
+#&gt; 
+#&gt; Model fit template:
+#&gt; parsnip::xgb_train(x = missing_arg(), y = missing_arg(), colsample_bytree = tune(), 
+#&gt;     min_child_weight = tune(), max_depth = tune(), eta = tune(), 
+#&gt;     num.threads = cores, nthread = 1, verbose = 0)</code></pre>
+<p>Why does it say <code>ntread = 1</code>? Should be more cores, right? #todo</p>
+<p>Parameters that can be tuned:</p>
+<pre class="r"><code>boost_mod %&gt;%    
+  parameters()  
+#&gt; Collection of 4 parameters for tuning
+#&gt; 
+#&gt;  identifier       type    object
+#&gt;        mtry       mtry nparam[?]
+#&gt;       min_n      min_n nparam[+]
+#&gt;  tree_depth tree_depth nparam[+]
+#&gt;  learn_rate learn_rate nparam[+]
+#&gt; 
+#&gt; Model parameters needing finalization:
+#&gt;    # Randomly Selected Predictors (&#39;mtry&#39;)
+#&gt; 
+#&gt; See `?dials::finalize` or `?dials::update.parameters` for more information.</code></pre>
+</div>
+<div id="define-workflow-2" class="section level2" number="15.2">
+<h2><span class="header-section-number">15.2</span> Define workflow</h2>
+<pre class="r"><code>boost_wf &lt;- 
+  workflow() %&gt;% 
+  add_model(boost_mod) %&gt;% 
+  add_recipe(titanic_recipe)</code></pre>
+<pre class="r"><code>boost_wf
+#&gt; ══ Workflow ════════════════════════════════════════════════════
+#&gt; Preprocessor: Recipe
+#&gt; Model: boost_tree()
+#&gt; 
+#&gt; ── Preprocessor ────────────────────────────────────────────────
+#&gt; 6 Recipe Steps
+#&gt; 
+#&gt; ● step_knnimpute()
+#&gt; ● step_dummy()
+#&gt; ● step_nzv()
+#&gt; ● step_corr()
+#&gt; ● step_center()
+#&gt; ● step_scale()
+#&gt; 
+#&gt; ── Model ───────────────────────────────────────────────────────
+#&gt; Boosted Tree Model Specification (classification)
+#&gt; 
+#&gt; Main Arguments:
+#&gt;   mtry = tune()
+#&gt;   min_n = tune()
+#&gt;   tree_depth = tune()
+#&gt;   learn_rate = tune()
+#&gt; 
+#&gt; Engine-Specific Arguments:
+#&gt;   num.threads = cores
+#&gt; 
+#&gt; Computational engine: xgboost</code></pre>
+</div>
+<div id="define-analysis-and-validation-oob-set" class="section level2" number="15.3">
+<h2><span class="header-section-number">15.3</span> Define analysis and validation (oob) set</h2>
+<pre class="r"><code>set.seed(234)
+val_set &lt;- validation_split(train, 
+                            strata = Survived, 
+                            prop = 0.80)</code></pre>
+</div>
+<div id="define-tune-grid" class="section level2" number="15.4">
+<h2><span class="header-section-number">15.4</span> Define tune grid</h2>
+<pre class="r"><code>set.seed(42)
+
+t1 &lt;- Sys.time()
+boost_fit &lt;- 
+  boost_wf %&gt;% 
+  tune_grid(val_set,
+            grid = 100,
+            control = control_grid(save_pred = TRUE),
+            metrics = metric_set(roc_auc))
+  t2 &lt;- Sys.time()
+
+t2 - t1
+#&gt; Time difference of 1.061954 mins</code></pre>
+<pre class="r"><code>boost_fit %&gt;% 
+  show_best(metric = &quot;roc_auc&quot;)
+#&gt; # A tibble: 5 x 10
+#&gt;    mtry min_n tree_depth learn_rate .metric .estimator  mean
+#&gt;   &lt;int&gt; &lt;int&gt;      &lt;int&gt;      &lt;dbl&gt; &lt;chr&gt;   &lt;chr&gt;      &lt;dbl&gt;
+#&gt; 1     3     3          5    3.27e-6 roc_auc binary     0.813
+#&gt; 2     4     4          7    8.47e-7 roc_auc binary     0.811
+#&gt; 3     4    13         11    1.07e-4 roc_auc binary     0.803
+#&gt; 4     2    16          4    5.95e-2 roc_auc binary     0.802
+#&gt; 5     2    12         14    4.70e-2 roc_auc binary     0.801
+#&gt; # … with 3 more variables: n &lt;int&gt;, std_err &lt;dbl&gt;,
+#&gt; #   .config &lt;chr&gt;</code></pre>
+<pre class="r"><code>autoplot(boost_fit)</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-64-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="get-best-model-1" class="section level2" number="15.5">
+<h2><span class="header-section-number">15.5</span> Get best model</h2>
+<pre class="r"><code>boost_best &lt;- 
+  boost_fit %&gt;% 
+  select_best(metric = &quot;roc_auc&quot;)
+boost_best
+#&gt; # A tibble: 1 x 5
+#&gt;    mtry min_n tree_depth learn_rate .config               
+#&gt;   &lt;int&gt; &lt;int&gt;      &lt;int&gt;      &lt;dbl&gt; &lt;chr&gt;                 
+#&gt; 1     3     3          5 0.00000327 Preprocessor1_Model057</code></pre>
+</div>
+<div id="final-fit-1" class="section level2" number="15.6">
+<h2><span class="header-section-number">15.6</span> Final fit</h2>
+<pre class="r"><code>boost_final_wf &lt;- 
+  boost_wf %&gt;% 
+  finalize_workflow(boost_best)</code></pre>
+</div>
+<div id="legacy-code-do-not-run-1" class="section level2" number="15.7">
+<h2><span class="header-section-number">15.7</span> Legacy code, do not run</h2>
+<pre class="r"><code># last_boost_mod &lt;- 
+#   boost_tree(mtry = boost_best[[&quot;mtry&quot;]][1], 
+#              min_n = boost_best[[&quot;min_n&quot;]][1], 
+#              tree_depth = boost_best[[&quot;tree_depth&quot;]][1], 
+#              trees = 1000) %&gt;% 
+#   set_engine(&quot;xgboost&quot;, 
+#              num.threads = cores, 
+#              importance = &quot;impurity&quot;) %&gt;% 
+#   set_mode(&quot;classification&quot;)</code></pre>
+<p>Update workflow with best fit parameters</p>
+<pre class="r"><code># last_boost_workflow &lt;- 
+#   boost_wf %&gt;% 
+#   update_model(last_boost_mod)</code></pre>
+<pre class="r"><code># set.seed(345)
+# last_boost_fit &lt;- 
+#   last_boost_workflow %&gt;% 
+#   fit(data = train)</code></pre>
+</div>
+<div id="fit-final-workflow-1" class="section level2" number="15.8">
+<h2><span class="header-section-number">15.8</span> Fit final workflow</h2>
+<pre class="r"><code>set.seed(345)
+last_boost_results &lt;- 
+  boost_final_wf %&gt;% 
+  last_fit(split_titanic)</code></pre>
+<pre class="r"><code>last_boost_results
+#&gt; # Resampling results
+#&gt; # Manual resampling 
+#&gt; # A tibble: 1 x 6
+#&gt;   splits    id       .metrics   .notes   .predictions  .workflow
+#&gt;   &lt;list&gt;    &lt;chr&gt;    &lt;list&gt;     &lt;list&gt;   &lt;list&gt;        &lt;list&gt;   
+#&gt; 1 &lt;split [… train/t… &lt;tibble [… &lt;tibble… &lt;tibble [418… &lt;workflo…</code></pre>
+</div>
+<div id="predict-test-data-3" class="section level2" number="15.9">
+<h2><span class="header-section-number">15.9</span> Predict test data</h2>
+<pre class="r"><code>boost_preds &lt;- 
+  last_boost_results %&gt;% 
+  collect_predictions() %&gt;% 
+  select(-Survived) %&gt;% 
+  select(PassengerID = .row, Survived = .pred_class)</code></pre>
+<pre class="r"><code>glimpse(boost_preds)
+#&gt; Rows: 418
+#&gt; Columns: 2
+#&gt; $ PassengerID &lt;int&gt; 892, 893, 894, 895, 896, 897, 898, 899, 9…
+#&gt; $ Survived    &lt;fct&gt; 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0,…</code></pre>
+</div>
+<div id="save-predictions-to-disk-3" class="section level2" number="15.10">
+<h2><span class="header-section-number">15.10</span> Save predictions to disk</h2>
+<pre class="r"><code>boost_preds %&gt;% 
+  write_csv(file = &quot;titanic-boost.csv&quot;)</code></pre>
+</div>
+</div>
+<div id="conclusions" class="section level1" number="16">
+<h1><span class="header-section-number">16</span> Conclusions</h1>
+<p><code>tidymodels</code> appear to be a nice framework, but not without some difficulties. I needed some time to wrap my head around it; in effect, I am still picking it up.</p>
+<p>Computing many models in the way I worked here is bound to end up in disaster: Too many object to rename and to keep track off. There are better ways needed such as <a href="https://www.brodrigues.co/blog/2020-03-08-tidymodels/">this one</a>. Alternatively, one might seek shelter in object oriented programming, which is beautiful in theory, but not without complexites. See <a href="https://mlr3book.mlr-org.com/">mlr3</a> for a great implementation.</p>
+</div>
+<div id="similar-work" class="section level1" number="17">
+<h1><span class="header-section-number">17</span> Similar work</h1>
+<p>Here is a quite similar <a href="https://www.kaggle.com/stautxie/titanic-tidymodels-v1">case study on Kaggle</a>.</p>
+</div>
+<div id="more-advanced-work" class="section level1" number="18">
+<h1><span class="header-section-number">18</span> More advanced work</h1>
+<p><a href="https://www.brodrigues.co/blog/2020-03-08-tidymodels/">This is a great case study on tidymodels</a>, by Bruno Rodrigues. Similarly, by the same author, <a href="https://www.brodrigues.co/blog/2018-11-25-tidy_cv/">this post</a>.</p>
+</div>
+<div id="reproducibility" class="section level1" number="19">
+<h1><span class="header-section-number">19</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.0.2 (2020-06-22)
+#&gt;  os       macOS Catalina 10.15.7      
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       RStudio                     
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2020-12-12                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version     date       lib source                             
+#&gt;  assertthat    0.2.1       2019-03-21 [1] CRAN (R 4.0.0)                     
+#&gt;  backports     1.2.0       2020-11-02 [1] CRAN (R 4.0.2)                     
+#&gt;  base64enc     0.1-3       2015-07-28 [1] CRAN (R 4.0.0)                     
+#&gt;  blogdown      0.21        2020-10-11 [1] CRAN (R 4.0.2)                     
+#&gt;  bookdown      0.21        2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  boot          1.3-25      2020-04-26 [2] CRAN (R 4.0.2)                     
+#&gt;  broom       * 0.7.2       2020-10-20 [1] CRAN (R 4.0.2)                     
+#&gt;  callr         3.5.1       2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  cellranger    1.1.0       2016-07-27 [1] CRAN (R 4.0.0)                     
+#&gt;  class         7.3-17      2020-04-26 [2] CRAN (R 4.0.2)                     
+#&gt;  cli           2.2.0       2020-11-20 [1] CRAN (R 4.0.2)                     
+#&gt;  codetools     0.2-16      2018-12-24 [2] CRAN (R 4.0.2)                     
+#&gt;  colorspace    2.0-0       2020-11-11 [1] CRAN (R 4.0.2)                     
+#&gt;  crayon        1.3.4       2017-09-16 [1] CRAN (R 4.0.0)                     
+#&gt;  crosstalk     1.1.0.1     2020-03-13 [1] CRAN (R 4.0.0)                     
+#&gt;  curl          4.3         2019-12-02 [1] CRAN (R 4.0.0)                     
+#&gt;  data.table    1.13.2      2020-10-19 [1] CRAN (R 4.0.2)                     
+#&gt;  DBI           1.1.0       2019-12-15 [1] CRAN (R 4.0.0)                     
+#&gt;  dbplyr        2.0.0       2020-11-03 [1] CRAN (R 4.0.2)                     
+#&gt;  desc          1.2.0       2018-05-01 [1] CRAN (R 4.0.0)                     
+#&gt;  DescTools   * 0.99.38     2020-09-07 [1] CRAN (R 4.0.2)                     
+#&gt;  devtools      2.3.2       2020-09-18 [1] CRAN (R 4.0.2)                     
+#&gt;  dials       * 0.0.9       2020-09-16 [1] CRAN (R 4.0.2)                     
+#&gt;  DiceDesign    1.8-1       2019-07-31 [1] CRAN (R 4.0.0)                     
+#&gt;  digest        0.6.27      2020-10-24 [1] CRAN (R 4.0.2)                     
+#&gt;  dplyr       * 1.0.2       2020-08-18 [1] CRAN (R 4.0.2)                     
+#&gt;  e1071         1.7-4       2020-10-14 [1] CRAN (R 4.0.2)                     
+#&gt;  ellipsis      0.3.1       2020-05-15 [1] CRAN (R 4.0.0)                     
+#&gt;  evaluate      0.14        2019-05-28 [1] CRAN (R 4.0.0)                     
+#&gt;  Exact         2.1         2020-10-02 [1] CRAN (R 4.0.2)                     
+#&gt;  expm          0.999-5     2020-07-20 [1] CRAN (R 4.0.2)                     
+#&gt;  fansi         0.4.1       2020-01-08 [1] CRAN (R 4.0.0)                     
+#&gt;  farver        2.0.3       2020-01-16 [1] CRAN (R 4.0.0)                     
+#&gt;  forcats     * 0.5.0       2020-03-01 [1] CRAN (R 4.0.0)                     
+#&gt;  foreach       1.5.1       2020-10-15 [1] CRAN (R 4.0.2)                     
+#&gt;  fs            1.5.0       2020-07-31 [1] CRAN (R 4.0.2)                     
+#&gt;  furrr         0.2.1       2020-10-21 [1] CRAN (R 4.0.2)                     
+#&gt;  future        1.20.1      2020-11-03 [1] CRAN (R 4.0.2)                     
+#&gt;  generics      0.1.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  ggdendro      0.1.22      2020-09-13 [1] CRAN (R 4.0.2)                     
+#&gt;  ggforce       0.3.2       2020-06-23 [1] CRAN (R 4.0.0)                     
+#&gt;  ggformula   * 0.9.4       2020-03-04 [1] CRAN (R 4.0.0)                     
+#&gt;  ggplot2     * 3.3.2       2020-06-19 [1] CRAN (R 4.0.0)                     
+#&gt;  ggrepel       0.8.2       2020-03-08 [1] CRAN (R 4.0.0)                     
+#&gt;  ggridges    * 0.5.2       2020-01-12 [1] CRAN (R 4.0.0)                     
+#&gt;  ggstance    * 0.3.4       2020-04-02 [1] CRAN (R 4.0.0)                     
+#&gt;  gld           2.6.2       2020-01-08 [1] CRAN (R 4.0.0)                     
+#&gt;  globals       0.14.0      2020-11-22 [1] CRAN (R 4.0.2)                     
+#&gt;  glue          1.4.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  gower         0.2.2       2020-06-23 [1] CRAN (R 4.0.0)                     
+#&gt;  GPfit         1.0-8       2019-02-08 [1] CRAN (R 4.0.0)                     
+#&gt;  gridExtra     2.3         2017-09-09 [1] CRAN (R 4.0.0)                     
+#&gt;  gt          * 0.2.2       2020-08-05 [1] CRAN (R 4.0.2)                     
+#&gt;  gtable        0.3.0       2019-03-25 [1] CRAN (R 4.0.0)                     
+#&gt;  hardhat       0.1.5       2020-11-09 [1] CRAN (R 4.0.2)                     
+#&gt;  haven         2.3.1       2020-06-01 [1] CRAN (R 4.0.0)                     
+#&gt;  highr         0.8         2019-03-20 [1] CRAN (R 4.0.0)                     
+#&gt;  hms           0.5.3       2020-01-08 [1] CRAN (R 4.0.0)                     
+#&gt;  htmltools     0.5.0       2020-06-16 [1] CRAN (R 4.0.0)                     
+#&gt;  htmlwidgets   1.5.2       2020-10-03 [1] CRAN (R 4.0.2)                     
+#&gt;  httr          1.4.2       2020-07-20 [1] CRAN (R 4.0.2)                     
+#&gt;  infer       * 0.5.3       2020-07-14 [1] CRAN (R 4.0.2)                     
+#&gt;  ipred         0.9-9       2019-04-28 [1] CRAN (R 4.0.0)                     
+#&gt;  iterators     1.0.13      2020-10-15 [1] CRAN (R 4.0.2)                     
+#&gt;  jsonlite      1.7.1       2020-09-07 [1] CRAN (R 4.0.2)                     
+#&gt;  knitr         1.30        2020-09-22 [1] CRAN (R 4.0.2)                     
+#&gt;  labeling      0.4.2       2020-10-20 [1] CRAN (R 4.0.2)                     
+#&gt;  lattice     * 0.20-41     2020-04-02 [2] CRAN (R 4.0.2)                     
+#&gt;  lava          1.6.8.1     2020-11-04 [1] CRAN (R 4.0.2)                     
+#&gt;  leaflet       2.0.3       2019-11-16 [1] CRAN (R 4.0.0)                     
+#&gt;  lhs           1.1.1       2020-10-05 [1] CRAN (R 4.0.2)                     
+#&gt;  lifecycle     0.2.0       2020-03-06 [1] CRAN (R 4.0.0)                     
+#&gt;  listenv       0.8.0       2019-12-05 [1] CRAN (R 4.0.0)                     
+#&gt;  lmom          2.8         2019-03-12 [1] CRAN (R 4.0.0)                     
+#&gt;  lubridate     1.7.9.2     2020-11-13 [1] CRAN (R 4.0.2)                     
+#&gt;  magrittr      2.0.1       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  MASS          7.3-53      2020-09-09 [1] CRAN (R 4.0.2)                     
+#&gt;  Matrix      * 1.2-18      2019-11-27 [2] CRAN (R 4.0.2)                     
+#&gt;  memoise       1.1.0       2017-04-21 [1] CRAN (R 4.0.0)                     
+#&gt;  modeldata   * 0.1.0       2020-10-22 [1] CRAN (R 4.0.2)                     
+#&gt;  modelr        0.1.8       2020-05-19 [1] CRAN (R 4.0.0)                     
+#&gt;  mosaic      * 1.8.2       2020-09-16 [1] CRAN (R 4.0.2)                     
+#&gt;  mosaicCore    0.8.0       2020-09-13 [1] CRAN (R 4.0.2)                     
+#&gt;  mosaicData  * 0.20.1      2020-09-13 [1] CRAN (R 4.0.2)                     
+#&gt;  munsell       0.5.0       2018-06-12 [1] CRAN (R 4.0.0)                     
+#&gt;  mvtnorm       1.1-1       2020-06-09 [1] CRAN (R 4.0.0)                     
+#&gt;  nnet          7.3-14      2020-04-26 [2] CRAN (R 4.0.2)                     
+#&gt;  parallelly    1.21.0      2020-10-27 [1] CRAN (R 4.0.2)                     
+#&gt;  parsnip     * 0.1.4       2020-10-27 [1] CRAN (R 4.0.2)                     
+#&gt;  pillar        1.4.7       2020-11-20 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgbuild      1.1.0       2020-07-13 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgconfig     2.0.3       2019-09-22 [1] CRAN (R 4.0.0)                     
+#&gt;  pkgload       1.1.0       2020-05-29 [1] CRAN (R 4.0.0)                     
+#&gt;  plyr          1.8.6       2020-03-03 [1] CRAN (R 4.0.0)                     
+#&gt;  polyclip      1.10-0      2019-03-14 [1] CRAN (R 4.0.0)                     
+#&gt;  prettyunits   1.1.1       2020-01-24 [1] CRAN (R 4.0.0)                     
+#&gt;  pROC          1.16.2      2020-03-19 [1] CRAN (R 4.0.0)                     
+#&gt;  processx      3.4.5       2020-11-30 [1] CRAN (R 4.0.2)                     
+#&gt;  prodlim       2019.11.13  2019-11-17 [1] CRAN (R 4.0.0)                     
+#&gt;  ps            1.4.0       2020-10-07 [1] CRAN (R 4.0.2)                     
+#&gt;  purrr       * 0.3.4       2020-04-17 [1] CRAN (R 4.0.0)                     
+#&gt;  R6            2.5.0       2020-10-28 [1] CRAN (R 4.0.2)                     
+#&gt;  ranger      * 0.12.1      2020-01-10 [1] CRAN (R 4.0.0)                     
+#&gt;  Rcpp          1.0.5       2020-07-06 [1] CRAN (R 4.0.2)                     
+#&gt;  readr       * 1.4.0       2020-10-05 [1] CRAN (R 4.0.2)                     
+#&gt;  readxl        1.3.1       2019-03-13 [1] CRAN (R 4.0.0)                     
+#&gt;  recipes     * 0.1.15      2020-11-11 [1] CRAN (R 4.0.2)                     
+#&gt;  remotes       2.2.0       2020-07-21 [1] CRAN (R 4.0.2)                     
+#&gt;  repr          1.1.0       2020-01-28 [1] CRAN (R 4.0.0)                     
+#&gt;  reprex        0.3.0       2019-05-16 [1] CRAN (R 4.0.0)                     
+#&gt;  rlang       * 0.4.9       2020-11-26 [1] CRAN (R 4.0.2)                     
+#&gt;  rmarkdown     2.5         2020-10-21 [1] CRAN (R 4.0.2)                     
+#&gt;  rootSolve     1.8.2.1     2020-04-27 [1] CRAN (R 4.0.2)                     
+#&gt;  rpart         4.1-15      2019-04-12 [2] CRAN (R 4.0.2)                     
+#&gt;  rprojroot     2.0.2       2020-11-15 [1] CRAN (R 4.0.2)                     
+#&gt;  rsample     * 0.0.8       2020-09-23 [1] CRAN (R 4.0.2)                     
+#&gt;  rstudioapi    0.13.0-9000 2020-12-09 [1] Github (rstudio/rstudioapi@4baeb39)
+#&gt;  rvest         0.3.6       2020-07-25 [1] CRAN (R 4.0.2)                     
+#&gt;  scales      * 1.1.1       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  sessioninfo   1.1.1       2018-11-05 [1] CRAN (R 4.0.0)                     
+#&gt;  skimr       * 2.1.2       2020-07-06 [1] CRAN (R 4.0.0)                     
+#&gt;  slider        0.1.5       2020-07-21 [1] CRAN (R 4.0.2)                     
+#&gt;  stringi       1.5.3       2020-09-09 [1] CRAN (R 4.0.2)                     
+#&gt;  stringr     * 1.4.0       2019-02-10 [1] CRAN (R 4.0.0)                     
+#&gt;  survival      3.2-7       2020-09-28 [1] CRAN (R 4.0.2)                     
+#&gt;  testthat      3.0.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  tibble      * 3.0.4       2020-10-12 [1] CRAN (R 4.0.2)                     
+#&gt;  tidymodels  * 0.1.2       2020-11-22 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyr       * 1.1.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyselect    1.1.0       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  tidyverse   * 1.3.0       2019-11-21 [1] CRAN (R 4.0.0)                     
+#&gt;  timeDate      3043.102    2018-02-21 [1] CRAN (R 4.0.0)                     
+#&gt;  tune        * 0.1.2       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  tweenr        1.0.1       2018-12-14 [1] CRAN (R 4.0.0)                     
+#&gt;  usethis       1.6.3       2020-09-17 [1] CRAN (R 4.0.2)                     
+#&gt;  utf8          1.1.4       2018-05-24 [1] CRAN (R 4.0.0)                     
+#&gt;  vctrs       * 0.3.5       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  warp          0.2.0       2020-10-21 [1] CRAN (R 4.0.2)                     
+#&gt;  withr         2.3.0       2020-09-22 [1] CRAN (R 4.0.2)                     
+#&gt;  workflows   * 0.2.1       2020-10-08 [1] CRAN (R 4.0.2)                     
+#&gt;  xfun          0.19        2020-10-30 [1] CRAN (R 4.0.2)                     
+#&gt;  xgboost     * 1.2.0.1     2020-09-02 [1] CRAN (R 4.0.2)                     
+#&gt;  xml2          1.3.2       2020-04-23 [1] CRAN (R 4.0.0)                     
+#&gt;  yaml          2.2.1       2020-02-01 [1] CRAN (R 4.0.0)                     
+#&gt;  yardstick   * 0.0.7       2020-07-13 [1] CRAN (R 4.0.2)                     
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Rlibs
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre>
+</div>

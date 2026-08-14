@@ -1,0 +1,282 @@
+---
+title: Beispiel für eine Vorwärts-schrittweise-Regression
+author: Sebastian Sauer
+date: '2020-12-10'
+slug: beispiel-für-eine-vorwärts-schrittweise-regression
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+
+# Hintergrund
+
+
+Diese Übung bezieht sich auf [ISRS](https://www.openintro.org/book/isrs/), Kap. 6.2.
+
+
+# Achtung
+
+
+Gelman hasst schrittweise Regression ...
+
+
+
+# Pakete
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(broom)  # tidy Regressionsoutput
+library(skimr)  # EDA
+library(moderndive)  # Komfort
+library(olsrr)  # Schrittweise Regression
+```
+
+
+# Daten laden
+
+Auf [dieser Seite](https://www.openintro.org/data/index.php?data=mariokart) sind die Daten zu finden.
+
+
+```{r}
+d <- read_csv("https://www.openintro.org/data/csv/mariokart.csv")
+```
+("d" wie *D*aten.)
+
+
+Wir werfen einen Blick in die Daten:
+
+```{r}
+glimpse(d)
+```
+
+
+Oder lieber so:
+
+```{r}
+skim(d)
+```
+
+# Fehlende Werte
+
+Fehlende Werte können Probleme bereiten. Entfernen wir einfach alle fehlenden Werte, es sind ja nicht so viele.
+
+
+```{r}
+d_nona <- d %>%   # nona wie "no NA", keine fehlenden Werte
+  drop_na()
+```
+
+
+
+
+# Modell 0
+
+
+```{r}
+lm0 <- lm(total_pr ~ 1, data = d_nona)
+```
+
+
+Wie ist das R-Quadrat?
+
+```{r}
+summary(lm0)
+```
+
+
+Oder so:
+
+```{r}
+lm0_guete <- glance(lm0)
+lm0_guete
+```
+
+
+Nur das `adj.r.squared`:
+
+
+```{r}
+lm0_guete %>% 
+  select(adj.r.squared)
+```
+
+# Modelle mit einer Variablen (`lm1`)
+
+Jetzt probieren wir alle Prädiktoren aus, um zu sehen, welche zum höchsten $R^2$-Wert führt.
+
+
+## lm1a
+
+```{r}
+lm1a <- lm(total_pr ~ duration, data = d_nona)
+```
+
+```{r}
+glance(lm1a) %>% 
+  select(adj.r.squared)
+```
+
+
+## lm1b
+
+```{r}
+lm1b <- lm(total_pr ~ n_bids, data = d_nona)
+```
+
+```{r}
+glance(lm1b) %>% 
+  select(adj.r.squared)
+```
+
+
+
+## lm1c
+
+```{r}
+lm1c <- lm(total_pr ~ cond, data = d_nona)
+```
+
+```{r}
+glance(lm1c) %>% 
+  select(adj.r.squared)
+```
+
+
+## Moment mal...
+
+
+Es muss einen besseren Weg geben, das ist auf die Dauer zu umständlich.
+
+
+# Automatisiertes Vorwärts-Regression
+
+
+Zuerst legen wir fest, wie das maximal große Modell aussehen soll, bzw. welche Prädiktoren im maximal großen Modell enthalten sein sollen. Sagen wir b alle.
+
+
+
+
+
+Dann sieht das Modell so aus.
+
+```{r}
+lm_alle <- lm(total_pr ~ ., 
+            data = d_nona)  # kann etwas Zeit brauchen
+```
+
+
+
+
+```{r}
+vorwaerts <- step(object = lm0, 
+                  direction = 'forward', 
+                  scope = formula(lm_alle), 
+                  trace = 0)  # Infos zum Fortschritt ausdrucken?
+```
+
+
+
+
+
+
+Dieses Vorgehen nennt man schrittweise (Vorwärts-)Regression.
+
+
+Schauen wir uns das Ergebnis an:
+
+
+
+```{r}
+tidy(vorwaerts)
+```
+
+
+Und wie gut ist das $R^2$?
+
+
+```{r}
+glance(vorwaerts)
+```
+
+Yeah!
+
+
+
+# Modellgüten der Modelle mit einem Prädiktor
+
+Wir speichern und mal die Namen der Prädiktoren in einem Vektor; kann man vielleicht ja noch später gebrauchen ...
+
+```{r}
+predictor_names <- 
+  d_nona %>% 
+  select(-c(id, total_pr)) %>% 
+  names()
+```
+
+Voila: 
+
+```{r}
+predictor_names
+```
+
+
+```{r}
+modellguete_1pred <- 
+  d_nona %>% 
+  select(-c(id, total_pr)) %>% 
+  map_dfr( ~ lm(total_pr ~ .x, data = d_nona) %>% glance()) %>% 
+  mutate(predictor = predictor_names) %>% 
+  select(predictor, everything()) 
+
+modellguete_1pred  
+```
+
+Und dann stellen wir das grafisch dar:
+
+```{r}
+modellguete_1pred %>% 
+  ggplot(aes(x = reorder(predictor, -r.squared), y = r.squared)) +
+  geom_point(size = 5, color = "red", alpha = .7)
+```
+
+Welcher Prädiktor sollte also in einer Vorwärts-Regression als erstes aufgenommen werden (auf Basis dieser Ergebnisse)?
+
+
+
+
+
+
+# Reproduzierbarkeit
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

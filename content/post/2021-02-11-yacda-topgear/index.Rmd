@@ -1,0 +1,415 @@
+---
+title: 'YACSDA: Topgear'
+author: Sebastian Sauer
+date: '2021-02-11'
+slug: yacda-topgear
+categories:
+  
+tags:
+  - tutorial
+  - eda
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(skimr)  # overview on descriptive statistics
+```
+
+
+```{r include=FALSE}
+library(printr)
+```
+
+
+___
+YADCSDA in German language.
+
+___
+
+
+In dieser Fallstudie (YACSDA: Yet another case study of data analysis) wird der Datensatz `TopGear` analysiert, vor allem mit grafischen Mitteln. Es handelt sich weniger um einen "Rundumschlag" zur Beantwortung aller möglichen interessanten Fragen (oder zur Demonstration aller möglichen Analysewerkzeuge), sondern eher um einen Einblick zu einfachen explorativen Verfahren.
+
+
+
+
+```{r}
+library(robustHD)  # Daten
+data(TopGear)  # Daten aus Package laden
+library(tidyverse)
+```
+
+
+
+## Numerischer Überblick
+
+```{r}
+glimpse(TopGear)
+```
+
+```{r}
+TopGear %>% 
+  select(Maker, Model, Type, Price, Cylinders) %>% 
+  slice(1:10)
+```
+
+
+
+## Wie verteilen sich die Preise?
+
+
+```{r}
+ggplot(data = TopGear,
+       aes(x = Price)) +
+  geom_histogram()
+```
+
+
+
+```{r}
+ggplot(data = TopGear,
+       aes(x = log(Price))) +
+  geom_histogram()
+```
+
+```{r}
+ggplot(data = TopGear,
+       aes(x = log(Price))) +
+  geom_density()
+```
+
+
+```{r}
+ggplot(data = TopGear,
+       aes(x = log(Price),
+           fill = Origin)) +
+  geom_density(alpha = .5)
+```
+
+
+
+## Wie ist der Zusammenhang von Preis und Beurteilung des Autos?
+
+
+```{r}
+ggplot(TopGear,
+       aes(x = Price, y = Verdict)) +
+  geom_jitter()
+```
+
+
+```{r}
+ggplot(TopGear,
+       aes(x = log(Price), y = Verdict)) +
+  geom_jitter()
+```
+
+
+
+
+```{r}
+ggplot(TopGear,
+       aes(x = log(Price), y = Verdict, color = Origin)) +
+  geom_jitter()
+```
+
+
+
+# Wie verteilt sich das Gewicht der Autos?
+
+
+```{r}
+ggplot(TopGear,
+       aes(x = Weight)) +
+  geom_density()
+```
+
+
+```{r}
+ggplot(TopGear,
+       aes(x = Weight,
+           fill = Origin)) +
+  geom_density(alpha = .5)
+```
+
+
+
+
+# Hängt Gewicht mit Preis zusammen?
+
+
+
+```{r}
+TopGear %>% 
+  ggplot(aes(x = Weight, y = Verdict, color = Origin)) +
+  geom_jitter()
+```
+
+
+
+# Wie verteilt sich die Geschwindigkeit der Autos?
+
+
+
+```{r}
+ggplot(TopGear,
+       aes(x = TopSpeed,
+           fill = Origin)) +
+  geom_density(alpha = .5)
+```
+
+
+
+# Hängt Preis mit Geschwindigkeit zusammen?
+
+
+
+
+```{r}
+TopGear %>% 
+  ggplot(aes(x = TopSpeed, y = log(Price), color = Origin)) +
+  geom_jitter()
+```
+
+
+
+
+## Wie hängt Geschwindigkeit mit Beurteilung zusammen?
+
+
+
+```{r}
+TopGear %>% 
+  ggplot(aes(x = TopSpeed, y = Verdict)) +
+  geom_jitter()
+```
+
+
+
+## Welche Hersteller hat die meisten Autotypen?
+
+
+```{r}
+Maker_freq <-
+  TopGear %>%
+  select(Maker) %>%
+  count(Maker) %>%
+  arrange(desc(Maker))
+
+Maker_freq
+```
+
+```{r}
+Maker_Verdict <-
+  TopGear %>%
+  group_by(Maker)  %>%
+  summarise(n = n(),
+            Verdict_mean = mean(Verdict),
+            Price_mean = mean(Price, na.rm = T)) %>%
+  arrange(desc(Verdict_mean))
+
+glimpse(Maker_Verdict)
+```
+
+
+```{r}
+ggplot(Maker_Verdict, aes(x = reorder(Maker, Verdict_mean), y = Verdict_mean)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+```
+
+
+
+## Die 10% größten Hersteller
+
+
+```{r}
+Big10perc <-
+  Maker_Verdict %>%
+  filter(percent_rank(n) > .9)
+```
+
+
+
+## Beliebtheit der 10% größten Hersteller
+
+```{r}
+Maker_Verdict %>%
+  filter(percent_rank(n) > .89) %>%
+  ggplot(., aes(x = reorder(Maker, Verdict_mean), y = Verdict_mean)) +
+           geom_bar(stat = "identity") +
+  coord_flip()
+```
+
+
+
+## Milttlerer Preis der 10% größten Hersteller
+
+```{r}
+Maker_Verdict %>%
+  filter(percent_rank(n) > .89) %>%
+  ggplot(., aes(x = reorder(Maker, Price_mean), y = Price_mean)) +
+  geom_bar(stat = "identity") +
+  coord_flip()
+```
+
+
+
+
+## Überblick zu den 10% größten Hersteller
+
+
+```{r}
+TopGear %>%
+  filter(Maker %in% Big10perc$Maker) %>%
+  skim()
+```
+
+
+
+## Anzahl Modellytypen der großen Hersteller als Torte (hüstel)
+
+`
+```{r}
+ggplot(Big10perc, aes(x = Maker, y = n, fill = Maker)) + coord_polar() +
+  geom_bar(stat="identity")
+```
+
+Torten stehen nicht auf dem Speiseplan...
+
+
+## Anzahl Modellytypen der großen Hersteller
+
+
+```{r}
+ggplot(Big10perc, aes(x = Maker, y = n, fill = Maker)) +
+  geom_bar(stat="identity") + coord_flip()
+```
+
+
+
+## Preisverteilung der 10% größten Hersteller
+
+```{r}
+TopGear %>%
+  filter(Maker %in% Big10perc$Maker) %>%
+  qplot(data = ., x = Price)
+```
+
+
+```{r}
+TopGear %>%
+  filter(Maker %in% Big10perc$Maker) %>%
+  qplot(data = ., y = Price, x = Maker)
+```
+
+
+
+```{r}
+TopGear %>%
+  filter(Maker %in% Big10perc$Maker) %>%
+  qplot(data = ., y = Price, x = Maker, geom = "violin")
+```
+
+
+
+
+
+
+## Beliebtheitsverteilung der 10% größten Hersteller
+
+
+```{r}
+TopGear %>%
+  filter(Maker %in% Big10perc$Maker) %>%
+  ggplot(aes(y = Verdict, x = Maker)) +
+  geom_violin()
+```
+
+
+
+
+
+## Hängt Beschleunigung mit dem Preis zusammen?
+
+
+```{r}
+ggplot(TopGear, aes(x = Acceleration, y = Price)) + geom_hex()
+```
+
+
+
+```{r}
+ggplot(TopGear, aes(x = Acceleration, y = log(Price))) + geom_hex()
+```
+
+
+```{r}
+ggplot(TopGear, aes(x = Acceleration, y = log(Price))) + geom_jitter() +
+  geom_smooth()
+```
+
+
+
+## Hängt Beschleunigung mit Beurteilung zusammen? - Nur die großen Hersteller
+
+
+```{r}
+ggplot(TopGear, aes(x = Acceleration, y = log(Price))) + geom_jitter() +
+  geom_smooth()
+```
+
+
+## Hängt die Verwendung bestimmter Sprit-Arten mit dem Kontinent zusammen?
+
+
+```{r}
+ggplot(TopGear, aes(x = Origin, y = Fuel, color = Origin)) + geom_jitter()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

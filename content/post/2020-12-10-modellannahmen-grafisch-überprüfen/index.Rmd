@@ -1,0 +1,160 @@
+---
+title: Modellannahmen grafisch überprüfen
+author: Sebastian Sauer
+date: '2020-12-10'
+slug: modellannahmen-grafisch-überprüfen
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+# Hintergrund
+
+
+Diese Übung bezieht sich auf [ISRS](https://www.openintro.org/book/isrs/), Kap. 6.3.
+
+
+# Pakete
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+#library(broom)  # tidy Regressionsoutput
+library(skimr)  # EDA
+library(moderndive)  # Komfort
+```
+
+
+# Daten laden
+
+Auf [dieser Seite](https://www.openintro.org/data/index.php?data=mariokart) sind die Daten zu finden.
+
+
+```{r}
+d <- read_csv("https://www.openintro.org/data/csv/mariokart.csv")
+```
+("d" wie *D*aten.)
+
+
+Wir werfen einen Blick in die Daten:
+
+```{r}
+glimpse(d)
+```
+
+
+Oder lieber so:
+
+```{r}
+skim(d)
+```
+
+# Fehlende Werte
+
+Fehlende Werte können Probleme bereiten. Entfernen wir einfach alle fehlenden Werte, es sind ja nicht so viele.
+
+
+```{r}
+d_nona <- d %>%   # nona wie "no NA", keine fehlenden Werte
+  drop_na()
+```
+
+
+
+# Modell 1
+
+Betrachten wir dieses Modell:
+
+
+```{r}
+lm1 <- lm(total_pr ~ wheels, data = d_nona)
+```
+
+
+```{r}
+get_regression_summaries(lm1)
+```
+
+
+```{r}
+get_regression_table(lm1)
+```
+
+
+
+# Überprüfen der Annahmen
+
+
+Die vorhergesagten Werte und die Residuen kann man sich so ausgeben lassen:
+
+```{r}
+get_regression_points(lm1)
+```
+
+
+## Linearität
+
+
+```{r}
+get_regression_points(lm1) %>% 
+  ggplot(aes(x = wheels, y = residual)) +
+  geom_point()
+```
+
+
+Hier böte es sich an, zunächst auf Ausreißer hin zu kontrollieren.
+
+
+## Varianzgleichheit der Residuen
+
+
+```{r}
+get_regression_points(lm1) %>% 
+  ggplot(aes(x = total_pr_hat, y = abs(residual))) +
+  geom_point()
+```
+
+
+## Normalverteilung der Residuen
+
+
+```{r}
+get_regression_points(lm1) %>% 
+  ggplot(aes(x = residual)) +
+  geom_density()
+```
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

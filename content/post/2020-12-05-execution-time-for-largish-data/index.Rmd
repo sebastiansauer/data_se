@@ -1,0 +1,271 @@
+---
+title: Execution time for largish data
+author: Sebastian Sauer
+date: '2020-12-05'
+slug: execution-time-for-largish-data
+categories:
+  
+tags:
+  - stats
+output:
+  blogdown::html_page:
+    toc: true
+    number_sections: TRUE
+    
+---
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Motivation
+
+
+In this post, we play around with some largish data set, approx. 1 GB, ~1.5 mio. rows. Primarily, we'll have a look at execution times.
+
+
+# Setup
+
+
+```{r warning = FALSE, messages = FALSE, results="hide"}
+library(tidyverse)  # data wrangling
+library(data.table)  # fast data wrangling
+library(lubridate)  # time/data wrangling
+library(forcats)  # factor type variable wrangling
+library(conflicted)  # name clashes
+```
+
+
+# Data set 1
+
+
+We'll use the official NYC taxi commission data set(s), access from [here](https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page). Let's take the most recent month available for Yellow cabs, that is the [June 2020 data set](https://s3.amazonaws.com/nyc-tlc/trip+data/yellow_tripdata_2020-06.csv).
+
+For the sake of disk space usage, I'll access my own copy. Please download yours on your own.
+
+
+
+## Import data
+
+
+### Download from website
+
+```{r}
+t1 <- Sys.time()
+taxi1 <- read_csv("https://s3.amazonaws.com/nyc-tlc/trip+data/yellow_tripdata_2020-06.csv")
+t2 <- Sys.time()
+t2-t1
+```
+
+
+  
+
+This will depend on the speed of your internet connection.
+
+### Import from local disk
+
+
+```{r}
+d1_path <- "/Users/sebastiansaueruser/datasets/NYC-taxi/yellow_tripdata_2020-06.csv"
+```
+
+### using `read_csv()`
+
+```{r}
+t1 <- Sys.time()
+taxi1 <- read_csv(d1_path)
+t2 <- Sys.time()
+t2 - t1
+```
+
+
+### Using `fread()`
+
+
+```{r}
+t1 <- Sys.time()
+taxi1 <- fread(d1_path)
+t2 <- Sys.time()
+
+t2-t1
+
+```
+
+## Data set size
+
+```{r}
+dim(taxi1)
+```
+
+Object size in MB:
+
+```{r}
+object.size(taxi1) / 1024 / 1024
+```
+
+
+
+## Typical data wrangling
+
+```{r}
+t1 <- Sys.time()
+
+taxi1 %>% 
+  select(VendorID, tpep_pickup_datetime,payment_type, tip_amount, total_amount) %>%
+  drop_na() %>% 
+  mutate(tip_proportion = tip_amount / total_amount,
+         hour = lubridate::hour(tpep_pickup_datetime)) %>% 
+  group_by(payment_type, hour) %>% 
+  summarise(tip_prop_max = max(tip_proportion)) %>% 
+  arrange(-tip_prop_max) -> taxi1_summary1
+
+t2 <- Sys.time()
+time_taken <- t2 - t1
+```
+
+
+
+Time taken:
+
+```{r}
+time_taken
+```
+
+
+Output:
+
+```{r}
+taxi1_summary1
+```
+
+
+
+
+
+# Data Set 2
+
+
+Yellow taxi cab rides of 2020-01, some 500 MB. [Here's](https://s3.amazonaws.com/nyc-tlc/trip+data/yellow_tripdata_2020-01.csv) the download link to the csv file.
+
+
+```{r}
+d2_path <- "/Users/sebastiansaueruser/datasets/NYC-taxi/yellow_tripdata_2020-01.csv"
+```
+
+
+## Import data 
+
+### using `read_csv()`
+
+```{r}
+t1 <- Sys.time()
+taxi2 <- read_csv(d2_path)
+t2 <- Sys.time()
+t2 - t1
+```
+
+
+### Using `fread()`
+
+
+```{r}
+t1 <- Sys.time()
+taxi2 <- fread(d2_path)
+t2 <- Sys.time()
+
+t2-t1
+
+```
+
+
+
+
+## Data set size
+
+```{r}
+dim(taxi2)
+```
+
+
+
+Object size in MB:
+
+```{r}
+object.size(taxi2) / 1024 / 1024
+```
+
+
+## Typical data wrangling
+
+```{r}
+t1 <- Sys.time()
+
+taxi2 %>% 
+  select(VendorID, tpep_pickup_datetime,payment_type, tip_amount, total_amount) %>%
+  drop_na() %>% 
+  mutate(tip_proportion = tip_amount / total_amount,
+         hour = lubridate::hour(tpep_pickup_datetime)) %>% 
+  group_by(payment_type, hour) %>% 
+  summarise(tip_prop_max = max(tip_proportion)) %>% 
+  arrange(-tip_prop_max) -> taxi2_summary1
+
+t2 <- Sys.time()
+time_taken <- t2 - t1
+```
+
+Time taken:
+
+```{r}
+time_taken
+```
+
+
+Output:
+
+```{r}
+taxi2_summary1
+```
+
+
+## Data viz
+
+This will be fast, as we work with the summarized data set.
+
+
+```{r}
+taxi2_summary1 %>% 
+  dplyr::filter(payment_type == 4) %>% 
+  mutate(hour = factor(hour)) %>% 
+  mutate(hour = fct_reorder(hour, tip_prop_max, max)) %>%
+  ggplot(aes(x = hour, y = tip_prop_max)) +
+  geom_point(color = "red", alpha = .7, size = 5) 
+```
+
+
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+```

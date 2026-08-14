@@ -1,0 +1,65 @@
+---
+title: Benötigte R-Pakete für ein Projekt prüfen
+author: Sebastian Sauer
+date: '2024-10-11'
+tags:
+  - r
+  - dependencies
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#packages" id="toc-packages"><span class="toc-section-number">1</span> Packages</a></li>
+<li><a href="#motivation" id="toc-motivation"><span class="toc-section-number">2</span> Motivation</a></li>
+<li><a href="#find-out-missing-packages" id="toc-find-out-missing-packages"><span class="toc-section-number">3</span> Find out missing packages</a></li>
+<li><a href="#install-missing-packages-from-cran" id="toc-install-missing-packages-from-cran"><span class="toc-section-number">4</span> Install missing packages from CRAN</a></li>
+<li><a href="#install-non-cran-packages" id="toc-install-non-cran-packages"><span class="toc-section-number">5</span> Install non-CRAN packages</a></li>
+</ul>
+</div>
+
+<div id="packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Packages</h1>
+<pre class="r"><code>library(renv)</code></pre>
+</div>
+<div id="motivation" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Motivation</h1>
+<p>Assume you find a cool repo or some online-book and you want to run the R code.
+You might want to check if you have all the required packages installed.
+This is what this post is about. We will use the <code>usethis</code> package to check if all required packages are installed.</p>
+</div>
+<div id="find-out-missing-packages" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Find out missing packages</h1>
+<p>Of course, in some R project you can and should check the <code>DESCRIPTION</code> file for details on the needed or suggested R pacakges.</p>
+<p>But, for projects other than R packages (and even for R packages),
+there’s a function that checks the dependencies:</p>
+<pre class="r"><code>deps &lt;- dependencies(path = &quot;content&quot;, quiet = FALSE, progress = TRUE)
+
+deps$Package |&gt; unique() |&gt; head()</code></pre>
+<p>Okay, now we know which packages are needed.</p>
+<p>You may want to save the list of your installed packages. This may prove handy after updating a new version of R such as from 4.4.0 to 4.5.</p>
+<pre class="r"><code>writeRDS(deps, &quot;deps.rds&quot;)</code></pre>
+</div>
+<div id="install-missing-packages-from-cran" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Install missing packages from CRAN</h1>
+<p>Next, we can install them if they are not already installed:</p>
+<pre class="r"><code>install_if_missing &lt;- function(package) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package)
+  }
+}</code></pre>
+<p>Note that this function is not perfect. It does not check the version of the package.
+In addition, it only installs from CRAN.</p>
+<p>Loop through the list and install any missing packages:</p>
+<pre class="r"><code>invisible(lapply(deps$Package, install_if_missing))</code></pre>
+</div>
+<div id="install-non-cran-packages" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Install non-CRAN packages</h1>
+<p>If you have non-CRAN packages, you can install them from GitHub or other sources:</p>
+<pre class="r"><code>library(&quot;remotes&quot;)
+install_github(&quot;sebastiansauer/prada&quot;)</code></pre>
+</div>

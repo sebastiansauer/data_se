@@ -1,0 +1,166 @@
+---
+title: Median minimiert Absolutabweichungen
+author: Sebastian Sauer
+date: '2022-04-08'
+slug: median-minimiert-absolutabweichungen
+categories:
+  - rstats
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny",
+  echo = TRUE
+)
+```
+
+
+```{r}
+library(tidyverse)
+```
+
+
+
+# Behauptung
+
+Der Median $md$ minimiert die Absolutabweichungen der $x_i$ zu einem Wert $c$, eben der ist Median:
+
+$\text{arg min}_c \sum_{i=1}^n|(x_i - c)|$.
+
+Mit anderen Worten: Es gibt keine andere Zahl, für die obige Summe einen kleineren Wert liefert,
+so die Behauptung.
+
+Nennen wir die Summe der Absolutabweichungen $e(c) = \sum_{i=1}^n|(x_i - c)|$.
+
+
+# Beweis 1
+
+Betrachten wir zwei reelle Zahlen, $a < b$.
+Dann ist unser Ziel
+
+$$dist(a,b) = |c - a| + |x+c|$$
+
+Dieser Ausdruck erreicht sein Minimum wenn $a \le c \le b$.
+
+Das kann gezeigt werden, indem man `dist` für die drei Fälle berechnet:
+
+1. $c < a$
+2. $a \le c \le b$
+3. $b < c$
+
+Die folgenden Abbildungen veranschaulichen diese drei Fälle.
+
+```{r}
+d1 <-
+  tibble(
+    point = c("a", "c", "b"),
+    y = c(0, 0, 0),
+    x = c(0, 1, 2)
+  )
+
+ggplot(d1, aes(x, y)) +
+  theme_minimal() +
+  geom_label(aes(label = point)) +
+  labs(title = "A")
+
+
+d2 <-
+  tibble(
+    point = c("c", "a", "b"),
+    y = c(0, 0, 0),
+    x = c(0, 1, 2)
+  )
+
+ggplot(d2, aes(x, y)) +
+  theme_minimal() +
+  geom_label(aes(label = point)) +
+  labs(title = "B")
+
+
+
+d3 <-
+  tibble(
+    point = c("a", "b", "c"),
+    y = c(0, 0, 0),
+    x = c(0, 1, 2)
+  )
+
+ggplot(d3, aes(x, y)) +
+  theme_minimal() +
+  geom_label(aes(label = point)) +
+  labs(title = "C")
+
+```
+
+
+Als nächstes betrachten wir den allgemeinen Fall mit $n$ Beobachtungen. 
+
+Zunächst sortieren wir die Werte aufsteigend als $s_1, s_2, \ldots, s_n$.
+
+Aus dem kleinsten und größten Wert, $s_1, s_n$ bilden wir ein Paar.
+Wie oben erläutert, ist $dist(s_1, s_n)$ minimal wenn $s_1 \le c \le s_n$.
+Wir entfernen daher die beiden Elemente $s_1, s_n$ aus der Liste und
+wiederholen die Prozedur bis höchsten ein Element in unserer Liste verbleibt.
+
+Wenn ein Element $s_i$ übrig ist, dann ist $c=s_i$ und $s_i$ minimiert $dist(c - s_i)$.
+Dieses Element liegt auch zwischen allen anderen Paaren.
+
+Bei einer geraden Zahl an Elementen wird zum Schluss kein Element in der Liste übrig bleiben.
+Wie im oberen Fall liegt dann der Median (irgendwo) zwischen den beiden Elementen des innersten Paars und damit auch zwischen allen Paaren.
+
+
+
+
+
+# Beweis 2
+
+
+Leiten wir $e(c)$ ab, bekommen wir:
+
+$\sum_{i=1}^n \text{sign}(x_i - c)$
+
+Dieser Ausdruck ist genau dann Null, wenn es gleich viele positive wie negative Elemente gibt.
+Das passiert wenn $c =  \text{median}(x_1, x_2, \ldots, x_n)$.
+
+Dabei gibt $\text{sign}(\cdot)$ das Vorzeichen zurück. 
+Wir zählen also, viele Elemente größer sind als $c$ und wie viele kleiner.
+
+Zur Definition von $sign$: $\text{sign} := \frac{d |x|}{dx}$.
+
+
+
+# Quellen
+
+Es gibt viele Orte, wo man die Ableitung nachlesen kann, z.B. [diese](https://math.stackexchange.com/questions/113270/the-median-minimizes-the-sum-of-absolute-deviations-the-ell-1-norm) ist nützlich.
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

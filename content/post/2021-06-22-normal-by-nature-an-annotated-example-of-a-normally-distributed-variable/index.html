@@ -1,0 +1,178 @@
+---
+title: Normal by nature? An annotated example of a normally distributed variable
+author: Sebastian Sauer
+draft: true
+date: '2021-06-22'
+slug: normal-by-nature-an-annotated-example-of-a-normally-distributed-variable
+categories:
+  - rstats
+tags:
+  - tutorial
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>library(tidyverse)
+library(ggpubr)
+library(ggh4x)</code></pre>
+<pre class="r"><code>d &lt;- read_csv(&quot;https://vincentarelbundock.github.io/Rdatasets/csv/openintro/speed_gender_height.csv&quot;)</code></pre>
+</div>
+<div id="histogram-of-height" class="section level1">
+<h1>Histogram of height</h1>
+<div id="for-each-sex-group-separately" class="section level2">
+<h2>For each sex group separately</h2>
+<pre class="r"><code>d2 &lt;-
+  d |&gt; 
+  select(-gender)</code></pre>
+<pre class="r"><code>d_summary &lt;-
+  d %&gt;% 
+  group_by(gender) %&gt;% 
+  summarise(height_m = mean(height, na.rm = T),
+            height_sd = sd(height, na.rm = T))
+
+d_summary</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   gender height_m height_sd
+##   &lt;chr&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+## 1 female     64.3      2.99
+## 2 male       69.7      3.55</code></pre>
+<pre class="r"><code>d |&gt; 
+  ggplot() +
+  aes() +
+  geom_histogram(aes(y = ..density.., x = height, fill = gender)) +
+  facet_wrap(~ gender) +
+  geom_histogram(data = d2, aes(y = ..density.., x = height), alpha = .5) +
+  stat_function(data = d_summary %&gt;% filter(gender == &quot;female&quot;),
+                fun = dnorm,
+                #color = &quot;red&quot;,
+                args = list(mean = filter(d_summary, gender == &quot;female&quot;)$height_m,
+                            sd = filter(d_summary, gender == &quot;female&quot;)$height_sd)) +
+  stat_function(data = d_summary %&gt;% filter(gender == &quot;male&quot;),
+                fun = dnorm,
+                #color = &quot;red&quot;,
+                args = list(mean = filter(d_summary, gender == &quot;male&quot;)$height_m,
+                            sd = filter(d_summary, gender == &quot;male&quot;)$height_sd)) +
+  scale_fill_discrete()</code></pre>
+<p><img src="unnamed-chunk-5-1.png" width="480" /></p>
+<p>Let’s overlay the empirical densities:</p>
+<pre class="r"><code>gghistogram(d,
+            x = &quot;height&quot;, 
+            fill = &quot;gender&quot;,
+            rug = TRUE,
+            add_density = TRUE,
+            add = &quot;mean&quot;) +
+  scale_fill_brewer(type = &quot;qual&quot;,
+                    palette = &quot;Set1&quot;) +
+  labs(caption = &quot;n = 1325&quot;)</code></pre>
+<p><img src="unnamed-chunk-6-1.png" width="480" /></p>
+</div>
+<div id="for-the-whole-sample" class="section level2">
+<h2>For the whole sample</h2>
+<p>I.e,. with groups (gender) removed:</p>
+<pre class="r"><code>gghistogram(d,
+            x = &quot;height&quot;,
+            add_density = TRUE,
+            add = &quot;mean&quot;)</code></pre>
+<p><img src="unnamed-chunk-7-1.png" width="480" /></p>
+<pre class="r"><code>ggplot(d, aes(height)) +
+  geom_density() +
+  stat_theodensity(colour = &quot;red&quot;) +
+  facet_wrap(~ gender)</code></pre>
+<pre><code>## $start.arg
+## $start.arg$mean
+## [1] 64.34442
+## 
+## $start.arg$sd
+## [1] 2.983323
+## 
+## 
+## $fix.arg
+## NULL
+## 
+## $start.arg
+## $start.arg$mean
+## [1] 69.66787
+## 
+## $start.arg$sd
+## [1] 3.548706
+## 
+## 
+## $fix.arg
+## NULL</code></pre>
+<p><img src="unnamed-chunk-8-1.png" width="480" /></p>
+</div>
+</div>
+<div id="checking-the-fit-to-a-normal-curve" class="section level1">
+<h1>Checking the fit to a normal curve</h1>
+<div id="for-the-whole-group-no-subgroups" class="section level2">
+<h2>For the whole group (no subgroups)</h2>
+<pre class="r"><code>d %&gt;% 
+  ggplot() +
+  aes(sample = height) +
+  geom_qq() +
+  stat_qq_line()</code></pre>
+<p><img src="unnamed-chunk-9-1.png" width="480" /></p>
+<pre class="r"><code>ggplot(d, aes(height)) +
+  geom_density() +
+  stat_theodensity(colour = &quot;red&quot;)</code></pre>
+<pre><code>## $start.arg
+## $start.arg$mean
+## [1] 66.12697
+## 
+## $start.arg$sd
+## [1] 4.055697
+## 
+## 
+## $fix.arg
+## NULL</code></pre>
+<p><img src="unnamed-chunk-10-1.png" width="480" /></p>
+</div>
+<div id="for-each-gender-group-separately" class="section level2">
+<h2>For each gender (group) separately</h2>
+<pre class="r"><code>d %&gt;% 
+  ggplot() +
+  aes(sample = height) +
+  geom_qq(alpha = .7) +
+  facet_wrap(~ gender) +
+  stat_qq_line(linetype = &quot;dashed&quot;)</code></pre>
+<p><img src="unnamed-chunk-11-1.png" width="480" /></p>
+<pre class="r"><code>ggplot(d, aes(height)) +
+  geom_density() +
+  stat_theodensity(colour = &quot;red&quot;) +
+  facet_wrap(~ gender)</code></pre>
+<pre><code>## $start.arg
+## $start.arg$mean
+## [1] 64.34442
+## 
+## $start.arg$sd
+## [1] 2.983323
+## 
+## 
+## $fix.arg
+## NULL
+## 
+## $start.arg
+## $start.arg$mean
+## [1] 69.66787
+## 
+## $start.arg$sd
+## [1] 3.548706
+## 
+## 
+## $fix.arg
+## NULL</code></pre>
+<p><img src="unnamed-chunk-12-1.png" width="480" /></p>
+</div>
+</div>
+<div id="the-mystic-bell-shape" class="section level1">
+<h1>The mystic bell shape</h1>
+<pre class="r"><code>ggplot(data = data.frame(x = c(-3, 3)), 
+       aes(x)) +
+  stat_function(fun = dnorm, n = 100, args = list(mean = 0, sd = 1)) + ylab(&quot;&quot;) +
+  scale_y_continuous(breaks = NULL) +
+  theme_minimal()</code></pre>
+<p><img src="unnamed-chunk-13-1.png" width="480" /></p>
+</div>

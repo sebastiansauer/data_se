@@ -1,0 +1,200 @@
+---
+title: Using dynamic variables in ggplot2 for facetting and more
+author: Sebastian Sauer
+date: '2024-02-04'
+slug: using-dynamic-variables-in-ggplot2-for-facetting-and-more
+categories:
+  - rstats
+tags:
+  - visualization
+  - ggplot2
+  - tidyeval
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+
+# Static ggplot
+
+To see what we mean by "dynamic", let's digest an example of "static" variables passed to a ggplot.
+
+```{r}
+p <- ggplot(mtcars, aes(x = wt, y = mpg)) + 
+  geom_point() + # Plot points
+  facet_grid(rows = vars(cyl)) + # Separate panels by 'cyl', arranged in rows
+  labs(title = "MPG vs. Car Weight",
+       subtitle = "Faceted by Number of Cylinders",
+       x = "Weight (1000 lbs)",
+       y = "Miles per Gallon")
+
+# Print the plot
+print(p)
+```
+
+
+
+Note that `vars` is expected by the `rows` argument of `facet_grid`.
+
+
+
+# Dynamic facetting
+
+With `sym` you can capture the "symbol", of an expression such as a string. In the second step, evaluate it using bang-bang (`!!`). If it's more than one variable, use the triple-bang operator, `!!!`.
+
+```{r}
+library(ggplot2)
+library(rlang)
+
+# User-selected variables for faceting
+row_var <- "cyl"  # Variable for rows
+col_var <- "drv"  # Variable for columns
+
+# Convert strings to symbols
+row_var_sym <- rlang::sym(row_var)
+col_var_sym <- rlang::sym(col_var)
+
+# Use !! to splice the symbols into vars() for rows and cols
+ggplot(mpg, aes(x = displ, y = hwy)) + 
+  geom_point() +
+  facet_grid(rows = vars(!!row_var_sym), cols = vars(!!col_var_sym),
+             labeller = label_both)
+```
+
+
+# Dynamic plots using the data pronoun
+
+The "data pronoun", `.data[[name_of_var]]`, is a way to use dynamic variables in tidyverse function calls, when the variables are stored as string, see the example below.
+
+
+```{r}
+library(ggplot2)
+library(rlang)
+
+# A function to create a plot with dynamic aesthetic mappings and faceting
+create_dynamic_plot <- function(data, x_var, y_var) {
+
+  
+  ggplot(data, aes(x = .data[[x_var]], y = .data[[y_var]])) +
+    geom_point() 
+}
+
+# Example usage
+create_dynamic_plot(mpg, "displ", "hwy")
+
+```
+
+
+# Data pronoun does not work in facetting
+
+Note however that the data pronoun does not work in the facetting context for some reason:
+
+
+
+```{r error=TRUE}
+library(ggplot2)
+library(rlang)
+
+# A function to create a plot with dynamic aesthetic mappings and faceting
+create_dynamic_plot <- function(data, x_var, y_var, facet_row_var, facet_col_var) {
+  row_var_sym <- rlang::sym(facet_row_var)
+  col_var_sym <- rlang::sym(facet_col_var)
+  
+  ggplot(data, aes(x = .data[[x_var]], y = .data[[y_var]])) +
+    geom_point() +
+    facet_grid(rows = .data[[facet_row_var]], cols = .data[[facet_col_var]])
+}
+
+# Example usage
+create_dynamic_plot(mpg, "displ", "hwy", "cyl", "drv")
+
+```
+
+In this situation, work with the bang-bang operator as explained above.
+
+```{r}
+library(ggplot2)
+library(rlang)
+
+# A function to create a plot with dynamic aesthetic mappings and faceting
+create_dynamic_plot <- function(data, x_var, y_var, facet_row_var, facet_col_var) {
+  row_var_sym <- rlang::sym(facet_row_var)
+  col_var_sym <- rlang::sym(facet_col_var)
+  
+  ggplot(data, aes(x = .data[[x_var]], y = .data[[y_var]])) +
+    geom_point() +
+    facet_grid(rows = vars(!!row_var_sym), cols = vars(!!col_var_sym))
+}
+
+# Example usage
+create_dynamic_plot(mpg, "displ", "hwy", "cyl", "drv")
+```
+
+
+
+
+# A function using ggplot with unquoted variables
+
+The curly-curly operator allows for supplying unquoted, "bare", variable names to a function.
+
+If the variables are stored as strings, stick to the bang-bang operator instead.
+
+
+
+```{r}
+plot_with_facets <- function(data, x, y, facet_row, facet_col) {
+  ggplot(data, aes(x = {{x}}, y = {{y}})) +
+    geom_point() +
+    facet_grid(rows = vars({{facet_row}}), cols = vars({{facet_col}}))
+}
+
+# Example usage
+plot_with_facets(mpg, displ, hwy, cyl, drv)
+```
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+```
+
+
+
+

@@ -1,0 +1,297 @@
+---
+title: Solutions to Gelman & Hill, 2007, ARM, Chapter 2
+author: Sebastian Sauer
+date: '2021-02-12'
+draft: TRUE
+slug: solutions-to-gelman-hill-2007-arm-chapter-2
+categories:
+  - rstats
+tags:
+  - tutorial
+  - regression
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#ex-1"><span class="toc-section-number">2</span> Ex 1</a>
+<ul>
+<li><a href="#load-data"><span class="toc-section-number">2.1</span> Load data</a></li>
+<li><a href="#a"><span class="toc-section-number">2.2</span> a)</a></li>
+<li><a href="#b"><span class="toc-section-number">2.3</span> b)</a></li>
+<li><a href="#c"><span class="toc-section-number">2.4</span> c)</a></li>
+<li><a href="#d"><span class="toc-section-number">2.5</span> d)</a></li>
+</ul></li>
+<li><a href="#ex-2"><span class="toc-section-number">3</span> Ex 2</a></li>
+<li><a href="#reproducibility"><span class="toc-section-number">4</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(arm)  # helper functions from the book ARM
+library(ggfortify)  # Autoplot für Modellannahmen</code></pre>
+</div>
+<div id="ex-1" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Ex 1</h1>
+<div id="load-data" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> Load data</h2>
+<pre class="r"><code>www &lt;- &quot;http://www.stat.columbia.edu/%7Egelman/arm/examples/pyth/exercise2.1.dat&quot;
+mydata &lt;- read_delim(www, delim = &quot; &quot;)
+
+mydata_train &lt;- slice(mydata, 1:40)
+mydata_test &lt;- slice(mydata, 40:nrow(mydata))</code></pre>
+<pre class="r"><code>glimpse(mydata)
+#&gt; Rows: 60
+#&gt; Columns: 3
+#&gt; $ y  &lt;dbl&gt; 15.68, 6.18, 18.10, 9.07, 17.97, 10.04, 20.74, 9.76, 8.23, 6.52, 1…
+#&gt; $ x1 &lt;dbl&gt; 6.87, 4.40, 0.43, 2.73, 3.25, 5.30, 7.08, 9.73, 4.51, 6.40, 5.72, …
+#&gt; $ x2 &lt;dbl&gt; 14.09, 4.35, 18.09, 8.65, 17.68, 8.53, 19.50, 0.72, 6.88, 1.26, 14…</code></pre>
+</div>
+<div id="a" class="section level2" number="2.2">
+<h2><span class="header-section-number">2.2</span> a)</h2>
+<p>Use R to fit a linear regression model predicting y from x1,x2, using the first 40 data points in the file. Summarize the inferences and check the fit of your model.</p>
+<pre class="r"><code>fit.1 &lt;- lm (y ~ x1 + x2, mydata_train)</code></pre>
+<pre class="r"><code>
+display(fit.1)
+#&gt; lm(formula = y ~ x1 + x2, data = mydata_train)
+#&gt;             coef.est coef.se
+#&gt; (Intercept) 1.32     0.39   
+#&gt; x1          0.51     0.05   
+#&gt; x2          0.81     0.02   
+#&gt; ---
+#&gt; n = 40, k = 3
+#&gt; residual sd = 0.90, R-Squared = 0.97</code></pre>
+<p>Beide Inputvariable (<code>x1</code>, <code>x2</code>) haben einen Koeffizienten, der deutlich größer ist als ihr Standardfehler; das Rauschen ist also deutlich schwächer als das Signal. Ähnliches gilt für den Intercept.</p>
+<p>Im Schnitt liegt die Vorhersage etwa um 0.90 Einheiten daneben; genauer: die SD der Residuen beträgt 0.90.</p>
+<p><span class="math inline">\(R^2\)</span> ist mit .97 sehr hoch.</p>
+</div>
+<div id="b" class="section level2" number="2.3">
+<h2><span class="header-section-number">2.3</span> b)</h2>
+<p>Display the estimated model graphically as in Figure 3.2. Display the estimated model graphically as in Figure 3.2.</p>
+<pre class="r"><code>ggplot(mydata_train) +
+  aes(x = x1, y = y) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(mydata_train) +
+  aes(x = x2, y = y) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>ggplot(mydata_train) +
+  aes(x = fitted(fit.1), y = y) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="c" class="section level2" number="2.4">
+<h2><span class="header-section-number">2.4</span> c)</h2>
+<p>Make a residual plot for this model. Do the assumptions appear to be met?</p>
+<p>Ein guter Artikel zur Visualisierung von Regressionsresiduen findet sich <a href="https://drsimonj.svbtle.com/visualising-residuals">hier</a>.</p>
+<pre class="r"><code>autoplot(fit.1, which = 1) # nur das 1. Bild</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Es gibt eine extreme Residuen, etwa Fall 8. Ein starker Trend in den Residen ist nicht erkennbar.</p>
+</div>
+<div id="d" class="section level2" number="2.5">
+<h2><span class="header-section-number">2.5</span> d)</h2>
+<p>Make predictions for the remaining 20 data points in the file. How confident do you feel about these predictions?</p>
+<pre class="r"><code>predict (fit.1, mydata_test)
+#&gt;         1         2         3         4         5         6         7         8 
+#&gt;  7.763580 14.812484 19.142865  5.916816 10.530475 19.012485 13.398863  4.829144 
+#&gt;         9        10        11        12        13        14        15        16 
+#&gt;  9.145767  5.892489 12.338639 18.908561 16.064649  8.963122 14.972786  5.859744 
+#&gt;        17        18        19        20        21 
+#&gt;  7.374900  4.535267 15.133280  9.100899 16.084900</code></pre>
+<p>So bekommt man ein Vorhersage-Intervall:</p>
+<pre class="r"><code>predict (fit.1, mydata_test, interval = &quot;prediction&quot;)
+#&gt;          fit       lwr       upr
+#&gt; 1   7.763580  5.862741  9.664419
+#&gt; 2  14.812484 12.916966 16.708002
+#&gt; 3  19.142865 17.241520 21.044211
+#&gt; 4   5.916816  3.958626  7.875005
+#&gt; 5  10.530475  8.636141 12.424809
+#&gt; 6  19.012485 17.118597 20.906373
+#&gt; 7  13.398863 11.551815 15.245911
+#&gt; 8   4.829144  2.918323  6.739965
+#&gt; 9   9.145767  7.228364 11.063170
+#&gt; 10  5.892489  3.979060  7.805918
+#&gt; 11 12.338639 10.426349 14.250929
+#&gt; 12 18.908561 17.021818 20.795303
+#&gt; 13 16.064649 14.212209 17.917088
+#&gt; 14  8.963122  7.084081 10.842163
+#&gt; 15 14.972786 13.094194 16.851379
+#&gt; 16  5.859744  3.959679  7.759808
+#&gt; 17  7.374900  5.480921  9.268879
+#&gt; 18  4.535267  2.616996  6.453539
+#&gt; 19 15.133280 13.282467 16.984094
+#&gt; 20  9.100899  7.223395 10.978403
+#&gt; 21 16.084900 14.196990 17.972810</code></pre>
+</div>
+</div>
+<div id="ex-2" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Ex 2</h1>
+<p>Suppose that, for a certain population, we can predict log earnings from log height as follows:</p>
+<ul>
+<li>A person who is 66 inches tall is predicted to have earnings of $30,000.</li>
+<li>Every increase of 1% in height corresponds to a predicted increase of 0.8% in earnings.</li>
+<li>The earnings of approximately 95% of people fall within a factor of 1.1 of predicted values.</li>
+</ul>
+<ol style="list-style-type: lower-alpha">
+<li>Give the equation of the regression line and the residual standard deviation of the regression.</li>
+<li>Suppose the standard deviation of log heights is 5% in this population. What, then, is the R2 of the regression model described here?</li>
+</ol>
+<p>Eigentlich wurde der Stoff noch nicht in diesem Kapitel behandelt, sondern erst im 4. Kapitel.</p>
+<ul>
+<li>Es handelt sich um ein Log-Log-Modell: <span class="math inline">\(log(\hat{y}) = \beta_0 + \beta_1 log(x)\)</span></li>
+<li>Die Steigung im Log-Log-Modell wird mit 0.8 angegeben.</li>
+<li>Der Y-Wert bei X=66 liegt bei 30.000</li>
+</ul>
+<p>Also:</p>
+<p><span class="math inline">\(log(30000) = \beta_0 + 0.8 \cdot log(66)\)</span></p>
+<pre class="r"><code>beta_0 = log(30000) - 0.8*log(66)
+beta_0
+#&gt; [1] 6.957229</code></pre>
+<p>Damit ist die Regressionsgleichung benannt.</p>
+<p>95% der Werte liegen im Bereich von max <span class="math inline">\(\pm\)</span> 10% des vorheresagten Werts.</p>
+</div>
+<div id="reproducibility" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.0.2 (2020-06-22)
+#&gt;  os       macOS  10.16                
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2021-02-19                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package      * version     date       lib source                             
+#&gt;  abind          1.4-5       2016-07-21 [1] CRAN (R 4.0.0)                     
+#&gt;  arm          * 1.11-2      2020-07-27 [1] CRAN (R 4.0.2)                     
+#&gt;  assertthat     0.2.1       2019-03-21 [1] CRAN (R 4.0.0)                     
+#&gt;  backports      1.2.1       2020-12-09 [1] CRAN (R 4.0.2)                     
+#&gt;  base64enc      0.1-3       2015-07-28 [1] CRAN (R 4.0.0)                     
+#&gt;  blogdown       1.1         2021-01-19 [1] CRAN (R 4.0.2)                     
+#&gt;  bookdown       0.21.6      2021-02-02 [1] Github (rstudio/bookdown@6c7346a)  
+#&gt;  boot           1.3-25      2020-04-26 [2] CRAN (R 4.0.2)                     
+#&gt;  broom          0.7.4       2021-01-29 [1] CRAN (R 4.0.2)                     
+#&gt;  bslib          0.2.4.9000  2021-02-02 [1] Github (rstudio/bslib@b3cd7a9)     
+#&gt;  cachem         1.0.1       2021-01-21 [1] CRAN (R 4.0.2)                     
+#&gt;  callr          3.5.1       2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  cellranger     1.1.0       2016-07-27 [1] CRAN (R 4.0.0)                     
+#&gt;  checkmate      2.0.0       2020-02-06 [1] CRAN (R 4.0.0)                     
+#&gt;  cli            2.3.0       2021-01-31 [1] CRAN (R 4.0.2)                     
+#&gt;  cluster        2.1.0       2019-06-19 [2] CRAN (R 4.0.2)                     
+#&gt;  coda           0.19-4      2020-09-30 [1] CRAN (R 4.0.2)                     
+#&gt;  codetools      0.2-16      2018-12-24 [2] CRAN (R 4.0.2)                     
+#&gt;  colorspace     2.0-0       2020-11-11 [1] CRAN (R 4.0.2)                     
+#&gt;  crayon         1.4.1       2021-02-08 [1] CRAN (R 4.0.2)                     
+#&gt;  curl           4.3         2019-12-02 [1] CRAN (R 4.0.0)                     
+#&gt;  data.table     1.13.6      2020-12-30 [1] CRAN (R 4.0.2)                     
+#&gt;  DBI            1.1.1       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  dbplyr         2.0.0       2020-11-03 [1] CRAN (R 4.0.2)                     
+#&gt;  desc           1.2.0       2018-05-01 [1] CRAN (R 4.0.0)                     
+#&gt;  devtools       2.3.2       2020-09-18 [1] CRAN (R 4.0.2)                     
+#&gt;  digest         0.6.27      2020-10-24 [1] CRAN (R 4.0.2)                     
+#&gt;  dplyr        * 1.0.3       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  ellipsis       0.3.1       2020-05-15 [1] CRAN (R 4.0.0)                     
+#&gt;  evaluate       0.14        2019-05-28 [1] CRAN (R 4.0.0)                     
+#&gt;  fansi          0.4.2       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  farver         2.0.3       2020-01-16 [1] CRAN (R 4.0.0)                     
+#&gt;  fastmap        1.1.0       2021-01-25 [1] CRAN (R 4.0.2)                     
+#&gt;  forcats      * 0.5.1       2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  foreign        0.8-80      2020-05-24 [2] CRAN (R 4.0.2)                     
+#&gt;  Formula        1.2-4       2020-10-16 [1] CRAN (R 4.0.2)                     
+#&gt;  fs             1.5.0       2020-07-31 [1] CRAN (R 4.0.2)                     
+#&gt;  generics       0.1.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  ggfortify    * 0.4.11      2020-10-02 [1] CRAN (R 4.0.2)                     
+#&gt;  ggplot2      * 3.3.3       2020-12-30 [1] CRAN (R 4.0.2)                     
+#&gt;  glue           1.4.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  gridExtra      2.3         2017-09-09 [1] CRAN (R 4.0.0)                     
+#&gt;  gtable         0.3.0       2019-03-25 [1] CRAN (R 4.0.0)                     
+#&gt;  haven          2.3.1       2020-06-01 [1] CRAN (R 4.0.0)                     
+#&gt;  highr          0.8         2019-03-20 [1] CRAN (R 4.0.0)                     
+#&gt;  Hmisc          4.4-2       2020-11-29 [1] CRAN (R 4.0.2)                     
+#&gt;  hms            1.0.0       2021-01-13 [1] CRAN (R 4.0.2)                     
+#&gt;  htmlTable      2.1.0       2020-09-16 [1] CRAN (R 4.0.2)                     
+#&gt;  htmltools      0.5.1.1     2021-01-22 [1] CRAN (R 4.0.2)                     
+#&gt;  htmlwidgets    1.5.3       2020-12-10 [1] CRAN (R 4.0.2)                     
+#&gt;  httr           1.4.2       2020-07-20 [1] CRAN (R 4.0.2)                     
+#&gt;  jpeg           0.1-8.1     2019-10-24 [1] CRAN (R 4.0.0)                     
+#&gt;  jquerylib      0.1.3       2020-12-17 [1] CRAN (R 4.0.2)                     
+#&gt;  jsonlite       1.7.2       2020-12-09 [1] CRAN (R 4.0.2)                     
+#&gt;  knitr          1.31        2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  labeling       0.4.2       2020-10-20 [1] CRAN (R 4.0.2)                     
+#&gt;  lattice        0.20-41     2020-04-02 [2] CRAN (R 4.0.2)                     
+#&gt;  latticeExtra   0.6-29      2019-12-19 [1] CRAN (R 4.0.0)                     
+#&gt;  lifecycle      0.2.0       2020-03-06 [1] CRAN (R 4.0.0)                     
+#&gt;  lme4         * 1.1-26      2020-12-01 [1] CRAN (R 4.0.2)                     
+#&gt;  lubridate      1.7.9.2     2020-11-13 [1] CRAN (R 4.0.2)                     
+#&gt;  magrittr       2.0.1       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  MASS         * 7.3-53      2020-09-09 [1] CRAN (R 4.0.2)                     
+#&gt;  Matrix       * 1.2-18      2019-11-27 [2] CRAN (R 4.0.2)                     
+#&gt;  memoise        2.0.0       2021-01-26 [1] CRAN (R 4.0.2)                     
+#&gt;  mgcv           1.8-31      2019-11-09 [2] CRAN (R 4.0.2)                     
+#&gt;  minqa          1.2.4       2014-10-09 [1] CRAN (R 4.0.0)                     
+#&gt;  modelr         0.1.8       2020-05-19 [1] CRAN (R 4.0.0)                     
+#&gt;  munsell        0.5.0       2018-06-12 [1] CRAN (R 4.0.0)                     
+#&gt;  nlme           3.1-151     2020-12-10 [1] CRAN (R 4.0.2)                     
+#&gt;  nloptr         1.2.2.2     2020-07-02 [1] CRAN (R 4.0.1)                     
+#&gt;  nnet           7.3-14      2020-04-26 [2] CRAN (R 4.0.2)                     
+#&gt;  pillar         1.4.7       2020-11-20 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgbuild       1.2.0       2020-12-15 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgconfig      2.0.3       2019-09-22 [1] CRAN (R 4.0.0)                     
+#&gt;  pkgload        1.1.0       2020-05-29 [1] CRAN (R 4.0.0)                     
+#&gt;  png            0.1-7       2013-12-03 [1] CRAN (R 4.0.0)                     
+#&gt;  prettyunits    1.1.1       2020-01-24 [1] CRAN (R 4.0.0)                     
+#&gt;  processx       3.4.5       2020-11-30 [1] CRAN (R 4.0.2)                     
+#&gt;  ps             1.5.0       2020-12-05 [1] CRAN (R 4.0.2)                     
+#&gt;  purrr        * 0.3.4       2020-04-17 [1] CRAN (R 4.0.0)                     
+#&gt;  R6             2.5.0       2020-10-28 [1] CRAN (R 4.0.2)                     
+#&gt;  RColorBrewer   1.1-2       2014-12-07 [1] CRAN (R 4.0.0)                     
+#&gt;  Rcpp           1.0.6       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  readr        * 1.4.0       2020-10-05 [1] CRAN (R 4.0.2)                     
+#&gt;  readxl         1.3.1       2019-03-13 [1] CRAN (R 4.0.0)                     
+#&gt;  remotes        2.2.0       2020-07-21 [1] CRAN (R 4.0.2)                     
+#&gt;  reprex         1.0.0       2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  rlang          0.4.10      2020-12-30 [1] CRAN (R 4.0.2)                     
+#&gt;  rmarkdown      2.6.6       2021-02-11 [1] Github (rstudio/rmarkdown@a62cb20) 
+#&gt;  rpart          4.1-15      2019-04-12 [2] CRAN (R 4.0.2)                     
+#&gt;  rprojroot      2.0.2       2020-11-15 [1] CRAN (R 4.0.2)                     
+#&gt;  rstudioapi     0.13.0-9000 2021-02-11 [1] Github (rstudio/rstudioapi@9d21f50)
+#&gt;  rvest          0.3.6       2020-07-25 [1] CRAN (R 4.0.2)                     
+#&gt;  sass           0.3.1       2021-01-24 [1] CRAN (R 4.0.2)                     
+#&gt;  scales         1.1.1       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  sessioninfo    1.1.1       2018-11-05 [1] CRAN (R 4.0.0)                     
+#&gt;  statmod        1.4.35      2020-10-19 [1] CRAN (R 4.0.2)                     
+#&gt;  stringi        1.5.3       2020-09-09 [1] CRAN (R 4.0.2)                     
+#&gt;  stringr      * 1.4.0       2019-02-10 [1] CRAN (R 4.0.0)                     
+#&gt;  survival       3.2-7       2020-09-28 [1] CRAN (R 4.0.2)                     
+#&gt;  testthat       3.0.1       2020-12-17 [1] CRAN (R 4.0.2)                     
+#&gt;  tibble       * 3.0.6       2021-01-29 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyr        * 1.1.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyselect     1.1.0       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  tidyverse    * 1.3.0       2019-11-21 [1] CRAN (R 4.0.0)                     
+#&gt;  usethis        2.0.0       2020-12-10 [1] CRAN (R 4.0.2)                     
+#&gt;  utf8           1.1.4       2018-05-24 [1] CRAN (R 4.0.0)                     
+#&gt;  vctrs          0.3.6       2020-12-17 [1] CRAN (R 4.0.2)                     
+#&gt;  withr          2.4.1       2021-01-26 [1] CRAN (R 4.0.2)                     
+#&gt;  xfun           0.21        2021-02-10 [1] CRAN (R 4.0.2)                     
+#&gt;  xml2           1.3.2       2020-04-23 [1] CRAN (R 4.0.0)                     
+#&gt;  yaml           2.2.1       2020-02-01 [1] CRAN (R 4.0.0)                     
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Rlibs
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre>
+</div>

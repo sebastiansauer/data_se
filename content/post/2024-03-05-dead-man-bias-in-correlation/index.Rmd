@@ -1,0 +1,108 @@
+---
+title: Dead Man Bias in correlation
+author: Sebastian Sauer
+date: '2024-03-05'
+slug: dead-man-bias-in-correlation
+categories:
+  - rstats
+tags:
+  - association
+  - correlation
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+# Background
+
+Nassim Taleb points out in the paper [Fooled by Correlation: Common Misinterpretations
+in Social "Science"](https://datascienceassn.org/sites/default/files/Fooled%20by%20Correlation%20Common%20Misinterpretations%20in%20Social%20Science.pdf) that spurious correlation may appear due to various reasons.
+One reason is what he calls the "Dead Man Bias", occuring if constant data is added to uniformly distributed data.
+The thing is if the data is uniformly distributed and non-correlated, you will get a spurious correlation if constant data is added.
+
+
+# Data example
+
+
+Let's simulate a dataset, $n=10^4$ with $X,Y \sim Unif(0,1)$.
+
+```{r}
+set.seed(42)
+n <- 1e4
+d <-
+  tibble(x = runif(n = n),
+         y = runif(n = n))
+
+d_dead_man <-
+  tibble(x = rep(0, n * 0.2),
+         y = x)
+
+d2 <-
+  d |> 
+  bind_rows(d_dead_man)
+```
+
+Here's their correlation:
+
+```{r}
+d2 |> 
+  summarise(cor_x_y = cor(x, y))
+```
+
+
+As can be seen, a *spuriou correlation* pops up.
+
+
+```{r}
+d2 |> 
+ggplot( aes(x = x, y = y)) +
+  stat_density_2d(aes(fill = ..density..), geom = "tile", contour = FALSE) +
+  scale_fill_gradient(low = "blue", high = "red") +
+  theme_minimal()
+```
+
+
+
+# Discussion
+
+Note that this bias does not appear for normally distributed data.
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

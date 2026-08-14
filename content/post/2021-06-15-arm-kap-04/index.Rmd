@@ -1,0 +1,237 @@
+---
+title: ARM, Kap. 4 Syntax im Tidyverse-Stil
+author: ses
+date: '2021-06-15'
+slug: arm-kap-4-syntax-im-tidyverse-stil
+categories:
+  
+tags:
+  - tutorial
+  - ARM
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+
+# Pakete laden
+
+```{r message = FALSE}
+library(tidyverse)
+library(arm)  # nicht wirklich wichtig, nur für Funktion "display"
+library(foreign)
+library(rio)
+```
+
+
+# Lineare Transformationen
+
+## Daten laden: `kidsiq`
+
+
+```{r}
+kidsiq <- read_csv("https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/ARM/kidsiq.csv")
+```
+
+## lm1: Interaktionseffekt
+
+```{r}
+lm1 <- lm(kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq,
+          data = kidsiq)
+display(lm1)
+```
+
+
+
+## lm2: Zentrieren 
+
+```{r}
+kidsiq <-
+  kidsiq %>% 
+  mutate(mom_hs_c = mom_hs - mean(mom_hs),
+         mom_iq_c = mom_iq - mean(mom_iq))
+```
+
+
+
+```{r}
+lm2 <- lm(kid_score ~ mom_hs_c + mom_iq_c + mom_hs_c:mom_iq_c,
+          data = kidsiq)
+display(lm2)
+```
+
+
+```{r}
+lm2a <- lm(kid_score ~ mom_hs + mom_iq_c + mom_hs:mom_iq_c,
+          data = kidsiq)
+display(lm2a)
+```
+
+
+
+## lm3: z-Transformation
+
+
+```{r}
+kidsiq <-
+  kidsiq %>% 
+  mutate(mom_iq_z = (mom_iq - mean(mom_iq)) / sd(mom_iq))
+```
+
+
+```{r}
+lm3 <- lm(kid_score ~ mom_hs + mom_iq_z + mom_hs:mom_iq_c, 
+          data = kidsiq)
+
+display(lm3)
+```
+
+
+# Modelle mit `log(y)`
+
+
+## Daten laden
+
+```{r}
+earn <- read_csv("https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/ARM/heights.csv")
+```
+
+
+## lm4: earn_log
+
+
+```{r}
+earn <-
+  earn %>% 
+  mutate(earn_log = log(earn))
+```
+
+
+```{r}
+lm4 <- lm(earn_log ~ height, 
+          data = earn %>% filter(earn > 0))
+display(lm4)
+```
+
+
+## lm5: earn_log mit zwei Prädiktoren
+
+```{r}
+earn %>% 
+  count(sex)
+```
+
+Leider wissen wir nicht, ob Frauen mit 1 oder mit 2 codiert sind. Gehen wir davon aus, dass Männer mit 1 kodiert sind (vgl. Buch ARM, S. 61).
+
+```{r}
+earn <-
+  earn %>% 
+  mutate(male = case_when(
+    sex == 2 ~ 0,
+    sex == 1 ~ 1))
+```
+
+
+
+```{r}
+lm5 <- lm(earn_log ~ height + male,
+          data = earn %>% filter(earn > 0))
+display(lm5)
+```
+
+
+## lm6: Mit z-Transformation und Interaktion
+
+```{r}
+earn <-
+  earn %>% 
+  mutate(height_z = scale(height))
+```
+
+
+```{r}
+lm6 <- lm(earn_log ~ height_z + male + height_z:male,
+          data = earn %>% filter(earn > 0))
+display(lm6)
+```
+
+Die Reihenfolge der Prädiktoren spielt *keine* Rolle:
+
+```{r}
+lm6a <- lm(earn_log ~ height_z:male + male + height_z ,
+          data = earn %>% filter(earn > 0))
+display(lm6)
+```
+
+
+# LogY-LogX-Modelle
+
+```{r}
+earn <-
+  earn %>% 
+  mutate(height_log = log(height))
+```
+
+
+```{r}
+lm7 <- lm(earn_log ~ height_log + male,
+          data = earn %>% filter(earn > 0))
+display(lm7)
+```
+
+
+
+# Weitere Transformationen
+
+## Diskretisierung metrischer Prädiktoren
+
+```{r}
+lm7 <- lm(kid_score ~ as.factor(mom_work),
+          data = kidsiq)
+display(lm7)
+```
+
+
+# "Buschbeispiel" - `mesquite`
+
+## Daten laden
+
+```{r}
+mesquite <- read_csv("https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/ARM/mesquite.csv")
+```
+
+```{r}
+glimpse(mesquite)
+```
+
+## Lineares Modell mit allen Prädiktoren
+
+Vgl. S. 70 in ARM; die Daten passen nicht ganz zum Buch. Die Werte weichen etwas zum Buch ab.
+
+```{r}
+lm7 <- lm(LeafWt ~ ., data = mesquite)
+display(lm7)
+```
+
+
+## Multiplikatives Modell
+
+```{r}
+lm8 <- lm(log(LeafWt) ~ log(Diam1) + log(Diam2) + log(TotHt) + log (CanHt) + log(Dens) + Group,
+          data = mesquite)
+
+display(lm8)
+```
+
+
+
+# Referenz
+
+
+S. auch den [Post zu ARM, Kap. 3](/2021/06/05/arm-kap-3-syntax-im-tidyverse-stil/)
+
+
+

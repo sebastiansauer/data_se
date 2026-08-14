@@ -1,0 +1,423 @@
+---
+title: ARM, Kap. 3 Syntax im Tidyverse-Stil
+author: ses
+date: '2021-06-05'
+slug: arm-kap-3-syntax-im-tidyverse-stil
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#einführung"><span class="toc-section-number">1</span> Einführung</a></li>
+<li><a href="#pakete-laden"><span class="toc-section-number">2</span> Pakete laden</a></li>
+<li><a href="#daten-laden"><span class="toc-section-number">3</span> Daten laden</a></li>
+<li><a href="#ein-prädiktor"><span class="toc-section-number">4</span> Ein Prädiktor</a>
+<ul>
+<li><a href="#lm1-binärer-prädiktor"><span class="toc-section-number">4.1</span> lm1: Binärer Prädiktor</a>
+<ul>
+<li><a href="#diagramm"><span class="toc-section-number">4.1.1</span> Diagramm</a></li>
+<li><a href="#unterschied-im-mittelwert"><span class="toc-section-number">4.1.2</span> Unterschied im Mittelwert</a></li>
+</ul></li>
+<li><a href="#lm2-ein-kontinuierlicher-prädiktor"><span class="toc-section-number">4.2</span> lm2: Ein kontinuierlicher Prädiktor</a></li>
+</ul></li>
+<li><a href="#mehrere-prädiktoren"><span class="toc-section-number">5</span> Mehrere Prädiktoren</a>
+<ul>
+<li><a href="#lm3-ohne-interaktionseffekt"><span class="toc-section-number">5.1</span> lm3: Ohne Interaktionseffekt</a></li>
+<li><a href="#lm4-mit-interaktionseffekt"><span class="toc-section-number">5.2</span> lm4: Mit Interaktionseffekt</a></li>
+</ul></li>
+<li><a href="#eingeschränkter-wertebereich"><span class="toc-section-number">6</span> Eingeschränkter Wertebereich</a>
+<ul>
+<li><a href="#lm5-regressionsmodell"><span class="toc-section-number">6.1</span> lm5: Regressionsmodell</a></li>
+</ul></li>
+<li><a href="#visualisierung-von-ungewissheit-im-model"><span class="toc-section-number">7</span> Visualisierung von Ungewissheit im Model</a>
+<ul>
+<li><a href="#variation-eines-prädiktors-und-anderen-konstant-gehalten"><span class="toc-section-number">7.1</span> Variation eines Prädiktors und anderen konstant gehalten</a>
+<ul>
+<li><a href="#variation-von-mom_iq"><span class="toc-section-number">7.1.1</span> Variation von <code>mom_iq</code></a></li>
+<li><a href="#kovariation-mit-mom_iq"><span class="toc-section-number">7.1.2</span> Kovariation mit <code>mom_iq</code></a></li>
+</ul></li>
+</ul></li>
+<li><a href="#annahmen-der-regressionsanalyse"><span class="toc-section-number">8</span> Annahmen der Regressionsanalyse</a>
+<ul>
+<li><a href="#additivität"><span class="toc-section-number">8.1</span> Additivität</a>
+<ul>
+<li><a href="#log-transformation"><span class="toc-section-number">8.1.1</span> Log-Transformation</a></li>
+<li><a href="#interaktionen-hinzufügen"><span class="toc-section-number">8.1.2</span> Interaktionen hinzufügen</a></li>
+</ul></li>
+<li><a href="#linearität"><span class="toc-section-number">8.2</span> Linearität</a></li>
+<li><a href="#visualisierung-der-residen-um-verletzungen-der-annahmen-zu-entdecken"><span class="toc-section-number">8.3</span> Visualisierung der Residen, um Verletzungen der Annahmen zu entdecken</a></li>
+<li><a href="#additivität-1"><span class="toc-section-number">8.4</span> Additivität</a></li>
+<li><a href="#linearität-1"><span class="toc-section-number">8.5</span> Linearität</a></li>
+</ul></li>
+<li><a href="#vorhersage"><span class="toc-section-number">9</span> Vorhersage</a></li>
+<li><a href="#referenz"><span class="toc-section-number">10</span> Referenz</a></li>
+</ul>
+</div>
+
+<div id="einführung" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Einführung</h1>
+<p>Dieser Post stellt den Code zum Kapitel 3 aus ARM vor, und zwar im Tidyverse-Stil.</p>
+</div>
+<div id="pakete-laden" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Pakete laden</h1>
+<pre class="r"><code>library(tidyverse)
+library(arm)
+library(foreign)
+library(modelr)
+library(ggfortify)</code></pre>
+</div>
+<div id="daten-laden" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Daten laden</h1>
+<p>Die Daten können <a href="">hier</a> heruntergeladen werden als Zip-Datei. Danach muss man lokal entzippen und den Pfad am eigenen Rechner nennen. Tipp: Die Datendatei in den gleichen Ordner legen wie die Rmd-Datei; das erspart Rätseln über den korrekten Pfad.</p>
+<pre class="r"><code>kidsiq_path &lt;- &quot;/Users/sebastiansaueruser/datasets/ARM_Data/child.iq/kidiq.dta&quot;</code></pre>
+<p>Die Daten sind im Format der Statistik-Software <a href="https://stat.ethz.ch/R-manual/R-devel/library/foreign/html/read.dta.html">Stata</a> gespeichert (<code>.dta</code>). Mit dem Paket <code>foreign</code> kann man solche Daten importieren.</p>
+<pre class="r"><code>kidsiq &lt;- read.dta(kidsiq_path)</code></pre>
+<pre class="r"><code>kidsiq %&gt;% 
+  slice_head(n=5)</code></pre>
+<pre><code>##   kid_score mom_hs    mom_iq mom_work mom_age
+## 1        65      1 121.11753        4      27
+## 2        98      1  89.36188        4      25
+## 3        85      1 115.44316        4      27
+## 4        83      1  99.44964        3      25
+## 5       115      1  92.74571        4      27</code></pre>
+</div>
+<div id="ein-prädiktor" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Ein Prädiktor</h1>
+<div id="lm1-binärer-prädiktor" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> lm1: Binärer Prädiktor</h2>
+<pre class="r"><code>lm1 &lt;- lm (kid_score ~ mom_hs, data = kidsiq)
+display(lm1)</code></pre>
+<pre><code>## lm(formula = kid_score ~ mom_hs, data = kidsiq)
+##             coef.est coef.se
+## (Intercept) 77.55     2.06  
+## mom_hs      11.77     2.32  
+## ---
+## n = 434, k = 2
+## residual sd = 19.85, R-Squared = 0.06</code></pre>
+<div id="diagramm" class="section level3" number="4.1.1">
+<h3><span class="header-section-number">4.1.1</span> Diagramm</h3>
+<pre class="r"><code>kidsiq %&gt;% 
+  ggplot(aes(x = mom_hs, y = kid_score)) +
+  geom_jitter(width = 0.2) +
+  geom_smooth(method = &quot;lm&quot;, se = FALSE) +
+  scale_x_continuous(breaks = c(0, 1))</code></pre>
+<p><img src="unnamed-chunk-6-1.png" width="100%" /></p>
+</div>
+<div id="unterschied-im-mittelwert" class="section level3" number="4.1.2">
+<h3><span class="header-section-number">4.1.2</span> Unterschied im Mittelwert</h3>
+<pre class="r"><code>kidsiq_summary &lt;- 
+  kidsiq %&gt;% 
+  group_by(mom_hs) %&gt;% 
+  summarise(kid_score = mean(kid_score, na.rm = TRUE))
+
+kidsiq_summary</code></pre>
+<pre><code>## # A tibble: 2 x 2
+##   mom_hs kid_score
+##    &lt;dbl&gt;     &lt;dbl&gt;
+## 1      0      77.5
+## 2      1      89.3</code></pre>
+<p>Differenz der Mittelwerte:</p>
+<pre class="r"><code>kidsiq_summary %&gt;% 
+  summarise(kid_score[1] - kid_score[2])</code></pre>
+<pre><code>## # A tibble: 1 x 1
+##   `kid_score[1] - kid_score[2]`
+##                           &lt;dbl&gt;
+## 1                         -11.8</code></pre>
+<p>Das entspricht der Steigung von <code>lm1</code>:</p>
+<pre class="r"><code>coef(lm1)</code></pre>
+<pre><code>## (Intercept)      mom_hs 
+##    77.54839    11.77126</code></pre>
+</div>
+</div>
+<div id="lm2-ein-kontinuierlicher-prädiktor" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> lm2: Ein kontinuierlicher Prädiktor</h2>
+<pre class="r"><code>lm2 &lt;- lm(kid_score ~ mom_iq, data = kidsiq)
+display(lm2)</code></pre>
+<pre><code>## lm(formula = kid_score ~ mom_iq, data = kidsiq)
+##             coef.est coef.se
+## (Intercept) 25.80     5.92  
+## mom_iq       0.61     0.06  
+## ---
+## n = 434, k = 2
+## residual sd = 18.27, R-Squared = 0.20</code></pre>
+<pre class="r"><code>ggplot(kidsiq) +
+  aes(x = mom_iq, y = kid_score) +
+  geom_point() +
+  geom_abline(intercept = 25.8, slope = 0.61, color = &quot;blue&quot;)</code></pre>
+<p><img src="unnamed-chunk-11-1.png" width="100%" /></p>
+<p>Oder so:</p>
+<pre class="r"><code>ggplot(kidsiq) +
+  aes(x = mom_iq, y = kid_score) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;, se = FALSE)</code></pre>
+<p><img src="unnamed-chunk-12-1.png" width="100%" /></p>
+</div>
+</div>
+<div id="mehrere-prädiktoren" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Mehrere Prädiktoren</h1>
+<div id="lm3-ohne-interaktionseffekt" class="section level2" number="5.1">
+<h2><span class="header-section-number">5.1</span> lm3: Ohne Interaktionseffekt</h2>
+<pre class="r"><code>lm3 &lt;- lm(kid_score ~ mom_hs + mom_iq, data = kidsiq)
+display(lm3)</code></pre>
+<pre><code>## lm(formula = kid_score ~ mom_hs + mom_iq, data = kidsiq)
+##             coef.est coef.se
+## (Intercept) 25.73     5.88  
+## mom_hs       5.95     2.21  
+## mom_iq       0.56     0.06  
+## ---
+## n = 434, k = 3
+## residual sd = 18.14, R-Squared = 0.21</code></pre>
+<pre class="r"><code>kidsiq %&gt;% 
+  mutate(mom_hs = factor(mom_hs)) %&gt;% 
+  ggplot() +
+  aes(x = mom_iq, y = kid_score, group = mom_hs) +
+  geom_point() +
+  geom_abline(slope = 0.56, intercept = 25.73, color = &quot;grey20&quot;) +
+  geom_abline(slope = 0.56, intercept = 25.73+5.95, color = &quot;red&quot;) </code></pre>
+<p><img src="unnamed-chunk-14-1.png" width="100%" /></p>
+</div>
+<div id="lm4-mit-interaktionseffekt" class="section level2" number="5.2">
+<h2><span class="header-section-number">5.2</span> lm4: Mit Interaktionseffekt</h2>
+<pre class="r"><code>lm4 &lt;- lm(kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq, data = kidsiq)
+display(lm4)</code></pre>
+<pre><code>## lm(formula = kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq, data = kidsiq)
+##               coef.est coef.se
+## (Intercept)   -11.48    13.76 
+## mom_hs         51.27    15.34 
+## mom_iq          0.97     0.15 
+## mom_hs:mom_iq  -0.48     0.16 
+## ---
+## n = 434, k = 4
+## residual sd = 17.97, R-Squared = 0.23</code></pre>
+<pre class="r"><code>kidsiq %&gt;% 
+  mutate(mom_hs = factor(mom_hs)) %&gt;% 
+  ggplot() +
+  aes(x = mom_iq, y = kid_score, group = mom_hs) +
+  geom_point() +
+  geom_abline(slope = 0.97, intercept = -11.48, color = &quot;grey20&quot;) +
+  geom_abline(slope = 0.97-0.48, intercept = -11.48+51.27, color = &quot;red&quot;) </code></pre>
+<p><img src="unnamed-chunk-16-1.png" width="100%" /></p>
+<p>Oder so:</p>
+<pre class="r"><code>kidsiq %&gt;% 
+  mutate(mom_hs = factor(mom_hs)) %&gt;% 
+  ggplot() +
+  aes(x = mom_iq, y = kid_score, group = mom_hs) +
+  geom_point() +
+  geom_smooth(aes(color = mom_hs),
+              method = &quot;lm&quot;, se = FALSE)</code></pre>
+<p><img src="unnamed-chunk-17-1.png" width="100%" /></p>
+<p>Mit Verlängerung der X-Achse zum Achsenabschnitt:</p>
+<pre class="r"><code>kidsiq %&gt;% 
+  mutate(mom_hs = factor(mom_hs)) %&gt;% 
+  ggplot() +
+  aes(x = mom_iq, y = kid_score, group = mom_hs) +
+  geom_point() +
+  geom_abline(slope = 0.97, intercept = -11.48, color = &quot;grey20&quot;) +
+  geom_abline(slope = 0.97-0.48, intercept = -11.48+51.27, color = &quot;red&quot;) +
+  lims(x = c(0, 150), y = c(-20, 150))</code></pre>
+<p><img src="unnamed-chunk-18-1.png" width="100%" /></p>
+</div>
+</div>
+<div id="eingeschränkter-wertebereich" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Eingeschränkter Wertebereich</h1>
+<pre class="r"><code>kidsiq %&gt;% 
+  summarise(max_mom_iq = max(mom_iq),
+            min_mom_iq = min(mom_iq))</code></pre>
+<pre><code>##   max_mom_iq min_mom_iq
+## 1   138.8931   71.03741</code></pre>
+<div id="lm5-regressionsmodell" class="section level2" number="6.1">
+<h2><span class="header-section-number">6.1</span> lm5: Regressionsmodell</h2>
+<pre class="r"><code>lm5 &lt;-
+  kidsiq %&gt;% 
+  filter(mom_iq &gt;= 85 &amp; mom_iq &lt;= 115) %&gt;% 
+  lm(kid_score ~ mom_iq, data = .)</code></pre>
+<pre class="r"><code>display(lm5)</code></pre>
+<pre><code>## lm(formula = kid_score ~ mom_iq, data = .)
+##             coef.est coef.se
+## (Intercept) 43.37    13.22  
+## mom_iq       0.46     0.13  
+## ---
+## n = 277, k = 2
+## residual sd = 18.14, R-Squared = 0.04</code></pre>
+<p>Vergleich mit uneingeschränktem Wertebereich:</p>
+<pre class="r"><code>display(lm2)</code></pre>
+<pre><code>## lm(formula = kid_score ~ mom_iq, data = kidsiq)
+##             coef.est coef.se
+## (Intercept) 25.80     5.92  
+## mom_iq       0.61     0.06  
+## ---
+## n = 434, k = 2
+## residual sd = 18.27, R-Squared = 0.20</code></pre>
+<pre class="r"><code>kidsiq %&gt;% 
+  filter(mom_iq &gt;= 85 &amp; mom_iq &lt;= 115) %&gt;% 
+  ggplot() +
+  aes(x = mom_iq, y = kid_score) +
+  geom_point() +
+  geom_abline(intercept = 25.8, slope = 0.61, color = &quot;blue&quot;) +
+  lims(x = c(70, 140))</code></pre>
+<p><img src="unnamed-chunk-23-1.png" width="100%" /></p>
+</div>
+</div>
+<div id="visualisierung-von-ungewissheit-im-model" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Visualisierung von Ungewissheit im Model</h1>
+<p>Der <em>Standardfehler</em> <code>se</code> ist ein Maß für unsere Ungewissheit in der Regressionsgeraden:</p>
+<pre class="r"><code>ggplot(kidsiq) +
+  aes(x = mom_iq, y = kid_score) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;, se = TRUE)</code></pre>
+<p><img src="unnamed-chunk-24-1.png" width="100%" /></p>
+<div id="variation-eines-prädiktors-und-anderen-konstant-gehalten" class="section level2" number="7.1">
+<h2><span class="header-section-number">7.1</span> Variation eines Prädiktors und anderen konstant gehalten</h2>
+<div id="variation-von-mom_iq" class="section level3" number="7.1.1">
+<h3><span class="header-section-number">7.1.1</span> Variation von <code>mom_iq</code></h3>
+<p>Und <code>mom_hs</code> halten wir auf dem Mittelwert konstant:</p>
+<pre class="r"><code>kidsiq %&gt;% 
+  summarise(mean(mom_hs))</code></pre>
+<pre><code>##   mean(mom_hs)
+## 1    0.7857143</code></pre>
+<p>Ohne Visualisierung der Ungewissheit des Modells, nur mit einem Prädiktor auf dem Mittelwert fixiert:</p>
+<pre class="r"><code>kidsiq %&gt;% 
+  data_grid(mom_iq = seq_range(mom_iq, n = 20)) %&gt;% 
+  mutate(mom_hs = 0.79) %&gt;% 
+  add_predictions(lm3) %&gt;% 
+  ggplot(aes(x = mom_iq)) +
+  geom_point(data = kidsiq, aes(y = kid_score)) +
+  geom_line(aes(y = pred), color = &quot;red&quot;)</code></pre>
+<p><img src="unnamed-chunk-26-1.png" width="100%" /></p>
+<p>Oder so, jetzt auch mit Visualisierung des Standardfehlers, also mit Visualisierung der Ungewissheit des Modells:</p>
+<pre class="r"><code>kidsiq %&gt;% 
+  mutate(mom_hs = .79) %&gt;% 
+  ggplot(aes(x = mom_iq, y = kid_score)) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;) +
+  labs(title = &quot;Zusammenhang (Kovariation) von mom_iq und kid_score\nwenn die übrigen Prädiktoren konstant gehalten sind (auf dem Mittelwert)&quot;)</code></pre>
+<p><img src="unnamed-chunk-27-1.png" width="100%" /></p>
+</div>
+<div id="kovariation-mit-mom_iq" class="section level3" number="7.1.2">
+<h3><span class="header-section-number">7.1.2</span> Kovariation mit <code>mom_iq</code></h3>
+<pre class="r"><code>kidsiq %&gt;% 
+  summarise(mean(mom_iq))</code></pre>
+<pre><code>##   mean(mom_iq)
+## 1          100</code></pre>
+<pre class="r"><code>kidsiq %&gt;% 
+  mutate(mom_iq = 100) %&gt;% 
+  ggplot(aes(x = mom_hs, y = kid_score)) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;) +
+  labs(title = &quot;Zusammenhang (Kovariation) von mom_hs und kid_score\nwenn die übrigen Prädiktoren konstant gehalten sind (auf dem Mittelwert)&quot;) +
+  scale_x_continuous(breaks = c(0, 1)) +
+  geom_label(data = kidsiq_summary,
+    aes(label = round(kid_score, 2)))</code></pre>
+<p><img src="unnamed-chunk-29-1.png" width="100%" /></p>
+</div>
+</div>
+</div>
+<div id="annahmen-der-regressionsanalyse" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Annahmen der Regressionsanalyse</h1>
+<div id="additivität" class="section level2" number="8.1">
+<h2><span class="header-section-number">8.1</span> Additivität</h2>
+<p><span class="math display">\[\hat{y} = \beta_0 + \beta_1x_1 +  \beta_2x_2 + \ldots\]</span></p>
+<p>Bei Verletzung z.B.</p>
+<div id="log-transformation" class="section level3" number="8.1.1">
+<h3><span class="header-section-number">8.1.1</span> Log-Transformation</h3>
+<p><span class="math display">\[y=abc \quad \leftrightarrow \quad \text{log} y = \text{log} a + \text{log} b + \text{log}\]</span></p>
+<pre class="r"><code>df &lt;-
+  tibble(
+    x1 = 1:10,
+    x2 = 1:10,
+    x3 = 1:10,
+    y = x1*x2*x3)</code></pre>
+<pre class="r"><code>df %&gt;% 
+  mutate(y_log = x1 + x2 + x3)</code></pre>
+<pre><code>## # A tibble: 10 x 5
+##       x1    x2    x3     y y_log
+##    &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;
+##  1     1     1     1     1     3
+##  2     2     2     2     8     6
+##  3     3     3     3    27     9
+##  4     4     4     4    64    12
+##  5     5     5     5   125    15
+##  6     6     6     6   216    18
+##  7     7     7     7   343    21
+##  8     8     8     8   512    24
+##  9     9     9     9   729    27
+## 10    10    10    10  1000    30</code></pre>
+</div>
+<div id="interaktionen-hinzufügen" class="section level3" number="8.1.2">
+<h3><span class="header-section-number">8.1.2</span> Interaktionen hinzufügen</h3>
+</div>
+</div>
+<div id="linearität" class="section level2" number="8.2">
+<h2><span class="header-section-number">8.2</span> Linearität</h2>
+<p>Hier ist die Linearität verletzt:</p>
+<pre class="r"><code>df &lt;-
+  tibble(
+    x = 1:10,
+    y1 = x^2,
+    y2 = 2^x)</code></pre>
+<pre class="r"><code>df %&gt;% 
+  ggplot(aes(x = x, y = y1)) +
+  geom_line()
+
+df %&gt;% 
+  ggplot(aes(x = x, y = y2)) +
+  geom_line()</code></pre>
+<p><img src="unnamed-chunk-33-1.png" width="40%" /><img src="unnamed-chunk-33-2.png" width="40%" /></p>
+<p>Durch eine passende Transformation kann die Linearität wieder hergestellt werden:</p>
+<pre class="r"><code>df %&gt;% 
+  ggplot(aes(x = x, y = sqrt(y1))) +
+  geom_line()
+
+df %&gt;% 
+  ggplot(aes(x = x, y = log(y2))) +
+  geom_line()</code></pre>
+<p><img src="unnamed-chunk-34-1.png" width="40%" /><img src="unnamed-chunk-34-2.png" width="40%" /></p>
+</div>
+<div id="visualisierung-der-residen-um-verletzungen-der-annahmen-zu-entdecken" class="section level2" number="8.3">
+<h2><span class="header-section-number">8.3</span> Visualisierung der Residen, um Verletzungen der Annahmen zu entdecken</h2>
+</div>
+<div id="additivität-1" class="section level2" number="8.4">
+<h2><span class="header-section-number">8.4</span> Additivität</h2>
+<pre class="r"><code>autoplot(lm3, which = 1)</code></pre>
+<p><img src="unnamed-chunk-35-1.png" width="100%" /></p>
+<p>Wenn es keine Verletzungen gibt, sollten sich die Residen ohne Muster um die <span class="math inline">\(y=0\)</span> herum verteilen. Hier sind die Residuen für mittlere Werte etwas erhöht und and den Randbereichen etwas zu gering. Insgesamt ist die Verletzung nicht gravierend.</p>
+</div>
+<div id="linearität-1" class="section level2" number="8.5">
+<h2><span class="header-section-number">8.5</span> Linearität</h2>
+<p>SD der Residuen</p>
+<pre class="r"><code>kidsiq %&gt;% 
+  add_residuals(lm2) %&gt;% 
+  summarise(sd(resid))</code></pre>
+<pre><code>##   sd(resid)
+## 1  18.24502</code></pre>
+<pre class="r"><code>kidsiq %&gt;% 
+  add_residuals(lm2) %&gt;% 
+  ggplot(aes(x = mom_iq, y = resid)) +
+  geom_ref_line(h = c(0)) +
+  geom_hline(yintercept = c( -18, +18), 
+             color = &quot;grey60&quot;,
+             linetype = &quot;dashed&quot;) +
+  geom_point() +
+  labs(title = &quot;Residuen vs. Prädiktor&quot;,
+       caption = &quot;Gestrichtelte Linien zeigen ±1SD&quot;)</code></pre>
+<p><img src="unnamed-chunk-37-1.png" width="100%" /></p>
+<p>Hier zeigt sich nur Rauschen: Die Residuen sind ohne erkennbares Muster um <span class="math inline">\(y=0\)</span> herum verteilt. Es ist keine Verletzung der Linearitätsannahme erkennbar.</p>
+</div>
+</div>
+<div id="vorhersage" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Vorhersage</h1>
+<p>Nicht ausgeführt.</p>
+</div>
+<div id="referenz" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> Referenz</h1>
+<p>S. auch den <a href="/2021/06/15/arm-kap-4-syntax-im-tidyverse-stil/">Post zu ARM, Kap. 4</a></p>
+</div>

@@ -1,0 +1,106 @@
+---
+title: Visualizing a log-y regression model
+author: Sebastian Sauer
+date: '2022-01-14'
+slug: visualizing-a-log-y-regression-model
+categories:
+  - rstats
+tags:
+  - modeling
+  - visualization
+  - plotting
+editor_options: 
+  chunk_output_type: console
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>library(tidyverse)
+data(mtcars)</code></pre>
+</div>
+<div id="using-a-log-y-regression" class="section level1">
+<h1>Using a log-Y regression</h1>
+<p>Gelman et al., in “Regression and other stories” are stating that “when additivity and linearity are not reasonable assumptions” it may sense to “take the logarithms of outcomes that are all positive” (p. 189).</p>
+<p>A log-y regression can be defined as follows, in the simplest case:</p>
+<p><span class="math display">\[\text{log} \, y = b_0 + b_1X_1 + \ldots + \epsilon\]</span>
+Exponentiating both sides yields</p>
+<p><span class="math display">\[y = e^{b_0 + b_1X_1 + \ldots + \epsilon}\]</span></p>
+<p>This is a multiplicative model as can be seen perhaps more lucidly in this notation:</p>
+<p><span class="math display">\[y = e^{b0} \cdot e^{b1} \cdot \ldots \cdot e^{\epsilon}\]</span></p>
+<p>In essence, we can make use uf log-y regression for modelling
+<em>multiplicative</em> assocations between x and y.</p>
+<p>A multiplicative associations also means that it is not <em>linear</em>.</p>
+<p>Let’s have a look at an example.</p>
+<pre class="r"><code>m1 &lt;- lm(log(mpg) ~ hp, data = mtcars)
+coef(m1)</code></pre>
+<pre><code>##  (Intercept)           hp 
+##  3.460466874 -0.003428734</code></pre>
+<p>The coefficent of the predictor is reported as -0.0034287.
+Exponentiating this values yields approx.</p>
+<pre class="r"><code>b1_approx &lt;- coef(m1)[2] %&gt;% exp() 
+b1_approx</code></pre>
+<pre><code>##        hp 
+## 0.9965771</code></pre>
+<p>Thus, one more unit in <span class="math inline">\(X\)</span> increases <span class="math inline">\(Y\)</span> by exp(b1).
+In this case, <code>exp(1)</code> amounts to 0.9965771.
+Of course, factors below one indicate a decrease in <span class="math inline">\(Y\)</span>.</p>
+<p>In this example, we find a decrease of approx. 0.035% change in y associated with a one unit change in x.</p>
+<p>Let’s have a look at the predictions:</p>
+<pre class="r"><code>pred_grid &lt;-
+  tibble(
+    hp = 0:400,
+    pred = predict(m1, tibble(hp))
+  ) %&gt;% 
+  mutate(pred_exp = exp(pred))</code></pre>
+<pre class="r"><code>ggplot(mtcars) +
+  aes(x = hp, y = mpg) +
+  geom_point() +
+  geom_line(data = pred_grid,
+            aes(x = hp, y = pred_exp))</code></pre>
+<p><img src="chunk-img/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>There’s a useful shortcut to interpreting log-y regression coefficients.</p>
+<p>Compare this following (small) figures and their respective exponentiated values:</p>
+<pre class="r"><code>dat &lt;- 
+  tibble(
+    xs = seq(-.5, .5, by = .1),
+    xs_exp = exp(xs)
+  )</code></pre>
+<pre class="r"><code>ggplot(dat) +
+  aes(x = xs, y = xs_exp) + 
+  geom_line() +
+  geom_abline(slope = 1, intercept = 1)</code></pre>
+<p><img src="chunk-img/unnamed-chunk-7-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<!-- As can be seen, as long as the (x) values are small - as it is often the case for (properly scaled) regression model coefficients - we can easily translate between the x's and their exponentiated values. -->
+<!-- The values are very similar, given that the x is around zero (say, between -.25 and +.25). -->
+<!-- In short, in a log-y regression a coefficient of `x` means a change of `b1` percent in `y` (given that the coefficent is around zero). -->
+<!-- Let's check this shortcut: -->
+<!-- ```{r} -->
+<!-- intercept_exp <- exp(coef(m1)[1]) -->
+<!-- change_percent <- exp(coef(m1)[2]) -->
+<!-- change_percent_reduction <- (1 - exp(coef(m1)[2])) -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- dat2 <- -->
+<!--   tibble( -->
+<!--     hp = 0:400, -->
+<!--     reduction = change_percent ^ hp, -->
+<!--     mpg_approx = intercept_exp * reduction*intercept_exp) -->
+<!--   ) -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- head(dat2) -->
+<!-- ``` -->
+<!-- ```{r} -->
+<!-- ggplot(mtcars) + -->
+<!--   aes(x = hp, y = mpg) + -->
+<!--   geom_point() + -->
+<!--   geom_line(data = pred_grid, -->
+<!--             aes(x = hp, y = pred_exp)) + -->
+<!--   geom_line(data = dat2, -->
+<!--             aes(x = hp, y = mpg_approx), -->
+<!--             color = "blue") -->
+<!-- ``` -->
+</div>

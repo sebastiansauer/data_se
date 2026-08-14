@@ -1,0 +1,130 @@
+---
+title: Zeilenweise Operationen (tidyverse-Stil)
+author: Sebastian Sauer
+date: '2021-05-27'
+slug: zeilenweise-operationen-tidyverse-stil
+categories:
+  - rstats
+tags:
+  - datawrangling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#aufgabe"><span class="toc-section-number">1</span> Aufgabe</a></li>
+<li><a href="#setup"><span class="toc-section-number">2</span> Setup</a></li>
+<li><a href="#daten-erzeugen"><span class="toc-section-number">3</span> Daten erzeugen</a></li>
+<li><a href="#spalten-addieren-die-erste"><span class="toc-section-number">4</span> Spalten addieren, die Erste</a></li>
+<li><a href="#spalten-addieren-die-zweite"><span class="toc-section-number">5</span> Spalten addieren, die Zweite</a></li>
+<li><a href="#spalten-addieren-die-dritte"><span class="toc-section-number">6</span> Spalten addieren, die Dritte</a></li>
+<li><a href="#von-erster-spalte-bis-zu-letzter-spalte"><span class="toc-section-number">7</span> Von erster Spalte bis zu letzter Spalte</a></li>
+<li><a href="#fazit"><span class="toc-section-number">8</span> Fazit</a></li>
+</ul>
+</div>
+
+<div id="aufgabe" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Aufgabe</h1>
+<p>Berechnen Sie Zeilensummen! … Oder Zeilen-Mittelwerte oder eine andere zeilenbasierte Funktion.</p>
+</div>
+<div id="setup" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Setup</h1>
+<pre class="r"><code>library(tidyverse)  # Datenjudo</code></pre>
+</div>
+<div id="daten-erzeugen" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Daten erzeugen</h1>
+<pre class="r"><code>d &lt;- tribble(
+  ~&quot;x1&quot;, ~&quot;x2&quot;, ~&quot;x3&quot;,
+  1, 2, 3,
+  4, 5, 6,
+  7, 8, 9
+)
+d
+#&gt; # A tibble: 3 x 3
+#&gt;      x1    x2    x3
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1     2     3
+#&gt; 2     4     5     6
+#&gt; 3     7     8     9</code></pre>
+</div>
+<div id="spalten-addieren-die-erste" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Spalten addieren, die Erste</h1>
+<pre class="r"><code>d %&gt;% 
+  mutate(summe = x1 + x2 + x3) %&gt;% 
+  mutate(mw = (x1 + x2 + x3)/3)
+#&gt; # A tibble: 3 x 5
+#&gt;      x1    x2    x3 summe    mw
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1     2     3     6     2
+#&gt; 2     4     5     6    15     5
+#&gt; 3     7     8     9    24     8</code></pre>
+<p>Läuft!</p>
+</div>
+<div id="spalten-addieren-die-zweite" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Spalten addieren, die Zweite</h1>
+<pre class="r"><code>d %&gt;% 
+  mutate(summe = sum(c(x1, x2, x3)),
+         mw = mean(c(x1, x2, x3)))
+#&gt; # A tibble: 3 x 5
+#&gt;      x1    x2    x3 summe    mw
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1     2     3    45     5
+#&gt; 2     4     5     6    45     5
+#&gt; 3     7     8     9    45     5</code></pre>
+<p>Läuft nicht!</p>
+<p>Leider “verstehen” <code>sum</code> und <code>mean</code> nicht die zeilenweisen Operationen. Wir müssen ihnen erst vorab verklickern, dass sie zeilenoperiert arbeiten sollen. Das geht mit dem Befehl <code>rowwise</code>, den wir in den Code von oben einfügen:</p>
+<pre class="r"><code>d %&gt;% 
+  rowwise() %&gt;% 
+  mutate(summe = sum(c(x1, x2, x3)),
+         mw = mean(c(x1, x2, x3)))
+#&gt; # A tibble: 3 x 5
+#&gt; # Rowwise: 
+#&gt;      x1    x2    x3 summe    mw
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1     2     3     6     2
+#&gt; 2     4     5     6    15     5
+#&gt; 3     7     8     9    24     8</code></pre>
+<p>Läuft!</p>
+</div>
+<div id="spalten-addieren-die-dritte" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Spalten addieren, die Dritte</h1>
+<p>Das Prinzip <code>rowwise</code> funktioniert mit beliebigen Befehlen, die zeilenweise arbeiten sollen.</p>
+<p>Es gibt auch ein paar praktische Hilfen, etwa wenn man nicht alle Spalten händisch aufführen will oder kann:</p>
+<pre class="r"><code>cols_to_sum &lt;- c(&quot;x1&quot;, &quot;x2&quot;, &quot;x3&quot;)</code></pre>
+<pre class="r"><code>d %&gt;% 
+  rowwise() %&gt;% 
+  mutate(summe = sum(across(any_of(cols_to_sum)))
+         )
+#&gt; # A tibble: 3 x 4
+#&gt; # Rowwise: 
+#&gt;      x1    x2    x3 summe
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1     2     3     6
+#&gt; 2     4     5     6    15
+#&gt; 3     7     8     9    24</code></pre>
+<p><code>any_of()</code> sagt sinngemäß “nimm jede (any) Spalte aus diesem Vektor”. Allerdings muss dieser Befehl innerhalb von <code>select()</code> oder <code>across</code>()` gesetzt werden – nur innerhalb von Tidyverse-Befehlen, die Spalten auswählen, funktioniert er.</p>
+</div>
+<div id="von-erster-spalte-bis-zu-letzter-spalte" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Von erster Spalte bis zu letzter Spalte</h1>
+<pre class="r"><code>d %&gt;% 
+  select(1:last_col()) %&gt;% 
+  rowwise() %&gt;% 
+  mutate(summe = sum(across(everything()))
+         )
+#&gt; # A tibble: 3 x 4
+#&gt; # Rowwise: 
+#&gt;      x1    x2    x3 summe
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     1     2     3     6
+#&gt; 2     4     5     6    15
+#&gt; 3     7     8     9    24</code></pre>
+</div>
+<div id="fazit" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Fazit</h1>
+<p>Möchte man Funktionen über Spalten hinweg aber <em>zeilenweise</em> ausführen, so hilft der Befehl <code>rowwise()</code>. Möchte man die spaltenweise Orientierung der Tabelle wieder aufheben, so hilft <code>ungroup()</code>.</p>
+</div>

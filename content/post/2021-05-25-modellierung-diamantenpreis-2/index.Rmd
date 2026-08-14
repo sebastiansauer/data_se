@@ -1,0 +1,391 @@
+---
+title: Modellierung Diamantenpreis 2
+author: Sebastian Sauer
+date: '2021-05-25'
+slug: modellierung-diamantenpreis-2
+categories:
+  
+tags:
+  - modeling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Modellierung des Preises von Diamanten
+
+In diesem Post untersuchen wir den Preis von Diamanten und gehen auf einige Aspekte der statistischen Modellierung ein.
+
+
+Dieser Post orientiert sich an [diesem Buchkapitel](https://r4ds.had.co.nz/model-building.html).
+
+# Pakete laden
+
+
+```{r}
+library(tidyverse)  # Datenjudo
+library(corrr)  # Korrelation
+library(ggfortify)  # Annahmen grafisch überprüfen
+library(modelr)  # Hilfen zum Modellieren
+library(broom)  # tidy Regressionsergebnisse
+```
+
+# Daten laden
+
+
+```{r}
+data("diamonds")
+```
+
+
+
+# Datensatz verstehen
+
+Ein zentraler Punkt in der statistischen Modellierung ist das *Priori-Wissen*: Dass man weiß, worüber man redet. Bei der Modellierung des Preises von Diamananten bietet sich an, etwas über dieses Sujet zu wissen -- zumindenst die Variablen des Datensatzes zu verstehen.
+
+
+Die [Hilfeseite](https://ggplot2.tidyverse.org/reference/diamonds.html) zum Datensatz ist dazu nützlich.
+
+
+# Modellierung
+
+
+## Modell 1
+
+Auf Basis unseres Vorwissens (Priori-Wissens) gehen wir davon aus, dass das Gewicht eines Diamanten stark korreliert mit dem Preis:
+
+
+```{r}
+diamonds %>% 
+  select(price, carat) %>% 
+  correlate() %>% 
+  focus(price)  # Fokus auf Preis
+```
+
+Die hohe Korrelation belegt, dass wir auf einem guten Weg sind (zu sein scheinen).
+
+Man könnte natürlich auch weiter schauen, und alle numerischen Variablen in die Korrelation mit dem Preis aufnehmen:
+
+```{r}
+diamonds %>% 
+  select(where(is.numeric)) %>% 
+  correlate() %>% 
+  focus(price) %>% 
+  arrange(-abs(price))
+```
+
+
+
+### Modellgüte
+
+```{r}
+lm1 <- lm(price ~ carat, data = diamonds)
+summary(lm1)$r.squared
+```
+
+
+### Überprüfung der Annahmen
+
+```{r}
+autoplot(lm1)
+```
+
+Oh je! Unser naiver Ansatz (naiv in der Rückschau) offenbart gravierende Mängel. Die vielleicht wichtigste Annahme im Regressionsmdell (aus mathematischer Sicht) ist, die Linearitätsannahme. Ist diese Annahme erfüllt, so sollten sich die Residen ohne Muster um die Nulllinie verteiilen. Wie wir im Diagramm 1 sehen, ist diese Annahme stark verletzt.
+
+Probieren wir, es besser zu machen
+
+
+## Modell 2
+
+
+### Genauerer Blick auf den Zusammenhang
+
+```{r}
+diamonds %>% 
+  select(price, carat) %>% 
+  ggplot(aes(x = carat, y  = price)) +
+  geom_density2d()
+```
+
+In den inneren Kreisen (Konturlinien) ist die Dichte an Diamanten am höchsten (dort sind die meisten Diamanten).
+
+Oder, ähnlich:
+
+
+```{r}
+diamonds %>% 
+  select(price, carat) %>% 
+  filter(percent_rank(price) < .9) %>%   # nur die biligsten 90%
+  filter(percent_rank(carat) < .9) %>%   # nur die kleinsten 90%
+  ggplot(aes(x = carat, y  = price)) +
+  geom_density2d_filled()
+```
+
+
+
+Vielleicht so:
+
+```{r}
+diamonds %>% 
+  select(price, carat) %>% 
+  filter(percent_rank(price) < .95) %>%   # nur die biligsten 95%
+  filter(percent_rank(carat) < .95) %>%   # nur die kleinsten 95%
+  ggplot(aes(x = carat, y  = price)) +
+  geom_hex(bins=50) +
+  geom_smooth()
+```
+
+Es sieht so aus, als wäre der Zusammenhang nicht linear. Genau das hat uns auch das Diagramm oben gezeigt, bei dem Residuen gegen vorhergesagte Werte angezeichnet wurden.
+
+
+### Log-Modell
+
+
+Ein Log-Modell geht von einem multiplikativen (exponentiellen) Zusammenhang aus: Wächst X um einen festen Betrag, so wächst Y um einen festen Faktor.
+
+```{r}
+lm2 <- lm(log(price) ~ carat, data = diamonds) 
+summary(lm2)$r.squared
+```
+
+```{r}
+autoplot(lm2, which = 1)
+```
+
+
+Das Modell scheint auch noch nicht so gut zu passen.
+
+
+## Modell 3
+
+Vielleicht wird der Preis von einem Diamanten eher so berechnet: Steigt das Gewicht des Diamanten um 1%, so steigt der Preis um 1% (oder x$)?
+
+```{r}
+diamonds <-
+  diamonds %>% 
+  mutate(price_log = log2(price),
+         carat_log = log2(carat))
+```
+
+
+```{r}
+ggplot(diamonds) +
+  aes(x = carat_log, y = price_log) +
+  geom_hex(bins=50)
+```
+Das ist ein schöner, lineare Trend! Das Log-Log-Modell für Preis und Karat passt!
+
+
+### Modellgüte
+
+Übrigens ist ein Streudiagramm bei *vielen* Punkten (>1000) wegen des Overplottings nur bedingt geeignet. Ein Geom Hex ist hier nützlicher.
+
+```{r}
+lm3 <- lm(price_log ~ carat_log, data = diamonds) 
+summary(lm3)$r.squared
+```
+
+
+Tragen wir die Vorhersagen dieses Modells in die Daten ein:
+
+```{r}
+diamonds %>% 
+  add_predictions(lm3, "pred_lm3") %>% 
+  mutate(pred_lm3_delog = 2^pred_lm3) %>% 
+  ggplot() +
+  geom_hex(aes(x = carat, y = price)) +
+  geom_line(aes(x = carat, y = pred_lm3_delog),
+            color = "red") +
+  lims(x = c(0,2.5), y = c(0, 20000))
+```
+
+
+### Voraussetzungen prüfen
+
+```{r}
+autoplot(lm3, which = 1)
+```
+
+Die "abrasierte Kante" kommt vermutlich von unserem Filter. Leider lässt die große Anzahl der Punkte das Diagramm nur bedingt nützlich erscheinen; wir können wegen des Overplotting nicht wirklich gut einen Trend sehen. Aber was wir sehen, ist zumindest besser als in den vorherigen Modellen. Fortschritt!
+
+
+## Modell 3a und 4
+
+### Konfundierung von Schliff und Karat
+
+Versuchen wir zu verstehen, welche Variablen noch eine Rolle spielen. Schliff erscheint einem Laien als plausibler Prädiktor. Schauen wir uns Schliff näher an.
+
+
+```{r}
+diamonds %>% 
+  select(cut, price) %>% 
+  ggplot(aes(x = cut, y = price)) +
+  geom_boxplot()
+```
+
+Verblüffend! Die guten Schliffarten erzielen nicht den besten Preis! Im Gegenteil: der *schlechteste* Schliff (`Fair`) erzielt den höchsten Preis. Wie kann das sein?
+
+Ein (plausibler) Grund ist, dass Schliff und Karat konfundiert sind: Schwerere Diamanten (hohe Karatzahl) hätten demnach einen schlechteren Schliff. Da aber Karat und Preis positiv korreliert sind, sind Diamanten schlechteren Schliffs teuerer. Soweit die Theorie. Untersuchen wir diese These in den Daten. Dazu betrachten wir den *Preis relativ zur Karatzahl*. Wir untersuchen also die Frage: Im Verhältnis zu seiner Karatzahl, wie teuer ist der Diamant? Damit können wir prüfen, ob ein Diamant mit schlechtem Schliff im Verhältnis zu seinem Gewicht wirklich (überdurchschnittlich) teuer ist. Wenn unsere These stimmt, müsste dann ein Diamant schlechten Schliffs *günstiger* sein.
+
+
+```{r}
+diamonds %>% 
+  add_residuals(lm3, "resid_lm3") %>% 
+  ggplot(aes(x = cut, y = resid_lm3)) +
+  geom_boxplot()
+```
+
+
+Bingo! Unsere Theorie scheint richtig zu sein. Zumindest passen die Daten zu unserer Vorhersage: Jetzt sind die Diamanten schlechten Schliffs *billiger* als es ihre Karatzahl vermuten ließe. Anders gesagt: Betrachtet man nur Diamanten mit einer bestimmten Karatzahl, so sind in dieser Gruppe die Diamanten schlechten Schliffs günstiger als Diamanten besseren Schliffs (und entsprechend für Diamanten anderen Schliffs).
+
+
+### `lm3a`
+
+Ergänzen wir ein Modell, `lm3a`, welches `cut` zusätzlich zum Gewicht (Karat) eines Diamannten nutzt, um den Preis vorherzusagen.
+
+```{r}
+lm3a <- lm(price_log ~ carat_log + cut, data = diamonds) 
+summary(lm3a)$r.squared
+```
+
+Ah, ein sehr hoher $R^2$-Wert.
+
+Was sind die Vorhersagen für die Werte von `cut` von unserem Modell, `lm3a`? 
+
+
+
+
+So können wir uns für die Werte von `cut` auf Basis von `lm3` eine Vorhersage geben lassen. Dabei nehmen wir den typischen Wert von Karat (log), den Median, um genau zu sein:
+
+```{r}
+lm3a_grid <-
+  diamonds %>% 
+  data_grid(cut, .model = lm3a) %>% 
+  add_predictions(lm3a)
+
+lm3a_grid
+```
+Visualisieren wir den vorhergesagten Preis laut Karatzahl und Schliffart (von `lm3a`) als rote Punkte und setzen die Verteilung der Preise in Abhängigkeit der Schliffart dagegen (Boxplots):
+
+```{r}
+diamonds %>% 
+  ggplot() +
+  geom_boxplot(aes(x = cut,
+              y = price_log)) +
+  geom_point(data = lm3a_grid,
+             aes(x = cut,
+                 y = pred),
+             color = "red",
+             size = 5)
+```
+
+
+Wir sehen, dass der Preis laut Karatzahl bei schlechter Schliffart (`Fair`) höher sein müsste: Relativ zur Karatzahl sind diese Diamanten günstig.
+
+
+### `lm4`: Schliff als Prädiktor
+
+
+
+
+Umgekehrt können wir auch anschauen, ob die Karatzahl mit dem Preis relativ zur Schliffart zusammenhängt. Definieren wir dazu ein Modell, das nur die Schliffart zur Vorhersage des Preises nutzt:
+
+```{r}
+lm4 <- lm(price_log ~ cut, data = diamonds)
+summary(lm4)$r.squared
+```
+
+
+```{r}
+diamonds <-
+  diamonds %>% 
+  add_residuals(lm4, "resid_lm4")
+```
+
+
+```{r}
+diamonds %>% 
+  ggplot() +
+  aes(x = carat_log, y = resid_lm4) +
+  geom_hex(bins = 50)
+```
+
+Es ist kein großer Unterschied zu erkennen. Der Zusammenhang von Preis und Karat (jeweils log2) ist praktisch gleich zum Zusammenang des Preises relativ zur Schliffart und Karat. Das zeigt, dass die Schliffart nicht wirklich einen "eigenen" Zusammenhang mit dem Preis hat, der über den Zusammenhang der Karatzahl hinausgeht.
+
+Alternativ könnte man den Zusammenhang von Karat und Preis relativ zur Schliffart auch so betrachten:
+
+
+```{r}
+diamonds %>% 
+  ggplot(aes(x = carat_log, y = price_log)) +
+  facet_wrap(~ cut) +
+  geom_ref_line(v = 0) +
+  geom_ref_line(h = 10) +
+  geom_hex(bins = 50)
+
+```
+
+Die Diagramme sehen ähnlich aus: Unabhängig von der Schliffart (was in jeder einzelnen Facette der Fall ist) ist der Zusammenhang von Karat und Preis stark. Anstelle von "unabhängig von" sagt man auch "bereinigt von", also "bereinigt von der Schliffart", ist der Zusammenhang von Karat und Preis weiterhin stark.
+
+Die Referenzlinien wurden hinzugefügt, um einen "Referanzrahmen" zu geben: $x=0$ entspricht $2^0=1$ Karat; $y=2^10=1024$ Dollar Preis.
+
+### Modellkoeffizienten
+
+
+Die relative Bedeutung des Prädiktoren lässt sich mit einem (ggf. standardisierten) Regressionskoeffizienten darstellen (hier nicht weiter ausgeführt).
+
+```{r}
+tidy(lm3a)
+```
+
+### $R^2$ zur Beurteilung der Relevanz von Prädiktoren
+
+Alternativ kann man den Zuwachs an $R^2$ anschauen, wenn man Prädiktoren hinzufügt.
+
+```{r}
+summary(lm3)$r.squared
+```
+```{r}
+summary(lm3a)$r.squared
+```
+
+Der zusätzliche Prädiktor in `lm3a` scheint wenig Zuwachs in der Modellgüte (gemessen in $R^2$) einzubringen. Die *unique* Releanz des zweiten Prädiktors (`cut`) ist somit nicht so hoch.
+
+
+
+
+# Fazit: "Händische" Modellierung
+
+Wir haben uns einige Mühe gemacht, den Datensatz zu verstehen. Dazu haben wir Vorwissen eingebracht und analysiert, welche Muster übrig bleiben, wenn wir ein bestimmtes Muster "abschälen". So versuchten wir, die mehreren "Schichten" an Mustern zu erkennen, die bei der Preisgestaltung von Diamanten eine Rolle spielen. Gerade schwächere Muster werden oft von einem stärkeren Muster übertönt. Um auch das schwächere Muster zu erkennen, muss man das stärkere Muster entfernen. Das geht mittels der Regressionsanalyse. Allerdings ist die Visualisierung eine zentrale Stütze, um zu verstehen, was im Datensatz "passiert". Es zeigt sich, dass eine gesunde Portion Datenjudo immer nützlicht ist.
+
+## Maschinelle Prädiktorenwahl
+
+Eine Alternative zur manuellen Wahl von Prädiktoren wie oben ausgeführt, ist die maschinelle Auswahl, etwa mittels schrittweiser Regression. Solche Methoden haben ihre Stärken, aber sie haben auch Nachteile. Erstens sind die resultierenden Modelle "schwarze Kisten"; man spricht von "black box models". Es ist immer nützlich, und manchmal unentbehrlich, zu verstehen, warum ein Modell eine bestimmte Vorhersage trifft. So würde es z.B. vor Gericht wohl nicht reichen, Ihre Entscheidung zu begründen mit "der Computer hat gesagt, es könnte ein gutes Ergebnis bringen". Diese Begründung reicht deshalb nicht, weil es keine Begründung ist. Zweitens sind Modelle, bei denen man die Wirkweise, zumindest in Ansätzen versteht, robuster als Black-Box-Modelle. Häufig ändern sich Daten, Verteilungen oder Zusammenhänge. Kennt man die Zusammenhänge, gar die kausalen Zusammenhänge, so wird das Modell bei Verschiebungen seiner Grundlagen robuster bleiben als ein Black-Box-Modell. Einige Aspekte wird ein maschinell gewähltes Modell nicht aufdecken bzw. verwenden (z.B. Dublikate bei den Diamanten, ob es da wohl welche gibt?).
+
+
+## Einreichen
+
+In einem Prognose-Wettbewerb wählen Sie Ihr bestes Modell (beste Prognosegüte) aus, und reichen dessen Vorhersage ein, zusammen mit einer ID pro Beobachtung, so dass man weiß, auf welchen Diamanten sich ein vorhergesagter Preis bezieht.
+
+

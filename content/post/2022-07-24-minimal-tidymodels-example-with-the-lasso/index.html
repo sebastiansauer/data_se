@@ -1,0 +1,210 @@
+---
+title: Minimal tidymodels example with the Lasso
+author: Sebastian Sauer
+date: '2022-07-24'
+slug: minimal-tidymodels-example-with-the-lasso
+tags:
+  - tidymodels
+  - prediction
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#intro" id="toc-intro"><span class="toc-section-number">1</span> Intro</a></li>
+<li><a href="#load-packages" id="toc-load-packages"><span class="toc-section-number">2</span> Load packages</a></li>
+<li><a href="#data" id="toc-data"><span class="toc-section-number">3</span> Data</a></li>
+<li><a href="#minimal-code-for-fitting-a-model" id="toc-minimal-code-for-fitting-a-model"><span class="toc-section-number">4</span> Minimal code for fitting a model</a></li>
+<li><a href="#results" id="toc-results"><span class="toc-section-number">5</span> Results</a></li>
+<li><a href="#reproducibility" id="toc-reproducibility"><span class="toc-section-number">6</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="intro" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Intro</h1>
+<p>In this post, we try to find a minimal setup for running/fitting a predictive model using the tidymodels approach.</p>
+</div>
+<div id="load-packages" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(tidymodels)</code></pre>
+</div>
+<div id="data" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Data</h1>
+<pre class="r"><code>data(&quot;penguins&quot;, package = &quot;modeldata&quot;)</code></pre>
+</div>
+<div id="minimal-code-for-fitting-a-model" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Minimal code for fitting a model</h1>
+<pre class="r"><code>m1 &lt;- linear_reg(engine = &quot;glmnet&quot;, penalty = 1, mixture = 1) %&gt;% 
+  fit(body_mass_g ~ ., data = penguins)</code></pre>
+<p>Note that, for simplicity, we do not care about cross-validation, tuning and preprocessing.
+In particular, we should normalize the metric predictors and dummytize the nominmal predictors.</p>
+<p>We do not even use tidymodels’ <code>workflow</code> approach here for the sake of minimalism.
+I’m not saying that I would recommend this minimal approach though.</p>
+</div>
+<div id="results" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Results</h1>
+<p>The <code>tidy</code> method from <code>{broom}</code> offers an handy approach to get the model parameters:</p>
+<pre class="r"><code>m1 %&gt;% 
+  tidy()
+#&gt; # A tibble: 10 × 3
+#&gt;    term              estimate penalty
+#&gt;    &lt;chr&gt;                &lt;dbl&gt;   &lt;dbl&gt;
+#&gt;  1 (Intercept)        82320.        1
+#&gt;  2 speciesChinstrap    -275.        1
+#&gt;  3 speciesGentoo        873.        1
+#&gt;  4 islandDream          -19.3       1
+#&gt;  5 islandTorgersen      -53.2       1
+#&gt;  6 bill_length_mm        18.4       1
+#&gt;  7 bill_depth_mm         55.5       1
+#&gt;  8 flipper_length_mm     18.7       1
+#&gt;  9 sexmale              386.        1
+#&gt; 10 year                 -41.9       1</code></pre>
+<p>In case any predictor beta has been shrunken to zero, we would get a note, see for instance <a href="https://www.tidymodels.org/learn/models/coefficients/">this post</a></p>
+</div>
+<div id="reproducibility" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value
+#&gt;  version  R version 4.2.0 (2022-04-22)
+#&gt;  os       macOS Big Sur/Monterey 10.16
+#&gt;  system   x86_64, darwin17.0
+#&gt;  ui       X11
+#&gt;  language (EN)
+#&gt;  collate  en_US.UTF-8
+#&gt;  ctype    en_US.UTF-8
+#&gt;  tz       Europe/Berlin
+#&gt;  date     2022-07-24
+#&gt;  pandoc   2.18 @ /usr/local/bin/ (via rmarkdown)
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package        * version    date (UTC) lib source
+#&gt;  assertthat       0.2.1      2019-03-21 [1] CRAN (R 4.2.0)
+#&gt;  backports        1.4.1      2021-12-13 [1] CRAN (R 4.2.0)
+#&gt;  blogdown         1.10       2022-05-10 [1] CRAN (R 4.2.0)
+#&gt;  bookdown         0.27       2022-06-14 [1] CRAN (R 4.2.0)
+#&gt;  brio             1.1.3      2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  broom          * 1.0.0      2022-07-01 [1] CRAN (R 4.2.0)
+#&gt;  bslib            0.3.1      2021-10-06 [1] CRAN (R 4.2.0)
+#&gt;  cachem           1.0.6      2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  callr            3.7.0      2021-04-20 [1] CRAN (R 4.2.0)
+#&gt;  cellranger       1.1.0      2016-07-27 [1] CRAN (R 4.2.0)
+#&gt;  class            7.3-20     2022-01-16 [2] CRAN (R 4.2.0)
+#&gt;  cli              3.3.0      2022-04-25 [1] CRAN (R 4.2.0)
+#&gt;  codetools        0.2-18     2020-11-04 [2] CRAN (R 4.2.0)
+#&gt;  colorout       * 1.2-2      2022-06-13 [1] local
+#&gt;  colorspace       2.0-3      2022-02-21 [1] CRAN (R 4.2.0)
+#&gt;  crayon           1.5.1      2022-03-26 [1] CRAN (R 4.2.0)
+#&gt;  DBI              1.1.2      2021-12-20 [1] CRAN (R 4.2.0)
+#&gt;  dbplyr           2.2.0      2022-06-05 [1] CRAN (R 4.2.0)
+#&gt;  desc             1.4.1      2022-03-06 [1] CRAN (R 4.2.0)
+#&gt;  devtools         2.4.3      2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  dials          * 1.0.0      2022-06-14 [1] CRAN (R 4.2.0)
+#&gt;  DiceDesign       1.9        2021-02-13 [1] CRAN (R 4.2.0)
+#&gt;  digest           0.6.29     2021-12-01 [1] CRAN (R 4.2.0)
+#&gt;  dplyr          * 1.0.9      2022-04-28 [1] CRAN (R 4.2.0)
+#&gt;  ellipsis         0.3.2      2021-04-29 [1] CRAN (R 4.2.0)
+#&gt;  evaluate         0.15       2022-02-18 [1] CRAN (R 4.2.0)
+#&gt;  fansi            1.0.3      2022-03-24 [1] CRAN (R 4.2.0)
+#&gt;  fastmap          1.1.0      2021-01-25 [1] CRAN (R 4.2.0)
+#&gt;  forcats        * 0.5.1      2021-01-27 [1] CRAN (R 4.2.0)
+#&gt;  foreach          1.5.2      2022-02-02 [1] CRAN (R 4.2.0)
+#&gt;  fs               1.5.2      2021-12-08 [1] CRAN (R 4.2.0)
+#&gt;  furrr            0.3.0      2022-05-04 [1] CRAN (R 4.2.0)
+#&gt;  future           1.26.1     2022-05-27 [1] CRAN (R 4.2.0)
+#&gt;  future.apply     1.9.0      2022-04-25 [1] CRAN (R 4.2.0)
+#&gt;  generics         0.1.3      2022-07-05 [1] CRAN (R 4.2.0)
+#&gt;  ggplot2        * 3.3.6      2022-05-03 [1] CRAN (R 4.2.0)
+#&gt;  glmnet         * 4.1-4      2022-04-15 [1] CRAN (R 4.2.0)
+#&gt;  globals          0.15.0     2022-05-09 [1] CRAN (R 4.2.0)
+#&gt;  glue             1.6.2      2022-02-24 [1] CRAN (R 4.2.0)
+#&gt;  gower            1.0.0      2022-02-03 [1] CRAN (R 4.2.0)
+#&gt;  GPfit            1.0-8      2019-02-08 [1] CRAN (R 4.2.0)
+#&gt;  gtable           0.3.0      2019-03-25 [1] CRAN (R 4.2.0)
+#&gt;  hardhat          1.2.0      2022-06-30 [1] CRAN (R 4.2.0)
+#&gt;  haven            2.5.0      2022-04-15 [1] CRAN (R 4.2.0)
+#&gt;  hms              1.1.1      2021-09-26 [1] CRAN (R 4.2.0)
+#&gt;  htmltools        0.5.2      2021-08-25 [1] CRAN (R 4.2.0)
+#&gt;  httr             1.4.3      2022-05-04 [1] CRAN (R 4.2.0)
+#&gt;  infer          * 1.0.2      2022-06-10 [1] CRAN (R 4.2.0)
+#&gt;  ipred            0.9-13     2022-06-02 [1] CRAN (R 4.2.0)
+#&gt;  iterators        1.0.14     2022-02-05 [1] CRAN (R 4.2.0)
+#&gt;  jquerylib        0.1.4      2021-04-26 [1] CRAN (R 4.2.0)
+#&gt;  jsonlite         1.8.0      2022-02-22 [1] CRAN (R 4.2.0)
+#&gt;  knitr            1.39       2022-04-26 [1] CRAN (R 4.2.0)
+#&gt;  lattice          0.20-45    2021-09-22 [2] CRAN (R 4.2.0)
+#&gt;  lava             1.6.10     2021-09-02 [1] CRAN (R 4.2.0)
+#&gt;  lhs              1.1.5      2022-03-22 [1] CRAN (R 4.2.0)
+#&gt;  lifecycle        1.0.1      2021-09-24 [1] CRAN (R 4.2.0)
+#&gt;  listenv          0.8.0      2019-12-05 [1] CRAN (R 4.2.0)
+#&gt;  lubridate        1.8.0      2021-10-07 [1] CRAN (R 4.2.0)
+#&gt;  magrittr         2.0.3      2022-03-30 [1] CRAN (R 4.2.0)
+#&gt;  MASS             7.3-56     2022-03-23 [2] CRAN (R 4.2.0)
+#&gt;  Matrix         * 1.4-1      2022-03-23 [2] CRAN (R 4.2.0)
+#&gt;  memoise          2.0.1      2021-11-26 [1] CRAN (R 4.2.0)
+#&gt;  modeldata      * 1.0.0      2022-07-01 [1] CRAN (R 4.2.0)
+#&gt;  modelr           0.1.8      2020-05-19 [1] CRAN (R 4.2.0)
+#&gt;  munsell          0.5.0      2018-06-12 [1] CRAN (R 4.2.0)
+#&gt;  nnet             7.3-17     2022-01-16 [2] CRAN (R 4.2.0)
+#&gt;  palmerpenguins   0.1.0      2020-07-23 [1] CRAN (R 4.2.0)
+#&gt;  parallelly       1.32.0     2022-06-07 [1] CRAN (R 4.2.0)
+#&gt;  parsnip        * 1.0.0      2022-06-16 [1] CRAN (R 4.2.0)
+#&gt;  pillar           1.7.0      2022-02-01 [1] CRAN (R 4.2.0)
+#&gt;  pkgbuild         1.3.1      2021-12-20 [1] CRAN (R 4.2.0)
+#&gt;  pkgconfig        2.0.3      2019-09-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgload          1.2.4      2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  prettyunits      1.1.1      2020-01-24 [1] CRAN (R 4.2.0)
+#&gt;  processx         3.6.1      2022-06-17 [1] CRAN (R 4.2.0)
+#&gt;  prodlim          2019.11.13 2019-11-17 [1] CRAN (R 4.2.0)
+#&gt;  ps               1.7.1      2022-06-18 [1] CRAN (R 4.2.0)
+#&gt;  purrr          * 0.3.4      2020-04-17 [1] CRAN (R 4.2.0)
+#&gt;  R6               2.5.1      2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  Rcpp             1.0.8.3    2022-03-17 [1] CRAN (R 4.2.0)
+#&gt;  readr          * 2.1.2      2022-01-30 [1] CRAN (R 4.2.0)
+#&gt;  readxl           1.4.0      2022-03-28 [1] CRAN (R 4.2.0)
+#&gt;  recipes        * 1.0.1      2022-07-07 [1] CRAN (R 4.2.0)
+#&gt;  remotes          2.4.2      2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  reprex           2.0.1      2021-08-05 [1] CRAN (R 4.2.0)
+#&gt;  rlang            1.0.3      2022-06-27 [1] CRAN (R 4.2.0)
+#&gt;  rmarkdown        2.14       2022-04-25 [1] CRAN (R 4.2.0)
+#&gt;  rpart            4.1.16     2022-01-24 [2] CRAN (R 4.2.0)
+#&gt;  rprojroot        2.0.3      2022-04-02 [1] CRAN (R 4.2.0)
+#&gt;  rsample        * 1.0.0      2022-06-24 [1] CRAN (R 4.2.0)
+#&gt;  rstudioapi       0.13       2020-11-12 [1] CRAN (R 4.2.0)
+#&gt;  rvest            1.0.2      2021-10-16 [1] CRAN (R 4.2.0)
+#&gt;  sass             0.4.1      2022-03-23 [1] CRAN (R 4.2.0)
+#&gt;  scales         * 1.2.0      2022-04-13 [1] CRAN (R 4.2.0)
+#&gt;  sessioninfo      1.2.2      2021-12-06 [1] CRAN (R 4.2.0)
+#&gt;  shape            1.4.6      2021-05-19 [1] CRAN (R 4.2.0)
+#&gt;  stringi          1.7.6      2021-11-29 [1] CRAN (R 4.2.0)
+#&gt;  stringr        * 1.4.0      2019-02-10 [1] CRAN (R 4.2.0)
+#&gt;  survival         3.3-1      2022-03-03 [2] CRAN (R 4.2.0)
+#&gt;  testthat         3.1.4      2022-04-26 [1] CRAN (R 4.2.0)
+#&gt;  tibble         * 3.1.7      2022-05-03 [1] CRAN (R 4.2.0)
+#&gt;  tidymodels     * 1.0.0      2022-07-13 [1] CRAN (R 4.2.0)
+#&gt;  tidyr          * 1.2.0      2022-02-01 [1] CRAN (R 4.2.0)
+#&gt;  tidyselect       1.1.2      2022-02-21 [1] CRAN (R 4.2.0)
+#&gt;  tidyverse      * 1.3.1      2021-04-15 [1] CRAN (R 4.2.0)
+#&gt;  timeDate         3043.102   2018-02-21 [1] CRAN (R 4.2.0)
+#&gt;  tune           * 1.0.0      2022-07-07 [1] CRAN (R 4.2.0)
+#&gt;  tzdb             0.3.0      2022-03-28 [1] CRAN (R 4.2.0)
+#&gt;  usethis          2.1.6      2022-05-25 [1] CRAN (R 4.2.0)
+#&gt;  utf8             1.2.2      2021-07-24 [1] CRAN (R 4.2.0)
+#&gt;  vctrs            0.4.1      2022-04-13 [1] CRAN (R 4.2.0)
+#&gt;  withr            2.5.0      2022-03-03 [1] CRAN (R 4.2.0)
+#&gt;  workflows      * 1.0.0      2022-07-05 [1] CRAN (R 4.2.0)
+#&gt;  workflowsets   * 1.0.0      2022-07-12 [1] CRAN (R 4.2.0)
+#&gt;  xfun             0.31       2022-05-10 [1] CRAN (R 4.2.0)
+#&gt;  xml2             1.3.3      2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  yaml             2.3.5      2022-02-21 [1] CRAN (R 4.2.0)
+#&gt;  yardstick      * 1.0.0      2022-06-06 [1] CRAN (R 4.2.0)
+#&gt; 
+#&gt;  [1] /Users/sebastiansaueruser/Rlibs
+#&gt;  [2] /Library/Frameworks/R.framework/Versions/4.2/Resources/library
+#&gt; 
+#&gt; ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>

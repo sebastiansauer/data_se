@@ -1,0 +1,806 @@
+---
+title: EDA zu Flugverspätungen
+author: Sebastian Sauer
+draft: false
+date: '2021-03-08'
+slug: eda-zu-flugverspätungen
+categories:
+  
+tags:
+  - eda
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Pakete laden
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(fastDummies)  # nur für "Dummyisierung"
+library(skimr)  # viele Statistiken auf einmal
+library(corrr)  # komfortabel Korrelationen ausrechnen
+```
+
+```{r load-libs-hidden, message = FALSE, warning = FALSE, include=FALSE}
+library(printr)
+```
+
+
+# Hintergrund und Ziel
+
+
+Dieser Post zeigt einige mögliche/typische Schritte der explorativen Datenanalyse (EDA) im Hinblick auf die Forschungsfrage "*Welche Variablen steht in Zusammenhang mit Flugverspätungen?*".
+
+
+# Daten laden
+
+Der Datensatz kann z.B. hier bezogen werden:
+
+```{r}
+flights <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/nycflights13/flights.csv")
+```
+
+Der Datensatz ist relativ groß:
+
+```{r}
+dim(flights)
+```
+
+
+Alternativ findet man den Datensatz auch im Paket `nycflights13`.
+
+
+```{r eval = FALSE}
+data(flights, package = "nycflights13")
+```
+
+
+
+# Was ist Verspätung?
+
+Schauen wir uns den Datensatz mal näher an, um die Zielvariable "Verspätung" zu beleuchten.
+
+```{r}
+glimpse(flights)
+```
+
+
+Es gibt zwei Spalten, die auf Verspätung hinzielen:
+
+```{r}
+flights %>% 
+  select(contains("delay")) %>% 
+  head()
+```
+
+
+Ein Blick in die Hilfe lässt uns mehr lernen, was die Spalten bedeuten: `help(flights)` (wenn das Paket `nycflights13` geladen ist; alternativ kann man z.B. [hier](https://vincentarelbundock.github.io/Rdatasets/doc/nycflights13/flights.html) nachlesen):
+
+````
+dep_delay, arr_delay
+
+Departure and arrival delays, in minutes. 
+Negative times represent early departures/arrivals.
+````
+
+## Wie ähnlich sind Ankunfts- und Abflugsverspätung?
+
+Da der Datensatz so groß ist, ziehen wir eine Stichprobe, dann geht alles schneller. Hier *nicht* wichtig, nur um etwas Zeit beim Plotten zu sparen. In der Praxis würde ich in an dieser Stelle keine Stichprobe ziehen, bzw. mit dem Gesamtdatensatz weiterarbeiten (was wir ja auch im Folgenden tun).
+
+```{r}
+flights %>% 
+  sample_n(size = 1000) %>% 
+  ggplot() +
+  aes(y = dep_delay, x = arr_delay) +
+  geom_point()
+```
+
+
+Oder vielleicht so:
+
+
+```{r}
+flights %>%
+  drop_na(dep_delay, arr_delay) %>% 
+  summarise(sd(dep_delay),
+            sd(arr_delay))
+```
+
+Das sind ca. 10% Differenz in der Skalierung; wir können die Skalierung komplett angleichen, um Abweichungen, die auf unterschiedlichen Mustern beruhen, besser zu sehen. Dazu hilft uns die z-Transformation.
+
+
+```{r}
+flights %>% 
+  select(contains("delay")) %>% 
+  drop_na() %>% 
+  mutate(dep_delay = scale(dep_delay),  # z-Transformation
+         arr_delay = scale(arr_delay)) %>%   # z-Transformation
+  ggplot() +
+  aes(x = arr_delay, y = dep_delay) +
+  geom_bin2d() +
+  geom_abline(linetype = "dashed",
+              color = "grey60")
+```
+
+
+
+
+Die beiden Variablen scheinen ziemlich stark korreliert zu sein.
+
+```{r}
+flights %>% 
+  drop_na(dep_delay, arr_delay) %>% 
+  summarise(cor(dep_delay, arr_delay))
+```
+
+Ja, sind sie. Dann ist es vielleicht egal, welche der beiden Variablen wir verwenden. Nehmen wir `dep_delay`.
+
+
+# Verteilung der Verspätung
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = dep_delay) %>% 
+  geom_density()
+```
+
+
+Ein sehr langer rechter Rand; die meisten Flüge sind nicht/kaum verspätet; aber einige wenige sind sehr stark verspätet.
+
+
+Zentrale deskriptive Statisitken könnte man sich mit `summary` ausgeben lassen:
+
+
+```{r}
+flights %>%
+  filter(!is.na(dep_delay)) %>%  # keine fehlenden Werte
+  summarise(depdelay_mean = mean(dep_delay),
+            depdelay_sd = sd(dep_delay),
+            depdelay_md = median(dep_delay),
+            depdelay_iqr = IQR(dep_delay)) 
+```
+
+Oder man benutzt den Befehl `across`, der es erlaubt, eine oder mehrere Funktionen auf eine oder mehrere Spalten anzuwenden. In diesem Beispiel wenden wir mehrere Funktionen (adressiert mit `.fns`) auf eine Spalte (`dep_delay`), adressiert mit dem Argument `.cols` an. Außerdem kann man die Namen der resultierenden Spalten bestimmen mit dem Argument `.names`. In der geschweiften Klammer steht eine interne Variable, die den Namen der jeweils berechneten Funktion (`{fn}`) an den Namen der neu erstellten Spalte anfügt; in der Ausgabe sieht man das gut.
+
+
+```{r}
+flights %>% 
+  summarise(across(
+    .cols = dep_delay,
+    .fns = list(mean = mean, 
+                md = median, 
+                sd = sd, 
+                iqr = IQR), na.rm = TRUE,
+    .names = "depdelay_{fn}"
+  ))
+```
+
+
+## flights2: Extremwerte (der Verspätung) definieren
+
+Es gibt keinen sicheren Weg, mit Extremwerten umzugehen. Häufig macht es Sinn, die Ergebnisse zu vergleichen mit oder ohne Extremwerten. 
+
+
+
+<!-- [Quelle dieses Abschnitts](https://data-se.netlify.app/2021/03/08/eda-zu-flugversp%C3%A4tungen/#flights2-extremwerte-definieren) -->
+
+
+"Wann ist ein Flug *sehr* verspätet?
+
+
+### Boxplot-Methode
+
+Eine Möglichkeit ist die "Boxplot-Methode": Entferne alle Flüge, die mehr verspätet sind als: $q75+1.5iqr$
+
+Definieren wir als Extremwert, wenn eine Verspätung zu den 25% Flügen mit der größten Verspätung gehört.
+
+```{r}
+flights %>% 
+  summarise(q75 = quantile(dep_delay, 
+                           prob = .75, 
+                           na.rm = TRUE))
+```
+
+Das sind also etwa 11 Minuten, die die Grenzlinie zwischen den 75% weniger bzw. den 25% stärker verspäteten Flügen markieren.
+
+
+
+Dann berechnen wir den IQR:
+
+
+```{r}
+flights %>% 
+  summarise(depdelay_iqr = IQR(dep_delay, na.rm = TRUE))
+```
+
+
+Der Grenzwert liegt dem zufolge bei:
+
+```{r}
+grenzwert <- 11 + 1.5*16
+```
+
+
+
+Das ist kein "gottgegebener" Wert, sondern ein pragmatischer Versuch, einen Grenzwert zu finden. 
+Die Nützlichkeit dieses Grenzwerts müsste sich noch erweisen.
+Viele andere Grenzwerte lassen sich verteidigen.
+
+
+
+
+
+```{r}
+flights2 <-
+  flights %>% 
+  mutate(is_extreme = case_when(
+    dep_delay > 11 + 1.5 * 16 ~ TRUE, # Verspätung > 35 Min.
+    dep_delay <= 35 ~ FALSE  # in den anderen Fällen (<= 35 Min.), dann kein Extremwert
+  ))
+```
+
+
+
+
+## Fehlende Werte berechnen
+
+Wie viele fehlende Werte gibt es eigentlich?
+
+
+```{r}
+flights %>% 
+  summarise(sum(is.na(dep_delay)))  # fehlende Werte zählen
+```
+
+So geht es für alle Spalten auf einmal:
+
+```{r}
+flights %>% 
+  summarise(across(everything(), ~ sum(is.na(.x))))
+```
+Übrigens hätten wir die Anzahl der fehlenden Werte auch mit `skim()` in Erfahrung bringen können.
+
+
+
+Wie viele Fälle gingen verloren, wenn wir die Fälle mit fehlenden Werten bei `dep_delay` entfernten?
+
+```{r}
+flights %>% 
+  drop_na(dep_delay) %>% 
+  nrow()
+```
+
+Und wenn wir *alle* fehlenden Werte entfernen würden?
+
+```{r}
+flights %>% 
+  drop_na() %>% 
+  nrow()
+```
+
+
+Wir verlieren nicht viele Fälle mehr, wenn wir die fehlenden Werte aller Variablen (Spalten) entfernen. Also machen wir das mal.
+
+
+
+## flights3
+
+Achtung: dieses Vorgehen hier ist gefährlich. U.U. verliert man sehr viele Zeilen (Beobachtungen).
+
+
+```{r flights2}
+flights3 <-
+  flights2 %>% 
+  drop_na() %>% 
+  select(-year)
+```
+
+Die Spalte `year` ist kontant (immer der Wert "2013"); daher ist die Spalte nutzlos, sie birgt keine Information. Wir können sie gefahrlos löschen.
+
+
+
+# Deskriptive Statistiken
+
+
+
+## Mit `summarise`
+
+
+Das kann machen mit `summarise`. Einfach, kann aber viel Tipperei bedeuten:
+
+```{r}
+flights2 %>% 
+  summarise(mean(dep_delay),
+            sd(dep_delay),
+            mean(arr_delay),
+            sd(arr_delay))  # und so weiter
+```
+
+
+
+## Mit `skimr` 
+
+`skimr` ist sehr praktisch; man bekommt viele Statistiken auf einmal gezeigt; das spart viel Tipperei.
+
+```{r}
+flights %>% 
+  skim()
+```
+
+
+
+
+# Korrelate von Verspätung
+
+Schauen wir, welche Variablen mit `dep_delay`, der Verspätung der Flüge also, korrelieren.
+
+
+## Metrische Prädiktoren
+
+
+### Nur mit `cor` 
+
+Am einfachsten geht es so. Der Nachteil ist mehr (viel) Tipperei:
+
+```{r}
+flights3 %>% 
+  select(where(is.numeric)) %>% 
+  summarise(cor_month = cor(dep_delay, month),
+            cor_day = cor(dep_delay, day),
+            cor_dep_time = cor(dep_delay, dep_time))  # etc
+```
+
+
+
+### Mit `across`
+
+Berechnen wir die Korrelationen jetzt mit dem Befehl `across`. Der Punkt `.` spricht hier jeweils eine Spalte an, die von `across` ausgewählt wurde. Der Effekt ist, dass eine Korrelation von jeder Spalte mit `dep_delay` berechnet wird.
+
+
+```{r}
+flights3 %>% 
+  select(where(is.numeric)) %>%  # nur die numerischen Spalten auswählen
+  summarise(across(
+    .cols = everything(),
+    .fns = ~ cor(., dep_delay))) %>% 
+  pivot_longer(everything()) %>%  # von breit auf lang
+  arrange(-value)  # absteigend sortieren
+```
+
+
+
+### Mit `correlate` 
+
+Oder so, das ist vielleicht einfacher:
+
+
+
+```{r}
+flights2 %>% 
+  select(where(is.numeric)) %>%  # alle metrischen Variablen, aber sonst keine
+  correlate() %>%   # korreliere, was du hast
+  focus(dep_delay) %>%  # beschränke (fokussiere) dich auf `dep_delay`
+  arrange(-dep_delay)
+  
+```
+
+
+## Nominale Prädiktoren
+
+
+
+```{r}
+flights2 %>% 
+  select(where(negate(is.numeric))) %>% 
+  names()
+```
+
+
+
+
+```{r}
+flights2 %>% 
+  select(where(negate(is.numeric))) %>% 
+  summarise(across(
+    .cols = everything(),
+    .fns = list(ndist = n_distinct)
+  )) %>% 
+  pivot_longer(everything())
+```
+
+Geht auch mit `skim`, s. oben, ist einfacher.
+
+### Carrier
+
+`carrier` ist die Fluggesellschaft.
+Wie viele verschiedene Fluggesellschaften gibt es? 
+Wie viele Flüge hat jede davon ausgeführt?
+Welche Fluggesellschaft hat die meisten Flüge ausgeführt?
+Gibt es große Unterschiede in de Zahl der ausgeführten Flüge.
+Wer hat eigentlich die flüssige Seife erfunden?
+Fragen über Fragen.
+
+```{r}
+flights2 %>% 
+  select(carrier) %>% 
+  count(carrier, sort = TRUE) 
+```
+
+
+Wir brauchen eine Visualisierung dazu; das beantwortet vielleicht einen Teil der obigen Fragen.
+
+
+```{r}
+plot1 <- flights2 %>% 
+  select(carrier) %>% 
+  count(carrier, sort = TRUE) %>% 
+  ggplot() +
+  aes(y = carrier, x = n) +
+  geom_point(color = "red") +
+  geom_line(group = 1)
+
+plot1
+```
+
+Wir müssen die Werte von `carrier` sortieren anhand der Anzahl der Flüge, sonst ist es zu unübersichtlich.
+
+### Achsen-Labels anpassen
+
+*Dieser Abschnitt ist zur Vertiefung, er ist  nicht inhaltlich wichtig*
+
+Sagen wir, wir möchten die Labels der X-Achse anpassen, und zwar möchten wir die Werte 25.000, 50.000, und 75.0000.
+
+
+```{r}
+plot1 +
+  scale_x_continuous(breaks = c(0, 25000, 50000, 75000),
+                     limits = c(0, 100000),
+                     labels = c("keine", "wenig", "mittel", "viel"))
+```
+
+
+Hm, schön sieht es noch nicht aus; die `limits` machen nicht unbedingt Sinn. Die `labels` sind auch wenig sinnvoll.
+
+Mehr zum Thema "Achsen aufhübschen" findet sich z.B. [hier](https://rkabacoff.github.io/datavis/Customizing.html#axes).
+
+
+
+### "Lumpsensammler-Kategorie"
+
+
+```{r}
+flights2 <-
+  flights2 %>% 
+  mutate(carrier = factor(carrier)) %>%   # nicht character, sondern factor
+  mutate(carrier_lump = fct_lump(carrier, n = 8))
+```
+
+
+Hier fassen wir mit `fct_lump` alle Stufen von `carrier` zu *acht* Stufen (daher `n = 8`) zusammen *plus* einer "*Lump*ensammler-Kategorie" zusammen.
+Dazu muss die Variable aber als `factor` vorliegen, was wir in der Zeile davor erledigt haben.
+
+Jetzt haben wir noch nur 9 (8 plus Lumpensammler-Gruppe) Gruppen:
+
+```{r}
+flights2 %>% 
+  count(carrier_lump)
+```
+
+
+Liniendiagramm:
+
+
+
+```{r}
+flights2 %>% 
+  select(carrier) %>% 
+  count(carrier, sort = TRUE) %>% 
+  ggplot() +
+  aes(y = fct_reorder(carrier, n), x = n) +
+  geom_point(color = "red") +
+  geom_line(group = 1)
+```
+
+
+Mit `fct_reorder` haben wir die Werte von `carrier` (UA, B6, AA, ...) sortiert und zwar anhand der Werte von `n`, also anhand der Häufigkeit. Es resultiert eine Rangfolge: `UA > B6 > EV > DL > ...` etc. 
+(Nur) Mit einer sortierten Faktorvariable lässt sich so eine Art von Diagramm gut sortiert darstellen.
+
+
+
+
+Ah, schon besser. Aber recht informationsarm, das Diagramm. Informationsreicher ist ein Boxplot:
+
+
+```{r}
+flights2 %>% 
+  filter(!is_extreme) %>%  # keine Extremwerte
+  ggplot() +
+  aes(x = fct_reorder(carrier_lump, dep_delay, 
+                      na.rm = TRUE), 
+      y = dep_delay) %>% 
+  geom_boxplot()
+```
+
+
+Eine alternative Darstellung wäre ein [Letter Value Plot](https://rdrr.io/cran/lvplot/man/geom_lv.html).
+
+Schauen wir uns mal die Mediane genauer an:
+
+```{r}
+flights2 %>% 
+  filter(!is_extreme) %>% 
+  group_by(carrier_lump) %>% 
+  summarise(dep_delay = median(dep_delay, na.rm = TRUE)) %>% 
+  arrange(dep_delay)
+```
+
+
+Die Reihenfolge entspricht der dem obigen Diagramm.
+
+
+
+
+## Korrelation von `carrier` mit Verspätung
+
+Hier mit "Dummysierung" aller nicht-numerischer Spalten. Ein Beispiel zur Verdeutlichung:
+
+
+```{r}
+flights2 <- 
+  flights2 %>% 
+  mutate(
+    originJFK = case_when(
+      origin == "JFK" ~ 1,
+      origin != "JFK" ~ 0
+    ),
+    originLGA = case_when(
+      origin == "LGA" ~ 1,
+      TRUE ~ 0,
+    )
+  )
+```
+
+
+```{r}
+flights2 %>% 
+  select(origin, originJFK, originLGA) %>% 
+  slice(1:5)
+```
+
+
+Diese Art der Umwandlung von mehrstufig-nominal in eine binäre Varialbe (0-1-Variable, oder "Indikatorvariable") kann auch z.B. mit der Funktion `dummy_cols()` (auf "fastDummies") bewerkstelligen lassen:
+
+```{r}
+flights2 %>% 
+  select(origin, dep_delay) %>% 
+  dummy_cols() %>%  # aus dem Paket `fastDummies`
+  head()  # slice(1:6)
+```
+
+Mit den "dummyisierten" Spalten können wir jetzt Korrelationen rechnen, denn jetzt haben wir Zahlen. 
+*Achtung*: Die Variablen bleiben nominalskaliert, trotz der 0-1-Transformation. 
+Auf diese Art Korrelationen zu berechnen ist nur für dummysierte Variablen ("Indikatorvariablen") sinnvoll. 
+Die Schiefe der Verteilung begrenzt hier übrigens die Stärke der Korrelation.
+
+
+```{r}
+flights2 %>% 
+  select(dep_delay, carrier) %>% 
+  dummy_cols() %>%   # "Dummysierung"
+  select(-carrier) %>% 
+  pivot_longer(-dep_delay,
+               names_to = "carrier",
+               values_to = "value") %>% 
+  group_by(carrier) %>% 
+  summarise(cor_depdelay_carrier = cor(dep_delay, value,
+                                       use = "complete.obs")) %>% 
+  arrange(-abs(cor_depdelay_carrier)) %>% 
+  filter(abs(cor_depdelay_carrier) > 0.10)
+```
+
+Keine Korrelation war (im Betrag) größer als 0.1.
+
+
+
+Zur Erinnerung: Es ist nicht unbedingt nötig, die "Dummyisierung" durchzuführen, ein einfaches Vergleichen der Mittelwerte (oder Mediane) mit ihrer Streuung führt zu einem ähnlichen Ergebnis.
+Die Regression mit `lm` führt für Sie automatisch die Dummyisierung durch. 
+
+### Hour
+
+
+```{r}
+flights2 %>% 
+  filter(!is_extreme) %>% 
+  select(dep_delay, hour) %>% 
+  mutate(hour = factor(hour)) %>% 
+  ggplot() +
+  aes(x = fct_reorder(hour, dep_delay,
+                      na.rm = TRUE), 
+      y = dep_delay) +
+  geom_boxplot()
+```
+
+
+
+### Origin
+
+```{r}
+flights2 %>% 
+  filter(!is_extreme) %>% 
+  select(origin, dep_delay) %>% 
+  ggplot() +
+  aes(x = origin, y = dep_delay) %>% 
+  geom_boxplot()
+```
+
+
+## Drei Variablen: Origin, hour, dep_delay
+
+
+
+```{r}
+flights2 %>% 
+  filter(!is_extreme) %>% 
+  select(origin, dep_delay, hour) %>% 
+  mutate(hour = factor(hour, levels = 5:23)) %>% 
+  ggplot() +
+  aes(x = hour, y = dep_delay) +
+  geom_boxplot() +
+  facet_wrap(~ origin)
+```
+
+
+## Alle nominale Variablen
+
+Natürlich könnte man "händisch" alle nominalskalierten Variablen explizit benennen, etwa so:
+
+```{r}
+flights3 %>% 
+  select(carrier, tailnum, origin, dest, time_hour) %>% 
+  slice(1:3)
+```
+
+Aber es geht auch etwas "cooler" mit weniger Tipperei:
+
+```{r}
+flights3 %>% 
+  select(where(~ !is.numeric(.))) %>% 
+  names()
+```
+
+
+## flights4
+
+```{r}
+flights4 <-
+flights3 %>% 
+  mutate(dest = fct_lump_prop(dest, prop = .025)) 
+```
+
+
+Mit `fct_lump_prop` fassen wir alle Stufen zu einer zusammen, die jeweils weniger als 2.5% ausmachen.
+
+
+```{r}
+flights4 %>% 
+  count(dest, sort = T)
+```
+
+
+```{r}
+flights4 %>% 
+  filter(!is_extreme) %>% 
+  select(dep_delay, dest, origin, carrier) %>% 
+  group_by(dest, origin, carrier) %>% 
+  summarise(depdelay_md = median(dep_delay, na.rm = T)) %>% 
+  ggplot() +
+  aes(x = origin, y = depdelay_md, color = origin) +
+  facet_grid(dest ~ carrier) +
+  geom_point()
+  
+```
+
+Puh, das Diagramm ist nicht sehr aussagekräftig. 
+Vielleicht besser als Tabelle?
+
+
+```{r}
+flights4 %>% 
+  filter(!is_extreme) %>% 
+  select(dep_delay, dest, origin, carrier) %>% 
+  group_by(dest, origin, carrier) %>% 
+  summarise(depdelay_md = median(dep_delay, na.rm = T))
+```
+
+
+Hm, ist auch nicht gerade nützlich.
+
+Das Beispiel zeigt, dass die Datenvisualisierung bei einer größeren Zahl an Dimensionen und/oder vielen Werten an ihre Grenzen kommen kann.
+
+
+
+## Anzahl von Flüge
+
+```{r}
+flights4_sum <- 
+  flights4 %>% 
+  filter(!is_extreme) %>% 
+  select(month, origin, dep_delay) %>% 
+  drop_na() %>% 
+  group_by(month, origin) %>% 
+  summarise(delay_md = median(dep_delay),
+            delay_iqr = IQR(dep_delay),
+            delay_n = n()) %>% 
+  mutate(month = factor(month),
+         delay_n = as.numeric(delay_n))
+  
+```
+
+
+
+```{r}
+flights4 %>% 
+  filter(!is_extreme) %>% 
+  select(month, origin, dep_delay) %>% 
+  mutate(month = factor(month)) %>% 
+  drop_na() %>% 
+  ggplot() +
+  aes(x = month, y = dep_delay, color = origin) +
+  geom_violin() +
+  geom_point(data = flights4_sum, 
+             aes(y = delay_md,
+                 x = month)) +
+  facet_wrap( ~ origin)
+```
+
+
+
+
+
+# Fazit
+
+
+Keine heiße Spur bisher. Allerdings erlaubt explorative Datenanalyse nur die gleichzeitige Betrachtung von zwei bis drei, vielleicht vier Variablen. Sind die Zusammenhänge komplizierter in dem Sinne, dass mehrere Variablen für einen Effekt zusammenwirken, so ist es mit explorativen Methoden schwer zu finden. 
+
+
+Der nächste logische Schritt: Wir müssen modellieren. Mit Modellierungsmethoden lassen sich auch hochdimensionale Zusammenhänge finden. 
+
+# Achtung
+
+Diese Analyse ist rein explorativ in dem Sinne, dass keine Hypothesen getestet werden. Es ist damit zu rechnen, dass falsch-positive Befunde auftauchen. Alle Ergebnisse sollten anhand neuer Daten validiert werden.
+
+# Reproduzierbarkeit
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+```
+
+
+
+
+

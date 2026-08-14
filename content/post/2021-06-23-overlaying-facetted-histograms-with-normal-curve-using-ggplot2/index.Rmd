@@ -1,0 +1,156 @@
+---
+title: Overlaying facetted histograms with normal curve using ggplot2
+author: Sebastian Sauer
+date: '2021-06-23'
+slug: overlaying-facetted-histograms-with-normal-curve-using-ggplot2
+categories:
+  
+tags:
+  - visualization
+  - dataviz
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+# Overlaying histograms with a normal curve
+
+
+Overlaying a histogram (possibly facetted) is not something far fetched when analyzing data. Surprisingly, it appears (to the best of my knowledge) that there's no comfortable out-of-the-box solution in ggplot2, although it can be of course achieved with some lines of code.  Here's my take.
+
+
+# Setup
+
+
+```{r message=FALSE}
+library(tidyverse)
+```
+
+
+# Some data
+
+```{r}
+d <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/openintro/speed_gender_height.csv")
+```
+
+
+```{r}
+glimpse(d)
+```
+
+```{r}
+d %>% 
+  slice_head(n = 5)
+```
+
+
+
+# Preparing data
+
+We'll use a "total" histogram for the whole sample, to that end, we'll need to remove the grouping information from the data.
+
+```{r}
+d2 <-
+  d |> 
+  select(-gender)
+```
+
+
+Here's a data set with summary data:
+
+```{r}
+d_summary <-
+  d %>% 
+  group_by(gender) %>% 
+  summarise(height_m = mean(height, na.rm = T),
+            height_sd = sd(height, na.rm = T))
+
+d_summary
+```
+
+
+# Plot it
+
+```{r message=FALSE}
+d %>% 
+  ggplot() +
+  aes() +
+  geom_histogram(aes(y = ..density.., x = height, fill = gender)) +
+  facet_wrap(~ gender) +
+  geom_histogram(data = d2, aes(y = ..density.., x = height), 
+                 alpha = .5) +
+  stat_function(data = d_summary %>% filter(gender == "female"),
+                fun = dnorm,
+                #color = "red",
+                args = list(mean = filter(d_summary, 
+                                          gender == "female")$height_m,
+                            sd = filter(d_summary, 
+                                        gender == "female")$height_sd)) +
+  stat_function(data = d_summary %>% filter(gender == "male"),
+                fun = dnorm,
+                #color = "red",
+                args = list(mean = filter(d_summary, 
+                                          gender == "male")$height_m,
+                            sd = filter(d_summary, 
+                                        gender == "male")$height_sd)) +
+  theme(legend.position = "none",
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  labs(title = "Facetted histograms with overlaid normal curves",
+       caption = "The grey histograms shows the whole distribution (over) both groups, i.e. females and men") +
+  scale_fill_brewer(type = "qual", palette = "Set1")
+   
+```
+
+
+# Different solutions
+
+
+Different solutions can be found eg [here](https://stackoverflow.com/questions/6967664/ggplot2-histogram-with-normal-curve) or [here](https://stackoverflow.com/questions/35015614/overlay-normal-curve-over-histogram-in-faceting-situation).
+
+
+# Actually there exists a simple solution
+
+Not within `ggplot2` per se, but if you are willing to use `ggformula` then it is pretty straight forward ([source](https://stackoverflow.com/questions/1376967/using-stat-function-and-facet-wrap-together-in-ggplot2-in-r)).
+
+
+
+
+
+```{r}
+library(ggformula)
+
+gf_dens( ~ height | gender, data = d) %>%
+  gf_fitdistr(color = "red") %>% 
+  gf_fitdistr(dist = "normal", color = "blue")
+```
+
+
+
+
+
+# Update: Package `ggh4x`
+
+
+I just discovered this ggplot extension, [ggh4x](https://teunbrand.github.io/ggh4x/index.html), which provides some cool features, including overlay of normal densities.
+
+
+```{r}
+#devtools::install_github("teunbrand/ggh4x")
+library(ggh4x)
+```
+
+
+
+```{r}
+ggplot(d, aes(height)) +
+  geom_density() +
+  stat_theodensity(colour = "red") +
+  facet_wrap(~ gender)
+```
+
+
+Nice and clean!
+

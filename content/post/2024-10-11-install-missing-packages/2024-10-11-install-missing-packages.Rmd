@@ -1,0 +1,118 @@
+---
+title: Benötigte R-Pakete für ein Projekt prüfen
+author: Sebastian Sauer
+date: '2024-10-11'
+tags:
+  - r
+  - dependencies
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+# Packages
+
+```{r}
+library(renv)
+```
+
+
+
+# Motivation
+
+
+Assume you find a cool repo or some online-book and you want to run the R code. 
+You might want to check if you have all the required packages installed. 
+This is what this post is about. We will use the `usethis` package to check if all required packages are installed.
+
+
+# Find out missing packages
+
+Of course, in some R project you can and should check the `DESCRIPTION` file for details on the needed or suggested R pacakges.
+
+
+
+
+But, for projects other than R packages (and even for R packages),
+there's a function that checks the dependencies:
+
+```{r eval=FALSE}
+deps <- dependencies(path = "content", quiet = FALSE, progress = TRUE)
+
+deps$Package |> unique() |> head()
+```
+
+
+
+
+Okay, now we know which packages are needed.
+
+You may want to save the list of your installed packages. This may prove handy after updating a new version of R such as from 4.4.0 to 4.5.
+
+```{r eval=FALSE}
+writeRDS(deps, "deps.rds")
+```
+
+
+# Install missing packages from CRAN
+
+
+Next, we can install them if they are not already installed:
+
+
+```{r}
+install_if_missing <- function(package) {
+  if (!require(package, character.only = TRUE)) {
+    install.packages(package)
+  }
+}
+```
+
+
+Note that this function is not perfect. It does not check the version of the package.
+In addition, it only installs from CRAN.
+
+
+
+Loop through the list and install any missing packages:
+
+
+```{r eval=FALSE}
+invisible(lapply(deps$Package, install_if_missing))
+```
+
+
+
+# Install non-CRAN packages
+
+If you have non-CRAN packages, you can install them from GitHub or other sources:
+
+```{r eval=FALSE}
+library("remotes")
+install_github("sebastiansauer/prada")
+```
+
+
+
+
+

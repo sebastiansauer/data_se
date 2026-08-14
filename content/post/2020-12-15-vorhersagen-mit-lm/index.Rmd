@@ -1,0 +1,140 @@
+---
+title: Vorhersagen mit lm
+author: Sebastian Sauer
+date: '2020-12-15'
+slug: vorhersagen-mit-lm
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Pakete laden
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(moderndive)
+```
+
+
+
+# Daten laden
+
+
+```{r}
+data(movies, package = "ggplot2movies")
+```
+
+
+
+# Forschungsfrage
+
+
+Wie beliebt ist erwartungsgemäß ein Actionfilm nach dem Jahr 2000, der zu den Top-10-Prozent der Budgetverteilung gehört? 
+
+
+## Daten aufbereiten
+
+```{r}
+movies <- 
+  movies %>% 
+  mutate(year_after_2000 = case_when(
+    year >= 2000 ~ "yes",
+    TRUE ~ "no"
+  )) %>% 
+  mutate(is_top10percent_budget = case_when(
+    percent_rank(budget) > 0.90 ~ "yes",
+    TRUE ~ "no"
+  ))
+```
+
+
+
+## Modell schätzen
+
+
+```{r}
+lm1 <- lm(rating ~ year_after_2000 + is_top10percent_budget + Action, data = movies)
+```
+
+
+
+```{r}
+lm1 %>% 
+  get_regression_summaries()
+```
+
+
+```{r}
+lm1 %>% 
+  get_regression_table()
+```
+
+# Vorhersage mit `predict()` -- ohne Schätzbereich
+
+
+```{r}
+neue_daten <-
+  tibble(year_after_2000 = "yes",
+         is_top10percent_budget = "yes",
+         Action = 1)
+```
+
+
+
+```{r}
+predict(lm1, newdata = neue_daten)
+```
+
+
+# Vorhersage mit `predict()` -- mit Schätzbereich
+
+Ein Schätzintervall (im Form eines Konfidenzintervalls, 95%) lässt sich so anfordern:
+
+
+```{r}
+predict(lm1, 
+        newdata = neue_daten,
+        interval = "confidence")
+```
+
+Diese Ausgabe würde etwa zu dieser Fragestellung passen
+
+
+>   Wie beliebt ist erwartungsgemäß ein Actionfilm nach dem Jahr 2000, der zu den Top-10-Prozent der Budgetverteilung gehört? (Intervalltschätzung)
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

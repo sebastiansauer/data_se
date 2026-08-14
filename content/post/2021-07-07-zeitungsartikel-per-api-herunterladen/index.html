@@ -1,0 +1,760 @@
+---
+title: Zeitungsartikel per API herunterladen
+author: Sebastian Sauer
+date: '2021-07-07'
+slug: zeitungsartikel-per-api-herunterladen
+categories:
+  - rstats
+tags:
+  - tutorial
+  - web
+  - textmining
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<pre class="r"><code>library(tidyverse)
+library(newsanchor)
+library(printr)
+library(httr)
+library(jsonlite)</code></pre>
+<div id="news-api" class="section level1">
+<h1>News API</h1>
+<p>Es gibt eine Seite <a href="https://newsapi.org/">News API</a>, die es erlaubt, per API News (Artikel, Schlagzeilen) von weltweiten Quellen herunterzuladen, per JSON API.</p>
+</div>
+<div id="gibts-da-auch-ein-r-paket" class="section level1">
+<h1>Gibt’s da auch ein R-Paket?</h1>
+<p>Ja - <a href="https://cran.r-project.org/web/packages/newsanchor/vignettes/usage-newsanchor.html">NewsAnchor</a>.</p>
+</div>
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<p>Zuerst muss man sich bei der Seite eine API Key holen, für Entwicklerzwecke kostenlos. Komfortabel ist, sich den Schlüssel in die R-environment-Datei (<code>.Renviron</code>) zu schreiben, s. <a href="https://cran.r-project.org/web/packages/newsanchor/vignettes/usage-newsanchor.html">hier</a> für mehr Infos.</p>
+<p>Das kann man z.B. so machen:</p>
+<pre class="r"><code>newsanchor::set_api_key(path = &quot;~/.Renviron&quot;)</code></pre>
+<p>So fragt man den API-Schlüssel dann ab:</p>
+<pre class="r"><code>my_api_key &lt;- Sys.getenv(&quot;NEWS_API_KEY&quot;)</code></pre>
+</div>
+<div id="abfrage" class="section level1">
+<h1>Abfrage</h1>
+<pre class="r"><code>results &lt;- get_everything(query = &quot;Corona&quot;,
+                          language = &quot;de&quot;)
+
+results_main &lt;- results$results_df</code></pre>
+<p>In eine Datei schreiben:</p>
+<pre class="r"><code>saveRDS(results, file = &quot;newsanchor1.rds&quot;)</code></pre>
+<p>Und wieder laden:</p>
+<pre class="r"><code>results &lt;- read_rds(&quot;newsanchor1.rds&quot;)</code></pre>
+</div>
+<div id="abfrage-2" class="section level1">
+<h1>Abfrage 2</h1>
+<pre class="r"><code>results_covid &lt;- get_everything(query = &quot;Covid&quot;,
+                          language = &quot;en&quot;)</code></pre>
+<pre class="r"><code>write_rds(results_covid,
+          file = &quot;results_covid1.rds&quot;)</code></pre>
+<pre class="r"><code>results_covid &lt;- read_rds(file = &quot;results_covid1.rds&quot;)</code></pre>
+<p>Metadata:</p>
+<pre class="r"><code>results_covid$metadata</code></pre>
+<table>
+<colgroup>
+<col width="8%" />
+<col width="7%" />
+<col width="11%" />
+<col width="55%" />
+<col width="2%" />
+<col width="4%" />
+<col width="2%" />
+<col width="5%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">total_results</th>
+<th align="right">status_code</th>
+<th align="left">request_date</th>
+<th align="left">request_url</th>
+<th align="left">code</th>
+<th align="left">message</th>
+<th align="right">page</th>
+<th align="right">page_size</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">175517</td>
+<td align="right">200</td>
+<td align="left">2021-07-07 10:04:28</td>
+<td align="left"><a href="https://newsapi.org/v2/everything?q=Covid&amp;language=en&amp;sortBy=publishedAt&amp;pageSize=100&amp;page=1" class="uri">https://newsapi.org/v2/everything?q=Covid&amp;language=en&amp;sortBy=publishedAt&amp;pageSize=100&amp;page=1</a></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="right">1</td>
+<td align="right">100</td>
+</tr>
+</tbody>
+</table>
+<p>Ergebnisse:</p>
+<pre class="r"><code>results_covid$results_df %&gt;% 
+  slice(1:2)</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="1%" />
+<col width="8%" />
+<col width="33%" />
+<col width="10%" />
+<col width="12%" />
+<col width="2%" />
+<col width="27%" />
+<col width="0%" />
+<col width="2%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">author</th>
+<th align="left">title</th>
+<th align="left">description</th>
+<th align="left">url</th>
+<th align="left">url_to_image</th>
+<th align="left">published_at</th>
+<th align="left">content</th>
+<th align="left">id</th>
+<th align="left">name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Colm Quinn</td>
+<td align="left">Saudi Arabia’s Hushed Washington Visit</td>
+<td align="left">The visit of Khalid bin Salman has been met with little fanfare and proves Saudi Arabia is far from the “pariah” of Biden’s campaign pledge.</td>
+<td align="left"><a href="https://foreignpolicy.com/2021/07/07/saudi-arabia-washington-khalid-bin-salman/" class="uri">https://foreignpolicy.com/2021/07/07/saudi-arabia-washington-khalid-bin-salman/</a></td>
+<td align="left"><a href="https://foreignpolicy.com/wp-content/uploads/2021/07/saudi-arabia-GettyImages-1170949600.jpg?w=1000" class="uri">https://foreignpolicy.com/wp-content/uploads/2021/07/saudi-arabia-GettyImages-1170949600.jpg?w=1000</a></td>
+<td align="left">2021-07-07 09:53:28</td>
+<td align="left">Here is todays Foreign Policy brief: Prince Khalid bin Salman continues Washington visit, the United Nations calls for talks on Ethiopian dam dispute, and Iran takes steps to produce enriched uranium… [+6709 chars]</td>
+<td align="left">NA</td>
+<td align="left">Foreign Policy</td>
+</tr>
+<tr class="even">
+<td align="left">NA</td>
+<td align="left">District in central Israel labeled ‘Red’ due to high infection rate</td>
+<td align="left">Israel’s Ministry of Health declared the city of Kfar Yona in the center of the country as a “Red” - or highly contagious - city due to a recent spike in local COVID cases.The Hod Hasharon district received the second worst “Orange” label, as 20 new patients …</td>
+<td align="left"><a href="https://www.israelnationalnews.com/News/Flash.aspx/546065" class="uri">https://www.israelnationalnews.com/News/Flash.aspx/546065</a></td>
+<td align="left"><a href="http://u.a7.org/pictures/799/799624.jpg" class="uri">http://u.a7.org/pictures/799/799624.jpg</a></td>
+<td align="left">2021-07-07 09:52:57</td>
+<td align="left">Israel’s Ministry of Health declared the city of Kfar Yona in the center of the country as a “Red” - or highly contagious - city due to a recent spike in local COVID cases.</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">The Hod Hasharon district… [+189 chars]</td>
+<td align="left">NA</td>
+<td align="left">Israelnationalnews.com</td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="aufbereiten" class="section level1">
+<h1>Aufbereiten</h1>
+<pre class="r"><code>results_covid_short &lt;- 
+  results_covid$results_df %&gt;% 
+  select(author, title, content, published_at, name) %&gt;%
+  drop_na()
+
+results_covid_short %&gt;% 
+  slice(1:2)</code></pre>
+<table>
+<colgroup>
+<col width="3%" />
+<col width="25%" />
+<col width="61%" />
+<col width="5%" />
+<col width="4%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">author</th>
+<th align="left">title</th>
+<th align="left">content</th>
+<th align="left">published_at</th>
+<th align="left">name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Colm Quinn</td>
+<td align="left">Saudi Arabia’s Hushed Washington Visit</td>
+<td align="left">Here is todays Foreign Policy brief: Prince Khalid bin Salman continues Washington visit, the United Nations calls for talks on Ethiopian dam dispute, and Iran takes steps to produce enriched uranium… [+6709 chars]</td>
+<td align="left">2021-07-07 09:53:28</td>
+<td align="left">Foreign Policy</td>
+</tr>
+<tr class="even">
+<td align="left">soyacincau</td>
+<td align="left">1 Utama: WhatsApp message claiming over 50 people infected with Delta variant is fake news</td>
+<td align="left">The management of 1 Utama Shopping Centre today denied that any of its personnel or patrons have become infected with the highly contagious new strain of COVID-19 known identified as Delta.</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">In a Fac… [+814 chars]</td>
+<td align="left">2021-07-07 09:51:45</td>
+<td align="left">SoyaCincau.com</td>
+<td align="left"></td>
+<td align="left"></td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>write_csv(results_covid_short,
+          file = &quot;news_covid_short.csv&quot;)</code></pre>
+</div>
+<div id="quellen" class="section level1">
+<h1>Quellen</h1>
+<p>Hier ist eine Liste der unterstützen Quellen:</p>
+<pre class="r"><code>terms_sources</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">sources</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">abc-news</td>
+</tr>
+<tr class="even">
+<td align="left">abc-news-au</td>
+</tr>
+<tr class="odd">
+<td align="left">aftenposten</td>
+</tr>
+<tr class="even">
+<td align="left">al-jazeera-english</td>
+</tr>
+<tr class="odd">
+<td align="left">ansa</td>
+</tr>
+<tr class="even">
+<td align="left">argaam</td>
+</tr>
+<tr class="odd">
+<td align="left">ars-technica</td>
+</tr>
+<tr class="even">
+<td align="left">ary-news</td>
+</tr>
+<tr class="odd">
+<td align="left">associated-press</td>
+</tr>
+<tr class="even">
+<td align="left">australian-financial-review</td>
+</tr>
+<tr class="odd">
+<td align="left">axios</td>
+</tr>
+<tr class="even">
+<td align="left">bbc-news</td>
+</tr>
+<tr class="odd">
+<td align="left">bbc-sport</td>
+</tr>
+<tr class="even">
+<td align="left">bild</td>
+</tr>
+<tr class="odd">
+<td align="left">blasting-news-br</td>
+</tr>
+<tr class="even">
+<td align="left">bleacher-report</td>
+</tr>
+<tr class="odd">
+<td align="left">bloomberg</td>
+</tr>
+<tr class="even">
+<td align="left">breitbart-news</td>
+</tr>
+<tr class="odd">
+<td align="left">business-insider</td>
+</tr>
+<tr class="even">
+<td align="left">business-insider-uk</td>
+</tr>
+<tr class="odd">
+<td align="left">buzzfeed</td>
+</tr>
+<tr class="even">
+<td align="left">cbc-news</td>
+</tr>
+<tr class="odd">
+<td align="left">cbs-news</td>
+</tr>
+<tr class="even">
+<td align="left">cnbc</td>
+</tr>
+<tr class="odd">
+<td align="left">cnn</td>
+</tr>
+<tr class="even">
+<td align="left">cnn-es</td>
+</tr>
+<tr class="odd">
+<td align="left">crypto-coins-news</td>
+</tr>
+<tr class="even">
+<td align="left">daily-mail</td>
+</tr>
+<tr class="odd">
+<td align="left">der-tagesspiegel</td>
+</tr>
+<tr class="even">
+<td align="left">die-zeit</td>
+</tr>
+<tr class="odd">
+<td align="left">el-mundo</td>
+</tr>
+<tr class="even">
+<td align="left">engadget</td>
+</tr>
+<tr class="odd">
+<td align="left">entertainment-weekly</td>
+</tr>
+<tr class="even">
+<td align="left">espn</td>
+</tr>
+<tr class="odd">
+<td align="left">espn-cric-info</td>
+</tr>
+<tr class="even">
+<td align="left">financial-post</td>
+</tr>
+<tr class="odd">
+<td align="left">financial-times</td>
+</tr>
+<tr class="even">
+<td align="left">focus</td>
+</tr>
+<tr class="odd">
+<td align="left">football-italia</td>
+</tr>
+<tr class="even">
+<td align="left">fortune</td>
+</tr>
+<tr class="odd">
+<td align="left">four-four-two</td>
+</tr>
+<tr class="even">
+<td align="left">fox-news</td>
+</tr>
+<tr class="odd">
+<td align="left">fox-sports</td>
+</tr>
+<tr class="even">
+<td align="left">globo</td>
+</tr>
+<tr class="odd">
+<td align="left">google-news</td>
+</tr>
+<tr class="even">
+<td align="left">google-news-ar</td>
+</tr>
+<tr class="odd">
+<td align="left">google-news-au</td>
+</tr>
+<tr class="even">
+<td align="left">google-news-br</td>
+</tr>
+<tr class="odd">
+<td align="left">google-news-ca</td>
+</tr>
+<tr class="even">
+<td align="left">google-news-fr</td>
+</tr>
+<tr class="odd">
+<td align="left">google-news-in</td>
+</tr>
+<tr class="even">
+<td align="left">google-news-is</td>
+</tr>
+<tr class="odd">
+<td align="left">google-news-it</td>
+</tr>
+<tr class="even">
+<td align="left">google-news-ru</td>
+</tr>
+<tr class="odd">
+<td align="left">google-news-sa</td>
+</tr>
+<tr class="even">
+<td align="left">google-news-uk</td>
+</tr>
+<tr class="odd">
+<td align="left">goteborgs-posten</td>
+</tr>
+<tr class="even">
+<td align="left">gruenderszene</td>
+</tr>
+<tr class="odd">
+<td align="left">hacker-news</td>
+</tr>
+<tr class="even">
+<td align="left">handelsblatt</td>
+</tr>
+<tr class="odd">
+<td align="left">ign</td>
+</tr>
+<tr class="even">
+<td align="left">il-sole-24-ore</td>
+</tr>
+<tr class="odd">
+<td align="left">independent</td>
+</tr>
+<tr class="even">
+<td align="left">infobae</td>
+</tr>
+<tr class="odd">
+<td align="left">info-money</td>
+</tr>
+<tr class="even">
+<td align="left">la-gaceta</td>
+</tr>
+<tr class="odd">
+<td align="left">la-nacion</td>
+</tr>
+<tr class="even">
+<td align="left">la-repubblica</td>
+</tr>
+<tr class="odd">
+<td align="left">le-monde</td>
+</tr>
+<tr class="even">
+<td align="left">lenta</td>
+</tr>
+<tr class="odd">
+<td align="left">lequipe</td>
+</tr>
+<tr class="even">
+<td align="left">les-echos</td>
+</tr>
+<tr class="odd">
+<td align="left">liberation</td>
+</tr>
+<tr class="even">
+<td align="left">marca</td>
+</tr>
+<tr class="odd">
+<td align="left">mashable</td>
+</tr>
+<tr class="even">
+<td align="left">medical-news-today</td>
+</tr>
+<tr class="odd">
+<td align="left">metro</td>
+</tr>
+<tr class="even">
+<td align="left">mirror</td>
+</tr>
+<tr class="odd">
+<td align="left">msnbc</td>
+</tr>
+<tr class="even">
+<td align="left">mtv-news</td>
+</tr>
+<tr class="odd">
+<td align="left">mtv-news-uk</td>
+</tr>
+<tr class="even">
+<td align="left">national-geographic</td>
+</tr>
+<tr class="odd">
+<td align="left">national-review</td>
+</tr>
+<tr class="even">
+<td align="left">nbc-news</td>
+</tr>
+<tr class="odd">
+<td align="left">news24</td>
+</tr>
+<tr class="even">
+<td align="left">new-scientist</td>
+</tr>
+<tr class="odd">
+<td align="left">news-com-au</td>
+</tr>
+<tr class="even">
+<td align="left">newsweek</td>
+</tr>
+<tr class="odd">
+<td align="left">new-york-magazine</td>
+</tr>
+<tr class="even">
+<td align="left">next-big-future</td>
+</tr>
+<tr class="odd">
+<td align="left">nfl-news</td>
+</tr>
+<tr class="even">
+<td align="left">nhl-news</td>
+</tr>
+<tr class="odd">
+<td align="left">nrk</td>
+</tr>
+<tr class="even">
+<td align="left">politico</td>
+</tr>
+<tr class="odd">
+<td align="left">polygon</td>
+</tr>
+<tr class="even">
+<td align="left">rbc</td>
+</tr>
+<tr class="odd">
+<td align="left">recode</td>
+</tr>
+<tr class="even">
+<td align="left">reddit-r-all</td>
+</tr>
+<tr class="odd">
+<td align="left">reuters</td>
+</tr>
+<tr class="even">
+<td align="left">rt</td>
+</tr>
+<tr class="odd">
+<td align="left">rte</td>
+</tr>
+<tr class="even">
+<td align="left">rtl-nieuws</td>
+</tr>
+<tr class="odd">
+<td align="left">sabq</td>
+</tr>
+<tr class="even">
+<td align="left">spiegel-online</td>
+</tr>
+<tr class="odd">
+<td align="left">svenska-dagbladet</td>
+</tr>
+<tr class="even">
+<td align="left">t3n</td>
+</tr>
+<tr class="odd">
+<td align="left">talksport</td>
+</tr>
+<tr class="even">
+<td align="left">techcrunch</td>
+</tr>
+<tr class="odd">
+<td align="left">techcrunch-cn</td>
+</tr>
+<tr class="even">
+<td align="left">techradar</td>
+</tr>
+<tr class="odd">
+<td align="left">the-american-conservative</td>
+</tr>
+<tr class="even">
+<td align="left">the-economist</td>
+</tr>
+<tr class="odd">
+<td align="left">the-globe-and-mail</td>
+</tr>
+<tr class="even">
+<td align="left">the-guardian-au</td>
+</tr>
+<tr class="odd">
+<td align="left">the-guardian-uk</td>
+</tr>
+<tr class="even">
+<td align="left">the-hill</td>
+</tr>
+<tr class="odd">
+<td align="left">the-hindu</td>
+</tr>
+<tr class="even">
+<td align="left">the-huffington-post</td>
+</tr>
+<tr class="odd">
+<td align="left">the-irish-times</td>
+</tr>
+<tr class="even">
+<td align="left">the-jerusalem-post</td>
+</tr>
+<tr class="odd">
+<td align="left">the-lad-bible</td>
+</tr>
+<tr class="even">
+<td align="left">the-new-york-times</td>
+</tr>
+<tr class="odd">
+<td align="left">the-next-web</td>
+</tr>
+<tr class="even">
+<td align="left">the-sport-bible</td>
+</tr>
+<tr class="odd">
+<td align="left">the-telegraph</td>
+</tr>
+<tr class="even">
+<td align="left">the-times-of-india</td>
+</tr>
+<tr class="odd">
+<td align="left">the-verge</td>
+</tr>
+<tr class="even">
+<td align="left">the-wall-street-journal</td>
+</tr>
+<tr class="odd">
+<td align="left">the-washington-post</td>
+</tr>
+<tr class="even">
+<td align="left">the-washington-times</td>
+</tr>
+<tr class="odd">
+<td align="left">time</td>
+</tr>
+<tr class="even">
+<td align="left">usa-today</td>
+</tr>
+<tr class="odd">
+<td align="left">vice-news</td>
+</tr>
+<tr class="even">
+<td align="left">wired</td>
+</tr>
+<tr class="odd">
+<td align="left">wired-de</td>
+</tr>
+<tr class="even">
+<td align="left">wirtschafts-woche</td>
+</tr>
+<tr class="odd">
+<td align="left">xinhua-net</td>
+</tr>
+<tr class="even">
+<td align="left">ynet</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="mit-get-abfrage" class="section level1">
+<h1>Mit GET-Abfrage</h1>
+<p>So setzt man die Abfrage zusammen, bzw. so kann man es tun:</p>
+<p>Beispiel: Alle Artikel über Tesla aus dem letzten Monat, sortiert nach dem neuesten</p>
+<pre class="r"><code>apiurl &lt;- 
+  &quot;https://newsapi.org/v2/everything?&quot;</code></pre>
+<p>Suchbegriff:</p>
+<pre class="r"><code>term &lt;- &quot;q=tesla&quot;</code></pre>
+<p>Zeitraum begrenzen:</p>
+<pre class="r"><code>from_to &lt;- &quot;&amp;from=2021-06-07&quot;</code></pre>
+<p>Sortieren:</p>
+<pre class="r"><code>sortby &lt;- &quot;&amp;sortBy=publishedAt&quot;</code></pre>
+<p>API-Schlüssel:</p>
+<pre class="r"><code>apikey &lt;- paste0(&quot;&amp;apiKey=&quot;,my_api_key)</code></pre>
+<p>In tutto:</p>
+<pre class="r"><code>GET_term &lt;- paste0(apiurl, 
+                   term,
+                   from_to,
+                   sortby,
+                   apikey
+                   )</code></pre>
+<pre class="r"><code>tesla_news &lt;- 
+  GET(url = GET_term)</code></pre>
+<pre class="r"><code>write_rds(tesla_news, 
+          file = &quot;tesla_news.rds&quot;)</code></pre>
+<pre class="r"><code>tesla_news &lt;- read_rds(&quot;tesla_news.rds&quot;)</code></pre>
+<pre class="r"><code>tesla_news$status_code</code></pre>
+<p>See <a href="https://www.restapitutorial.com/httpstatuscodes.html">here</a> the HTTP status codes.</p>
+<p>200 means success, everything above is not so good.</p>
+<pre class="r"><code>tesla_content &lt;-
+  fromJSON(rawToChar(tesla_news$content))</code></pre>
+<pre class="r"><code>names(tesla_content)</code></pre>
+<pre><code>## [1] &quot;status&quot;       &quot;totalResults&quot; &quot;articles&quot;</code></pre>
+<pre class="r"><code>tesla_content$articles %&gt;% 
+  select(-source)</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="4%" />
+<col width="15%" />
+<col width="23%" />
+<col width="20%" />
+<col width="16%" />
+<col width="1%" />
+<col width="18%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">author</th>
+<th align="left">title</th>
+<th align="left">description</th>
+<th align="left">url</th>
+<th align="left">urlToImage</th>
+<th align="left">publishedAt</th>
+<th align="left">content</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Wall Street Breakfast</td>
+<td align="left">Wall Street Breakfast: What Were They Thinking?</td>
+<td align="left">Listen on the go! A daily podcast of Wall Street Breakfast will be available by 8:00 a.m. on Seeking Alpha, iTunes, Stitcher and Spotify.</td>
+<td align="left"><a href="https://seekingalpha.com/article/4438128-wall-street-breakfast-what-thinking" class="uri">https://seekingalpha.com/article/4438128-wall-street-breakfast-what-thinking</a></td>
+<td align="left"><a href="https://static.seekingalpha.com/uploads/2021/7/2/si_water_2021_630x220_shaq_v1.jpg" class="uri">https://static.seekingalpha.com/uploads/2021/7/2/si_water_2021_630x220_shaq_v1.jpg</a></td>
+<td align="left">2021-07-07T11:16:43Z</td>
+<td align="left">Listen on the go! A daily podcast of Wall Street Breakfast will be available by 8:00 a.m. on Seeking Alpha, iTunes, Stitcher and Spotify.</td>
+</tr>
+</tbody>
+</table>
+What were they thinking?
+More details are coming together … [+8662 chars] |
+|Frank Holland |Visa says crypto linked card usage tops $1 billion in first half of 2021 |“We are doing a lot to create an ecosystem that makes cryptocurrency more usable and more like any other currency,” Visa CFO Vasant Prabhu told CNBC. |<a href="https://www.cnbc.com/2021/07/07/visa-says-crypto-linked-card-usage-tops-1-billion-in-first-half-of-2021.html" class="uri">https://www.cnbc.com/2021/07/07/visa-says-crypto-linked-card-usage-tops-1-billion-in-first-half-of-2021.html</a> |<a href="https://image.cnbcfm.com/api/v1/image/105845579-1554971823404coinbase_card_-_21.jpg?v=1560405899" class="uri">https://image.cnbcfm.com/api/v1/image/105845579-1554971823404coinbase_card_-_21.jpg?v=1560405899</a> |2021-07-07T11:05:01Z |Visa said Wednesday that more than $1 billion worth of cryptocurrency was spent by consumers globally on goods and services through their crypto-linked cards in the first six months of the year.
+By … [+2937 chars] |
+|Nicholas Pongratz |Synthetic Stock Trading Popularity Growing in DeFi Sector |The prevalence of trading synthetic versions of Tesla, Apple, Amazon, and other big stocks and ETFs has grown on decentralized finance (DeFi) projects like… |<a href="https://finance.yahoo.com/news/synthetic-stock-trading-popularity-growing-105549722.html" class="uri">https://finance.yahoo.com/news/synthetic-stock-trading-popularity-growing-105549722.html</a> |<a href="https://s.yimg.com/uu/api/res/1.2/LlRPJZUkBU9EYTCy8ZoP4Q--~B/aD03MjA7dz0xMjAwO2FwcGlkPXl0YWNoeW9u/https://media.zenfs.com/en/beincrypto_articles_718/e9207356d0ae5d7b932a71249438d98b" class="uri">https://s.yimg.com/uu/api/res/1.2/LlRPJZUkBU9EYTCy8ZoP4Q--~B/aD03MjA7dz0xMjAwO2FwcGlkPXl0YWNoeW9u/https://media.zenfs.com/en/beincrypto_articles_718/e9207356d0ae5d7b932a71249438d98b</a> |2021-07-07T10:55:49Z |The prevalence of trading synthetic versions of Tesla, Apple, Amazon, and other big stocks and ETFs has grown on decentralized finance (DeFi) projects like Mirror Protocol and Synthetix over the past… [+1942 chars] |
+|Oğuz Çakır |Elon Musk, Cybertruck’ın yeni özelliğini açıkladı |Tesla ve SpaceX CEO’su Elon Musk, bir süre önce tanıtılan Cybertruck için arka aks yönlendirme sistemi ekledi. İşte diğer yenilikler…
+Bu içerik ilk olarak Elon Musk, Cybertruck’ın yeni özelliğini açıkladı adresinde yayınlandı Teknoloji Haberleri - ShiftDele… |<a href="https://shiftdelete.net/elon-musk-cybertruckin-yeni-ozelligini-acikladi" class="uri">https://shiftdelete.net/elon-musk-cybertruckin-yeni-ozelligini-acikladi</a> |<a href="https://shiftdelete.net/wp-content/uploads/2021/07/elon-musk-cybertruckin-yeni-ozelligini-acikladi.jpg" class="uri">https://shiftdelete.net/wp-content/uploads/2021/07/elon-musk-cybertruckin-yeni-ozelligini-acikladi.jpg</a> |2021-07-07T10:54:56Z |Bir süre önce Elon Musk tarafndan tantlan Cybertruck, kullanclarn ilgisini çekmeyi baard. Rekor sayda ön sipari alan araç, özellikle ABD’de youn ilgiyle karlat. Ancak 2019’daki etkinlikten sonra sess… [+1405 chars] |
+|Deutsche Welle (www.dw.com) |Эксперты сообщают о росте заражений коронавирусом в связи с Евро-2020 |В Европе выявлено более 2500 случаев ковидной инфекции в связи с матчами ЧЕ по футболу. При подготовке турнира не было учтено возможное распространение новых заразных вариантов коронавируса, отмечают эксперты. |<a href="https://www.dw.com/ru/jeksperty-soobshhajut-o-roste-zarazhenij-kovidom-v-svjazi-s-che-po-futbolu/a-58187964" class="uri">https://www.dw.com/ru/jeksperty-soobshhajut-o-roste-zarazhenij-kovidom-v-svjazi-s-che-po-futbolu/a-58187964</a> |<a href="https://static.dw.com/image/58183470_6.jpg" class="uri">https://static.dw.com/image/58183470_6.jpg</a> |2021-07-07T10:54:00Z |.   (ECDC) -2020.
+2500 , , . , , ECDC, - .
+SARS-CoV-2, , 1991. . , - , -2020 . -.
+ECDC: -2020
+436 -   , , -. , , , .
+, . , , -, , . , ECDC. "“, ,” "  , , .
+:
+<ul>
+<li>
+<p>BioNTech/Pfizer:… [+592 chars] |
+|<a href="mailto:tlevin@businessinsider.com" class="email">tlevin@businessinsider.com</a> (Tim Levin) |A supply crunch has sent used car prices sky high. These 16 models are now worth more used than new |Used car prices have soared so much in recent months that some in-demand models are thousands of dollars cheaper to buy new. |<a href="https://www.businessinsider.com/used-cars-more-expensive-than-new-auto-industry-chip-shortage-2021-7" class="uri">https://www.businessinsider.com/used-cars-more-expensive-than-new-auto-industry-chip-shortage-2021-7</a> |<a href="https://i.insider.com/60e4bb8e22d19400191c94c6?width=1200&amp;format=jpeg" class="uri">https://i.insider.com/60e4bb8e22d19400191c94c6?width=1200&amp;format=jpeg</a> |2021-07-07T10:35:00Z |Skipping a brand-new car for one that’s lightly used has always been the most wallet-friendly way of going about things. Not anymore. 
+In the strange and sometimes utterly backward-seeming times we’… [+3784 chars] |
+|NA |Global and China Passenger Car T-Box Market Report 2021: In 2020, Passenger Car T-Box Increased by 25.4% y-o-y, and the Proportion of 5G T-Box Jumped - ResearchAndMarkets.com |DUBLIN–(BUSINESS WIRE)–The “Global and China Passenger Car T-Box Market Report, 2021” report has been added to ResearchAndMarkets.com’s offering. In 2020, passenger car T-Box increased by 25.4% year-on-year, and the proportion of 5G T-Box jumped Global and … |<a href="https://www.businesswire.com/news/home/20210707005441/en/Global-and-China-Passenger-Car-T-Box-Market-Report-2021-In-2020-Passenger-Car-T-Box-Increased-by-25.4-y-o-y-and-the-Proportion-of-5G-T-Box-Jumped---ResearchAndMarkets.com" class="uri">https://www.businesswire.com/news/home/20210707005441/en/Global-and-China-Passenger-Car-T-Box-Market-Report-2021-In-2020-Passenger-Car-T-Box-Increased-by-25.4-y-o-y-and-the-Proportion-of-5G-T-Box-Jumped---ResearchAndMarkets.com</a> |<a href="https://mms.businesswire.com/media/20210707005441/en/371054/23/ResearchAndMarkets_800px.jpg" class="uri">https://mms.businesswire.com/media/20210707005441/en/371054/23/ResearchAndMarkets_800px.jpg</a> |2021-07-07T10:24:59Z |DUBLIN–(BUSINESS WIRE)–The “Global and China Passenger Car T-Box Market Report, 2021” report has been added to ResearchAndMarkets.com’s offering.
+In 2020, passenger car T-Box increased by 25.4% ye… [+5306 chars] |
+|Abdullah |Jeff Bezos became the richest person with a record fortune of $211 billion |The richest man in the world, Jeff Bezos, now has a fortune of $ 211 billion as Amazon shares surged 4.7% after the Pentagon announced …
+The post Jeff Bezos became the richest person with a record fortune of $211 billion appeared first on Gizchina.com. |<a href="https://www.gizchina.com/2021/07/07/jeff-bezos-became-the-richest-person-with-a-record-fortune-of-211-billion/" class="uri">https://www.gizchina.com/2021/07/07/jeff-bezos-became-the-richest-person-with-a-record-fortune-of-211-billion/</a> |<a href="https://www.gizchina.com/wp-content/uploads/images/2021/07/skynews-jeff-bezos-amazon_5437859-1024x576.jpg" class="uri">https://www.gizchina.com/wp-content/uploads/images/2021/07/skynews-jeff-bezos-amazon_5437859-1024x576.jpg</a> |2021-07-07T10:24:20Z |The richest man in the world, Jeff Bezos, now has a fortune of $ 211 billion as Amazon shares surged 4.7% after the Pentagon announced the cancellation of its cloud computing contract with Microsoft.… [+2292 chars] |
+|Oliver Schwuchow |Polestar 4: Vom Precept-Konzept zum Elektro-Flaggschiff |Mit dem Polestar 1 gab es einen Hybrid-Sportwagen, bevor sich Volvo später dazu entschied, dass Polestar direkt eine rein elektrische Marke wird. Mit dem Polestar […] |<a href="https://www.mobiflip.de/shortnews/polestar-4-precept-elektro-flaggschiff/" class="uri">https://www.mobiflip.de/shortnews/polestar-4-precept-elektro-flaggschiff/</a> |<a href="https://i0.wp.com/www.mobiflip.de/wp-content/uploads/2021/07/polestar-4-precept-header.jpg?fit=1200%2C825&amp;ssl=1" class="uri">https://i0.wp.com/www.mobiflip.de/wp-content/uploads/2021/07/polestar-4-precept-header.jpg?fit=1200%2C825&amp;ssl=1</a> |2021-07-07T10:20:52Z |Mit dem Polestar 1 gab es einen Hybrid-Sportwagen, bevor sich Volvo später dazu entschied, dass Polestar direkt eine rein elektrische Marke wird. Mit dem Polestar 2 greift man aktuell das Tesla Model… [+1594 chars] |
+|1023 |Состояние Безоса достигло рекордных $211 млрд |Предыдущий рекорд принадлежал Илону Маску - в январе 2021 года его состояние оценили в $210 млрд, однако сейчас оно составляет $181 млрд. |<a href="https://korrespondent.net/business/companies/4374725-sostoianye-bezosa-dostyhlo-rekordnykh-211-mlrd" class="uri">https://korrespondent.net/business/companies/4374725-sostoianye-bezosa-dostyhlo-rekordnykh-211-mlrd</a> |<a href="https://kor.ill.in.ua/m/190x120/2640527.jpeg" class="uri">https://kor.ill.in.ua/m/190x120/2640527.jpeg</a> |2021-07-07T10:20:00Z |Amazon $211 . Daily Mail , 7 .
+2021 - Tesla SpaceX 210 . 181 .
+8,4 , Amazon 4,7% , $10 Microsoft JEDI .
+,   Amazon. , Amazon Web Services.
+.
+.net Telegram. <a href="https://t.me/korrespondentnet" class="uri">https://t.me/korrespondentnet</a> |
+|Sahil Gupta |Elon Musk Says Tesla Plaid UI Coming To Model 3 &amp; Y With FSD Release |While there is still no timeline for these updates, the new Tesla Model S Plaid has launched with a new user interface which Musk calls “mind of car”. |<a href="https://www.carandbike.com/news/elon-musk-says-tesla-plaid-ui-coming-to-model-3-y-with-fsd-release-2481266" class="uri">https://www.carandbike.com/news/elon-musk-says-tesla-plaid-ui-coming-to-model-3-y-with-fsd-release-2481266</a> |<a href="https://c.ndtvimg.com/2021-05/ceovoesg_elon-musk-bloomberg_625x300_13_May_21.jpg" class="uri">https://c.ndtvimg.com/2021-05/ceovoesg_elon-musk-bloomberg_625x300_13_May_21.jpg</a> |2021-07-07T10:19:45Z |Elon Musk Says Tesla Plaid UI Coming To Model 3 &amp; Y With FSD Release Tesla supremo, Elon Musk has revealed that the full self-driving beta, dubbed FSD9 is coming soon to the owners of the Tesla M… [+2055 chars] |
+|<a href="mailto:snagarajan@businessinsider.com" class="email">snagarajan@businessinsider.com</a> (Shalini Nagarajan) |10 things you need to know before the opening bell |This is what traders are talking about. |<a href="https://markets.businessinsider.com/news/stocks/opening-bell-july-7-2021-7" class="uri">https://markets.businessinsider.com/news/stocks/opening-bell-july-7-2021-7</a> |<a href="https://images2.markets.businessinsider.com/60e579de85fa1700185226b2?format=jpeg" class="uri">https://images2.markets.businessinsider.com/60e579de85fa1700185226b2?format=jpeg</a> |2021-07-07T10:17:30Z |Spencer Platt/Getty Images
+Welcome to 10 Things Before the Opening Bell. Sign up here to get the day’s top stock and crypto news in your inbox every morning.
+Sign up for Insider Investing for your … [+1582 chars] |
+|Emiliano Ragoni |Volkswagen: le elettriche ID si aggiorneranno come uno smartphone |Volkswagen come Tesla: le elettriche ID si aggiorneranno come uno smartphoneLa Volkswagen lancia ufficialmente gli aggiornamenti Ota, Over-the-Air, per la famiglia delle sue elettriche ID. Il primo grande aggiornamento, che migliorerà anche le prestazioni del… |<a href="https://www.gazzetta.it/motori/mobilita-sostenibile/auto-elettriche/07-07-2021/volkswagen-come-tesla-elettriche-id-si-aggiorneranno-come-smartphone-4102522002478.shtml" class="uri">https://www.gazzetta.it/motori/mobilita-sostenibile/auto-elettriche/07-07-2021/volkswagen-come-tesla-elettriche-id-si-aggiorneranno-come-smartphone-4102522002478.shtml</a> |<a href="https://images2.gazzettaobjects.it/methode_image/2021/07/05/Motori/Foto_Motori_-_Trattate/7ce5a658-dda1-11eb-9fcb-0d4bf680ad4c_1200x675.jpg?v=202107071217" class="uri">https://images2.gazzettaobjects.it/methode_image/2021/07/05/Motori/Foto_Motori_-_Trattate/7ce5a658-dda1-11eb-9fcb-0d4bf680ad4c_1200x675.jpg?v=202107071217</a> |2021-07-07T10:16:50Z |Emiliano Ragoni
+&amp;commat;EmilianoRagoni
+7 luglio
+- Milano
+La Volkswagen lancia ufficialmente gli aggiornamenti Ota, Over-the-Air, per la famiglia delle sue elettriche ID. La casa tedesca, do… [+3012 chars] |
+|Thibaut Emme |La France anticipe les véhicules à conduite automatisée |Les différents codes de la route dans le monde n’ont pas prévu l’arrivée des véhicules plus ou moins autonomes. La France est le premier pays en Europe à se doter d’un cadre réglementaire pour anticiper l’arrivée prochaine de ces véhicules. Depuis mai 2018, l… |<a href="https://www.leblogauto.com/2021/07/france-anticipe-vehicules-a-conduite-automatisee.html" class="uri">https://www.leblogauto.com/2021/07/france-anticipe-vehicules-a-conduite-automatisee.html</a> |<a href="https://leblogauto.b-cdn.net/wp-content/uploads/2021/07/voiture_robots.jpg" class="uri">https://leblogauto.b-cdn.net/wp-content/uploads/2021/07/voiture_robots.jpg</a> |2021-07-07T10:15:50Z |Les différents codes de la route dans le monde n’ont pas prévu l’arrivée des véhicules plus ou moins autonomes. La France est le premier pays en Europe à se doter d’un cadre réglementaire pour antici… [+6474 chars] |
+|Scott Carpenter and Sophie Alexander / Bloomberg |Jeff Bezos Is the Richest Person Ever After His Net Worth Soars to $211 Billion |Amazon stock rallied Tuesday and raised Bezos’s fortune by $8.4 billion, according to the Bloomberg Billionaires Index. |<a href="https://time.com/6078311/jeff-bezos-net-worth-record/" class="uri">https://time.com/6078311/jeff-bezos-net-worth-record/</a> |<a href="https://api.time.com/wp-content/uploads/2021/07/Jeff-Bezos-net-worth.jpg?quality=85&amp;w=1024&amp;h=628&amp;crop=1" class="uri">https://api.time.com/wp-content/uploads/2021/07/Jeff-Bezos-net-worth.jpg?quality=85&amp;w=1024&amp;h=628&amp;crop=1</a> |2021-07-07T10:13:34Z |Jeff Bezos is leaving the rest of the world behind when it comes to wealth accumulation.
+The world’s richest man reached a record $211 billion net worth Tuesday after Amazon.com shares rose 4.7% aft… [+1920 chars] |
+|Claire Rodineau |Partir en vacances, le stress en moins : on a testé l’offre Covid d’une conciergerie privée |Vous redoutez de ne pas avoir votre PCR à temps, cauchemardez à l’idée des files d’attente à l’aéroport cet été ? Les entreprises de conciergerie privée, hybrides entre l’agent de voyages et l’assistant personnel de luxe, proposent d’aider les estivants à déc… |<a href="https://www.lefigaro.fr/voyages/partir-en-vacances-le-stress-en-moins-on-a-teste-l-offre-covid-d-une-conciergerie-privee-20210707" class="uri">https://www.lefigaro.fr/voyages/partir-en-vacances-le-stress-en-moins-on-a-teste-l-offre-covid-d-une-conciergerie-privee-20210707</a> |<a href="https://i.f1g.fr/media/cms/704x396_cropupscale/2021/07/06/64eb963a56ccba643ee34c6ff407b9049a4e6d6ef860c9e375fcb4ae19a0bf90.jpg" class="uri">https://i.f1g.fr/media/cms/704x396_cropupscale/2021/07/06/64eb963a56ccba643ee34c6ff407b9049a4e6d6ef860c9e375fcb4ae19a0bf90.jpg</a> |2021-07-07T10:10:22Z |Vous redoutez de ne pas avoir votre PCR à temps, cauchemardez à l’idée des files d’attente à l’aéroport cet été ? Les entreprises de conciergerie privée, hybrides entre l’agent de voyages et l’assist… [+6019 chars] |
+|Sostav.ru |Volvo станет брендом электрокаров премиум-класса |Компания заявила о планах по захвату рынка электромобилей |<a href="https://www.sostav.ru/publication/volvo-elektromobili-49309.html" class="uri">https://www.sostav.ru/publication/volvo-elektromobili-49309.html</a> |<a href="https://www.sostav.ru/images/news/2021/07/07/preview/49309_social.jpg?rnd=756260" class="uri">https://www.sostav.ru/images/news/2021/07/07/preview/49309_social.jpg?rnd=756260</a> |2021-07-07T10:10:00Z |Volvo ,   -     , - .
+  , Volvo, «   , -,     ».
+,   ,   . 1,2 , .
+Tesla, Volvo,   Model S Plaid.   , « Porsche   Volvo».   ,    96,5 /,   320 /. |
+|Bolsamania |Consultorio de análisis técnico: IAG, Telefónica, Inditex, Meliá, Aryzta, Wirecard, Netflix y Tesla |A continuación, damos respuesta a los valores por los que más nos han preguntado a lo largo de la mañana. José María Rodríguez, analista técnico de Bolsamanía, analiza Meliá Hotels, Tesla, Telefónica, Inditex, Aryzta, Wirecard, IAG y Netflix. |<a href="https://www.bolsamania.com/noticias/analisis-tecnico/consultorio-analisis-tecnico-iag-telefonica-inditex-melia-aryzta-wirecard-netflix-tesla--8029937.html" class="uri">https://www.bolsamania.com/noticias/analisis-tecnico/consultorio-analisis-tecnico-iag-telefonica-inditex-melia-aryzta-wirecard-netflix-tesla--8029937.html</a> |<a href="https://img.s3wfg.com/web/img/images_uploaded/b/6/broker710345a.gif" class="uri">https://img.s3wfg.com/web/img/images_uploaded/b/6/broker710345a.gif</a> |2021-07-07T10:05:38Z |A continuación, damos respuesta a los valores por los que más nos han preguntado a lo largo de la mañana. José María Rodríguez, analista técnico de Bolsamanía, analiza Meliá Hotels, Tesla, Telefónica… [+7790 chars] |
+|NA |Alman ZDF: Türkiye’nin Otomobili Volkswagen’e rakip mi? |Alman Televizyonu ZDF, TOGG haberinde Türkiye’nin gücünü birleştirerek iddialı bir hedefe doğru ilerlediğine vurgu yaptı. - Anadolu Ajansı |<a href="https://www.aa.com.tr/tr/dunya/alman-zdf-turkiye-nin-otomobili-volkswagen-e-rakip-mi/2296761" class="uri">https://www.aa.com.tr/tr/dunya/alman-zdf-turkiye-nin-otomobili-volkswagen-e-rakip-mi/2296761</a> |<a href="https://cdnuploads.aa.com.tr/uploads/Contents/2021/07/07/thumbs_b_c_c627bf7c33debb62427b1e4acefc3df2.jpg" class="uri">https://cdnuploads.aa.com.tr/uploads/Contents/2021/07/07/thumbs_b_c_c627bf7c33debb62427b1e4acefc3df2.jpg</a> |2021-07-07T10:01:11Z |Türkiye’nin Otomobili Giriim Grubu’nun (TOGG) üretecei elektrikli otomobillere Alman basnnda geni yer verildi.
+Alman Televizyon Kanal ZDF, “Türkiye’nin Otomobili, Tesla ve Volkswagen’e rakip mi?” ba… [+3393 chars] |
+|and |Hádanka je rozuzlená. Bugatti a Rimac vytvoria spoločný podnik! |Nová spoločnosť Bugatti-Rimac vzniká pod taktovkou Porsche. Koncern VW sa tak svojho klenotu nevzdá. |<a href="https://auto.pravda.sk/magazin/clanok/593758-hadanka-je-rozuzlena-bugatti-a-rimac-vytvoria-spolocny-podnik/" class="uri">https://auto.pravda.sk/magazin/clanok/593758-hadanka-je-rozuzlena-bugatti-a-rimac-vytvoria-spolocny-podnik/</a> |<a href="http://ipravda.sk/res/2021/07/06/thumbs/bugatti-rimac-2021_01-clanokW.jpg" class="uri">http://ipravda.sk/res/2021/07/06/thumbs/bugatti-rimac-2021_01-clanokW.jpg</a> |2021-07-07T10:00:00Z |Nová spolonos Bugatti-Rimac vzniká pod taktovkou Porsche. Koncern VW sa tak svojho klenotu nevzdá. Situácia okolo Bugatti bola dlho nejasná. Najprv sa hovorilo o jeho
+predaji chorvátskej spolonosti … [+2143 chars] |</p>
+</div>

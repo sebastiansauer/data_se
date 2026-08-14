@@ -1,0 +1,125 @@
+---
+title: 'Comparing Knime and R: ETL_Basics'
+author: Sebastian Sauer
+date: '2020-11-28'
+slug: comparing-knime-and-r-etl-basics
+categories:
+  
+tags:
+  - comparison
+editor_options: 
+  chunk_output_type: console
+output:
+  blogdown::html_page:
+    toc: true
+---
+
+
+
+
+
+# Knime workflow
+
+Consider this Knime workflow:
+
+
+![](https://i.postimg.cc/G273xn2Q/knime-etl.png)
+
+# R translation
+
+
+## Setup
+
+```{r message = FALSE}
+library(tidyverse)
+library(lubridate)
+library(knitr)
+```
+
+
+
+## Chunk 1: Read, sort, filter
+
+
+```{r}
+datafile <- "https://raw.githubusercontent.com/sebastiansauer/sesa-blog/main/static/datasets/sales_2008-2011.csv"
+
+d <- read_csv(datafile)
+```
+
+```{r}
+glimpse(d)
+```
+
+The data is already recognized as date; no need for transformation.
+
+
+```{r}
+d %>% 
+  arrange(date) %>% 
+  select(-card) -> d
+```
+
+
+## Chunk 2: group and aggregate
+
+```{r}
+d %>% 
+  group_by(Cust_ID) %>% 
+  summarise(amount_sum = sum(amount),
+            country = first(country),
+            start = min(date),
+            end = max(date),
+            duration = end - start) -> d_summarized
+```
+
+
+## Chunk 3: filter
+
+```{r}
+d_summarized %>% 
+  filter(amount_sum > 5000) %>% 
+  filter(country == "USA") -> d_summarized_filtered1
+```
+
+
+```{r}
+d_summarized %>% 
+  filter(between(amount_sum,1000, 2000)) %>% 
+  filter(country == "Germany") -> d_summarized_filtered2
+```
+
+
+# Chunk 4: concatenate
+
+
+```{r}
+d_summarized_filtered1 %>% 
+  bind_rows(d_summarized_filtered2) -> d_concatenated
+```
+
+
+# Chunk 5: join
+
+Join by ID
+
+
+```{r}
+d_concatenated %>% 
+  inner_join(d, by = "Cust_ID") -> d_joined
+```
+
+
+```{r}
+kable(d_joined)
+```
+
+
+
+# Chuunk 6: write to csv
+
+
+```{r eval = FALSE}
+write_csv(d_joined, file = "d_joined.csv")
+```
+

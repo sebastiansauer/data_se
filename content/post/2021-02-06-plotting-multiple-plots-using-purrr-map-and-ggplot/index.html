@@ -1,0 +1,275 @@
+---
+title: Plotting multiple plots using purrr::map and ggplot
+author: Sebastian Sauer
+date: '2021-02-06'
+slug: plotting-multiple-plots-using-purrr-map-and-ggplot
+categories:
+  
+tags:
+  - visualization
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#sample-data"><span class="toc-section-number">2</span> Sample data</a></li>
+<li><a href="#motivation"><span class="toc-section-number">3</span> Motivation</a></li>
+<li><a href="#way-1"><span class="toc-section-number">4</span> Way 1</a></li>
+<li><a href="#way-2"><span class="toc-section-number">5</span> Way 2</a></li>
+<li><a href="#way-3"><span class="toc-section-number">6</span> Way 3</a></li>
+<li><a href="#more-general"><span class="toc-section-number">7</span> More general</a></li>
+<li><a href="#introducing-curly-curly"><span class="toc-section-number">8</span> Introducing curly-curly</a></li>
+<li><a href="#reproducibility"><span class="toc-section-number">9</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling</code></pre>
+</div>
+<div id="sample-data" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Sample data</h1>
+<p><code>mtcars</code> to the rescue!</p>
+<pre class="r"><code>mtcars &lt;- read_csv(&quot;https://vincentarelbundock.github.io/Rdatasets/csv/datasets/mtcars.csv&quot;)</code></pre>
+</div>
+<div id="motivation" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Motivation</h1>
+<p>Say we have a data frame where we would like to plot each numeric variables’s distribution.</p>
+<p>There are a number of good solutions outthere such as <a href="https://aosmith.rbind.io/2018/08/20/automating-exploratory-plots/">this one</a>, or <a href="https://stackoverflow.com/questions/62323725/problem-with-passing-ggplot-titles-in-a-purrr-loop-list-columns">here</a>, or <a href="https://stackoverflow.com/questions/45362462/how-do-pipes-work-with-purrr-map-function-and-the-dot-symbol">here</a>.</p>
+</div>
+<div id="way-1" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Way 1</h1>
+<pre class="r"><code>mtcars %&gt;% 
+  select(where(is.numeric)) %&gt;% 
+  map( ~ {ggplot(mtcars, aes(x = .)) + geom_density()}
+  )
+#&gt; $mpg
+#&gt; 
+#&gt; $cyl
+#&gt; 
+#&gt; $disp
+#&gt; 
+#&gt; $hp
+#&gt; 
+#&gt; $drat
+#&gt; 
+#&gt; $wt
+#&gt; 
+#&gt; $qsec
+#&gt; 
+#&gt; $vs
+#&gt; 
+#&gt; $am
+#&gt; 
+#&gt; $gear
+#&gt; 
+#&gt; $carb</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/way1-1.png" width="70%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way1-2.png" width="70%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way1-3.png" width="70%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way1-4.png" width="70%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way1-5.png" width="70%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way1-6.png" width="70%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way1-7.png" width="70%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way1-8.png" width="70%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way1-9.png" width="70%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way1-10.png" width="70%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way1-11.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Note that the chunks options above were like this:</p>
+<p><code>{r fig.show="hold", out.width=70%"}</code></p>
+<p>Works. But does not show the variable names.
+Next try.</p>
+</div>
+<div id="way-2" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Way 2</h1>
+<pre class="r"><code>dens_fun &lt;- function(var, name) {
+  
+  ggplot(mtcars, aes(x = var)) +
+    geom_density() +
+    labs(x = name,
+         title = name)
+}
+
+mtcars %&gt;% 
+  select(where(is.numeric)) %&gt;% 
+  map2(.y = names(.),
+       ~ dens_fun(.x, .y)
+  )</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/way2-1.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way2-2.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way2-3.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way2-4.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way2-5.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way2-6.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way2-7.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way2-8.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way2-9.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way2-10.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/way2-11.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="way-3" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Way 3</h1>
+<p>Now let’s assume with a character vector, <code>cols</code>, encompassing the columns to be processed.</p>
+<pre class="r"><code>cols &lt;- c(&quot;mpg&quot;, &quot;hp&quot;, &quot;qsec&quot;)</code></pre>
+<p>To address a variable - eg., <code>"hp"</code>, stored as a string, in recent tidyverse parlance should
+make use of <code>.data[["hp"]]</code>.</p>
+<pre class="r"><code>dens_fun2 &lt;- function(var_string) {
+  
+  ggplot(mtcars, aes(x = .data[[var_string]])) +
+    geom_density() +
+    labs(x = var_string,
+         title = var_string)
+}</code></pre>
+<p>See:</p>
+<pre class="r"><code>dens_fun2(&quot;hp&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/run-dens-fun2-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Now let’s cycle through some columns:</p>
+<pre class="r"><code>cols %&gt;% 
+  map(~ dens_fun2(.x))
+#&gt; [[1]]
+#&gt; 
+#&gt; [[2]]
+#&gt; 
+#&gt; [[3]]</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-2.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-3.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="more-general" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> More general</h1>
+<p>Not all in life is <code>mtcars</code>. Let’s be more general.</p>
+<p>And: there’s also the <code>iris</code> data set.</p>
+<pre class="r"><code>iris &lt;- read_csv(&quot;https://vincentarelbundock.github.io/Rdatasets/csv/datasets/iris.csv&quot;)</code></pre>
+<pre class="r"><code>dens_fun3 &lt;- function(df, var_string) {
+  
+  ggplot(df, aes(x = .data[[var_string]])) +
+    geom_density() +
+    labs(x = var_string,
+         title = var_string)
+}</code></pre>
+<pre class="r"><code>dens_fun3(iris, &quot;Sepal.Length&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="introducing-curly-curly" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Introducing curly-curly</h1>
+<p>Or, alternatively, we can build our plot <em>not</em> with strings (character) variables as input,
+but bare, unquoted column names such as <code>Sepal.Length</code>.</p>
+<p>This operator is called “curly curly”,
+as it consists of two curly braces.</p>
+<p>For that purpose,
+we need to quote and evaluate the parameter,
+which is a buit unusual at the beginning:</p>
+<pre class="r"><code>dens_fun4 &lt;- function(df, col) {
+  
+  ggplot(df, aes({{col}})) +
+    geom_density() +
+    labs(title = deparse(substitute(col)))
+}</code></pre>
+<p>To make things worse,
+we need a string for the title lable.</p>
+<pre class="r"><code>iris %&gt;% 
+  dens_fun4(Sepal.Length)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>iris %&gt;% 
+  select(where(is.numeric)) %&gt;% 
+  map(~ dens_fun4(iris, .))
+#&gt; $...1
+#&gt; 
+#&gt; $Sepal.Length
+#&gt; 
+#&gt; $Sepal.Width
+#&gt; 
+#&gt; $Petal.Length
+#&gt; 
+#&gt; $Petal.Width</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-2.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-3.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-4.png" width="100%" style="display: block; margin: auto;" /><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-5.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Unfortunately,
+the title lab did not work out.
+We’ll fix that in some other post.</p>
+</div>
+<div id="reproducibility" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.1.0 (2021-05-18)
+#&gt;  os       macOS Big Sur 10.16         
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2022-01-11                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version date       lib source                           
+#&gt;  assertthat    0.2.1   2019-03-21 [1] CRAN (R 4.1.0)                   
+#&gt;  backports     1.2.1   2020-12-09 [1] CRAN (R 4.1.0)                   
+#&gt;  blogdown      1.4     2021-07-23 [2] CRAN (R 4.1.0)                   
+#&gt;  bookdown      0.24.2  2021-10-15 [1] Github (rstudio/bookdown@ba51c26)
+#&gt;  broom         0.7.9   2021-07-27 [1] CRAN (R 4.1.0)                   
+#&gt;  bslib         0.3.1   2021-10-06 [1] CRAN (R 4.1.0)                   
+#&gt;  cachem        1.0.6   2021-08-19 [1] CRAN (R 4.1.0)                   
+#&gt;  callr         3.7.0   2021-04-20 [1] CRAN (R 4.1.0)                   
+#&gt;  cellranger    1.1.0   2016-07-27 [1] CRAN (R 4.1.0)                   
+#&gt;  cli           3.1.0   2021-10-27 [1] CRAN (R 4.1.0)                   
+#&gt;  codetools     0.2-18  2020-11-04 [2] CRAN (R 4.1.0)                   
+#&gt;  colorspace    2.0-2   2021-06-24 [1] CRAN (R 4.1.0)                   
+#&gt;  crayon        1.4.2   2021-10-29 [1] CRAN (R 4.1.0)                   
+#&gt;  DBI           1.1.1   2021-01-15 [1] CRAN (R 4.1.0)                   
+#&gt;  dbplyr        2.1.1   2021-04-06 [1] CRAN (R 4.1.0)                   
+#&gt;  desc          1.4.0   2021-09-28 [1] CRAN (R 4.1.0)                   
+#&gt;  devtools      2.4.2   2021-06-07 [1] CRAN (R 4.1.0)                   
+#&gt;  digest        0.6.29  2021-12-01 [1] CRAN (R 4.1.0)                   
+#&gt;  dplyr       * 1.0.7   2021-06-18 [1] CRAN (R 4.1.0)                   
+#&gt;  ellipsis      0.3.2   2021-04-29 [1] CRAN (R 4.1.0)                   
+#&gt;  evaluate      0.14    2019-05-28 [1] CRAN (R 4.1.0)                   
+#&gt;  fansi         1.0.0   2022-01-10 [1] CRAN (R 4.1.0)                   
+#&gt;  farver        2.1.0   2021-02-28 [1] CRAN (R 4.1.0)                   
+#&gt;  fastmap       1.1.0   2021-01-25 [2] CRAN (R 4.1.0)                   
+#&gt;  forcats     * 0.5.1   2021-01-27 [1] CRAN (R 4.1.0)                   
+#&gt;  fs            1.5.0   2020-07-31 [1] CRAN (R 4.1.0)                   
+#&gt;  generics      0.1.1   2021-10-25 [1] CRAN (R 4.1.0)                   
+#&gt;  ggplot2     * 3.3.5   2021-06-25 [1] CRAN (R 4.1.0)                   
+#&gt;  glue          1.6.0   2021-12-17 [1] CRAN (R 4.1.0)                   
+#&gt;  gtable        0.3.0   2019-03-25 [1] CRAN (R 4.1.0)                   
+#&gt;  haven         2.4.1   2021-04-23 [1] CRAN (R 4.1.0)                   
+#&gt;  highr         0.9     2021-04-16 [1] CRAN (R 4.1.0)                   
+#&gt;  hms           1.1.1   2021-09-26 [1] CRAN (R 4.1.0)                   
+#&gt;  htmltools     0.5.2   2021-08-25 [1] CRAN (R 4.1.0)                   
+#&gt;  httr          1.4.2   2020-07-20 [1] CRAN (R 4.1.0)                   
+#&gt;  jquerylib     0.1.4   2021-04-26 [1] CRAN (R 4.1.0)                   
+#&gt;  jsonlite      1.7.2   2020-12-09 [1] CRAN (R 4.1.0)                   
+#&gt;  knitr         1.36    2021-09-29 [1] CRAN (R 4.1.0)                   
+#&gt;  labeling      0.4.2   2020-10-20 [1] CRAN (R 4.1.0)                   
+#&gt;  lifecycle     1.0.1   2021-09-24 [1] CRAN (R 4.1.0)                   
+#&gt;  lubridate     1.7.10  2021-02-26 [1] CRAN (R 4.1.0)                   
+#&gt;  magrittr      2.0.1   2020-11-17 [1] CRAN (R 4.1.0)                   
+#&gt;  memoise       2.0.0   2021-01-26 [2] CRAN (R 4.1.0)                   
+#&gt;  modelr        0.1.8   2020-05-19 [1] CRAN (R 4.1.0)                   
+#&gt;  munsell       0.5.0   2018-06-12 [1] CRAN (R 4.1.0)                   
+#&gt;  pillar        1.6.4   2021-10-18 [1] CRAN (R 4.1.0)                   
+#&gt;  pkgbuild      1.2.0   2020-12-15 [2] CRAN (R 4.1.0)                   
+#&gt;  pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.1.0)                   
+#&gt;  pkgload       1.2.3   2021-10-13 [1] CRAN (R 4.1.0)                   
+#&gt;  prettyunits   1.1.1   2020-01-24 [1] CRAN (R 4.1.0)                   
+#&gt;  processx      3.5.2   2021-04-30 [1] CRAN (R 4.1.0)                   
+#&gt;  ps            1.6.0   2021-02-28 [1] CRAN (R 4.1.0)                   
+#&gt;  purrr       * 0.3.4   2020-04-17 [1] CRAN (R 4.1.0)                   
+#&gt;  R6            2.5.1   2021-08-19 [1] CRAN (R 4.1.0)                   
+#&gt;  Rcpp          1.0.7   2021-07-07 [1] CRAN (R 4.1.0)                   
+#&gt;  readr       * 2.0.0   2021-07-20 [1] CRAN (R 4.1.0)                   
+#&gt;  readxl        1.3.1   2019-03-13 [1] CRAN (R 4.1.0)                   
+#&gt;  remotes       2.4.0   2021-06-02 [2] CRAN (R 4.1.0)                   
+#&gt;  reprex        2.0.0   2021-04-02 [1] CRAN (R 4.1.0)                   
+#&gt;  rlang         0.4.12  2021-10-18 [1] CRAN (R 4.1.0)                   
+#&gt;  rmarkdown     2.11    2021-09-14 [1] CRAN (R 4.1.0)                   
+#&gt;  rprojroot     2.0.2   2020-11-15 [2] CRAN (R 4.1.0)                   
+#&gt;  rstudioapi    0.13    2020-11-12 [1] CRAN (R 4.1.0)                   
+#&gt;  rvest         1.0.0   2021-03-09 [1] CRAN (R 4.1.0)                   
+#&gt;  sass          0.4.0   2021-05-12 [1] CRAN (R 4.1.0)                   
+#&gt;  scales        1.1.1   2020-05-11 [1] CRAN (R 4.1.0)                   
+#&gt;  sessioninfo   1.1.1   2018-11-05 [2] CRAN (R 4.1.0)                   
+#&gt;  stringi       1.7.5   2021-10-04 [1] CRAN (R 4.1.0)                   
+#&gt;  stringr     * 1.4.0   2019-02-10 [1] CRAN (R 4.1.0)                   
+#&gt;  testthat      3.1.0   2021-10-04 [1] CRAN (R 4.1.0)                   
+#&gt;  tibble      * 3.1.6   2021-11-07 [1] CRAN (R 4.1.0)                   
+#&gt;  tidyr       * 1.1.4   2021-09-27 [1] CRAN (R 4.1.0)                   
+#&gt;  tidyselect    1.1.1   2021-04-30 [1] CRAN (R 4.1.0)                   
+#&gt;  tidyverse   * 1.3.1   2021-04-15 [1] CRAN (R 4.1.0)                   
+#&gt;  tzdb          0.1.2   2021-07-20 [2] CRAN (R 4.1.0)                   
+#&gt;  usethis       2.0.1   2021-02-10 [2] CRAN (R 4.1.0)                   
+#&gt;  utf8          1.2.2   2021-07-24 [1] CRAN (R 4.1.0)                   
+#&gt;  vctrs         0.3.8   2021-04-29 [1] CRAN (R 4.1.0)                   
+#&gt;  withr         2.4.3   2021-11-30 [1] CRAN (R 4.1.0)                   
+#&gt;  xfun          0.28    2021-11-04 [1] CRAN (R 4.1.0)                   
+#&gt;  xml2          1.3.2   2020-04-23 [1] CRAN (R 4.1.0)                   
+#&gt;  yaml          2.2.1   2020-02-01 [1] CRAN (R 4.1.0)                   
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Library/R/x86_64/4.1/library
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.1/Resources/library</code></pre>
+</div>

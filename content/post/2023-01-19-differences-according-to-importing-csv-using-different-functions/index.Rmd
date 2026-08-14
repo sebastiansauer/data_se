@@ -1,0 +1,218 @@
+---
+title: Differences according to importing CSV using different functions
+author: Sebastian Sauer
+date: '2023-01-19'
+slug: differences-according-to-importing-csv-using-different-functions
+categories:
+  - rstats
+tags:
+  - datawrangling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(easystats)
+library(digest)  # hashes
+```
+
+
+# Motivation
+
+Importing a CSV file can yield to - slightly - different results, according to which functions are used for importing the file. 
+The question is whether the *data* itself is constant across different methods,
+which is a neccessary condition for reliable analysis,
+or at least the importing function must be known for a reproducible analysis,
+in case different data can result when different import functions are used.
+
+
+In this post, we will examine the effect of importing data using different functions.
+
+
+
+# Data
+
+We'll use the `penguins` data set.
+
+```{r}
+data_url <- "https://vincentarelbundock.github.io/Rdatasets/csv/palmerpenguins/penguins.csv"
+```
+
+
+# Method 1: `read.csv`
+
+`read.csv` is a function from Base R.
+
+Let's try it.
+
+```{r}
+d1 <- read.csv(data_url)
+head(d1)
+```
+
+
+# Method 2: `read_csv`
+
+```{r}
+d2 <- read_csv(data_url)
+head(d2)
+```
+
+
+# Method 3: `data_read`
+
+```{r}
+d3 <- data_read(data_url)
+head(d3)
+```
+
+# First glimpse
+
+
+```{r}
+glimpse(d1)
+glimpse(d2)
+glimpse(d3)
+```
+
+Nothing that peeks into the eye.
+
+# Hashes
+
+A hash is like a fingerprint of a digital object - it is (quasi) unique.
+Let's compute the hashes of the data sets. 
+Note that we should preclude the first column as it's name is set differently by the function.
+
+```{r}
+d1 <- d1 %>% select(-1)
+d2 <- d2 %>% select(-1)
+d3 <- d3 %>% select(-1)
+```
+
+
+To get the hash value of some objects, we can use the function `digest()`.
+
+```{r}
+d1_hash <- 
+d1 %>% 
+  digest()
+
+d1_hash
+```
+
+
+```{r}
+d2_hash <- 
+d2 %>% 
+  digest()
+
+d2_hash
+```
+
+
+```{r}
+d3_hash <- 
+d3 %>% 
+  digest()
+
+d3_hash
+```
+
+
+# Not exactly identical
+
+As the hashes (fingerprints) differ, we can conclude that the objects are not *exactly* identical.
+However, the differences may stem from subtle variations such as atttributes or classes of the data frame.
+
+Let's focus on the data instead.
+
+
+# Data comparison
+
+By formatting as a `matrix`, we get rid of possible overheads of dataframes, leaving the pure data.
+
+```{r}
+d1_matrix <-
+  d1 %>% 
+  as.matrix()
+
+d2_matrix <-
+  d2 %>% 
+  as.matrix()
+
+d3_matrix <-
+  d3 %>% 
+  as.matrix()
+```
+
+
+Let's checkt the attributes of the matrices:
+
+```{r}
+d1_matrix %>% attributes()
+d2_matrix %>% attributes()
+d3_matrix %>% attributes()
+```
+
+Identical.
+
+Now let's check the hashes of the matrices.
+
+```{r}
+d1_matrix_hash <- d1_matrix %>% digest()
+d2_matrix_hash <- d2_matrix %>% digest()
+d3_matrix_hash <- d3_matrix %>% digest()
+```
+
+
+```{r}
+d1_matrix_hash
+d2_matrix_hash
+d3_matrix_hash
+```
+
+Identical.
+
+# Conclusion
+
+We can conclude that the data is identical across the methods (leaving the first column aside).
+
+Note that no random numbers where involved in this analysis.
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

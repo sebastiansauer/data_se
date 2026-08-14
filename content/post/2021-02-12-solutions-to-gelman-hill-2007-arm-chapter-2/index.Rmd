@@ -1,0 +1,200 @@
+---
+title: Solutions to Gelman & Hill, 2007, ARM, Chapter 2
+author: Sebastian Sauer
+date: '2021-02-12'
+draft: TRUE
+slug: solutions-to-gelman-hill-2007-arm-chapter-2
+categories:
+  
+tags:
+  - tutorial
+  - regression
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(arm)  # helper functions from the book ARM
+library(ggfortify)  # Autoplot für Modellannahmen
+```
+
+
+# Ex 1
+
+
+## Load data
+
+
+```{r}
+www <- "http://www.stat.columbia.edu/%7Egelman/arm/examples/pyth/exercise2.1.dat"
+mydata <- read_delim(www, delim = " ")
+
+mydata_train <- slice(mydata, 1:40)
+mydata_test <- slice(mydata, 40:nrow(mydata))
+```
+
+```{r}
+glimpse(mydata)
+```
+
+
+## a)
+
+Use R to fit a linear regression model predicting y from x1,x2, using the first 40 data points in the file. Summarize the inferences and check the fit of your model.
+
+
+```{r}
+fit.1 <- lm (y ~ x1 + x2, mydata_train)
+```
+
+
+```{r}
+
+display(fit.1)
+```
+
+Beide Inputvariable (`x1`, `x2`) haben einen Koeffizienten, der deutlich größer ist als ihr Standardfehler; das Rauschen ist also deutlich schwächer als das Signal. Ähnliches gilt für den Intercept.
+
+Im Schnitt liegt die Vorhersage etwa um 0.90 Einheiten daneben; genauer: die SD der Residuen beträgt 0.90.
+
+$R^2$ ist mit .97 sehr hoch.
+
+
+## b)
+
+Display the estimated model graphically as in Figure 3.2. Display the estimated model graphically as in Figure 3.2.
+ 
+
+```{r}
+ggplot(mydata_train) +
+  aes(x = x1, y = y) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+
+
+```{r}
+ggplot(mydata_train) +
+  aes(x = x2, y = y) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+```{r}
+ggplot(mydata_train) +
+  aes(x = fitted(fit.1), y = y) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+
+
+
+## c) 
+
+Make a residual plot for this model. Do the assumptions appear to be met?
+
+Ein guter Artikel zur Visualisierung von Regressionsresiduen findet sich [hier](https://drsimonj.svbtle.com/visualising-residuals).
+
+
+
+
+```{r}
+autoplot(fit.1, which = 1) # nur das 1. Bild
+```
+
+Es gibt eine extreme Residuen, etwa Fall 8. Ein starker Trend in den Residen ist nicht erkennbar.
+
+## d)
+
+Make predictions for the remaining 20 data points in the file. How confident do you feel about these predictions?
+
+
+```{r}
+predict (fit.1, mydata_test)
+```
+
+
+So bekommt man ein Vorhersage-Intervall:
+
+
+```{r}
+predict (fit.1, mydata_test, interval = "prediction")
+```
+
+
+
+# Ex 2
+
+
+Suppose that, for a certain population, we can predict log earnings from log height as follows:
+
+- A person who is 66 inches tall is predicted to have earnings of $30,000.
+- Every increase of 1% in height corresponds to a predicted increase of 0.8% in earnings.
+- The earnings of approximately 95% of people fall within a factor of 1.1 of predicted values.
+
+a) Give the equation of the regression line and the residual standard deviation of the regression.
+b) Suppose the standard deviation of log heights is 5% in this population. What, then, is the R2 of the regression model described here?
+
+
+Eigentlich wurde der Stoff noch nicht in diesem Kapitel behandelt, sondern erst im 4. Kapitel.
+
+- Es handelt sich um ein Log-Log-Modell: $log(\hat{y}) = \beta_0 + \beta_1 log(x)$
+- Die Steigung im Log-Log-Modell wird mit 0.8 angegeben.
+- Der Y-Wert bei X=66 liegt bei 30.000
+
+
+Also:
+
+
+$log(30000) = \beta_0 + 0.8 \cdot log(66)$
+
+```{r}
+beta_0 = log(30000) - 0.8*log(66)
+beta_0
+```
+
+Damit ist die Regressionsgleichung benannt.
+
+
+95% der Werte liegen im Bereich von max $\pm$ 10% des vorheresagten Werts.
+
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

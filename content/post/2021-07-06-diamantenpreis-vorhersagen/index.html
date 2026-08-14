@@ -1,0 +1,545 @@
+---
+title: Vorhersage-Modellierung des Diamantenpreises
+author: Sebastian Sauer
+date: '2021-07-06'
+slug: diamantenpreis-vorhersagen
+categories:
+  - rstats
+tags:
+  - prediction
+  - modeling
+output: 
+  blogdown::html_page:
+    toc: TRUE
+    number_sections: TRUE
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#vorbereitung"><span class="toc-section-number">1</span> Vorbereitung</a>
+<ul>
+<li><a href="#forschungsfrage"><span class="toc-section-number">1.1</span> Forschungsfrage</a></li>
+<li><a href="#aufgabe"><span class="toc-section-number">1.2</span> Aufgabe</a></li>
+<li><a href="#pakete-laden"><span class="toc-section-number">1.3</span> Pakete laden</a></li>
+<li><a href="#daten-laden"><span class="toc-section-number">1.4</span> Daten laden</a></li>
+<li><a href="#id-spalte-ergänzen"><span class="toc-section-number">1.5</span> ID-Spalte ergänzen</a></li>
+</ul></li>
+<li><a href="#vorwissen"><span class="toc-section-number">2</span> Vorwissen</a></li>
+<li><a href="#woran-erkennt-man-einen-starken-haupteffekt"><span class="toc-section-number">3</span> Woran erkennt man einen “starken Haupteffekt”?</a></li>
+<li><a href="#wichtige-prädiktoren"><span class="toc-section-number">4</span> Wichtige Prädiktoren</a>
+<ul>
+<li><a href="#train2"><span class="toc-section-number">4.1</span> train2</a></li>
+<li><a href="#test2"><span class="toc-section-number">4.2</span> test2</a></li>
+</ul></li>
+<li><a href="#feature-engineering"><span class="toc-section-number">5</span> Feature Engineering</a>
+<ul>
+<li><a href="#train3test3"><span class="toc-section-number">5.1</span> train3/test3</a></li>
+<li><a href="#korrelation"><span class="toc-section-number">5.2</span> Korrelation</a></li>
+<li><a href="#preds_important"><span class="toc-section-number">5.3</span> <code>preds_important</code></a></li>
+</ul></li>
+<li><a href="#funktionale-form-der-zusammenhänge"><span class="toc-section-number">6</span> Funktionale Form der Zusammenhänge</a></li>
+<li><a href="#filtern"><span class="toc-section-number">7</span> Filtern</a>
+<ul>
+<li><a href="#train4"><span class="toc-section-number">7.1</span> train4</a></li>
+</ul></li>
+<li><a href="#transformationen"><span class="toc-section-number">8</span> Transformationen</a>
+<ul>
+<li><a href="#log-transformation-train5"><span class="toc-section-number">8.1</span> Log-Transformation (train5)</a></li>
+<li><a href="#z-transformation-train6"><span class="toc-section-number">8.2</span> z-Transformation (train6)</a></li>
+</ul></li>
+<li><a href="#vorhersage-modellierung"><span class="toc-section-number">9</span> Vorhersage-Modellierung</a>
+<ul>
+<li><a href="#lm1"><span class="toc-section-number">9.1</span> lm1</a></li>
+<li><a href="#lm2"><span class="toc-section-number">9.2</span> lm2</a></li>
+<li><a href="#lm3"><span class="toc-section-number">9.3</span> lm3</a></li>
+<li><a href="#lm4"><span class="toc-section-number">9.4</span> lm4</a></li>
+<li><a href="#lm5"><span class="toc-section-number">9.5</span> lm5</a></li>
+<li><a href="#lm6"><span class="toc-section-number">9.6</span> lm6</a></li>
+<li><a href="#lm7-regsubsets"><span class="toc-section-number">9.7</span> lm7: regsubsets</a>
+<ul>
+<li><a href="#achtung"><span class="toc-section-number">9.7.1</span> Achtung</a></li>
+</ul></li>
+<li><a href="#lm8"><span class="toc-section-number">9.8</span> lm8</a></li>
+<li><a href="#lm9-schrittweise-regression"><span class="toc-section-number">9.9</span> lm9: Schrittweise Regression</a></li>
+</ul></li>
+<li><a href="#predict"><span class="toc-section-number">10</span> Predict</a>
+<ul>
+<li><a href="#vorhersagen-hinzufügen"><span class="toc-section-number">10.1</span> Vorhersagen hinzufügen</a></li>
+<li><a href="#zurücktransformieren"><span class="toc-section-number">10.2</span> Zurücktransformieren</a></li>
+</ul></li>
+<li><a href="#test-r2"><span class="toc-section-number">11</span> Test-R2</a></li>
+<li><a href="#fazit"><span class="toc-section-number">12</span> Fazit</a></li>
+</ul>
+</div>
+
+<div id="vorbereitung" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Vorbereitung</h1>
+<div id="forschungsfrage" class="section level2" number="1.1">
+<h2><span class="header-section-number">1.1</span> Forschungsfrage</h2>
+<p><em>Welche Prädiktoren lassen den Preis einen Diamanten vorhersagen?</em></p>
+<p>Wir möchten also den Preis von Diamanten - basierend auf einer Reihe von Prädiktoren - möglichst exakt vorhersagen (<span class="math inline">\(R^2\)</span>).</p>
+</div>
+<div id="aufgabe" class="section level2" number="1.2">
+<h2><span class="header-section-number">1.2</span> Aufgabe</h2>
+<p>Berechnen Sie die Vorhersagen und auch das R-Quadrat im Test-Datensatz!</p>
+</div>
+<div id="pakete-laden" class="section level2" number="1.3">
+<h2><span class="header-section-number">1.3</span> Pakete laden</h2>
+<pre class="r"><code>library(tidyverse)
+library(fastDummies)
+library(janitor)
+library(corrr)
+library(ggfortify)
+library(modelr)
+library(tidymodels)
+library(leaps)</code></pre>
+</div>
+<div id="daten-laden" class="section level2" number="1.4">
+<h2><span class="header-section-number">1.4</span> Daten laden</h2>
+<pre class="r"><code>train &lt;- read_csv(&quot;https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/diamonds/diamonds_train.csv&quot;)
+
+test &lt;- read_csv(&quot;https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/diamonds/diamonds_test.csv&quot;)
+
+solution &lt;- read_csv(&quot;https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/diamonds/diamonds_solution.csv&quot;)</code></pre>
+</div>
+<div id="id-spalte-ergänzen" class="section level2" number="1.5">
+<h2><span class="header-section-number">1.5</span> ID-Spalte ergänzen</h2>
+<pre class="r"><code>test &lt;-
+  test %&gt;% 
+  mutate(id = 1:nrow(.))</code></pre>
+<pre class="r"><code>solution &lt;-
+  solution %&gt;% 
+  mutate(id = 1:nrow(.))</code></pre>
+</div>
+</div>
+<div id="vorwissen" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Vorwissen</h1>
+<p>Etwas Recherche oder Vorwissen zeigt, dass beim Diamantenpreis die “4C” entscheidend sind: Color, Clarity, <strong>Carat</strong>, Cut.</p>
+<p>Entsprechend sind diese 4 Prädiktoren gute Kandidaten für ein Modell.</p>
+<p>Tipp: Haben zwei Prädiktoren jeweils einen starken <em>Haupteffekt</em> (der Effekt einer einzelnen Variablen im Gegensatz zu einem Interaktionseffekt), macht es <em>häufig</em> Sinn, ihre Interaktion mitaufzunehmen (s. Gelman und Hill, 2007, Kap. 3 oder 4). Der Umkehrschluss gilt nicht.</p>
+</div>
+<div id="woran-erkennt-man-einen-starken-haupteffekt" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Woran erkennt man einen “starken Haupteffekt”?</h1>
+<ol style="list-style-type: decimal">
+<li>Am Zuwachs von <span class="math inline">\(R^2\)</span>, wenn man den Prädiktor mitaufnimmt</li>
+<li>Am Regressiongewicht – aber nur, wenn die Prädiktoren (z-)standardisiert sind.</li>
+</ol>
+</div>
+<div id="wichtige-prädiktoren" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Wichtige Prädiktoren</h1>
+<div id="train2" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> train2</h2>
+<pre class="r"><code>train2 &lt;- train %&gt;% 
+  dummy_cols(remove_selected_columns = TRUE,
+             select_columns = c(&quot;cut&quot;, &quot;color&quot;, &quot;clarity&quot;),
+             remove_first_dummy = TRUE) %&gt;% 
+  clean_names()</code></pre>
+<pre class="r"><code>train2 %&gt;% glimpse()</code></pre>
+<pre><code>## Rows: 40,453
+## Columns: 24
+## $ carat         &lt;dbl&gt; 0.23, 0.31, 0.24, 0.26, 0.22, 0.23, 0.30, 0.23, 0.22, 0.…
+## $ depth         &lt;dbl&gt; 61.5, 63.3, 62.8, 61.9, 65.1, 59.4, 64.0, 62.8, 60.4, 60…
+## $ table         &lt;dbl&gt; 55, 58, 57, 55, 61, 61, 55, 56, 61, 62, 58, 54, 54, 56, …
+## $ price         &lt;dbl&gt; 326, 335, 336, 337, 337, 338, 339, 340, 342, 345, 345, 3…
+## $ x             &lt;dbl&gt; 3.95, 4.34, 3.94, 4.07, 3.87, 4.00, 4.25, 3.93, 3.88, 3.…
+## $ y             &lt;dbl&gt; 3.98, 4.35, 3.96, 4.11, 3.78, 4.05, 4.28, 3.90, 3.84, 3.…
+## $ z             &lt;dbl&gt; 2.43, 2.75, 2.48, 2.53, 2.49, 2.39, 2.73, 2.46, 2.33, 2.…
+## $ cut_good      &lt;int&gt; 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0,…
+## $ cut_ideal     &lt;int&gt; 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0,…
+## $ cut_premium   &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0,…
+## $ cut_very_good &lt;int&gt; 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1, 1,…
+## $ color_e       &lt;int&gt; 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0,…
+## $ color_f       &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+## $ color_g       &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+## $ color_h       &lt;int&gt; 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,…
+## $ color_i       &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0,…
+## $ color_j       &lt;int&gt; 0, 1, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1,…
+## $ clarity_if    &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+## $ clarity_si1   &lt;int&gt; 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1,…
+## $ clarity_si2   &lt;int&gt; 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0,…
+## $ clarity_vs1   &lt;int&gt; 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0,…
+## $ clarity_vs2   &lt;int&gt; 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,…
+## $ clarity_vvs1  &lt;int&gt; 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…
+## $ clarity_vvs2  &lt;int&gt; 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,…</code></pre>
+</div>
+<div id="test2" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> test2</h2>
+<pre class="r"><code>test2 &lt;- test %&gt;% 
+  dummy_cols(remove_selected_columns = TRUE,
+             select_columns = c(&quot;cut&quot;, &quot;color&quot;, &quot;clarity&quot;)) %&gt;% 
+  clean_names()</code></pre>
+<pre class="r"><code>train2 %&gt;% 
+  correlate() %&gt;% 
+  focus(price) %&gt;% 
+  arrange(-abs(price)) %&gt;% 
+  filter(abs(price) &gt; 0.1)</code></pre>
+<pre><code>## # A tibble: 7 x 2
+##   term         price
+##   &lt;chr&gt;        &lt;dbl&gt;
+## 1 carat        0.922
+## 2 x            0.886
+## 3 y            0.860
+## 4 z            0.858
+## 5 clarity_si2  0.128
+## 6 table        0.128
+## 7 color_e     -0.103</code></pre>
+</div>
+</div>
+<div id="feature-engineering" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Feature Engineering</h1>
+<p>Das Volumen berechnet sich als das Produkt von Länge, Breite und Höhe:</p>
+<pre class="r"><code>train2 %&gt;% 
+  mutate(volume = x*y*z) %&gt;% 
+  correlate() %&gt;% 
+  focus(volume)</code></pre>
+<pre><code>## # A tibble: 24 x 2
+##    term          volume
+##    &lt;chr&gt;          &lt;dbl&gt;
+##  1 carat        0.970  
+##  2 depth        0.00576
+##  3 table        0.168  
+##  4 price        0.897  
+##  5 x            0.950  
+##  6 y            0.975  
+##  7 z            0.942  
+##  8 cut_good     0.0257 
+##  9 cut_ideal   -0.150  
+## 10 cut_premium  0.114  
+## # … with 14 more rows</code></pre>
+<div id="train3test3" class="section level2" number="5.1">
+<h2><span class="header-section-number">5.1</span> train3/test3</h2>
+<pre class="r"><code>train3 &lt;- 
+  train2 %&gt;% 
+  mutate(volume = x*y*z)</code></pre>
+<pre class="r"><code>test3 &lt;- 
+  test2 %&gt;% 
+  mutate(volume = x*y*z) </code></pre>
+</div>
+<div id="korrelation" class="section level2" number="5.2">
+<h2><span class="header-section-number">5.2</span> Korrelation</h2>
+<pre class="r"><code>train3 %&gt;% 
+  correlate() %&gt;% 
+  focus(price) %&gt;% 
+  arrange(-abs(price)) %&gt;% 
+  filter(abs(price) &gt; 0.1)</code></pre>
+<pre><code>## # A tibble: 8 x 2
+##   term         price
+##   &lt;chr&gt;        &lt;dbl&gt;
+## 1 carat        0.922
+## 2 volume       0.897
+## 3 x            0.886
+## 4 y            0.860
+## 5 z            0.858
+## 6 clarity_si2  0.128
+## 7 table        0.128
+## 8 color_e     -0.103</code></pre>
+</div>
+<div id="preds_important" class="section level2" number="5.3">
+<h2><span class="header-section-number">5.3</span> <code>preds_important</code></h2>
+<pre class="r"><code>preds_important &lt;- 
+  train3 %&gt;% 
+  correlate() %&gt;% 
+  focus(price) %&gt;% 
+  arrange(-abs(price)) %&gt;% 
+  filter(abs(price) &gt; 0.1) %&gt;% 
+  filter(!(term %in% c(&quot;x&quot;, &quot;y&quot;, &quot;z&quot;))) %&gt;% 
+  pull(term)</code></pre>
+<p>Wenn man Volumen im Modell hat, sind <code>x</code>, <code>y</code> und <code>z</code> vermutlich unnötig.</p>
+<pre class="r"><code>preds_important</code></pre>
+<pre><code>## [1] &quot;carat&quot;       &quot;volume&quot;      &quot;clarity_si2&quot; &quot;table&quot;       &quot;color_e&quot;</code></pre>
+</div>
+</div>
+<div id="funktionale-form-der-zusammenhänge" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Funktionale Form der Zusammenhänge</h1>
+<pre class="r"><code>train3 %&gt;% 
+  select(carat, depth, table, price, volume) %&gt;%
+  pivot_longer(cols = -price) %&gt;% 
+  ggplot() +
+  aes(x = value, y = price) +
+  geom_point() +
+  geom_smooth() +
+  facet_wrap(~ name, scales = &quot;free&quot;)</code></pre>
+<p><img src="unnamed-chunk-15-1.png" width="480" /></p>
+</div>
+<div id="filtern" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Filtern</h1>
+<pre class="r"><code>train3 %&gt;% 
+  select(carat, depth, table, price, volume) %&gt;%
+  pivot_longer(cols = everything()) %&gt;% 
+  ggplot() +
+  aes(x = value) +
+  geom_histogram() +
+  facet_wrap(~ name, scales = &quot;free&quot;)</code></pre>
+<p><img src="unnamed-chunk-16-1.png" width="480" /></p>
+<div id="train4" class="section level2" number="7.1">
+<h2><span class="header-section-number">7.1</span> train4</h2>
+<pre class="r"><code>train4 &lt;-
+  train3 %&gt;% 
+  filter(carat &lt; 2.5)</code></pre>
+<pre class="r"><code>test4 &lt;- test3</code></pre>
+</div>
+</div>
+<div id="transformationen" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Transformationen</h1>
+<div id="log-transformation-train5" class="section level2" number="8.1">
+<h2><span class="header-section-number">8.1</span> Log-Transformation (train5)</h2>
+<pre class="r"><code>train5 &lt;-
+  train4 %&gt;% 
+  mutate(price_log = log(price),
+         carat_log = log(carat),
+         carat_cuberoot = carat^(1/3)) %&gt;% 
+  select(-price)</code></pre>
+<pre class="r"><code>test5 &lt;-
+  test4 %&gt;% 
+  mutate(price_log = log(price),
+         carat_log = log(carat),
+         carat_cuberoot = carat^(1/3)) %&gt;% 
+  select(-price)</code></pre>
+</div>
+<div id="z-transformation-train6" class="section level2" number="8.2">
+<h2><span class="header-section-number">8.2</span> z-Transformation (train6)</h2>
+<pre class="r"><code>train6 &lt;- 
+  train5 %&gt;% 
+  mutate(across(
+    .cols = c(carat:z, volume),
+    .fns = ~ (.x - mean(.x)) / sd(.x),
+    .names = &quot;{col}_z&quot;
+  ))</code></pre>
+<pre class="r"><code>test6 &lt;- 
+  test5 %&gt;% 
+  mutate(across(
+    .cols = c(carat:z, volume),
+    .fns = ~ (.x - mean(.x)) / sd(.x),
+    .names = &quot;{col}_z&quot;
+  ))</code></pre>
+<p>Allerdings sind die negativen Werte nicht mehr für das Logarithmieren zu gebrauchen.</p>
+</div>
+</div>
+<div id="vorhersage-modellierung" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Vorhersage-Modellierung</h1>
+<div id="lm1" class="section level2" number="9.1">
+<h2><span class="header-section-number">9.1</span> lm1</h2>
+<pre class="r"><code>lm1 &lt;-
+  train4 %&gt;% 
+  select(any_of(preds_important), price) %&gt;% 
+  filter(price &gt; 0) %&gt;% 
+  lm(log(price) ~ . , data = .)</code></pre>
+<pre class="r"><code>summary(lm1)$adj.r.squared</code></pre>
+<pre><code>## [1] 0.8675275</code></pre>
+<pre class="r"><code>coef(lm1)</code></pre>
+<pre><code>##   (Intercept)         carat        volume   clarity_si2         table 
+##  6.3766605253  2.0651716786  0.0001605885 -0.2333964989 -0.0040103115 
+##       color_e 
+##  0.0978472605</code></pre>
+</div>
+<div id="lm2" class="section level2" number="9.2">
+<h2><span class="header-section-number">9.2</span> lm2</h2>
+<pre class="r"><code>lm2 &lt;- 
+  train4 %&gt;% 
+  select(any_of(preds_important), price) %&gt;% 
+  lm(log(price) ~ log(carat) + clarity_si2 + table + color_e, data = .)</code></pre>
+<pre class="r"><code>summary(lm2)$adj.r.sq</code></pre>
+<pre><code>## [1] 0.9448439</code></pre>
+<pre class="r"><code>coef(lm2)</code></pre>
+<pre><code>## (Intercept)  log(carat) clarity_si2       table     color_e 
+##  9.17691153  1.74672853 -0.27351898 -0.01166313  0.09842462</code></pre>
+<pre class="r"><code>autoplot(lm2, which = 1)  # ggfortify</code></pre>
+<p><img src="unnamed-chunk-29-1.png" width="480" /></p>
+</div>
+<div id="lm3" class="section level2" number="9.3">
+<h2><span class="header-section-number">9.3</span> lm3</h2>
+<pre class="r"><code>lm3 &lt;- 
+  train4 %&gt;% 
+  select(any_of(preds_important), price) %&gt;% 
+  lm(log(price) ~ log(carat) + clarity_si2 + color_e + log(carat)*clarity_si2 + clarity_si2*color_e, data = .)</code></pre>
+<pre class="r"><code>summary(lm3)$adj.r.sq</code></pre>
+<pre><code>## [1] 0.9444729</code></pre>
+<pre class="r"><code>autoplot(lm3, which = 1) + # ggfortify
+  labs(subtitle = &quot;lm3&quot;)</code></pre>
+<p><img src="unnamed-chunk-32-1.png" width="480" /></p>
+</div>
+<div id="lm4" class="section level2" number="9.4">
+<h2><span class="header-section-number">9.4</span> lm4</h2>
+<pre class="r"><code>lm4 &lt;- 
+  train4 %&gt;% 
+  select(any_of(preds_important), price) %&gt;% 
+  lm(log(price) ~ log(carat) + clarity_si2 + color_e, 
+     data = .)</code></pre>
+<pre class="r"><code>summary(lm4)$adj.r.sq</code></pre>
+<pre><code>## [1] 0.9442168</code></pre>
+<pre class="r"><code>autoplot(lm4, which = 1) + # ggfortify
+  labs(subtitle = &quot;lm4&quot;)</code></pre>
+<p><img src="unnamed-chunk-35-1.png" width="480" /></p>
+</div>
+<div id="lm5" class="section level2" number="9.5">
+<h2><span class="header-section-number">9.5</span> lm5</h2>
+<pre class="r"><code>lm5 &lt;- 
+  train4 %&gt;% 
+  select(any_of(preds_important), price) %&gt;% 
+  lm(price ~ ., 
+     data = .)</code></pre>
+<pre class="r"><code>summary(lm5)$adj.r.sq</code></pre>
+<pre><code>## [1] 0.8715234</code></pre>
+<pre class="r"><code>autoplot(lm5, which = 1) + # ggfortify
+  labs(subtitle = &quot;lm5&quot;)</code></pre>
+<p><img src="unnamed-chunk-38-1.png" width="480" /></p>
+</div>
+<div id="lm6" class="section level2" number="9.6">
+<h2><span class="header-section-number">9.6</span> lm6</h2>
+<pre class="r"><code>lm6 &lt;- 
+  train4 %&gt;% 
+  lm(price ~ ., 
+     data = .)</code></pre>
+<pre class="r"><code>summary(lm6)$adj.r.sq</code></pre>
+<pre><code>## [1] 0.9267716</code></pre>
+<pre class="r"><code>autoplot(lm6, which = 1) + # ggfortify
+  labs(subtitle = &quot;lm6&quot;)</code></pre>
+<p><img src="unnamed-chunk-41-1.png" width="480" /></p>
+</div>
+<div id="lm7-regsubsets" class="section level2" number="9.7">
+<h2><span class="header-section-number">9.7</span> lm7: regsubsets</h2>
+<pre class="r"><code>lm7 &lt;- regsubsets(price_log ~ .,
+                  nvmax = 27,
+                  data = train5)</code></pre>
+<pre class="r"><code>lm7_sum &lt;- summary(lm7)
+
+tibble(adjr2 = lm7_sum$adjr2,
+       id = 1:length(lm7_sum$adjr2)) %&gt;% 
+  ggplot() +
+  aes(x = id, y = adjr2) +
+  geom_point() +
+  geom_line()</code></pre>
+<p><img src="unnamed-chunk-43-1.png" width="480" /></p>
+<pre class="r"><code>preds_lm7 &lt;- 
+  coef(lm7, 12) %&gt;% 
+  names() %&gt;% 
+  purrr::discard(~ identical(.x, &quot;(Intercept)&quot;))
+
+preds_lm7</code></pre>
+<pre><code>##  [1] &quot;color_g&quot;      &quot;color_h&quot;      &quot;color_i&quot;      &quot;color_j&quot;      &quot;clarity_if&quot;  
+##  [6] &quot;clarity_si1&quot;  &quot;clarity_si2&quot;  &quot;clarity_vs1&quot;  &quot;clarity_vs2&quot;  &quot;clarity_vvs1&quot;
+## [11] &quot;clarity_vvs2&quot; &quot;carat_log&quot;</code></pre>
+<p>Dieses Modell mit <code>r</code>length(preds_lm7)` Prädiktoren könnte sinnvoll sein: hohes R-Quadrat, aber noch vor der “Abflachung”, also sparsam in den Prädiktoren.</p>
+<div id="achtung" class="section level3" number="9.7.1">
+<h3><span class="header-section-number">9.7.1</span> Achtung</h3>
+<p>Automatisierte Verfahren wie die Best-Subset-Analyse können auch zu falschen Ergebnissen führen; man sollte sich nicht blindlings verlassen.</p>
+</div>
+</div>
+<div id="lm8" class="section level2" number="9.8">
+<h2><span class="header-section-number">9.8</span> lm8</h2>
+<pre class="r"><code>lm8 &lt;- 
+  train5 %&gt;% 
+  select(any_of(preds_lm7), price_log) %&gt;% 
+  lm(price_log ~ ., .)</code></pre>
+<pre class="r"><code>summary(lm8)$adj.r.sq</code></pre>
+<pre><code>## [1] 0.9810556</code></pre>
+<pre class="r"><code>coef(lm8)</code></pre>
+<pre><code>##  (Intercept)      color_g      color_h      color_i      color_j   clarity_if 
+##    7.9215605   -0.1029971   -0.1918110   -0.3130449   -0.4543327    1.1317256 
+##  clarity_si1  clarity_si2  clarity_vs1  clarity_vs2 clarity_vvs1 clarity_vvs2 
+##    0.6013193    0.4359457    0.8229876    0.7549031    1.0308347    0.9610091 
+##    carat_log 
+##    1.8773779</code></pre>
+</div>
+<div id="lm9-schrittweise-regression" class="section level2" number="9.9">
+<h2><span class="header-section-number">9.9</span> lm9: Schrittweise Regression</h2>
+<pre class="r"><code>lm9 &lt;- regsubsets(price ~ .,
+                  method = &quot;forward&quot;,
+                  data = train3)</code></pre>
+<p>(Hier nicht weiter ausgeführt)</p>
+</div>
+</div>
+<div id="predict" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> Predict</h1>
+<div id="vorhersagen-hinzufügen" class="section level2" number="10.1">
+<h2><span class="header-section-number">10.1</span> Vorhersagen hinzufügen</h2>
+<pre class="r"><code>test6 &lt;- 
+  test5 %&gt;% 
+  add_predictions(lm1, var = &quot;pred_lm1&quot;) %&gt;% 
+  add_predictions(lm2, var = &quot;pred_log_lm2&quot;) %&gt;% 
+  add_predictions(lm3, var = &quot;pred_log_lm3&quot;) %&gt;% 
+  add_predictions(lm4, var = &quot;pred_log_lm4&quot;) %&gt;% 
+  add_predictions(lm5, var = &quot;pred_lm5&quot;)  %&gt;% 
+  add_predictions(lm6, var = &quot;pred_lm6&quot;) %&gt;% 
+  add_predictions(lm8, var = &quot;pred_log_lm8&quot;)</code></pre>
+<pre class="r"><code>test6 %&gt;% 
+  select(contains(&quot;pred&quot;)) %&gt;% 
+  slice(1:5)</code></pre>
+<pre><code>## # A tibble: 5 x 7
+##   pred_lm1 pred_log_lm2 pred_log_lm3 pred_log_lm4 pred_lm5 pred_lm6 pred_log_lm8
+##      &lt;dbl&gt;        &lt;dbl&gt;        &lt;dbl&gt;        &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;        &lt;dbl&gt;
+## 1     6.67         5.84         5.90         5.89    -624.    -394.         5.59
+## 2     6.69         5.95         6.06         6.05    -736.     421.         5.99
+## 3     6.75         6.34         6.36         6.35    -133.    -778.         6.04
+## 4     6.65         6.02         6.03         6.02    -477.    -237.         5.96
+## 5     6.58         6.23         6.11         6.19   -1078.   -2994.         5.70</code></pre>
+</div>
+<div id="zurücktransformieren" class="section level2" number="10.2">
+<h2><span class="header-section-number">10.2</span> Zurücktransformieren</h2>
+<p>Delogarithmieren, d.h. die Exp.funktion anwenden:</p>
+<pre class="r"><code>test7 &lt;-
+  test6 %&gt;% 
+  mutate(pred_lm2 = exp(pred_log_lm2),
+         pred_lm3 = exp(pred_log_lm3),
+         pred_lm4 = exp(pred_log_lm4),
+         pred_lm8 = exp(pred_log_lm8))</code></pre>
+<pre class="r"><code>test7 %&gt;% 
+  select(contains(&quot;pred&quot;)) %&gt;% 
+  slice(1:5)</code></pre>
+<pre><code>## # A tibble: 5 x 11
+##   pred_lm1 pred_log_lm2 pred_log_lm3 pred_log_lm4 pred_lm5 pred_lm6 pred_log_lm8
+##      &lt;dbl&gt;        &lt;dbl&gt;        &lt;dbl&gt;        &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;        &lt;dbl&gt;
+## 1     6.67         5.84         5.90         5.89    -624.    -394.         5.59
+## 2     6.69         5.95         6.06         6.05    -736.     421.         5.99
+## 3     6.75         6.34         6.36         6.35    -133.    -778.         6.04
+## 4     6.65         6.02         6.03         6.02    -477.    -237.         5.96
+## 5     6.58         6.23         6.11         6.19   -1078.   -2994.         5.70
+## # … with 4 more variables: pred_lm2 &lt;dbl&gt;, pred_lm3 &lt;dbl&gt;, pred_lm4 &lt;dbl&gt;,
+## #   pred_lm8 &lt;dbl&gt;</code></pre>
+</div>
+</div>
+<div id="test-r2" class="section level1" number="11">
+<h1><span class="header-section-number">11</span> Test-R2</h1>
+<pre class="r"><code>solutions2 &lt;-
+  solution %&gt;% select(id, price)
+
+r2_tab &lt;- 
+  test7 %&gt;% 
+  select(id, contains(&quot;pred&quot;)) %&gt;% 
+  left_join(solutions2) %&gt;% 
+  summarise(r2_lm1 = rsq_vec(price, pred_lm1),
+            r2_lm2 = rsq_vec(price, pred_lm2),
+            r2_lm3 = rsq_vec(price, pred_lm3),
+            r2_lm4 = rsq_vec(price, pred_lm4),
+            r2_lm5 = rsq_vec(price, pred_lm5),
+            r2_lm6 = rsq_vec(price, pred_lm6),
+            r2_lm8 = rsq_vec(price, pred_lm8))  %&gt;%  
+  pivot_longer(everything(),
+               names_to = &quot;model&quot;,
+               values_to = &quot;r2&quot;)
+
+r2_tab %&gt;% 
+  arrange(-r2)</code></pre>
+<pre><code>## # A tibble: 7 x 2
+##   model     r2
+##   &lt;chr&gt;  &lt;dbl&gt;
+## 1 r2_lm8 0.957
+## 2 r2_lm6 0.920
+## 3 r2_lm5 0.866
+## 4 r2_lm1 0.864
+## 5 r2_lm3 0.857
+## 6 r2_lm2 0.856
+## 7 r2_lm4 0.856</code></pre>
+</div>
+<div id="fazit" class="section level1" number="12">
+<h1><span class="header-section-number">12</span> Fazit</h1>
+<p>Das beste Modell ist also:</p>
+<pre class="r"><code>r2_tab %&gt;% 
+  slice_max(r2, n = 1)</code></pre>
+<pre><code>## # A tibble: 1 x 2
+##   model     r2
+##   &lt;chr&gt;  &lt;dbl&gt;
+## 1 r2_lm8 0.957</code></pre>
+</div>

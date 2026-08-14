@@ -1,0 +1,62 @@
+---
+title: normal densities animanted
+author: Sebastian Sauer
+date: '2023-11-04'
+slug: normal-densities-animanted
+categories:
+  - rstats
+tags:
+  - visualization
+---
+
+
+
+<div id="background" class="section level1">
+<h1>Background</h1>
+<p>Let’s visualize the quantiles of a normal distribution using a density plot.</p>
+</div>
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr     1.1.3     ✔ readr     2.1.4
+## ✔ forcats   1.0.0     ✔ stringr   1.5.0
+## ✔ ggplot2   3.4.4     ✔ tibble    3.2.1
+## ✔ lubridate 1.9.3     ✔ tidyr     1.3.0
+## ✔ purrr     1.0.2     
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag()    masks stats::lag()
+## ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+<pre class="r"><code>library(gganimate)
+set.seed(123)</code></pre>
+</div>
+<div id="simulate-normal-data" class="section level1">
+<h1>Simulate normal data</h1>
+<pre class="r"><code>n &lt;- 1e4
+data &lt;- data.frame(x = rnorm(n))
+data$decile &lt;- cut(data$x, breaks = quantile(data$x, probs = seq(0, 1, 0.1)), include.lowest = TRUE)
+data$decile2 &lt;- cut(data$x, breaks = quantile(data$x, probs = seq(0, 1, 0.1)), include.lowest = TRUE, labels = 1:10)</code></pre>
+<p>Using <code>decile</code> and <code>decile2</code> we have marked for each data point to which decile it belongs.</p>
+</div>
+<div id="build-up-the-data-frame" class="section level1">
+<h1>Build up the data frame</h1>
+<pre class="r"><code>data2 &lt;-
+  data |&gt; 
+  group_by(decile2) |&gt; 
+  mutate(x_max = max(x)) 
+
+data3 &lt;-
+  data2 |&gt; 
+  ungroup() |&gt; 
+  select(x)</code></pre>
+<p>And plot:</p>
+<pre class="r"><code>p &lt;- 
+  ggplot(data2, aes(x = x)) +
+  geom_density(data = data3, fill = &quot;grey&quot;, alpha = .5, color = NA) +
+  geom_vline(aes(xintercept = x_max)) +
+  geom_label(aes(label = decile2, x = x_max), y= 0) +
+  theme_minimal()
+p</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+</div>

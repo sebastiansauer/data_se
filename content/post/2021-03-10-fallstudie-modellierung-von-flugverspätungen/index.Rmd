@@ -1,0 +1,911 @@
+---
+title: 'Fallstudie: Modellierung von Flugverspätungen'
+author: Sebastian Sauer
+date: '2021-03-10'
+slug: fallstudie-modellierung-von-flugverspätungen
+categories:
+  
+tags:
+  - tutorial
+  - modeling
+  - prediction
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+# Hintergrund und Forschungsfrage
+
+
+Wir untersuchen die Forschungsfrage *Was sind Prädiktoren von Flugverspätungen*. Dazu nutzen wir lineare Modelle als Modellierungsmethoden.
+
+Dieser Post knüpft an [den Post zur explorativen Datenanalyse der Flugverspätungen](https://data-se.netlify.app/2021/03/08/eda-zu-flugversp%C3%A4tungen/) an (es gibt auch [hier, Teil 1](https://www.youtube.com/watch?v=t8i_qTonuLM) und [hier, Teil 2](https://youtu.be/AeBqwr2U7MA) ein Video zu diesem EDA-Post).
+
+
+
+
+# Pakete laden
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library("tidymodels")  # Datenmodellierung
+library("tidyverse")  # data wrangling
+library("conflicted")  # Name clashes finden
+library("leaps")  # Rohe Gewalt
+library("skimr")  # deskriptive Statistiken komfortabel
+library("ggfortify")  # Modellannahmen grafisch prüfen
+library("tictoc")  # Rechenzeit messen
+```
+
+
+
+```{r echo=FALSE, include = FALSE}
+library(printr)
+```
+
+
+# Daten laden
+
+
+```{r}
+library("nycflights13")
+data(flights)
+```
+
+
+
+# flights2: Nicht benötigte Variablen entfernen und ID hinzufügen
+
+```{r}
+flights2 <-
+  flights %>% 
+  select(-c(year, arr_delay)) %>% 
+  drop_na(dep_delay) %>% 
+  mutate(id = row_number()) %>% 
+  select(id, everything())  # id nach vorne ziehen
+```
+
+
+
+
+
+# Aufteilung in Train- und Testsample
+
+
+Der Hintergrund zur Idee der Aufteilung in Train- und Test-Stichprobe kann z.b. [hier](https://www.tmwr.org/splitting.html) oder [hier](https://www.springer.com/de/book/9783658215866), Kapitel 15, nachgelesen werden.
+
+
+```{r}
+flights_split <- initial_split(flights2, 
+                               strata = dep_delay,
+                               na.rm = TRUE)
+```
+
+
+
+# flights_train2, flights_test2
+
+```{r}
+set.seed(42)  # Reproduzierbarkeit
+flights_train2 <- training(flights_split)
+flights_test2 <- testing(flights_split)
+```
+
+
+Die "wirkliche Welt" (was immer das ist) besorgt die Aufteilung von Train- und Test-Sampel für Sie automatisch. Sagen wir, Sie arbeiten für die Flughafen-Aufsicht von New York. Dann haben Sie einen Erfahrungsschatz an Flügen aus der Vergangenheit in Ihrer Datenbank (Train-Sample). Einige Tages kommt Ihr Chef zu Ihnen und sagt: "Rechnen Sie mir mal die zu erwartende Verspätung der Flüge *im nächsten Monat* aus!". Da *heute* nicht klar ist, wie die Verspätung der Flüge *in der Zukunft* (nächsten Monat) sein wird, stellen die Flüge des nächsten Monats das Test-Sample dar.
+
+Übrigens: In der Prüfung besorgt das Aufteilen von Train- und Test-Sample netterweise Ihr Dozent...
+
+
+
+
+# lm0: Nullmodell
+
+Eigentlich nicht nötig, das Nullmodell, primär aus didaktischen Gründen berechnet, um zu zeigen, dass in diesem Fall $R^2$ wirklich gleich Null ist.
+
+
+```{r}
+lm0 <- lm(dep_delay ~ 1, data = flights_train2)
+glance(lm0)
+```
+Mit `glance` bekommt man das $R^2$ (neben einem Haufen anderen Zeugs, was wir jetzt nicht brauchen). Man könnte z.B. auch `summary(lm1)` out `arm::display(lm1)`. Es gibt verschiedene Möglichkeiten.
+
+
+
+# lm1: origin
+
+
+```{r}
+lm1 <- lm(dep_delay ~ origin, data = flights_train2)
+```
+
+```{r}
+tidy(lm1)  # tidy zeit die (geschätzten) Regressionsgewichte (Betas)
+```
+
+Man vergleiche:
+
+```{r}
+flights_train2 %>% 
+  drop_na(dep_delay) %>% 
+  group_by(origin) %>% 
+  summarise(delay_avg = mean(dep_delay)) %>% 
+  mutate(delay_delta = delay_avg - delay_avg[1])
+```
+
+
+Der Mittelwertsvergleich und das Modell `lm1` sind faktisch informationsgleich.
+
+
+
+Aber leider ist es um die Modellgüte nicht so gut bestellt (eigentlich eher "grottenschlecht"):
+
+```{r}
+glance(lm1)[1]
+```
+
+
+Die eckigen Klammern erlauben in R ein *bestimmtes* Element von mehreren auszuwählen. `glance(lm1)` liefert eine Tabelle mit mehreren Spalten (und einer Zeile) zurück; mit `glance(lm1)[1]` bekommt man das erste Element dieser Tabelle, das heißt die erste Spalte. Natürlich können Sie einfach `glance(lm1)` eingeben, wenn Sie das lieber mögen.
+
+
+
+# lm2: All in
+
+```{r eval = FALSE}
+# NICHT AUSFÜHREN
+#lm2_all_in <- lm(dep_delay ~ ., data = flights_train2)
+```
+
+Modell `lm2_all_in` ist hier *keine* gute Idee, da nominale Prädiktoren in Indikatorvariablen umgewandelt werden. Hat ein nominaler Prädiktor sehr viele Stufen (wie hier), so resultieren sehr viele Indikatorvariablen, was dem Regressionsmodell Probleme bereiten kann (bei mir hängt sich R auf). Besser ist es in dem Fall, die Anzahl der Stufen von nominalskalierten Variablen vorab zu begrenzen.
+
+Bei kleineren Datensätzen (weniger Variablen, weniger Fälle) lohnt es sich aber oft, das "All-in-Modell" auszuprobieren, als Referenzmaßstab für andere Modelle.
+
+
+
+# flights_train3: Textvariablen in Faktorvariablen umwandeln
+
+Begrenzen wir zunächst die Anzahl der Stufen der nominal skalierten Variablen:
+
+
+```{r}
+flights_train3 <- 
+  flights_train2 %>% 
+  mutate(across(
+    .cols = where(is.character),
+    .fns = as.factor))
+```
+
+Wem das `across` zu kompliziert ist, der kann auch alternativ (synonym) jede Variable einzeln in einen Faktor umwandeln und zwar so:
+
+```{r}
+flights_train3a <- 
+  flights_train2 %>% 
+  mutate(tailnum = as.factor(tailnum),
+         origin = as.factor(origin),
+         dest = as.factor(dest),
+         carrier = as.factor(carrier)
+      )
+```
+
+
+Das ist einfacher als mit `across`, aber dafür mehr Tipperei.
+
+
+Wir müssen die Transformationen, die wir auf das Train-Sample anwenden, auch auf das Test-Sample anwenden:
+
+
+## flights_test3
+
+```{r}
+flights_test3 <- 
+  flights_test2 %>% 
+  mutate(across(
+    .cols = where(is.character),
+    .fns = as.factor))
+```
+
+
+```{r}
+flights_train3 %>% 
+  select(where(is.factor)) %>% 
+  names()
+```
+
+
+
+Z.B. `dest` hat viele Stufen:
+
+```{r}
+flights_train3 %>% 
+  count(dest, sort = TRUE)
+```
+
+```{r}
+flights_train3 %>%
+  count(dest) %>%
+  ggplot() +
+  aes(y = fct_reorder(dest, n), x = n) +
+  geom_col()
+```
+
+# flights_train4: Faktorstufen zusammenfassen
+
+```{r}
+flights_train4 <-
+  flights_train3 %>% 
+  mutate(across(
+    .cols = where(is.factor),
+    .fns = fct_lump_prop, prop = .025
+  ))
+```
+
+
+## Variante mit `fact_lump_n` 
+
+Sinngemäß bedeutet das:
+
+"Fasse die Faktorstufen von `dest` zu 8 Gruppen plus einer '*Lump*ensammler-Kategorie' zusammen."
+
+```{r}
+flights_train3 %>% 
+  mutate(dest_lump9 = fct_lump_n(dest, n = 8)
+  )
+```
+
+
+## Variante mit `fact_lump_prop` 
+
+```{r}
+flights_train4a <-
+  flights_train3 %>% 
+  mutate(dest  = fct_lump_prop(f = dest, 
+                               prop = .025))
+```
+
+
+
+```{r}
+flights_train4a %>% 
+  count(dest)
+```
+
+
+```{r}
+flights_train4 %>%
+  count(dest) %>%
+  ggplot() +
+  aes(y = fct_reorder(dest, n), x = n) +
+  geom_col()
+```
+
+
+
+
+Check:
+
+```{r}
+flights_train4 %>% 
+  select(where(is.factor)) %>% 
+  summarise(nlevels_dest = nlevels(dest))
+```
+
+Oder alle Faktorvariablen auf einmal:
+
+
+
+```{r}
+flights_train4 %>% 
+  select(where(is.factor)) %>% 
+  map_dfc(nlevels)
+```
+
+
+Das sind jetzt Zahlen von Faktorstufen, mit denen wir arbeiten können.
+
+
+## flights_test4
+
+Vergessen wir nicht, die Transformation auch auf das Test-Sample anzuwenden:
+
+
+
+```{r}
+flights_test4 <-
+  flights_test3 %>% 
+  mutate(across(
+    .cols = where(is.factor),
+    .fns = fct_lump_prop, prop = .025
+  ))
+```
+
+
+
+# lm3: Alle zusammengefassten Faktorvariablen
+
+```{r}
+lm3 <- flights_train4 %>% 
+  select(dep_delay, where(is.factor), -tailnum, -id) %>% 
+  lm(dep_delay ~ ., data = .)
+```
+
+
+Der Punkt bei `dep_delay ~ .` meint "nimm alle Variablen im Datensatz (bis auf `dep_delay`)".
+
+Der Punkt bei `data = .` nimm die Tabelle, wie sie dir im letzten Schritt mundgerecht aufbereitet wurde. Man hätte hier auch `flights_train4` schreiben können, aber dann hätten wir noch `tailnum` etc. entfernen müssen.
+
+
+
+
+
+
+Eigentlich brauchen wir nicht so viele Dezimalstellen ...
+
+```{r options-digits}
+options(digits = 2)
+```
+
+
+`glance` zeigt das R-Quadrat (und einiges mehr, was hier jetzt nicht brauchen).
+
+```{r}
+glance(lm3)  # R^2
+tidy(lm3)  # Modellkoeffizienten, also die Beta-Gewichte ("estimate")
+```
+
+Ein mageres R-Quadrat.
+
+
+# lm4: Alle metrischen Variablen
+
+
+Was sind noch mal unsere metrischen Variablen:
+
+```{r}
+flights_train4 %>% 
+  select(where(is.numeric)) %>% 
+  names()
+```
+
+
+Ok, jetzt eine Regression mit diesen Variablen (ober ohne die ID-Variable):
+
+```{r}
+lm4 <- 
+  flights_train4 %>% 
+  select(dep_delay, where(is.numeric), -id) %>% 
+  lm(dep_delay ~ ., data = .)
+```
+
+
+```{r}
+glance(lm4)
+```
+
+Tja, das $R^2$ hat einen nicht gerade um ...
+
+
+
+# lm5: Alle metrischen und alle (zusammengefassten) nominalen Variablen
+
+Welche Variablen sind jetzt alle an Bord?
+
+```{r}
+flights_train4 %>% 
+  names()
+```
+
+`time_hour` nehmen wir noch einmal raus, da es zum einen redundant ist zu `hour` etc. und zum anderen noch zusätzlicher Aufbereitung bedarf.
+
+```{r}
+flights_train4 %>% 
+  select(minute) %>% 
+  skim()
+```
+
+
+```{r}
+lm5 <- 
+  flights_train4 %>% 
+  select(-time_hour, -tailnum, -id, -minute) %>%   # "minute" machte Probleme, besser rausnehmen
+  lm(dep_delay ~ ., data = .)
+```
+
+
+
+```{r}
+glance(lm5)
+```
+
+Der Vorhersage-Gott ist nicht mit uns. Vielleicht sollten wir zu einem ehrlichen Metier als Schuhverkäufer umsatteln ...
+
+
+# Wetter-Daten ergänzen
+
+
+## Wetterdaten laden
+
+```{r}
+data("weather")
+```
+
+```{r}
+glimpse(weather)
+```
+
+```{r}
+skim(weather)
+```
+
+
+
+`wind_gust` hat zu viele fehlende Werte; diese Variable dürfen wir nicht verwenden.
+
+
+## flights_train5: Wetterdaten mit Flugdaten verheiraten
+
+
+
+
+```{r}
+flights_train5 <- 
+  flights_train4 %>% 
+  left_join(weather) %>%  # "verheiraten"
+  select(-wind_gust)
+```
+
+
+Möchte man explizit angeben, anhand welcher Variablen man zusammenfügen möchte, so kann man dies mit dem Parameter `by` tun:
+
+```
+by = c("origin", "month" , "day", "hour")
+```
+
+Unter der Hilfeseite von `left_join` findet man mehr Infos: `?left_join`. 
+
+
+```{r}
+flights_test5 <- 
+  flights_test4 %>% 
+  left_join(weather) %>% 
+  select(-wind_gust)
+```
+
+
+# flights_train6
+
+Bei der Gelegenheit löschen wir noch zwei Variablen, die wir bisher nicht benötigt haben.
+
+
+```{r}
+flights_train6 <- 
+  flights_train5 %>% 
+  select(-time_hour, -tailnum, -minute)
+```
+
+
+
+```{r}
+flights_test6 <- 
+  flights_test5 %>% 
+  select(-time_hour, -tailnum, -minute)
+```
+
+
+
+
+# lm6: Plus Wetterdaten
+
+
+Mit `update` kann man ein Modell "updaten": Sprich, z.B. Variablen zu einem Modell hinzufügen.
+
+Das Kürzel `. ~ .` bedeutet sinngemäß "Nimm alle AVs (hier `dep_delay`) und alle UVs (alle Prädiktoren), die im Modell `lm5` enthalten sind. Dazu werden dann noch die Variablen `humid`, `wind_speed` etc. hinzugefügt. Das Modell `lm6` beinhaltet also alle Variablen von `lm5` plus die vier hier angeführten Variablen.
+
+
+```{r}
+lm6 <- update(lm5, . ~ . + humid + wind_speed + precip + pressure + visib,
+              data = flights_train6)
+```
+
+
+Alternativ hätte man auch anstelle von `. ~ .` einfach die entsprechenden Variablen hinschreiben können (wäre einfacher, aber weniger elegant). Sie haben die Wahl.
+
+
+```{r}
+glance(lm6)
+```
+
+
+Ah. Etwas besser. Wettervorhersage macht's möglich.
+
+
+$R^2$ kann man auch so berechnen:
+
+
+```{r}
+flights_train6_pred <- 
+  flights_train6 %>% 
+  mutate(lm6_pred = predict(lm6, newdata = .))
+
+flights_train6_pred %>% 
+  rsq(truth = dep_delay,
+      estimate = lm6_pred)
+```
+
+
+
+## R2 im Testsample
+
+
+Berechnen wir jetzt die Modellgüte im Testsample.
+
+
+Fügen wir die Vorhersagewerte dem Testsample dazu:
+
+```{r}
+flights_test6_pred <-
+  flights_test6 %>% 
+  mutate(pred_lm6 = predict(lm6, newdata = flights_test6))
+```
+
+```{r}
+flights_test6_pred %>% 
+  select(id, dep_delay, pred_lm6) %>%
+  head()
+```
+
+
+
+```{r}
+test_rsq <- 
+ tibble(model = "lm6") %>% 
+  mutate(rsq = rsq_vec(truth = flights_test6_pred$dep_delay,
+                       estimate = flights_test6_pred$pred_lm6))
+
+test_rsq
+```
+
+
+Prüfen wir noch, wie viele fehlende Werte es bei den vorhergesagten Werten gibt:
+
+
+```{r}
+flights_test6_pred %>% 
+  summarise(pred_isna = sum(is.na(pred_lm6)),
+            pred_isna_prop = pred_isna / nrow(flights_test6_pred))  # prop wie "proportion" (Anteil)
+```
+
+Da fehlende Werte u.U. mit dem Mittelwert (der übrigen prognostizierten Werte) aufgefüllt werden, erledigen wir das gleich, um den Effekt auf $R^2$ abzuschätzen:
+
+```{r}
+flights_test6_pred2 <- 
+flights_test6_pred %>% 
+  mutate(pred_lm6 = replace_na(pred_lm6, mean(pred_lm6, na.rm = TRUE)))
+```
+
+
+```{r}
+flights_test6_pred2 %>% 
+  summarise(sum(is.na(pred_lm6)))
+```
+
+Keine fehlenden Werte mehr.
+
+
+Wie sieht $R^2$ jetzt aus?
+
+```{r}
+flights_test6_pred2 %>% 
+  rsq(truth = dep_delay, estimate = pred_lm6)
+```
+
+Etwas schlechter; das liegt an den vielen Werten, die jetzt eine schlechte Vorhersage machen, da sie mit dem Mittelwert aufgefüllt werden mussten.
+
+
+# lm7: Rohe Gewalt
+
+
+Wir könnten einfach, etwas stumpfsinnig, *alle* Regressionsmodelle ausprobieren: Jeder der $p$ Prädiktoren könnte also entweder enthalten sein oder nicht. Natürlich würde das schnell zu Arbeit auswachsen, wenn man so viele Regressionsmodelle -- $2^p$ -- durchprobieren würde. Außerdem wird die Gefahr von Zufallsbefunden schnell riesig. Aber gut, man kann stumpfsinnige Arbeiten ja gut an den Computer delegieren. Und zum Schutz vor Überanpassung gibt es ein paar Behelfe. Probieren wir es aus; dazu nutzen wir das Paket `{leaps}`.
+
+
+```{r regsubsets}
+tic()  # Zeitmessung t1
+lm7 <- regsubsets(dep_delay ~ ., 
+                  nvmax = 15,  # max. Anzahl von Prädiktoren
+                  data = flights_train6)
+toc()  # Zeitmessung t2
+```
+
+
+Der Punkt in der Regressionsformel
+
+`dep_delay ~ ., `
+
+bedeutet "nimm alle übrigen Variablen" (also alle außer der abhängigen Variablen).
+
+
+Je größer `nvmax`,  desto länger die Rechenzeit, z.B. $2^{15}=32768$ Modelle, die berechnet werden müssen. 
+
+*Achtung:* [Einige Statistiker](https://statmodeling.stat.columbia.edu/2014/06/02/hate-stepwise-regression/) (siehe auch [hier](https://towardsdatascience.com/stopping-stepwise-why-stepwise-selection-is-bad-and-what-you-should-use-instead-90818b3f52df)) stehen solchen automatischen Verfahren kritisch gegenüber, sind also der Meinung, das sei Quatsch (andere wiederum nutzen diese Verfahren). 
+
+## Zeitabschätzung
+
+Ein kurze Sch+ätzung der Rechenzeit in Abhängikeit der Anzahl der Prädiktoren bei der Best-Subset-Methode; gehen wir von 1, 2 oder 5 Sekunden Rechenzeit (`exec_time`) pro Modell aus.
+
+
+```{r}
+n_preds <- 1:20
+exec_time <- c(1, 2, 5)
+```
+
+
+```{r}
+exec_time_df <-
+  expand_grid(n_preds = n_preds,
+              exec_time_per_run = exec_time)
+```
+
+
+
+
+
+```{r}
+exec_time_df <- 
+  exec_time_df %>% 
+  mutate(exec_time = 2^n_preds * exec_time_per_run) %>% 
+  group_by(exec_time_per_run) %>% 
+  mutate(exec_time_cum = cumsum(exec_time) / 60 / 60 / 60)
+```
+
+
+```{r}
+head(exec_time_df)
+```
+
+
+
+```{r fig.asp = 0.5}
+exec_time_df %>% 
+  ggplot() +
+  aes(x = n_preds, 
+      y = exec_time_cum, 
+      color = factor(exec_time_per_run)) +
+  geom_line() +
+  labs(y = "GesamtRechenzeit in Stunden",
+       x = "Anzahl von Prädiktoren pro Modell",
+       col = "Rechenzeit pro Modell",
+       title = "Schätzung der Rechenzeit für eine Best-Subset-Regression") +
+  theme(legend.position = "bottom")
+```
+
+Puh, das kann dauern, wenn man viele Prädiktoren hat.
+
+
+
+## Best Subsets -- Ergebnisse
+
+Schauen wir uns die Ergebnisse an:
+
+```{r fig.asp=1.5}
+lm7_summary <- summary(lm7)
+
+tibble(adjr2 = lm7_summary$adjr2,
+       r2 = lm7_summary$rsq,
+       bic = lm7_summary$bic,
+       id = 1:length(lm7_summary$adjr2)) %>% 
+  pivot_longer(-id) %>% 
+  ggplot() +
+  aes(x = id, y = value, color = name) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(~ name, scales = "free", nrow = 3) +
+  scale_x_continuous(breaks = 1:16)
+
+
+```
+
+
+Das Modell mit 7 Prädiktoren könnte sinnvoll sein. Mit `coef(modellname, k)` können wir uns ausgeben lassen, welche Prädiktoren in dem Modell mit `k` Prädiktoren beinhaltet waren.
+
+
+
+
+```{r}
+coef(lm7, 7) %>% names()
+```
+
+
+## Vorwärts-/Rückwärts-Schrittweise Regression
+
+Man kann `regsubsets` übrigens auch für eine schrittweise Regression benutzen:
+
+
+```{r}
+lm7a <- regsubsets(dep_delay ~ ., 
+           method = "forward",  # Vorwärts-Schrittweise-Regression
+           nvmax = 15,  # max. Anzahl von Prädiktoren
+           data = flights_train6)
+```
+
+Das Modell mit *einem* Prädiktor findet das folgende Modell als das beste:
+
+```{r}
+coef(lm7a, 1)
+```
+
+Und entsprechend:
+
+```{r}
+coef(lm7a, 2)
+```
+
+Und so weiter für 3, 4 oder mehr Prädiktoren.
+
+Im Unterschied zur Best-Subsets-Methode verbleiben Prädiktoren, wenn einmal aufgenommen ins Modell, immer im Modell.
+
+Die Schrittweise-Regression ist weniger rechenintiv, da weniger Modelle berechnet werden müssen und kann daher u.U. das beste Modell übersehen. 
+
+Beide Verfahren der automatisierten Prädiktorenauswahl -- Best-Subset und Schrittweise-Regression -- werden von einigen Statistikern [kritisch gesehen](https://statmodeling.stat.columbia.edu/2014/06/02/hate-stepwise-regression/).
+
+
+
+
+# lm8: Bestes Modell aus der Best-Subset-Analyse
+
+
+```{r}
+flights_train7 <-
+  flights_train6 %>% 
+  mutate(carrierEV = fct_other(carrier, 
+                                  keep = "EV")) 
+```
+
+
+```{r}
+flights_test7 <-
+  flights_test6 %>% 
+  mutate(carrierEV = fct_other(carrier, 
+                                  keep = "EV")) 
+```
+
+
+
+```{r}
+lm8 <- 
+  lm(dep_delay ~ dep_time + sched_dep_time + arr_time + carrierEV + wind_dir + sched_arr_time + visib,
+          data = flights_train7)
+
+glance(lm8)
+```
+
+Hm; nicht so gut.
+
+## R2 im Testdatensatz
+
+
+
+
+```{r}
+flights_test7_pred <-
+  flights_test7 %>% 
+  mutate(pred_lm8 = predict(lm8, newdata = flights_test7)) %>% 
+  select(id, dep_delay, pred_lm8)
+```
+
+
+```{r}
+test_rsq <- 
+  test_rsq %>% 
+  bind_rows(tibble(
+    model = "lm8",
+    rsq = rsq_vec(truth = flights_test7_pred$dep_delay,
+                  estimate = flights_test7_pred$pred_lm8)))
+
+test_rsq
+```
+
+
+Ein typischer Befund bei Regressionsanalysen (ohne Polynome): Im Testdatensatz ist $R^2$ etwas geringer als im Train-Datensatz. Bei Modellen mit Polynomen oder anderen flexiblen Modellen kann der Unterschied zwischen Train- und Test-Sample noch viel größer sein.
+
+
+# Prüfen der Modellqualität
+
+```{r}
+autoplot(lm6, which = 1)
+```
+
+Abweichungen von der Linearität finden sich besonders bei sehr kleinen und sehr großen Werten; das ist ein Hinweise, dass unser Modell nicht-lineare Zusammenhänge nicht erkannt. Das ist kein Wunder, schließlich besteht unser Modell nur aus linearen Termen.
+Interaktionen, Polynome oder logarithmische Transformationen könnten das Modell verbessern und eröffnen Raum für weitere Analysen.
+
+
+
+
+# Einreichen
+
+
+Das beste Modell im *Trainsample* reichen wir ein; in diesem Fall `lm6`. Wenn die Maßgabe ist, für *alle* Fälle des Datensatzes eine Vorhersage einzureichen, tun wir das natürlich:
+
+
+```{r}
+flights6 <- 
+flights_train6 %>% 
+  bind_rows(flights_test6) 
+```
+
+
+```{r}
+flights6_pred <- 
+  flights6 %>% 
+  mutate(pred = predict(lm6, newdata = .)) %>% 
+  select(id, pred)
+```
+
+
+```{r}
+head(flights6_pred)
+```
+
+Wie viele vorhergesagte Werte haben wir, bzw. welchen Anteil?
+
+```{r}
+flights6_pred %>% 
+  drop_na() %>% 
+  nrow() / nrow(flights6_pred)
+```
+
+
+## CSV-Datei erstellen zum Einreichen
+
+
+```{r eval = FALSE}
+write_csv(flights6_pred, file = "Sauer_Sebastian_0123456_Prognose.csv")
+```
+
+
+
+# Was noch?
+
+Ein nächster Schritt könnte sein, sich folgende Punkte anzuschauen:
+
+  - Interaktionen
+  - Polynome
+  - Voraussetzungen
+
+Eine Faustregel zu Interaktionen lautet: Wenn zwei Variablen jeweils einen starken Haupteffekt haben, lohnt es sich u.U., den Interaktionseffekt anzuschauen (vgl. Gelman & Hill, 2007, S. 69).
+
+
+# Tidymodels
+
+Das ständige Updaten des Test-Datensatzes nervt; mit `tidymodels` wird es komfortabler und man hat Zugang zu leistungsfähigeren Prognosemodellen. [Hier](https://www.tmwr.org/) findet sich ein Einstieg und hier eine [Fallstudie mit Tutorial](https://www.tidymodels.org/start/models/).
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+```
+
+
+
+

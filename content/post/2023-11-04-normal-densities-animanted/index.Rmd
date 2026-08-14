@@ -1,0 +1,86 @@
+---
+title: normal densities animanted
+author: Sebastian Sauer
+date: '2023-11-04'
+slug: normal-densities-animanted
+categories:
+  - rstats
+tags:
+  - visualization
+---
+
+
+# Background
+
+Let's visualize the quantiles of a normal distribution using a density plot.
+
+
+# Setup
+
+```{r}
+library(tidyverse)
+library(gganimate)
+set.seed(123)
+```
+
+
+# Simulate normal data
+
+```{r}
+n <- 1e4
+data <- data.frame(x = rnorm(n))
+data$decile <- cut(data$x, breaks = quantile(data$x, probs = seq(0, 1, 0.1)), include.lowest = TRUE)
+data$decile2 <- cut(data$x, breaks = quantile(data$x, probs = seq(0, 1, 0.1)), include.lowest = TRUE, labels = 1:10)
+```
+
+
+Using `decile` and `decile2` we have marked for each data point to which decile it belongs.
+
+# Build up the data frame
+
+```{r}
+data2 <-
+  data |> 
+  group_by(decile2) |> 
+  mutate(x_max = max(x)) 
+
+data3 <-
+  data2 |> 
+  ungroup() |> 
+  select(x)
+```
+
+
+And plot:
+
+```{r}
+p <- 
+  ggplot(data2, aes(x = x)) +
+  geom_density(data = data3, fill = "grey", alpha = .5, color = NA) +
+  geom_vline(aes(xintercept = x_max)) +
+  geom_label(aes(label = decile2, x = x_max), y= 0) +
+  theme_minimal()
+p
+```
+
+
+
+
+# And now: animate
+
+```{r eval=false}
+animated_plot <- 
+  p +
+  transition_states(decile2, transition_length = 2, state_length = 1) +
+  ggtitle("Decile: {closest_state}") +
+  enter_fade() +
+  exit_fade()
+```
+
+
+
+And safe to disk:
+
+```{r eval=FALSE}
+anim_save("normal_densities_animation.gif", animated_plot, renderer = gifski_renderer())
+```

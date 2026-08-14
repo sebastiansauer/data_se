@@ -1,0 +1,556 @@
+---
+title: Explorative Datenanalyse zum Datensatz "OECD Wellbeing"
+author: Sebastian Sauer
+date: '2021-02-11'
+slug: explorative-datenanalyse-zum-datensatz-oecd-wellbeing
+categories:
+  
+tags:
+  - tutorial
+  - eda
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(skimr)  # Viele Statistiken auf einen Blick
+```
+
+
+
+
+
+In diesem Post untersuchen wir einige Aspekte der explorativen Datenanalyse für den Datensatz `oecd wellbeing` aus dem Jahr 2016.
+
+*Hinweis*: Als *Vertiefung*  gekennzeichnete Abschnitt sind nicht prüfungsrelevant.
+
+
+# Benötigte Pakete
+
+Ein Standard-Paket zur grundlegenden Datenanalyse:
+
+```{r libs}
+library(tidyverse)
+```
+
+
+
+# Datensatz laden
+
+Der Datensatz kann [hier](https://stats.oecd.org/Index.aspx?DataSetCode=RWB) bezogen werden.
+
+Doi: https://doi.org/10.1787/data-00707-en.
+
+
+Falls der Datensatz lokal (auf Ihrem Rechner) vorliegt, können Sie ihn in gewohnter Manier importieren. Geben Sie dazu den Pfad zum Datensatz ein; bei mir sieht das so aus:
+
+
+
+
+
+```{r load-data}
+oecd <- read_csv("/Users/sebastiansaueruser/datasets/oecd_wellbeing.csv")
+```
+
+
+Liegt die Datendatei im *gleichen Verzeichnis*  wie Ihre Rmd-Datei, dann brauchen Sie *nur* den Dateinamen, nicht den Pfad, anzugeben.
+
+
+*Alternativ* können Sie die Daten direkt von einem Server beziehen:
+
+```{r}
+oecd <- read_csv("https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/OECD/oecd-wellbeing.csv")
+```
+
+
+
+# Erster Blick
+
+
+```{r}
+glimpse(oecd)
+```
+
+
+Wie `glimpse()` aufzeigt, liegen also einige qualitative (kategoriale, `chr`) und einige quantitative (metrische, `dbl`) Variablen vor. Die qualitativen Variablen sind für eine direkte Analyse weniger interessant; vielmehr ist es interessant, die Statistiken auf die *Gruppen* (Stufen, Level) der qualitativen Variablen aufzusplitten.
+
+Betrachten wir aber zu Beginn die metrischen Variablen einzeln (univariat).
+
+
+# Metrische Variablen einzeln (univariat)
+
+Die typischen Statistiken zu den metrischen Variablen liegen uns von `inspect()` bereits vor. Daher gehen wir weiter zur Visualisierung.
+
+
+```{r}
+oecd %>% 
+  ggplot(aes(x = Life_satisfaction)) +
+  geom_histogram()
+```
+
+Eine ähnliche Aussage liefert das Dichte-Diagramm:
+
+
+```{r}
+oecd %>% 
+  ggplot(aes(x = Life_satisfaction)) +
+  geom_density()
+```
+
+Die *Dichte*  gibt an, welcher Anteil der Beobachtungen an der jeweiligen Stelle der X-Achse lägen, wenn man eine Einheit betrachtet (z.B. die Lebenszufriedenheit von 5-6).
+
+
+## Histogramm nach Gruppen
+
+Angenommen, man möchte Deutschland mit Frankfreich vergleichen im Hinblick auf die Lebenszufriedenheit:
+
+
+```{r}
+oecd %>% 
+  filter(Country == "Germany" | Country == "France") -> oecd_de_fr
+```
+
+
+Dann
+
+```{r}
+oecd_de_fr %>% 
+  ggplot(aes(x = Life_satisfaction)) +
+  geom_histogram(bins = 15) +
+  facet_wrap(~ Country)
+```
+
+
+
+
+## VERTIEFUNG: Histogramm für alle Variablen
+
+
+---
+
+Dieser Abschnitt ist eine Vertiefung; Sie können in überspringen, ohne den Anschluss zu den folgenden Abschnitten zu verlieren.
+
+---
+
+
+
+Um einen Überblick über die Verteilungen zu bekommen, bietet es sich an, sich alle anzuschauen. Das ist natürlich mit etwas Monotonie verbunden (den gleichen Befehl mehrfach wiederholen).
+
+
+Malen wir einmal alle Histogramme auf einmal. Dazu brauchen wir ein weiteres Paket:
+
+
+Als erstes erzeugen wir einen langen Dataframe (der nur aus metrischen Variablen besteht):
+
+```{r}
+oecd_de_fr %>% 
+  select(where(is.numeric)) %>%  # wähle alle Spalten aus, wo sich Nummern finden
+  pivot_longer(everything()) %>%  # baue alle Variablen in ein langes Format um
+  slice(1:10) # zeige die Zeilen 1 bis 10
+```
+
+
+
+Dann plotten wir Histogramme, wobei wir nach den Ländern (`key`) gruppieren. Aber zuerst speichenr wir uns den "langen" Datensatz ab:
+
+```{r}
+oecd_de_fr %>% 
+  select(where(is.numeric)) %>%  # wähle alle Spalten aus, wo sich Nummern finden
+  pivot_longer(everything()) -> oecd_de_fr_long
+```
+
+Betrachten Sie diesen Daten einmal zur Übung.
+
+
+Dann plotten wir in gewohnter Manier:
+
+```{r}
+oecd_de_fr_long %>% 
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(~ name)
+```
+
+
+
+
+
+# Forschungsfrage
+
+Hat Deutschland in Vergleich zu anderen Ländern eine hohe Lebenszufriedenheit?
+
+Die Frage ist noch recht unpräzise formuliert, aber dafür gibt sie Raum für eine Menge von Untersuchungsansätzen.
+
+
+# Datensatz filtern - nur Länder, keine Landesteile
+
+Der Datensatz verstößt gegen die Regel, dass in jeder Zeile eine Beobachtungseinheit steht. In einigen Zeilen stehen *Länder*, in den meisten anderen aber *Landesteile* (wie Bayern, Baden-Württemberg etc.). Filtern wir uns nur die Länder, und exklduieren die Landesteile:
+
+
+```{r}
+filter(oecd, region_type == "country_whole") -> oecd_short
+```
+
+Die Anzahl der Zeilen deses Datensatz `oecd_short` gibt uns Aufschluss über die Anzahl der untersuchten Länder.
+
+
+# Vergleich der Lebenszufriedenheit der Länder
+
+
+
+```{r}
+oecd_short %>% 
+  ggplot(aes(x = Country, y = Life_satisfaction)) +
+  geom_point()
+```
+
+Hm, sieht nicht übersichtlich aus. Besser wäre es, die Punkte absteigend zu sortieren.
+
+Betrachten wir dazu die Variable `country` näher: Es handelt sich um eine Character-Variable:
+
+```{r}
+str(oecd)
+```
+
+Offensichtlich sind diese alphabetisch geordnet - nach dieser Ordnung richtet sich die Ordnung im Plot-Befehl (`xyplot`).
+
+
+## Umwandling in eine Faktor-Variable
+
+In solchen Fällen bietet es sich an, die Character-Variable in eine Factor-Variable umzuwandeln; dann geht das Weitere einfacher.
+
+
+```{r}
+oecd_short %>% 
+  mutate(Country = factor(Country)) -> oecd_short
+```
+
+Möchte man wissen, wie viele *unterschiedliche* Werte eine Variable enthält, dann kann die Funktion `distinct()` verwenden:
+
+```{r}
+oecd_short %>% 
+  distinct(Country)
+```
+
+
+
+## Ranking und Top-10-Prozent der Zufriedenheit
+
+Schauen wir uns die "Happy-Top-10" an, die 10 Länder mit der höchsten Lebenszufriedenheit:
+
+
+```{r}
+oecd_short %>% 
+  arrange(-Life_satisfaction) %>% 
+  select(Country, Life_satisfaction) %>% 
+  slice(1:10)
+```
+
+Mit welcher Lebenszufriedenheit gehört ein Land zu den Top-10-Prozent der zufriedenen Länder?
+
+```{r}
+oecd_short %>% 
+  summarise(quantile(Life_satisfaction, probs = .90))
+```
+
+
+Ah, Länder mit einer Lebenszufriedenheit von mind. `r mosaic::quantile(~Life_satisfaction, data = oecd_short, probs = .90)` gehören zu den oberen Top-10-Prozent. Filtern wir mal entsprechend:
+
+
+```{r}
+oecd_short %>% 
+  filter(Life_satisfaction >= 9.7) %>% 
+  select(Country, Life_satisfaction)
+```
+
+
+
+## Vertiefung
+
+Ändern wir die Sortierung! Mit `reorder()` kann man die Sortierung ändern (re-ordnen, daher der Name):
+
+```{r}
+oecd_short %>% 
+  mutate(Country_sorted = reorder(Country, Life_satisfaction)) -> oecd_short_reordered
+```
+
+
+Ist das jetzt geordnet? `str()` verrät es uns:
+
+```{r}
+str(oecd_short_reordered)
+```
+
+
+Wie man sieht, ist `Country_sorted` jetzt anders sortiert. Betrachten wir das Ergebnis:
+
+```{r}
+plot_sorted <- oecd_short_reordered %>% 
+  ggplot(aes(x = Country_sorted, y = Life_satisfaction)) +
+  geom_point()
+
+plot_sorted
+```
+
+Schon besser. Man kann z.B. die Achsen nicht lesen `r emo::ji("sad")`. Was könnte man da bloß tun?
+
+
+## Vertiefung
+
+Mit `+ coord_flip()` lassen sich die Achsen um 90 Grad drehen:
+
+```{r}
+plot_sorted + coord_flip()
+```
+
+
+Schön `r emo::ji("smile")`.
+
+Man hätte das Sortieren und Achsen drehen auch in einem Haps machen können:
+
+
+```{r}
+oecd_short_reordered %>% 
+  ggplot(aes(x = Country_sorted, y = Life_satisfaction)) +
+  geom_point() + coord_flip()
+```
+
+
+Aber übersichtliches ist es, die Dinge nacheinander zu tun.
+
+
+## Vertiefung
+
+Schön wäre es noch, im Bild den Mittelwert o.Ä. zu sehen:
+
+```{r}
+oecd_short_reordered %>% 
+  ggplot(aes(x = Country_sorted, y = Life_satisfaction)) +
+  geom_point() +
+  geom_hline(yintercept = 6.08, data = NA, color = "firebrick") + 
+  coord_flip()
+```
+
+Tja, die Wünsche hören nie auf... Wäre es nicht noch nett, wenn "Deutschland" hervorgehoben wäre, optisch, so dass es im Diagramm hervorsticht. Nehmen wir an, wir sind an diesem Land besonders interessiert.
+
+```{r}
+oecd_short_reordered <- 
+  oecd_short_reordered %>% 
+  mutate(is_Germany = Country == "Germany")
+```
+ 
+Damit haben wir eine Spalte erstellt, die angibt, ob ein Land Deutschland ist (`TRUE`) oder nicht (`FALSE`). Diese neue Variable nehmen wir her, um die Farbe, Größe und Form der Punkte zu bestimmen:
+ 
+```{r}
+oecd_short_reordered %>% 
+  ggplot(aes(x = Country_sorted, y = Life_satisfaction)) +
+  geom_point(aes(color = is_Germany, shape = is_Germany, size = is_Germany)) +
+  geom_hline(yintercept = 6.08, data = NA, color = "firebrick") + 
+  geom_hline(yintercept = 6.08, data = NA, color = "grey60") %>% 
+  geom_vline(xintercept = 16, data = NA, color = "grey80") +
+  coord_flip()
+
+```
+
+
+
+
+# Zusammenhang zweier metrischer Variablen -- Punktediagramm
+
+Hängt die Lebenszufriedenheit mit `Civic_engagment` zusammen?
+
+
+```{r}
+oecd_short_reordered %>% 
+  ggplot(aes(x = Civic_engagement, y = Life_satisfaction)) +
+  geom_point()
+```
+
+Hm, es ist kein starker Trend zu erkennen.
+
+Was sagt die Korrelation dazu:
+
+```{r}
+oecd_short_reordered %>% 
+  summarise(cor_ce_ls = cor(Civic_engagement, Life_satisfaction))
+```
+
+Immerhin, kein ganz unwesentlicher Wert.
+
+
+### Und so weiter
+
+Dieses Prinzip mit dem Punktediagramm könnte man jetzt weiterführen ad nauseam.
+
+
+## Vertiefung Pairs plot
+
+Eleganter geht es so. Dafür benötigen wir Extra-Pakete:
+
+```{r}
+library(sjPlot)
+```
+
+Dann erstellen wir einen Dataframe mit *nur*  metrischen Variablen; d.h. wir entfernen die nicht-metrischen Variablen:
+
+```{r}
+oecd_short_reordered %>% 
+  select(-Country, -Region, -region_type, -Code, -Country_sorted) -> oecd_short_numeric
+```
+
+Übrigens kann (und muss man oft) mehrere Werte mit dem Befehl `c()` zusammenfassen (c wie "combine"):
+
+```{r}
+oecd_short_reordered %>% 
+  select(-c(Country, Region, region_type, Code, Country_sorted)) -> oecd_short_numeric
+```
+
+Oder man wählt gleich nur die numerischen Variablen aus:
+
+```{r}
+oecd_short_reordered %>% 
+  select(where(is.numeric)) -> oecd_short_numeric
+```
+
+
+
+```{r}
+sjp.corr(oecd_short_numeric)
+```
+
+
+
+### Vertiefung ggpairs
+
+
+```{r}
+library(GGally)
+```
+
+
+Das sieht auch ganz nett aus:
+
+```{r}
+ggpairs(oecd_short,
+        columns = c(5,6,7,15))
+```
+
+
+## Zusammenhang zweier Variablen unter Berücksichtigung von Drittvariablen
+
+Oben haben wir gesehen, dass Lebenszufriedenheit und Civiv Engagement zusammenhängen.
+
+Aber vielleicht hängt dieser Zusammenhang wiederum von der finanziellen Absicherung ab? Nur wenn man materiell abgesichert ist, so könnte man argumentieren, wird bürgerliches Engagement (bzw. die Möglichkeit zu) eine Einflussgröße auf die Lebenszufriedenheit.
+
+Um diese Frage zu untersuchen, teilen wir `Income` in zwei Stufen, hoch und gering. Dann untersuchen wir jeweils den Zusammenhang von Lebenszufriedenheit und bürgerlichem Engagement.
+
+Achtung! Eine metrische Variablen in zwei Hälften zu spalten birgt einen hohen Informationsverlust. Da wir aber nur eine grobe Untersuchung vorhaben (und uns noch nicht fortgeschrittener Technik bedienen wollen), bleiben wir erstmal bei dieser sog. *Dichotomisierung*.
+
+Nehmen wir den Median des Einkommen als Teilungspunkt; man spricht von einem "Mediansplit":
+
+```{r}
+oecd_short %>% 
+  summarise(Income_md = median(Income))
+```
+
+
+
+Zuerst erstellen wir eine Variable `Income_high` mit den Stufen 0 (nein) und 1 (ja):
+
+```{r}
+oecd_short_reordered <- 
+  oecd_short_reordered %>% 
+    mutate(Income_high = 
+           case_when( Income >= 5.15 ~ 1,
+                      Income < 5.15 ~ 0))
+```
+
+Jetzt plotten wir den Zusammenhang:
+
+
+```{r}
+income_labels <- c(`0` = "arm", 
+                   `1` ="reich")
+
+oecd_short_reordered %>% 
+  ggplot(aes(x = Country_sorted, y = Life_satisfaction)) +
+  geom_point() +
+  facet_wrap(~ Income_high, 
+             labeller = labeller(Income_high = income_labels))  +
+  coord_flip() +
+  labs(y = "Länder",
+       x = "Lebenszufriedenheit",
+       title = "Lebenszufriedenheit in armen und reichen Ländern ") +
+  theme_minimal()
+```
+
+
+### Vertiefung: Korrelation pro Gruppe
+
+Um die Korrelation pro Gruppe zu erhalten, könnten wir jeweils einen Dataframe pro Gruppe erzeugen (mit `filter()`) und dann jeweils die Korrelation von Zufriedenheit und Engagement berechnen.
+
+Eine andere, etwas elegantere Möglichkeit kann so aussehen:
+
+```{r}
+oecd_short_reordered %>%
+  group_by(Income_high) %>% 
+  summarise(cor_zuf_eng = cor(Life_satisfaction, Civic_engagement))
+```
+
+Interessanterweise ist die Korrelation durchaus verschieden in den beiden Gruppen.
+
+Natürlich sind die beiden Gruppen nur Stichproben - es stellt sich die Frage, ob die Unterschiede nur durch Zufälligkeiten des Stichprobenziehens entstanden sind oder auch in der Grundgesatmtheit der "reichen" und "armen" Ländern existieren? Dazu später mehr!
+
+
+# Deskriptive Statistiken nach Ländern
+ 
+ 
+## Lebenszufriedenheit
+
+Das ist relativ einfach:
+
+```{r}
+oecd_short_reordered %>% 
+  select(Life_satisfaction) %>% 
+  skim()
+```
+
+
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

@@ -1,0 +1,248 @@
+---
+title: Logistic regression using z-standardized values
+author: Sebastian Sauer
+date: '2023-12-20'
+slug: logistic-regression-using-z-standardized-values
+categories:
+  - rstats
+tags:
+  - regression
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages" id="toc-load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#data" id="toc-data"><span class="toc-section-number">2</span> Data</a></li>
+<li><a href="#motivation" id="toc-motivation"><span class="toc-section-number">3</span> Motivation</a></li>
+<li><a href="#eda" id="toc-eda"><span class="toc-section-number">4</span> EDA</a></li>
+<li><a href="#model-with-raw-values" id="toc-model-with-raw-values"><span class="toc-section-number">5</span> Model with raw values</a></li>
+<li><a href="#model-with-am-as-factor-variable" id="toc-model-with-am-as-factor-variable"><span class="toc-section-number">6</span> Model with <code>am</code> as factor-Variable</a></li>
+<li><a href="#visualizing" id="toc-visualizing"><span class="toc-section-number">7</span> Visualizing</a></li>
+<li><a href="#standardizing-predictors" id="toc-standardizing-predictors"><span class="toc-section-number">8</span> Standardizing predictors</a></li>
+<li><a href="#model-with-z-scaled-predictors" id="toc-model-with-z-scaled-predictors"><span class="toc-section-number">9</span> Model with z-scaled predictors</a></li>
+<li><a href="#model-with-all-variables-z-scaled" id="toc-model-with-all-variables-z-scaled"><span class="toc-section-number">10</span> Model with all variables z-scaled</a></li>
+<li><a href="#conclusion" id="toc-conclusion"><span class="toc-section-number">11</span> Conclusion</a></li>
+<li><a href="#reproducibility" id="toc-reproducibility"><span class="toc-section-number">12</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(easystats)</code></pre>
+</div>
+<div id="data" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Data</h1>
+<pre class="r"><code>data(mtcars)</code></pre>
+</div>
+<div id="motivation" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Motivation</h1>
+<p>In this post, we’ll investigate the consequence of z-standardizing the predictor variables, and in addition the outcome variable in a simple logistic regression setting.</p>
+<blockquote>
+<p>Do some coefficients change as a result of standardizing the values?</p>
+</blockquote>
+</div>
+<div id="eda" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> EDA</h1>
+<pre class="r"><code>mtcars |&gt; 
+  group_by(am) |&gt; 
+  summarise(mpg_Avg = mean(mpg))
+#&gt; # A tibble: 2 × 2
+#&gt;      am mpg_Avg
+#&gt;   &lt;dbl&gt;   &lt;dbl&gt;
+#&gt; 1     0    17.1
+#&gt; 2     1    24.4</code></pre>
+<p>As we can see, <code>am=1</code>, i.e., manual (gear shifting) cars have a better mpg value.</p>
+</div>
+<div id="model-with-raw-values" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Model with raw values</h1>
+<pre class="r"><code>mod_raw &lt;- glm(am ~ mpg, data = mtcars, family = &quot;binomial&quot;)
+parameters(mod_raw, exponentiate = TRUE)
+#&gt; Parameter   | Odds Ratio |       SE |       95% CI |     z |     p
+#&gt; ------------------------------------------------------------------
+#&gt; (Intercept) |   1.36e-03 | 3.19e-03 | [0.00, 0.06] | -2.81 | 0.005
+#&gt; mpg         |       1.36 |     0.16 | [1.13, 1.80] |  2.67 | 0.008</code></pre>
+<p>The odds ratio of 1.36 means that for every one-unit increase in mpg, the odds of a car having an <em>manual</em> transmission increase by 36%.</p>
+<p>Note that the logistic regression (in R) models the <em>second</em> level of the outcome variable (<a href="https://data-se.netlify.app/2022/02/11/die-logististische-regression-glm-modelliert-die-zweite-stufe/">see here for more information</a>).</p>
+</div>
+<div id="model-with-am-as-factor-variable" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Model with <code>am</code> as factor-Variable</h1>
+<pre class="r"><code>mtcars &lt;-
+  mtcars |&gt; 
+  mutate(am_f = factor(am))
+
+levels(mtcars$am_f)
+#&gt; [1] &quot;0&quot; &quot;1&quot;</code></pre>
+<pre class="r"><code>mod_raw_f &lt;- glm(am ~ mpg, data = mtcars, family = &quot;binomial&quot;)
+parameters(mod_raw, exponentiate = TRUE)
+#&gt; Parameter   | Odds Ratio |       SE |       95% CI |     z |     p
+#&gt; ------------------------------------------------------------------
+#&gt; (Intercept) |   1.36e-03 | 3.19e-03 | [0.00, 0.06] | -2.81 | 0.005
+#&gt; mpg         |       1.36 |     0.16 | [1.13, 1.80] |  2.67 | 0.008</code></pre>
+<p>Identical!</p>
+</div>
+<div id="visualizing" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Visualizing</h1>
+<pre class="r"><code>pred_df &lt;-
+  tibble(
+    mpg = seq(min(mtcars$mpg), max(mtcars$mpg), by = .1),
+    am_pred = predict(mod_raw, type = &quot;response&quot;, newdata = tibble(mpg))
+  )
+
+ggplot(mtcars) +
+  aes(x = mpg, y = am) +
+  geom_point() +
+  geom_line(data = pred_df, aes(x = mpg, y = am_pred), color = &quot;blue&quot;) +
+  labs(title = &quot;Predicting manual gear shifting&quot;,
+       subtitle = &quot;Logistic model&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="standardizing-predictors" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Standardizing predictors</h1>
+<pre class="r"><code>mtcars_z &lt;- 
+mtcars |&gt; 
+  mutate(across(c(everything(),-am), ~standardize(.x)))</code></pre>
+</div>
+<div id="model-with-z-scaled-predictors" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Model with z-scaled predictors</h1>
+<pre class="r"><code>mod_z &lt;- glm(am ~ mpg, data = mtcars_z, family = &quot;binomial&quot;)
+parameters(mod_z, exponentiate = TRUE)
+#&gt; Parameter   | Odds Ratio |   SE |        95% CI |     z |     p
+#&gt; ---------------------------------------------------------------
+#&gt; (Intercept) |       0.65 | 0.29 | [0.25,  1.58] | -0.96 | 0.338
+#&gt; mpg         |       6.36 | 4.40 | [2.09, 34.49] |  2.67 | 0.008</code></pre>
+</div>
+<div id="model-with-all-variables-z-scaled" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> Model with all variables z-scaled</h1>
+<p>Note that it makes no sense to z-scale the outcome variable of a logistic regression.</p>
+</div>
+<div id="conclusion" class="section level1" number="11">
+<h1><span class="header-section-number">11</span> Conclusion</h1>
+<p>As can be seen the Odds ratio gets really big after standardization.</p>
+</div>
+<div id="reproducibility" class="section level1" number="12">
+<h1><span class="header-section-number">12</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value
+#&gt;  version  R version 4.2.1 (2022-06-23)
+#&gt;  os       macOS Big Sur ... 10.16
+#&gt;  system   x86_64, darwin17.0
+#&gt;  ui       X11
+#&gt;  language (EN)
+#&gt;  collate  en_US.UTF-8
+#&gt;  ctype    en_US.UTF-8
+#&gt;  tz       Europe/Berlin
+#&gt;  date     2023-12-20
+#&gt;  pandoc   3.1.1 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/ (via rmarkdown)
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package      * version date (UTC) lib source
+#&gt;  bayestestR   * 0.13.1  2023-04-07 [1] CRAN (R 4.2.0)
+#&gt;  blogdown       1.18    2023-06-19 [1] CRAN (R 4.2.0)
+#&gt;  bookdown       0.36    2023-10-16 [1] CRAN (R 4.2.0)
+#&gt;  bslib          0.5.1   2023-08-11 [1] CRAN (R 4.2.0)
+#&gt;  cachem         1.0.8   2023-05-01 [1] CRAN (R 4.2.0)
+#&gt;  callr          3.7.3   2022-11-02 [1] CRAN (R 4.2.0)
+#&gt;  cli            3.6.1   2023-03-23 [1] CRAN (R 4.2.0)
+#&gt;  coda           0.19-4  2020-09-30 [1] CRAN (R 4.2.0)
+#&gt;  codetools      0.2-19  2023-02-01 [1] CRAN (R 4.2.0)
+#&gt;  colorout     * 1.3-0   2023-11-08 [1] Github (jalvesaq/colorout@8384882)
+#&gt;  colorspace     2.1-0   2023-01-23 [1] CRAN (R 4.2.0)
+#&gt;  correlation  * 0.8.4   2023-04-06 [1] CRAN (R 4.2.1)
+#&gt;  crayon         1.5.2   2022-09-29 [1] CRAN (R 4.2.1)
+#&gt;  datawizard   * 0.9.0   2023-09-15 [1] CRAN (R 4.2.0)
+#&gt;  devtools       2.4.5   2022-10-11 [1] CRAN (R 4.2.1)
+#&gt;  digest         0.6.33  2023-07-07 [1] CRAN (R 4.2.0)
+#&gt;  dplyr        * 1.1.3   2023-09-03 [1] CRAN (R 4.2.0)
+#&gt;  easystats    * 0.7.0   2023-11-05 [1] CRAN (R 4.2.1)
+#&gt;  effectsize   * 0.8.6   2023-09-14 [1] CRAN (R 4.2.0)
+#&gt;  ellipsis       0.3.2   2021-04-29 [1] CRAN (R 4.2.0)
+#&gt;  emmeans        1.8.9   2023-10-17 [1] CRAN (R 4.2.0)
+#&gt;  estimability   1.4.1   2022-08-05 [1] CRAN (R 4.2.0)
+#&gt;  evaluate       0.21    2023-05-05 [1] CRAN (R 4.2.0)
+#&gt;  fansi          1.0.5   2023-10-08 [1] CRAN (R 4.2.0)
+#&gt;  fastmap        1.1.1   2023-02-24 [1] CRAN (R 4.2.0)
+#&gt;  forcats      * 1.0.0   2023-01-29 [1] CRAN (R 4.2.0)
+#&gt;  fs             1.6.3   2023-07-20 [1] CRAN (R 4.2.0)
+#&gt;  generics       0.1.3   2022-07-05 [1] CRAN (R 4.2.0)
+#&gt;  ggplot2      * 3.4.4   2023-10-12 [1] CRAN (R 4.2.0)
+#&gt;  glue           1.6.2   2022-02-24 [1] CRAN (R 4.2.0)
+#&gt;  gtable         0.3.4   2023-08-21 [1] CRAN (R 4.2.0)
+#&gt;  hms            1.1.3   2023-03-21 [1] CRAN (R 4.2.0)
+#&gt;  htmltools      0.5.6.1 2023-10-06 [1] CRAN (R 4.2.0)
+#&gt;  htmlwidgets    1.6.2   2023-03-17 [1] CRAN (R 4.2.0)
+#&gt;  httpuv         1.6.11  2023-05-11 [1] CRAN (R 4.2.0)
+#&gt;  insight      * 0.19.7  2023-11-26 [1] CRAN (R 4.2.1)
+#&gt;  jquerylib      0.1.4   2021-04-26 [1] CRAN (R 4.2.0)
+#&gt;  jsonlite       1.8.7   2023-06-29 [1] CRAN (R 4.2.0)
+#&gt;  knitr          1.45    2023-10-30 [1] CRAN (R 4.2.1)
+#&gt;  later          1.3.1   2023-05-02 [1] CRAN (R 4.2.0)
+#&gt;  lattice        0.21-8  2023-04-05 [1] CRAN (R 4.2.0)
+#&gt;  lifecycle      1.0.4   2023-11-07 [1] CRAN (R 4.2.1)
+#&gt;  lubridate    * 1.9.3   2023-09-27 [1] CRAN (R 4.2.0)
+#&gt;  magrittr       2.0.3   2022-03-30 [1] CRAN (R 4.2.0)
+#&gt;  MASS           7.3-60  2023-05-04 [1] CRAN (R 4.2.0)
+#&gt;  Matrix         1.5-4.1 2023-05-18 [1] CRAN (R 4.2.0)
+#&gt;  memoise        2.0.1   2021-11-26 [1] CRAN (R 4.2.0)
+#&gt;  mime           0.12    2021-09-28 [1] CRAN (R 4.2.0)
+#&gt;  miniUI         0.1.1.1 2018-05-18 [1] CRAN (R 4.2.0)
+#&gt;  modelbased   * 0.8.6   2023-01-13 [1] CRAN (R 4.2.1)
+#&gt;  multcomp       1.4-25  2023-06-20 [1] CRAN (R 4.2.0)
+#&gt;  munsell        0.5.0   2018-06-12 [1] CRAN (R 4.2.0)
+#&gt;  mvtnorm        1.2-2   2023-06-08 [1] CRAN (R 4.2.0)
+#&gt;  parameters   * 0.21.3  2023-11-02 [1] CRAN (R 4.2.1)
+#&gt;  performance  * 0.10.8  2023-10-30 [1] CRAN (R 4.2.1)
+#&gt;  pillar         1.9.0   2023-03-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgbuild       1.4.0   2022-11-27 [1] CRAN (R 4.2.0)
+#&gt;  pkgconfig      2.0.3   2019-09-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgload        1.3.2.1 2023-07-08 [1] CRAN (R 4.2.0)
+#&gt;  prettyunits    1.1.1   2020-01-24 [1] CRAN (R 4.2.0)
+#&gt;  processx       3.8.2   2023-06-30 [1] CRAN (R 4.2.0)
+#&gt;  profvis        0.3.8   2023-05-02 [1] CRAN (R 4.2.0)
+#&gt;  promises       1.2.1   2023-08-10 [1] CRAN (R 4.2.0)
+#&gt;  ps             1.7.5   2023-04-18 [1] CRAN (R 4.2.0)
+#&gt;  purrr        * 1.0.2   2023-08-10 [1] CRAN (R 4.2.0)
+#&gt;  R6             2.5.1   2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  Rcpp           1.0.11  2023-07-06 [1] CRAN (R 4.2.0)
+#&gt;  readr        * 2.1.4   2023-02-10 [1] CRAN (R 4.2.0)
+#&gt;  remotes        2.4.2.1 2023-07-18 [1] CRAN (R 4.2.0)
+#&gt;  report       * 0.5.8   2023-12-07 [1] CRAN (R 4.2.1)
+#&gt;  rlang          1.1.1   2023-04-28 [1] CRAN (R 4.2.0)
+#&gt;  rmarkdown      2.25    2023-09-18 [1] CRAN (R 4.2.0)
+#&gt;  rstudioapi     0.15.0  2023-07-07 [1] CRAN (R 4.2.0)
+#&gt;  sandwich       3.0-2   2022-06-15 [1] CRAN (R 4.2.0)
+#&gt;  sass           0.4.7   2023-07-15 [1] CRAN (R 4.2.0)
+#&gt;  scales         1.2.1   2022-08-20 [1] CRAN (R 4.2.0)
+#&gt;  see          * 0.8.1   2023-11-03 [1] CRAN (R 4.2.1)
+#&gt;  sessioninfo    1.2.2   2021-12-06 [1] CRAN (R 4.2.0)
+#&gt;  shiny          1.8.0   2023-11-17 [1] CRAN (R 4.2.1)
+#&gt;  stringi        1.7.12  2023-01-11 [1] CRAN (R 4.2.0)
+#&gt;  stringr      * 1.5.1   2023-11-14 [1] CRAN (R 4.2.1)
+#&gt;  survival       3.5-5   2023-03-12 [1] CRAN (R 4.2.0)
+#&gt;  TH.data        1.1-2   2023-04-17 [1] CRAN (R 4.2.0)
+#&gt;  tibble       * 3.2.1   2023-03-20 [1] CRAN (R 4.2.0)
+#&gt;  tidyr        * 1.3.0   2023-01-24 [1] CRAN (R 4.2.0)
+#&gt;  tidyselect     1.2.0   2022-10-10 [1] CRAN (R 4.2.0)
+#&gt;  tidyverse    * 2.0.0   2023-02-22 [1] CRAN (R 4.2.0)
+#&gt;  timechange     0.2.0   2023-01-11 [1] CRAN (R 4.2.0)
+#&gt;  tzdb           0.4.0   2023-05-12 [1] CRAN (R 4.2.0)
+#&gt;  urlchecker     1.0.1   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  usethis        2.2.2   2023-07-06 [1] CRAN (R 4.2.0)
+#&gt;  utf8           1.2.3   2023-01-31 [1] CRAN (R 4.2.0)
+#&gt;  vctrs          0.6.4   2023-10-12 [1] CRAN (R 4.2.0)
+#&gt;  withr          2.5.2   2023-10-30 [1] CRAN (R 4.2.1)
+#&gt;  xfun           0.40    2023-08-09 [1] CRAN (R 4.2.0)
+#&gt;  xtable         1.8-4   2019-04-21 [1] CRAN (R 4.2.0)
+#&gt;  yaml           2.3.7   2023-01-23 [1] CRAN (R 4.2.0)
+#&gt;  zoo            1.8-12  2023-04-13 [1] CRAN (R 4.2.0)
+#&gt; 
+#&gt;  [1] /Users/sebastiansaueruser/Rlibs
+#&gt;  [2] /Library/Frameworks/R.framework/Versions/4.2/Resources/library
+#&gt; 
+#&gt; ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>

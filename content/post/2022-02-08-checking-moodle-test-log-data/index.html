@@ -1,0 +1,175 @@
+---
+title: Checking Moodle test log data
+author: Sebastian Sauer
+date: '2022-02-08'
+draft: false
+slug: checking-moodle-test-log-data
+categories:
+  - rstats
+tags:
+  - teaching
+editor_options: 
+  chunk_output_type: console
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="motivation-lets-check-whether-server-blackouts-seem-probable" class="section level1">
+<h1>Motivation: Let’s check whether server blackouts seem probable</h1>
+<p>After one particular exam, a student complaint that Moodle was not reacting during some specified time period.</p>
+<p>In this post, we’ll check whether we find evidence in favor or against a failout of the server.</p>
+</div>
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>library(&quot;tidyverse&quot;)</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──</code></pre>
+<pre><code>## ✓ ggplot2 3.3.5     ✓ purrr   0.3.4
+## ✓ tibble  3.1.6     ✓ dplyr   1.0.7
+## ✓ tidyr   1.1.4     ✓ stringr 1.4.0
+## ✓ readr   2.0.0     ✓ forcats 0.5.1</code></pre>
+<pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()</code></pre>
+<pre class="r"><code>library(&quot;digest&quot;)  # anonymize data
+library(&quot;lubridate&quot;)  # working with dates/time</code></pre>
+<pre><code>## 
+## Attaching package: &#39;lubridate&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:base&#39;:
+## 
+##     date, intersect, setdiff, union</code></pre>
+<pre class="r"><code>theme_set(theme_minimal())</code></pre>
+</div>
+<div id="anonymize-data" class="section level1">
+<h1>Anonymize data</h1>
+<p>Here’s the path to the original data. You cannot access it, as it is confidential data.
+In this step, I’d just like to show you how to anonymize it.</p>
+<pre class="r"><code>d_path_raw &lt;- &quot;/Users/sebastiansaueruser/Downloads/logs-some-moodle-test.csv&quot;
+
+d &lt;- read_csv(d_path_raw)</code></pre>
+<pre><code>## Rows: 8849 Columns: 9</code></pre>
+<pre><code>## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: &quot;,&quot;
+## chr (9): Zeit, Vollständiger Name, Betroffene/r Nutzer/in, Ereigniskontext, ...</code></pre>
+<pre><code>## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+<p>Here’s the main take, we’ll use the MD5 crypto function to get a fingerprint of the file:</p>
+<pre class="r"><code>d2 &lt;-
+  d %&gt;% 
+  mutate(user = digest(`Vollständiger Name`, algo = &quot;md5&quot;),
+         ip = digest(&quot;IP-Adresse&quot;, algo = &quot;md5&quot;))</code></pre>
+<p>Finally, let’s prepocess a bit, ie. delete columns with sensitive data,
+and parse the time:</p>
+<pre class="r"><code>d3 &lt;-
+  d2 %&gt;% 
+  select(-c(2,3,7,9)) %&gt;% 
+  mutate(time_stamp = parse_datetime(Zeit, &quot;%d.%m.%Y %H:%M&quot;)) %&gt;% 
+  select(-Zeit) %&gt;% 
+  mutate(id = row_number())</code></pre>
+<p>And now save the anonymized data:</p>
+<pre class="r"><code>d_path_anonymized &lt;- &quot;/Users/sebastiansaueruser/github-repos/Lehre/data/d3.csv&quot;
+
+write_csv(d3, d_path_anonymized)</code></pre>
+</div>
+<div id="read-anonymized-data" class="section level1">
+<h1>Read anonymized data</h1>
+<pre class="r"><code>d_anom_path &lt;- &quot;https://raw.githubusercontent.com/sebastiansauer/Lehre/main/data/d3.csv&quot;
+
+d_anom &lt;- read_csv(d_anom_path)</code></pre>
+<pre><code>## Rows: 8849 Columns: 8</code></pre>
+<pre><code>## ── Column specification ────────────────────────────────────────────────────────
+## Delimiter: &quot;,&quot;
+## chr  (6): Ereigniskontext, Komponente, Ereignisname, Herkunft, user, ip
+## dbl  (1): id
+## dttm (1): time_stamp</code></pre>
+<pre><code>## 
+## ℹ Use `spec()` to retrieve the full column specification for this data.
+## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
+</div>
+<div id="sense-check" class="section level1">
+<h1>Sense check</h1>
+<p>Let’s see whether the time/dates appear sensible:</p>
+<pre class="r"><code>d_anom %&gt;% 
+  summarise(min(time_stamp),
+            max(time_stamp))</code></pre>
+<pre><code>## # A tibble: 1 × 2
+##   `min(time_stamp)`   `max(time_stamp)`  
+##   &lt;dttm&gt;              &lt;dttm&gt;             
+## 1 2022-01-13 10:01:00 2022-02-08 15:12:00</code></pre>
+<p>OK.</p>
+</div>
+<div id="are-there-periods-where-no-students-interacted-with-moodle" class="section level1">
+<h1>Are there periods where no students interacted with Moodle?</h1>
+<p>If there were time periods were no student at all interacted with the Moodle server (according to the log data),
+we’d have evidence for some potential Server failure.</p>
+</div>
+<div id="preprocess-data" class="section level1">
+<h1>Preprocess data</h1>
+<p>Let’s filter the log data for the exam time of the first exam (there were two on the relevant day):</p>
+<pre class="r"><code>d_exam1 &lt;- 
+  d_anom %&gt;%
+  filter(time_stamp &lt; ymd_hm(&quot;2022-01-31 09:20&quot;)) %&gt;% 
+  filter(time_stamp &gt; ymd_hm(&quot;2022-01-31 07:55&quot;))</code></pre>
+<p>Check for missing data:</p>
+<pre class="r"><code>d_exam1 %&gt;%
+  summarise(across(everything(), ~ sum(is.na(.))))</code></pre>
+<pre><code>## # A tibble: 1 × 8
+##   Ereigniskontext Komponente Ereignisname Herkunft  user    ip time_stamp    id
+##             &lt;int&gt;      &lt;int&gt;        &lt;int&gt;    &lt;int&gt; &lt;int&gt; &lt;int&gt;      &lt;int&gt; &lt;int&gt;
+## 1               0          0            0        0     0     0          0     0</code></pre>
+<p>OK, no missings, that’s reassuring in terms of data quality.</p>
+</div>
+<div id="overall-times-of-server-contact" class="section level1">
+<h1>Overall times of server contact</h1>
+<pre class="r"><code>d_exam1 %&gt;% 
+  select(time_stamp) %&gt;% 
+  ggplot(aes(x = time_stamp)) +
+  scale_x_datetime() +
+  geom_histogram()</code></pre>
+<pre><code>## `stat_bin()` using `bins = 30`. Pick better value with `binwidth`.</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<p>Hm…</p>
+<pre class="r"><code>d_exam1 %&gt;% 
+  select(time_stamp) %&gt;% 
+  ggplot(aes(x = time_stamp)) +
+  scale_x_datetime() +
+  geom_density()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p>Looks unsuspicious.</p>
+<p>Let’s depict each server interaction as a dot:</p>
+<pre class="r"><code>d_exam1 %&gt;% 
+  cbind(y = runif(n = nrow(d_exam1))) %&gt;% 
+  relocate(y, .before = 1) %&gt;% 
+  relocate(time_stamp, .before = 2) %&gt;% 
+  ggplot(aes(x = time_stamp, y = y)) +
+  geom_point(alpha = .1) +
+  scale_x_datetime() +
+  scale_y_continuous(limits = c(0, 1))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<p>Let’s zoom in right before the end of the test:</p>
+<pre class="r"><code>d_exam1 %&gt;% 
+  cbind(y = runif(n = nrow(d_exam1))) %&gt;% 
+  relocate(y, .before = 1) %&gt;% 
+  relocate(time_stamp, .before = 2) %&gt;% 
+  ggplot(aes(x = time_stamp, y = y)) +
+  geom_point(alpha = .1) +
+  scale_x_datetime(limits = c(ymd_hm(&quot;2022-01-31 08:50&quot;), ymd_hm(&quot;2022-01-31 09:00&quot;))) +
+  scale_y_continuous(limits = c(0, 1))</code></pre>
+<pre><code>## Warning: Removed 6447 rows containing missing values (geom_point).</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<p>It appears the time wise resolution of our data does not allow for finer grains than 1 one minute windows.</p>
+<p>Let’s try something more quantitatively looking:</p>
+<pre class="r"><code>d_exam1 %&gt;% 
+  select(time_stamp) %&gt;% 
+  filter(between(time_stamp, ymd_hm(&quot;2022-01-31 08:00&quot;), ymd_hm(&quot;2022-01-31 08:59&quot;))) %&gt;% 
+  count(time_stamp) %&gt;% 
+  ggplot() +
+  geom_col(aes(x = time_stamp, y = n))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+<p>Looks unsuspicious.</p>
+</div>
+<div id="debrief" class="section level1">
+<h1>Debrief</h1>
+<p>Not finding evidence of some failure is not evidence of no failure, in general at least.</p>
+</div>

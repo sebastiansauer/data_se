@@ -1,0 +1,725 @@
+---
+title: 'Comparing Knime and R: Simple Random Forest'
+author: Sebastian Sauer
+date: '2020-11-28'
+slug: comparing-knime-and-r-simple-random-forest
+output:
+  blogdown::html_page:
+    toc: true
+categories:
+  - rstats
+tags:
+  - comparison
+---
+
+<script src="index_files/header-attrs/header-attrs.js"></script>
+<link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+<script src="index_files/anchor-sections/anchor-sections.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#knime-workflow">Knime Workflow</a></li>
+<li><a href="#translate-it-to-r">Translate it to R!</a>
+<ul>
+<li><a href="#load-packages">Load Packages</a></li>
+<li><a href="#load-data">Load Data</a></li>
+<li><a href="#stratified-sampling">Stratified sampling</a></li>
+</ul></li>
+<li><a href="#random-forest-classification-model-in-r">Random Forest classification model in R</a>
+<ul>
+<li><a href="#define-and-run-random-forest-classification-model">Define and run Random Forest classification model</a>
+<ul>
+<li><a href="#define-learner-model">Define learner (model)</a></li>
+<li><a href="#define-recipe">Define recipe</a></li>
+<li><a href="#put-workflow-together">Put workflow together</a></li>
+<li><a href="#fit-the-model-to-the-train-data">Fit the model to the train data</a></li>
+</ul></li>
+<li><a href="#oob-results">OOB results</a></li>
+<li><a href="#model-results-in-test-data">Model results in test data</a>
+<ul>
+<li><a href="#multiclass-accuracy">Multiclass accuracy</a></li>
+<li><a href="#roc">ROC</a></li>
+<li><a href="#confusion-matrix">Confusion Matrix</a></li>
+</ul></li>
+</ul></li>
+<li><a href="#random-forest-regression-model-in-r">Random Forest regression model in R</a>
+<ul>
+<li><a href="#define-and-run-the-model">Define and run the model</a>
+<ul>
+<li><a href="#update-model-to-regression">Update model to regression</a></li>
+<li><a href="#define-recipe-1">Define recipe</a></li>
+<li><a href="#put-workflow-together-1">Put workflow together</a></li>
+</ul></li>
+<li><a href="#oob-results-1">OOB results</a></li>
+<li><a href="#model-results-in-test-data-1">Model results in test data</a></li>
+<li><a href="#variabble-importance">Variabble importance</a></li>
+<li><a href="#collect-performance-metrics">Collect performance metrics</a></li>
+</ul></li>
+</ul>
+</div>
+
+<div id="knime-workflow" class="section level1">
+<h1>Knime Workflow</h1>
+<p>Consider <a href="https://hub.knime.com/knime/spaces/Examples/latest/04_Analytics/13_Meta_Learning/02_Learning_a_Random_Forest">this</a> Knime workflow:</p>
+<p><a href="https://ibb.co/7j3crnM"><img src="https://i.ibb.co/djN9kPC/knime-rf.png" alt="knime-rf" border="0"></a><br /><a target='_blank' href='https://de.imgbb.com/'>de picture</a><br /></p>
+<p>That’s a simple Random Forest workflow, you can download the Knime worfklow <a href="https://kni.me/w/Sim-pKlioDWrgj_T">here</a>.</p>
+</div>
+<div id="translate-it-to-r" class="section level1">
+<h1>Translate it to R!</h1>
+<div id="load-packages" class="section level2">
+<h2>Load Packages</h2>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(tidymodels)  # modelling
+library(conflicted)  # name clashes
+library(caret)  # confusion matrix
+library(vip)  # variance importance plots
+library(gt)  # nice table formatting</code></pre>
+</div>
+<div id="load-data" class="section level2">
+<h2>Load Data</h2>
+<pre class="r"><code>data(iris)</code></pre>
+<pre class="r"><code>glimpse(iris)</code></pre>
+<pre><code>## Rows: 150
+## Columns: 5
+## $ Sepal.Length &lt;dbl&gt; 5.1, 4.9, 4.7, 4.6, 5.0, 5.4, 4.6, 5.0, 4.4, 4.9, 5.4, 4…
+## $ Sepal.Width  &lt;dbl&gt; 3.5, 3.0, 3.2, 3.1, 3.6, 3.9, 3.4, 3.4, 2.9, 3.1, 3.7, 3…
+## $ Petal.Length &lt;dbl&gt; 1.4, 1.4, 1.3, 1.5, 1.4, 1.7, 1.4, 1.5, 1.4, 1.5, 1.5, 1…
+## $ Petal.Width  &lt;dbl&gt; 0.2, 0.2, 0.2, 0.2, 0.2, 0.4, 0.3, 0.2, 0.2, 0.1, 0.2, 0…
+## $ Species      &lt;fct&gt; setosa, setosa, setosa, setosa, setosa, setosa, setosa, …</code></pre>
+</div>
+<div id="stratified-sampling" class="section level2">
+<h2>Stratified sampling</h2>
+<pre class="r"><code>split_vector &lt;- initial_split(iris,
+                              strata = Species)</code></pre>
+<pre class="r"><code>traindata &lt;- training(split_vector)
+
+testdata &lt;- testing(split_vector)</code></pre>
+</div>
+</div>
+<div id="random-forest-classification-model-in-r" class="section level1">
+<h1>Random Forest classification model in R</h1>
+<div id="define-and-run-random-forest-classification-model" class="section level2">
+<h2>Define and run Random Forest classification model</h2>
+<div id="define-learner-model" class="section level3">
+<h3>Define learner (model)</h3>
+<p>First define the model:</p>
+<pre class="r"><code>rf_mod &lt;- 
+  rand_forest(trees = 100) %&gt;% 
+  set_engine(&quot;ranger&quot;) %&gt;% 
+  set_mode(&quot;classification&quot;)</code></pre>
+</div>
+<div id="define-recipe" class="section level3">
+<h3>Define recipe</h3>
+<pre class="r"><code>rf_recipe &lt;-
+  recipe(Species ~ ., data = traindata) %&gt;% 
+  step_zv(all_predictors())  # filter zero variance variables</code></pre>
+<p>A recipe only contains</p>
+<ul>
+<li>names of variables</li>
+<li>their roles</li>
+<li>planned prepossing steps (here only filter all zero variance variables)</li>
+</ul>
+<pre class="r"><code>rf_recipe</code></pre>
+<pre><code>## Data Recipe
+## 
+## Inputs:
+## 
+##       role #variables
+##    outcome          1
+##  predictor          4
+## 
+## Operations:
+## 
+## Zero variance filter on all_predictors()</code></pre>
+</div>
+<div id="put-workflow-together" class="section level3">
+<h3>Put workflow together</h3>
+<pre class="r"><code>workflow() %&gt;% 
+  add_recipe(rf_recipe) %&gt;% 
+  add_model(rf_mod) -&gt; rf_wf
+
+rf_wf</code></pre>
+<pre><code>## ══ Workflow ════════════════════════════════════════════════════════════════════
+## Preprocessor: Recipe
+## Model: rand_forest()
+## 
+## ── Preprocessor ────────────────────────────────────────────────────────────────
+## 1 Recipe Step
+## 
+## ● step_zv()
+## 
+## ── Model ───────────────────────────────────────────────────────────────────────
+## Random Forest Model Specification (classification)
+## 
+## Main Arguments:
+##   trees = 100
+## 
+## Computational engine: ranger</code></pre>
+</div>
+<div id="fit-the-model-to-the-train-data" class="section level3">
+<h3>Fit the model to the train data</h3>
+<p>Then fit it:</p>
+<pre class="r"><code>set.seed(123)
+
+rf_fit &lt;-
+  rf_wf %&gt;% 
+  fit(data = traindata)</code></pre>
+</div>
+</div>
+<div id="oob-results" class="section level2">
+<h2>OOB results</h2>
+<pre class="r"><code>rf_fit</code></pre>
+<pre><code>## ══ Workflow [trained] ══════════════════════════════════════════════════════════
+## Preprocessor: Recipe
+## Model: rand_forest()
+## 
+## ── Preprocessor ────────────────────────────────────────────────────────────────
+## 1 Recipe Step
+## 
+## ● step_zv()
+## 
+## ── Model ───────────────────────────────────────────────────────────────────────
+## Ranger result
+## 
+## Call:
+##  ranger::ranger(x = maybe_data_frame(x), y = y, num.trees = ~100,      num.threads = 1, verbose = FALSE, seed = sample.int(10^5,          1), probability = TRUE) 
+## 
+## Type:                             Probability estimation 
+## Number of trees:                  100 
+## Sample size:                      114 
+## Number of independent variables:  4 
+## Mtry:                             2 
+## Target node size:                 10 
+## Variable importance mode:         none 
+## Splitrule:                        gini 
+## OOB prediction error (Brier s.):  0.04269909</code></pre>
+</div>
+<div id="model-results-in-test-data" class="section level2">
+<h2>Model results in test data</h2>
+<pre class="r"><code>testdata %&gt;% 
+  bind_cols(predict(rf_fit, testdata, type = &quot;prob&quot;)) %&gt;% 
+  bind_cols(predict(rf_fit, testdata)) -&gt; testdata_augmented</code></pre>
+<div id="multiclass-accuracy" class="section level3">
+<h3>Multiclass accuracy</h3>
+<pre class="r"><code>testdata_augmented %&gt;% 
+  roc_auc(truth = Species, 
+          .pred_setosa:.pred_virginica)</code></pre>
+<pre><code>## # A tibble: 1 x 3
+##   .metric .estimator .estimate
+##   &lt;chr&gt;   &lt;chr&gt;          &lt;dbl&gt;
+## 1 roc_auc hand_till          1</code></pre>
+<pre class="r"><code>testdata_augmented %&gt;% 
+  metrics(truth = Species, 
+          estimate = .pred_class)</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   .metric  .estimator .estimate
+##   &lt;chr&gt;    &lt;chr&gt;          &lt;dbl&gt;
+## 1 accuracy multiclass         1
+## 2 kap      multiclass         1</code></pre>
+</div>
+<div id="roc" class="section level3">
+<h3>ROC</h3>
+<pre class="r"><code>testdata_augmented %&gt;% 
+  roc_curve(truth = Species, 
+            estimate = .pred_setosa:.pred_virginica) %&gt;% 
+  autoplot()</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-15-1.png" width="672" /></p>
+</div>
+<div id="confusion-matrix" class="section level3">
+<h3>Confusion Matrix</h3>
+<pre class="r"><code>confusionMatrix(data = testdata_augmented$.pred_class,
+                reference = testdata_augmented$Species)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##             Reference
+## Prediction   setosa versicolor virginica
+##   setosa         12          0         0
+##   versicolor      0         12         0
+##   virginica       0          0        12
+## 
+## Overall Statistics
+##                                      
+##                Accuracy : 1          
+##                  95% CI : (0.9026, 1)
+##     No Information Rate : 0.3333     
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16  
+##                                      
+##                   Kappa : 1          
+##                                      
+##  Mcnemar&#39;s Test P-Value : NA         
+## 
+## Statistics by Class:
+## 
+##                      Class: setosa Class: versicolor Class: virginica
+## Sensitivity                 1.0000            1.0000           1.0000
+## Specificity                 1.0000            1.0000           1.0000
+## Pos Pred Value              1.0000            1.0000           1.0000
+## Neg Pred Value              1.0000            1.0000           1.0000
+## Prevalence                  0.3333            0.3333           0.3333
+## Detection Rate              0.3333            0.3333           0.3333
+## Detection Prevalence        0.3333            0.3333           0.3333
+## Balanced Accuracy           1.0000            1.0000           1.0000</code></pre>
+</div>
+</div>
+</div>
+<div id="random-forest-regression-model-in-r" class="section level1">
+<h1>Random Forest regression model in R</h1>
+<div id="define-and-run-the-model" class="section level2">
+<h2>Define and run the model</h2>
+<div id="update-model-to-regression" class="section level3">
+<h3>Update model to regression</h3>
+<p>Update the classification model to regression</p>
+<pre class="r"><code>rf_mod  %&gt;%  
+  set_mode(&quot;regression&quot;) %&gt;% 
+  set_args(mtry = 3, importance = &quot;impurity&quot;) -&gt; rf_mod_regr</code></pre>
+</div>
+<div id="define-recipe-1" class="section level3">
+<h3>Define recipe</h3>
+<pre class="r"><code>rf_recipe_regr &lt;-
+  recipe(Petal.Width ~ ., data = traindata)</code></pre>
+</div>
+<div id="put-workflow-together-1" class="section level3">
+<h3>Put workflow together</h3>
+<pre class="r"><code>workflow() %&gt;% 
+  add_recipe(rf_recipe_regr) %&gt;% 
+  add_model(rf_mod_regr)  -&gt; rf_wf_regr
+
+rf_wf_regr</code></pre>
+<pre><code>## ══ Workflow ════════════════════════════════════════════════════════════════════
+## Preprocessor: Recipe
+## Model: rand_forest()
+## 
+## ── Preprocessor ────────────────────────────────────────────────────────────────
+## 0 Recipe Steps
+## 
+## ── Model ───────────────────────────────────────────────────────────────────────
+## Random Forest Model Specification (regression)
+## 
+## Main Arguments:
+##   mtry = 3
+##   trees = 100
+## 
+## Engine-Specific Arguments:
+##   importance = impurity
+## 
+## Computational engine: ranger</code></pre>
+</div>
+</div>
+<div id="oob-results-1" class="section level2">
+<h2>OOB results</h2>
+<p>Then fit the model:</p>
+<pre class="r"><code>set.seed(123)
+
+rf_fit_regr &lt;-
+  rf_wf_regr %&gt;% 
+  fit(data = traindata)</code></pre>
+<pre class="r"><code>rf_fit_regr</code></pre>
+<pre><code>## ══ Workflow [trained] ══════════════════════════════════════════════════════════
+## Preprocessor: Recipe
+## Model: rand_forest()
+## 
+## ── Preprocessor ────────────────────────────────────────────────────────────────
+## 0 Recipe Steps
+## 
+## ── Model ───────────────────────────────────────────────────────────────────────
+## Ranger result
+## 
+## Call:
+##  ranger::ranger(x = maybe_data_frame(x), y = y, mtry = min_cols(~3,      x), num.trees = ~100, importance = ~&quot;impurity&quot;, num.threads = 1,      verbose = FALSE, seed = sample.int(10^5, 1)) 
+## 
+## Type:                             Regression 
+## Number of trees:                  100 
+## Sample size:                      114 
+## Number of independent variables:  4 
+## Mtry:                             3 
+## Target node size:                 5 
+## Variable importance mode:         impurity 
+## Splitrule:                        variance 
+## OOB prediction error (MSE):       0.03710244 
+## R squared (OOB):                  0.9355139</code></pre>
+</div>
+<div id="model-results-in-test-data-1" class="section level2">
+<h2>Model results in test data</h2>
+<pre class="r"><code>testdata %&gt;% 
+  bind_cols(predict(rf_fit_regr, testdata)) -&gt; testdata_augmented</code></pre>
+</div>
+<div id="variabble-importance" class="section level2">
+<h2>Variabble importance</h2>
+<pre class="r"><code>pull_workflow_fit(rf_fit_regr) %&gt;% 
+  vip()</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-23-1.png" width="672" /></p>
+</div>
+<div id="collect-performance-metrics" class="section level2">
+<h2>Collect performance metrics</h2>
+<pre class="r"><code>testdata %&gt;% 
+  bind_cols(rf_fit_regr %&gt;% predict(testdata)) %&gt;% 
+  metrics(truth = Petal.Width,
+          estimate = .pred) %&gt;% 
+  gt()</code></pre>
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#rvketnvyze .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#rvketnvyze .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#rvketnvyze .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#rvketnvyze .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 4px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#rvketnvyze .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#rvketnvyze .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#rvketnvyze .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#rvketnvyze .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#rvketnvyze .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#rvketnvyze .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#rvketnvyze .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#rvketnvyze .gt_group_heading {
+  padding: 8px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#rvketnvyze .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#rvketnvyze .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#rvketnvyze .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#rvketnvyze .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#rvketnvyze .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 12px;
+}
+
+#rvketnvyze .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#rvketnvyze .gt_first_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+}
+
+#rvketnvyze .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#rvketnvyze .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#rvketnvyze .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#rvketnvyze .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#rvketnvyze .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#rvketnvyze .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding: 4px;
+}
+
+#rvketnvyze .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#rvketnvyze .gt_sourcenote {
+  font-size: 90%;
+  padding: 4px;
+}
+
+#rvketnvyze .gt_left {
+  text-align: left;
+}
+
+#rvketnvyze .gt_center {
+  text-align: center;
+}
+
+#rvketnvyze .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#rvketnvyze .gt_font_normal {
+  font-weight: normal;
+}
+
+#rvketnvyze .gt_font_bold {
+  font-weight: bold;
+}
+
+#rvketnvyze .gt_font_italic {
+  font-style: italic;
+}
+
+#rvketnvyze .gt_super {
+  font-size: 65%;
+}
+
+#rvketnvyze .gt_footnote_marks {
+  font-style: italic;
+  font-size: 65%;
+}
+</style>
+<div id="rvketnvyze" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;"><table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">.metric</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">.estimator</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan="1" colspan="1">.estimate</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr>
+      <td class="gt_row gt_left">rmse</td>
+      <td class="gt_row gt_left">standard</td>
+      <td class="gt_row gt_right">0.1543815</td>
+    </tr>
+    <tr>
+      <td class="gt_row gt_left">rsq</td>
+      <td class="gt_row gt_left">standard</td>
+      <td class="gt_row gt_right">0.9727964</td>
+    </tr>
+    <tr>
+      <td class="gt_row gt_left">mae</td>
+      <td class="gt_row gt_left">standard</td>
+      <td class="gt_row gt_right">0.1024894</td>
+    </tr>
+  </tbody>
+  
+  
+</table></div>
+</div>
+</div>

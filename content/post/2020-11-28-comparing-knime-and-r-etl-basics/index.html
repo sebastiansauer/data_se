@@ -1,0 +1,331 @@
+---
+title: 'Comparing Knime and R: ETL_Basics'
+author: Sebastian Sauer
+date: '2020-11-28'
+slug: comparing-knime-and-r-etl-basics
+categories:
+  - rstats
+tags:
+  - comparison
+editor_options: 
+  chunk_output_type: console
+output:
+  blogdown::html_page:
+    toc: true
+---
+
+<script src="index_files/header-attrs/header-attrs.js"></script>
+<link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+<script src="index_files/anchor-sections/anchor-sections.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#knime-workflow">Knime workflow</a></li>
+<li><a href="#r-translation">R translation</a>
+<ul>
+<li><a href="#setup">Setup</a></li>
+<li><a href="#chunk-1-read-sort-filter">Chunk 1: Read, sort, filter</a></li>
+<li><a href="#chunk-2-group-and-aggregate">Chunk 2: group and aggregate</a></li>
+<li><a href="#chunk-3-filter">Chunk 3: filter</a></li>
+</ul></li>
+<li><a href="#chunk-4-concatenate">Chunk 4: concatenate</a></li>
+<li><a href="#chunk-5-join">Chunk 5: join</a></li>
+<li><a href="#chuunk-6-write-to-csv">Chuunk 6: write to csv</a></li>
+</ul>
+</div>
+
+<div id="knime-workflow" class="section level1">
+<h1>Knime workflow</h1>
+<p>Consider this Knime workflow:</p>
+<p><img src="https://i.postimg.cc/G273xn2Q/knime-etl.png" /></p>
+</div>
+<div id="r-translation" class="section level1">
+<h1>R translation</h1>
+<div id="setup" class="section level2">
+<h2>Setup</h2>
+<pre class="r"><code>library(tidyverse)
+library(lubridate)
+library(knitr)</code></pre>
+</div>
+<div id="chunk-1-read-sort-filter" class="section level2">
+<h2>Chunk 1: Read, sort, filter</h2>
+<pre class="r"><code>datafile &lt;- &quot;https://raw.githubusercontent.com/sebastiansauer/sesa-blog/main/static/datasets/sales_2008-2011.csv&quot;
+
+d &lt;- read_csv(datafile)</code></pre>
+<pre><code>## 
+## ── Column specification ────────────────────────────────────────────────────────
+## cols(
+##   product = col_character(),
+##   country = col_character(),
+##   date = col_date(format = &quot;&quot;),
+##   quantity = col_double(),
+##   amount = col_double(),
+##   card = col_character(),
+##   Cust_ID = col_character()
+## )</code></pre>
+<pre class="r"><code>glimpse(d)</code></pre>
+<pre><code>## Rows: 47
+## Columns: 7
+## $ product  &lt;chr&gt; &quot;prod_4&quot;, &quot;prod_3&quot;, &quot;prod_3&quot;, &quot;prod_3&quot;, &quot;prod_3&quot;, &quot;prod_3&quot;, …
+## $ country  &lt;chr&gt; &quot;unknown&quot;, &quot;China&quot;, &quot;China&quot;, &quot;China&quot;, &quot;USA&quot;, &quot;Brazil&quot;, &quot;USA&quot;…
+## $ date     &lt;date&gt; 2008-12-12, 2009-04-10, 2009-04-10, 2009-05-10, 2009-05-20,…
+## $ quantity &lt;dbl&gt; 1, 2, 2, 2, 20, 15, 2, 2, 20, 15, 15, 1, 1, 20, 1, 1, 25, 2,…
+## $ amount   &lt;dbl&gt; 3, 160, 160, 160, 1600, 1200, 70, 70, 1600, 600, 600, 35, 35…
+## $ card     &lt;chr&gt; NA, &quot;N&quot;, &quot;Y&quot;, NA, NA, NA, &quot;Y&quot;, NA, NA, NA, &quot;N&quot;, &quot;Y&quot;, &quot;Y&quot;, NA…
+## $ Cust_ID  &lt;chr&gt; &quot;Cust_8&quot;, &quot;Cust_2&quot;, &quot;Cust_5&quot;, &quot;Cust_2&quot;, &quot;Cust_3&quot;, &quot;Cust_7&quot;, …</code></pre>
+<p>The data is already recognized as date; no need for transformation.</p>
+<pre class="r"><code>d %&gt;% 
+  arrange(date) %&gt;% 
+  select(-card) -&gt; d</code></pre>
+</div>
+<div id="chunk-2-group-and-aggregate" class="section level2">
+<h2>Chunk 2: group and aggregate</h2>
+<pre class="r"><code>d %&gt;% 
+  group_by(Cust_ID) %&gt;% 
+  summarise(amount_sum = sum(amount),
+            country = first(country),
+            start = min(date),
+            end = max(date),
+            duration = end - start) -&gt; d_summarized</code></pre>
+<pre><code>## `summarise()` ungrouping output (override with `.groups` argument)</code></pre>
+</div>
+<div id="chunk-3-filter" class="section level2">
+<h2>Chunk 3: filter</h2>
+<pre class="r"><code>d_summarized %&gt;% 
+  filter(amount_sum &gt; 5000) %&gt;% 
+  filter(country == &quot;USA&quot;) -&gt; d_summarized_filtered1</code></pre>
+<pre class="r"><code>d_summarized %&gt;% 
+  filter(between(amount_sum,1000, 2000)) %&gt;% 
+  filter(country == &quot;Germany&quot;) -&gt; d_summarized_filtered2</code></pre>
+</div>
+</div>
+<div id="chunk-4-concatenate" class="section level1">
+<h1>Chunk 4: concatenate</h1>
+<pre class="r"><code>d_summarized_filtered1 %&gt;% 
+  bind_rows(d_summarized_filtered2) -&gt; d_concatenated</code></pre>
+</div>
+<div id="chunk-5-join" class="section level1">
+<h1>Chunk 5: join</h1>
+<p>Join by ID</p>
+<pre class="r"><code>d_concatenated %&gt;% 
+  inner_join(d, by = &quot;Cust_ID&quot;) -&gt; d_joined</code></pre>
+<pre class="r"><code>kable(d_joined)</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="7%" />
+<col width="10%" />
+<col width="9%" />
+<col width="10%" />
+<col width="10%" />
+<col width="8%" />
+<col width="7%" />
+<col width="9%" />
+<col width="10%" />
+<col width="8%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">Cust_ID</th>
+<th align="right">amount_sum</th>
+<th align="left">country.x</th>
+<th align="left">start</th>
+<th align="left">end</th>
+<th align="left">duration</th>
+<th align="left">product</th>
+<th align="left">country.y</th>
+<th align="left">date</th>
+<th align="right">quantity</th>
+<th align="right">amount</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Cust_3</td>
+<td align="right">6180</td>
+<td align="left">USA</td>
+<td align="left">2009-05-20</td>
+<td align="left">2011-01-10</td>
+<td align="left">600 days</td>
+<td align="left">prod_3</td>
+<td align="left">USA</td>
+<td align="left">2009-05-20</td>
+<td align="right">20</td>
+<td align="right">1600</td>
+</tr>
+<tr class="even">
+<td align="left">Cust_3</td>
+<td align="right">6180</td>
+<td align="left">USA</td>
+<td align="left">2009-05-20</td>
+<td align="left">2011-01-10</td>
+<td align="left">600 days</td>
+<td align="left">prod_1</td>
+<td align="left">USA</td>
+<td align="left">2009-07-04</td>
+<td align="right">2</td>
+<td align="right">70</td>
+</tr>
+<tr class="odd">
+<td align="left">Cust_3</td>
+<td align="right">6180</td>
+<td align="left">USA</td>
+<td align="left">2009-05-20</td>
+<td align="left">2011-01-10</td>
+<td align="left">600 days</td>
+<td align="left">prod_3</td>
+<td align="left">USA</td>
+<td align="left">2009-08-20</td>
+<td align="right">20</td>
+<td align="right">1600</td>
+</tr>
+<tr class="even">
+<td align="left">Cust_3</td>
+<td align="right">6180</td>
+<td align="left">USA</td>
+<td align="left">2009-05-20</td>
+<td align="left">2011-01-10</td>
+<td align="left">600 days</td>
+<td align="left">prod_3</td>
+<td align="left">USA</td>
+<td align="left">2010-01-03</td>
+<td align="right">20</td>
+<td align="right">1600</td>
+</tr>
+<tr class="odd">
+<td align="left">Cust_3</td>
+<td align="right">6180</td>
+<td align="left">USA</td>
+<td align="left">2009-05-20</td>
+<td align="left">2011-01-10</td>
+<td align="left">600 days</td>
+<td align="left">prod_3</td>
+<td align="left">USA</td>
+<td align="left">2010-03-17</td>
+<td align="right">1</td>
+<td align="right">80</td>
+</tr>
+<tr class="even">
+<td align="left">Cust_3</td>
+<td align="right">6180</td>
+<td align="left">USA</td>
+<td align="left">2009-05-20</td>
+<td align="left">2011-01-10</td>
+<td align="left">600 days</td>
+<td align="left">prod_2</td>
+<td align="left">USA</td>
+<td align="left">2010-04-22</td>
+<td align="right">10</td>
+<td align="right">400</td>
+</tr>
+<tr class="odd">
+<td align="left">Cust_3</td>
+<td align="right">6180</td>
+<td align="left">USA</td>
+<td align="left">2009-05-20</td>
+<td align="left">2011-01-10</td>
+<td align="left">600 days</td>
+<td align="left">prod_2</td>
+<td align="left">USA</td>
+<td align="left">2010-07-07</td>
+<td align="right">12</td>
+<td align="right">480</td>
+</tr>
+<tr class="even">
+<td align="left">Cust_3</td>
+<td align="right">6180</td>
+<td align="left">USA</td>
+<td align="left">2009-05-20</td>
+<td align="left">2011-01-10</td>
+<td align="left">600 days</td>
+<td align="left">prod_1</td>
+<td align="left">USA</td>
+<td align="left">2011-01-10</td>
+<td align="right">10</td>
+<td align="right">350</td>
+</tr>
+<tr class="odd">
+<td align="left">Cust_4</td>
+<td align="right">1090</td>
+<td align="left">Germany</td>
+<td align="left">2010-01-13</td>
+<td align="left">2011-03-20</td>
+<td align="left">431 days</td>
+<td align="left">prod_3</td>
+<td align="left">Germany</td>
+<td align="left">2010-01-13</td>
+<td align="right">1</td>
+<td align="right">80</td>
+</tr>
+<tr class="even">
+<td align="left">Cust_4</td>
+<td align="right">1090</td>
+<td align="left">Germany</td>
+<td align="left">2010-01-13</td>
+<td align="left">2011-03-20</td>
+<td align="left">431 days</td>
+<td align="left">prod_2</td>
+<td align="left">Germany</td>
+<td align="left">2010-03-31</td>
+<td align="right">5</td>
+<td align="right">200</td>
+</tr>
+<tr class="odd">
+<td align="left">Cust_4</td>
+<td align="right">1090</td>
+<td align="left">Germany</td>
+<td align="left">2010-01-13</td>
+<td align="left">2011-03-20</td>
+<td align="left">431 days</td>
+<td align="left">prod_2</td>
+<td align="left">Germany</td>
+<td align="left">2011-02-11</td>
+<td align="right">1</td>
+<td align="right">40</td>
+</tr>
+<tr class="even">
+<td align="left">Cust_4</td>
+<td align="right">1090</td>
+<td align="left">Germany</td>
+<td align="left">2010-01-13</td>
+<td align="left">2011-03-20</td>
+<td align="left">431 days</td>
+<td align="left">prod_1</td>
+<td align="left">Germany</td>
+<td align="left">2011-03-06</td>
+<td align="right">10</td>
+<td align="right">350</td>
+</tr>
+<tr class="odd">
+<td align="left">Cust_4</td>
+<td align="right">1090</td>
+<td align="left">Germany</td>
+<td align="left">2010-01-13</td>
+<td align="left">2011-03-20</td>
+<td align="left">431 days</td>
+<td align="left">prod_1</td>
+<td align="left">Germany</td>
+<td align="left">2011-03-18</td>
+<td align="right">1</td>
+<td align="right">35</td>
+</tr>
+<tr class="even">
+<td align="left">Cust_4</td>
+<td align="right">1090</td>
+<td align="left">Germany</td>
+<td align="left">2010-01-13</td>
+<td align="left">2011-03-20</td>
+<td align="left">431 days</td>
+<td align="left">prod_1</td>
+<td align="left">Germany</td>
+<td align="left">2011-03-20</td>
+<td align="right">11</td>
+<td align="right">385</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="chuunk-6-write-to-csv" class="section level1">
+<h1>Chuunk 6: write to csv</h1>
+<pre class="r"><code>write_csv(d_joined, file = &quot;d_joined.csv&quot;)</code></pre>
+</div>

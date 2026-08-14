@@ -1,0 +1,69 @@
+---
+title: Beispiel für pivot_longer()
+author: Sebastian Sauer
+date: '2021-05-27'
+slug: beispiel-für-pivot-longer
+categories:
+  - rstats
+tags:
+  - datawrangling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#setup"><span class="toc-section-number">1</span> Setup</a></li>
+<li><a href="#daten-laden"><span class="toc-section-number">2</span> Daten laden</a></li>
+<li><a href="#von-lang-nach-breit"><span class="toc-section-number">3</span> Von lang nach breit</a></li>
+<li><a href="#plotten"><span class="toc-section-number">4</span> Plotten</a></li>
+<li><a href="#kommentar"><span class="toc-section-number">5</span> Kommentar</a></li>
+</ul>
+</div>
+
+<div id="setup" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Setup</h1>
+<pre class="r"><code>library(tidyverse)</code></pre>
+</div>
+<div id="daten-laden" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Daten laden</h1>
+<pre class="r"><code>d &lt;- read_csv(&quot;https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/Impfbereitschaft/d3.csv&quot;)</code></pre>
+</div>
+<div id="von-lang-nach-breit" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Von lang nach breit</h1>
+<pre class="r"><code>d2 &lt;-
+  d %&gt;% 
+  select(willingness:open2) %&gt;% 
+  pivot_longer(extra1:open2)</code></pre>
+<pre class="r"><code>d2 %&gt;% 
+  slice_head(n = 7) 
+#&gt; # A tibble: 7 x 6
+#&gt;   willingness health  fear cases name   value
+#&gt;         &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;  &lt;dbl&gt;
+#&gt; 1          10      9     5     1 extra1     2
+#&gt; 2          10      9     5     1 agree1     2
+#&gt; 3          10      9     5     1 cons1      3
+#&gt; 4          10      9     5     1 neuro1     2
+#&gt; 5          10      9     5     1 open1      4
+#&gt; 6          10      9     5     1 extra2     1
+#&gt; 7          10      9     5     1 agree2     4</code></pre>
+</div>
+<div id="plotten" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Plotten</h1>
+<pre class="r"><code>d2 %&gt;% 
+  ggplot() +
+  aes(x = willingness, y = value) +
+  facet_wrap(~ name) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Jedes Diagramm zeigt den Zusammenhang von Impfbereitschaft mit einem Big-Five-Item. Das Diagramm ist alles andere als ideal; hier ging es nur darum, den Nutzen von <code>pivot_longer()</code> an einem praktischen Beispiel zu zeigen.</p>
+</div>
+<div id="kommentar" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Kommentar</h1>
+<p><code>pivot_longer()</code> ist nützlich, z.B. wenn man mehrere Variablen visualisieren möchte. Ein sinnvoller Zugang ist es dann, eine Facette pro Variable zu zeigen (s. Beispiel oben). Dazu erstellt man eine Gruppierungsvariable, die die verschiedenen Variablen als Werte fasst, z.B. die Werte “Variable1”, “Variable”, … . Dann kann man diese Gruppierungsvariable für die Facettierung nutzen. Wichtig: Man kann nur über eine Variable facettiereen (mit <code>facet_wrap()</code>). Daher muss man also die mehreren Variablen in eine umformatieren. Das erreicht man mit <code>pivot_longer()</code>.</p>
+</div>

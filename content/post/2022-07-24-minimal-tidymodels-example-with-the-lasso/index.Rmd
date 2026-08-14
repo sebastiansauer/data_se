@@ -1,0 +1,92 @@
+---
+title: Minimal tidymodels example with the Lasso
+author: Sebastian Sauer
+date: '2022-07-24'
+slug: minimal-tidymodels-example-with-the-lasso
+tags:
+  - tidymodels
+  - prediction
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+# Intro
+
+In this post, we try to find a minimal setup for running/fitting a predictive model using the tidymodels approach.
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(tidymodels)
+```
+
+
+# Data
+
+```{r}
+data("penguins", package = "modeldata")
+```
+
+
+# Minimal code for fitting a model
+
+```{r fit-m1}
+m1 <- linear_reg(engine = "glmnet", penalty = 1, mixture = 1) %>% 
+  fit(body_mass_g ~ ., data = penguins)
+```
+
+
+Note that, for simplicity, we do not care about cross-validation, tuning and preprocessing.
+In particular, we should normalize the metric predictors and dummytize the nominmal predictors.
+
+We do not even use tidymodels' `workflow` approach here for the sake of minimalism.
+I'm not saying that I would recommend this minimal approach though.
+
+# Results
+
+The `tidy` method from `{broom}` offers an handy approach to get the model parameters:
+
+```{r}
+m1 %>% 
+  tidy()
+```
+
+
+In case any predictor beta has been shrunken to zero, we would get a note, see for instance [this post](https://www.tidymodels.org/learn/models/coefficients/) 
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

@@ -1,0 +1,87 @@
+---
+title: Beispiel für pivot_longer()
+author: Sebastian Sauer
+date: '2021-05-27'
+slug: beispiel-für-pivot-longer
+categories:
+  
+tags:
+  - datawrangling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Setup
+
+```{r}
+library(tidyverse)
+```
+
+
+
+# Daten laden
+
+```{r}
+d <- read_csv("https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/Impfbereitschaft/d3.csv")
+```
+
+
+
+# Von lang nach breit
+
+```{r}
+d2 <-
+  d %>% 
+  select(willingness:open2) %>% 
+  pivot_longer(extra1:open2)
+```
+
+```{r}
+d2 %>% 
+  slice_head(n = 7) 
+```
+
+
+# Plotten
+
+
+```{r}
+d2 %>% 
+  ggplot() +
+  aes(x = willingness, y = value) +
+  facet_wrap(~ name) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+
+Jedes Diagramm zeigt den Zusammenhang von Impfbereitschaft mit einem Big-Five-Item. Das Diagramm ist alles andere als ideal; hier ging es nur darum, den Nutzen von `pivot_longer()` an einem praktischen Beispiel zu zeigen.
+
+
+# Kommentar
+
+
+`pivot_longer()` ist nützlich, z.B. wenn man mehrere Variablen visualisieren möchte. Ein sinnvoller Zugang ist es dann, eine Facette pro Variable zu zeigen (s. Beispiel oben). Dazu erstellt man eine Gruppierungsvariable, die die verschiedenen Variablen als Werte fasst, z.B. die Werte "Variable1", "Variable", ... . Dann kann man diese Gruppierungsvariable für die Facettierung nutzen. Wichtig: Man kann nur über eine Variable facettiereen (mit `facet_wrap()`). Daher muss man also die mehreren Variablen in eine umformatieren. Das erreicht man mit `pivot_longer()`.
+

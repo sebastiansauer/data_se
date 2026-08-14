@@ -1,0 +1,103 @@
+---
+title: Prevent dropping from non-occuring levels using dplyr
+author: Sebastian Sauer
+date: '2024-01-30'
+slug: prevent-dropping-from-non-occuring-levels-using-dplyr
+categories:
+  - rstats
+tags:
+  - tidyverse
+  - datawrangling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+# Problem
+
+Consider the following situation:
+
+
+```{r}
+mtcars |> 
+  group_by(high_hp = hp > 1000) |> 
+  count(high_hp)
+```
+
+The summary table does not show the level `TRUE`, as it is not occuring in the data.
+This can be problematic: If the data is unknown before summarizing and you would expect that both/all levels (TRUE, FALSE) occur. Just imagine that a subsequent function will count the level `TRUE` and the level `FALSE`. If one level is missing, your system may brake down.
+
+
+# Solution
+
+Using dplyr and `count` or `summarize`, one solution is to turn the grouping variable in a factor,
+and then using the parameter `.drop = FALSE` in `count` or `summarise`. 
+
+Here's an example for `count`:
+
+
+```{r}
+mtcars |> 
+  group_by(high_hp = hp > 1000) |> 
+  mutate(high_hp = factor(high_hp, levels = c(FALSE, TRUE))) |> 
+  count(high_hp, .drop = FALSE)
+```
+
+And here a similar one for `summarise`:
+
+```{r}
+mtcars %>% 
+  group_by(hp_over_1000 = factor(hp > 1000, levels = c(FALSE, TRUE)), .drop = FALSE) %>% 
+  summarise(mean_hp = mean(hp))
+```
+
+If we would like to make sure that the resulting variable is not `NaN`, then we could use `complete`:
+
+```{r}
+mtcars %>% 
+  group_by(hp_over_1000 = factor(hp > 1000, levels = c(FALSE, TRUE)), .drop = FALSE) %>% 
+  summarise(mean_hp = mean(hp)) %>%
+  complete(hp_over_1000, fill = list(mean_hp = NA))
+```
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

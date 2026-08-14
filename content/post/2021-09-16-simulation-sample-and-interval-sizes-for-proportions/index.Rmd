@@ -1,0 +1,254 @@
+---
+title: Simulation sample and interval sizes for proportions
+author: Sebastian Sauer
+date: '2021-09-16'
+slug: simulation-sample-and-interval-sizes-for-proportions
+bibliography: /Users/sebastiansaueruser/Google Drive/Literatur/refmgt/library-ses.bib
+categories:
+  - rstats
+tags:
+  - simulation
+
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+```{r global-knitr-options, include=FALSE}
+knitr::opts_chunk$set(fig.pos = 'H',
+  fig.asp = 0.618,
+  fig.width = 5,
+  fig.cap = "", 
+  out.width = "70%",
+  fig.path = "",
+  fig.align = "center",
+  fig.show = "hold",
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE)
+```
+
+
+# Exemplary Research question
+
+
+What is the sample size needed to estimate the proportion of the event "high quality study" with an error margin of ±5%, and a confidence level of 99%? Let's assume the probability of the event is 50%, and we draw the studies independently?
+
+
+
+
+
+
+
+# Task definition
+
+
+Let's simulate the width of a $1-\alpha$ compatibility interval with a given margin of error $E$ for varying samples sizes $n_i$, where $i = 1,...,N$, and $N$ is the maximum sample size we can afford. We'll assume indendently distributed and independent trials (iid).
+
+Let's further assume we are looking at a binary event $X$ with a success $x$ probability of $Pr(X=x)=p$.
+
+
+Let $Y_k = \sum_1^i X_j$; think of $Y_k$ as one sample of a given sample size, $n_i$. Note that $Y_k \overset{iid}{\sim} \mathcal{B}(n,p)$ (Binomially distributed).
+
+Let's draw $K$ samples for each $Y_k$, and dub the resulting statistic $Z_i$. We'll compute $Z_i$ for each sample size $n_i$, with $i = 1,...,N$.
+
+Finally, we'll compute the arithmetic average of each $Y_k$ and of $Z_i$, for scale independency.
+
+
+
+
+# Technical setup
+
+We'll run this simulation in R, making use of the following packages:
+
+```{r message = FALSE}
+library(tidyverse)
+library(scales)
+library(glue)
+library(moments)
+```
+
+```{r echo = FALSE}
+theme_set(theme_minimal())
+```
+
+
+# Define constants
+
+```{r}
+N <- 1e04  # max. sample size
+E <- .05  # error margin
+p <- 1/2  # probability of event (success)
+alpha = .01  # compatibility level
+K <- 1e03  # repetitions per sample size
+
+q <- abs(qnorm(p = alpha/2))
+q  # quantile in the normal distribution for alpha
+```
+
+Note that $p=1/2$ is the maximum conservative assumption yielding the largest sample size.
+
+# Prepare data frame for the simulation
+
+```{r}
+df <- tibble(
+  i = 1:N,
+  estimate = NA,
+  se = NA,
+  lwr = NA,
+  upr = NA,
+  width = NA,
+  small_enough = NA
+)
+```
+
+
+# Simulation
+
+Let's draw $N$ samples with increasing sample size from 1 to $N=`r N`$, each time with $K=`r K`$ repetitions, assuming independent draws and a Binomial distribution with $p=`r p`$.
+
+```{r}
+for (i in 1:N) {
+  # draw K "coin flip" samples of size i, 
+  # with succcess propability p: 
+  tmp <- rbinom(n = K, size = i, prob = p)
+  # compute succcess rate for each sample:
+  prop_success <- tmp/i
+  # compute success rate over all K samples:
+  df$estimate[i] <- mean(prop_success)
+  # compute standard error:
+  df$se[i] <- sd(prop_success)
+  # compute interval borders and width:
+  df$lwr[i] <- df$estimate[i] - q * df$se[i]
+  df$upr[i] <- df$estimate[i] + q * df$se[i]
+  df$width[i] <- df$upr[i] - df$lwr[i] 
+  # check if intervals is as small as desired:
+  if (df$width[i] < 2*E)
+   {df$small_enough[i] <- TRUE} else {
+     df$small_enough[i] <- FALSE}
+}
+```
+
+
+# Check some distributions 
+
+Note that the binomial distributions converges against the normal distribution. For instance, let's pick $n_i=100$ and $K=10^4$.
+
+```{r}
+smple <- tibble(
+ estimate = rbinom(n = 1e04, 
+                   size = 100, 
+                   prob = p))
+
+smple %>% 
+  ggplot(aes(x = estimate)) +
+  geom_density()
+```
+
+
+Let's briefly check for normality, using a quantile-quantile plot:
+
+
+```{r}
+ggplot(smple, aes(sample = estimate)) + 
+  stat_qq() +
+  stat_qq_line(col = "red")
+```
+
+This check reassured us that this distribution is normal.
+
+Add some stats for checking normality:
+
+```{r}
+skewness(smple$estimate)
+kurtosis(smple$estimate)
+```
+
+
+Which nicely fits a normal distribution.
+
+Also note that a linear transformation of a normal curve is still normal:
+
+```{r}
+tibble(
+ estimate = rbinom(n = 1e04, 
+                   size = 100, 
+                   prob = p),
+ prop = estimate / 100) %>% 
+  ggplot(aes(x = prop)) +
+  geom_density()
+```
+
+# Minimum sample size
+
+What's the minimum sample size $n_{min}$ needed such that $w \le 2E$, where $w$ denotes the width of the compatibility interval?
+
+```{r}
+n_min <- 
+  df$width %>% 
+  detect_index(~ .x <= 2*E)
+
+n_min
+```
+
+
+What's the *maximum* sample size $n_{max}$ needed such that $w > 2E$?
+
+```{r}
+n_max <- 
+  df$width %>% 
+  detect_index(~ .x > 2*E, .dir = "backward")
+
+n_max
+```
+
+
+# Plot results
+
+```{r out.width="120%", fig.asp=.7}
+df %>% 
+  filter(i > 30) %>% 
+  ggplot(aes(x = i, y = width)) +
+  geom_line() + 
+  scale_x_continuous(trans = log10_trans()) + 
+  geom_hline(yintercept = 2*E, linetype ="dashed", color = "grey60") +
+  annotate("label", x = 100, y = .1, label = "2E") +
+  geom_vline(xintercept = n_max, linetype = "dashed", 
+             color = "blue") +
+  geom_vline(xintercept = n_min, linetype = "dashed",
+             color = "red") +
+  annotate("label", x = n_max, y = .3, 
+           label = glue("nmax={n_max}"), 
+           color = "blue") +
+  annotate("label", x = n_max, y = .2, 
+           label = glue("nmin={n_min}"),
+           color = "red") +
+  labs(x = "sample size (log)",
+       y = "margin of error",
+       subtitle = "for estimating the width of compatibility intervals",
+       title = "Simulating minimum sample sizes",
+       caption = glue("Alpha: {alpha}, desired E = {E}, p = 1/2. See text for details.\n Each x-value depicts the average of {K} samples")) +
+  theme_minimal()
+```
+
+
+
+# Summary
+
+The simulation implies that we need a sample size $n$ of approx. around `r n_min` to `r n_max` to get a compatibility interval of width $2E$ for an alpha level of $1-\alpha=`r (1-alpha)`$.
+
+
+
+# Discussion
+
+This post proposes a rough approach of attaining practical sample sizes when an analytical approach is not wanted or feasible. Several limitations should be put forward: One might want with finite populations; one might want to compare the simulation results with typical formulas; one might prefer different stopping rules.
+
+
+# Suggested reading
+
+Check out the following sources for related issues and more in-depth treatment: @landau_sample_2013, @Schonbrodt2013a, @maxwell_sample_2008, @arnold_simulation_2011, @kruschke_doing_2015.
+
+
+# Bibliography

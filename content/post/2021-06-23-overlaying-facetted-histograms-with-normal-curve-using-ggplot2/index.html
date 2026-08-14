@@ -1,0 +1,185 @@
+---
+title: Overlaying facetted histograms with normal curve using ggplot2
+author: Sebastian Sauer
+date: '2021-06-23'
+slug: overlaying-facetted-histograms-with-normal-curve-using-ggplot2
+categories:
+  - rstats
+tags:
+  - visualization
+  - dataviz
+editor_options: 
+  chunk_output_type: console
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="overlaying-histograms-with-a-normal-curve" class="section level1">
+<h1>Overlaying histograms with a normal curve</h1>
+<p>Overlaying a histogram (possibly facetted) is not something far fetched when analyzing data. Surprisingly, it appears (to the best of my knowledge) that there’s no comfortable out-of-the-box solution in ggplot2, although it can be of course achieved with some lines of code. Here’s my take.</p>
+</div>
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>library(tidyverse)</code></pre>
+</div>
+<div id="some-data" class="section level1">
+<h1>Some data</h1>
+<pre class="r"><code>d &lt;- read_csv(&quot;https://vincentarelbundock.github.io/Rdatasets/csv/openintro/speed_gender_height.csv&quot;)</code></pre>
+<pre><code>## Warning: Missing column names filled in: &#39;X1&#39; [1]</code></pre>
+<pre><code>## 
+## ── Column specification ────────────────────────────────────────────────────────
+## cols(
+##   X1 = col_double(),
+##   speed = col_double(),
+##   gender = col_character(),
+##   height = col_double()
+## )</code></pre>
+<pre class="r"><code>glimpse(d)</code></pre>
+<pre><code>## Rows: 1,325
+## Columns: 4
+## $ X1     &lt;dbl&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, …
+## $ speed  &lt;dbl&gt; 85, 40, 87, 110, 110, 120, 90, 90, 80, 95, 110, 90, 110, 70, 10…
+## $ gender &lt;chr&gt; &quot;female&quot;, &quot;male&quot;, &quot;female&quot;, &quot;female&quot;, &quot;male&quot;, &quot;female&quot;, &quot;female…
+## $ height &lt;dbl&gt; 69, 71, 64, 60, 70, 61, 65, 65, 61, 69, 63, 72, 70, 68, 63, 78,…</code></pre>
+<pre class="r"><code>d %&gt;% 
+  slice_head(n = 5)</code></pre>
+<pre><code>## # A tibble: 5 x 4
+##      X1 speed gender height
+##   &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;   &lt;dbl&gt;
+## 1     1    85 female     69
+## 2     2    40 male       71
+## 3     3    87 female     64
+## 4     4   110 female     60
+## 5     5   110 male       70</code></pre>
+</div>
+<div id="preparing-data" class="section level1">
+<h1>Preparing data</h1>
+<p>We’ll use a “total” histogram for the whole sample, to that end, we’ll need to remove the grouping information from the data.</p>
+<pre class="r"><code>d2 &lt;-
+  d |&gt; 
+  select(-gender)</code></pre>
+<p>Here’s a data set with summary data:</p>
+<pre class="r"><code>d_summary &lt;-
+  d %&gt;% 
+  group_by(gender) %&gt;% 
+  summarise(height_m = mean(height, na.rm = T),
+            height_sd = sd(height, na.rm = T))
+
+d_summary</code></pre>
+<pre><code>## # A tibble: 2 x 3
+##   gender height_m height_sd
+##   &lt;chr&gt;     &lt;dbl&gt;     &lt;dbl&gt;
+## 1 female     64.3      2.99
+## 2 male       69.7      3.55</code></pre>
+</div>
+<div id="plot-it" class="section level1">
+<h1>Plot it</h1>
+<pre class="r"><code>d %&gt;% 
+  ggplot() +
+  aes() +
+  geom_histogram(aes(y = ..density.., x = height, fill = gender)) +
+  facet_wrap(~ gender) +
+  geom_histogram(data = d2, aes(y = ..density.., x = height), 
+                 alpha = .5) +
+  stat_function(data = d_summary %&gt;% filter(gender == &quot;female&quot;),
+                fun = dnorm,
+                #color = &quot;red&quot;,
+                args = list(mean = filter(d_summary, 
+                                          gender == &quot;female&quot;)$height_m,
+                            sd = filter(d_summary, 
+                                        gender == &quot;female&quot;)$height_sd)) +
+  stat_function(data = d_summary %&gt;% filter(gender == &quot;male&quot;),
+                fun = dnorm,
+                #color = &quot;red&quot;,
+                args = list(mean = filter(d_summary, 
+                                          gender == &quot;male&quot;)$height_m,
+                            sd = filter(d_summary, 
+                                        gender == &quot;male&quot;)$height_sd)) +
+  theme(legend.position = &quot;none&quot;,
+        axis.title.y = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks.y = element_blank()) +
+  labs(title = &quot;Facetted histograms with overlaid normal curves&quot;,
+       caption = &quot;The grey histograms shows the whole distribution (over) both groups, i.e. females and men&quot;) +
+  scale_fill_brewer(type = &quot;qual&quot;, palette = &quot;Set1&quot;)</code></pre>
+<pre><code>## Warning: Removed 5 rows containing non-finite values (stat_bin).</code></pre>
+<pre><code>## Warning: Removed 10 rows containing non-finite values (stat_bin).</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="672" /></p>
+</div>
+<div id="different-solutions" class="section level1">
+<h1>Different solutions</h1>
+<p>Different solutions can be found eg <a href="https://stackoverflow.com/questions/6967664/ggplot2-histogram-with-normal-curve">here</a> or <a href="https://stackoverflow.com/questions/35015614/overlay-normal-curve-over-histogram-in-faceting-situation">here</a>.</p>
+</div>
+<div id="actually-there-exists-a-simple-solution" class="section level1">
+<h1>Actually there exists a simple solution</h1>
+<p>Not within <code>ggplot2</code> per se, but if you are willing to use <code>ggformula</code> then it is pretty straight forward (<a href="https://stackoverflow.com/questions/1376967/using-stat-function-and-facet-wrap-together-in-ggplot2-in-r">source</a>).</p>
+<pre class="r"><code>library(ggformula)</code></pre>
+<pre><code>## Loading required package: ggstance</code></pre>
+<pre><code>## 
+## Attaching package: &#39;ggstance&#39;</code></pre>
+<pre><code>## The following objects are masked from &#39;package:ggplot2&#39;:
+## 
+##     geom_errorbarh, GeomErrorbarh</code></pre>
+<pre><code>## Loading required package: scales</code></pre>
+<pre><code>## 
+## Attaching package: &#39;scales&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:purrr&#39;:
+## 
+##     discard</code></pre>
+<pre><code>## The following object is masked from &#39;package:readr&#39;:
+## 
+##     col_factor</code></pre>
+<pre><code>## Loading required package: ggridges</code></pre>
+<pre><code>## 
+## New to ggformula?  Try the tutorials: 
+##  learnr::run_tutorial(&quot;introduction&quot;, package = &quot;ggformula&quot;)
+##  learnr::run_tutorial(&quot;refining&quot;, package = &quot;ggformula&quot;)</code></pre>
+<pre class="r"><code>gf_dens( ~ height | gender, data = d) %&gt;%
+  gf_fitdistr(color = &quot;red&quot;) %&gt;% 
+  gf_fitdistr(dist = &quot;normal&quot;, color = &quot;blue&quot;)</code></pre>
+<pre><code>## Warning: Removed 5 rows containing non-finite values (stat_density).</code></pre>
+<pre><code>## Warning: Removed 5 rows containing non-finite values (stat_fitdistr).
+
+## Warning: Removed 5 rows containing non-finite values (stat_fitdistr).</code></pre>
+<pre><code>## Warning: Computation failed in `stat_fitdistr()`:
+## &#39;densfun&#39; must be supplied as a function or name
+
+## Warning: Computation failed in `stat_fitdistr()`:
+## &#39;densfun&#39; must be supplied as a function or name</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+</div>
+<div id="update-package-ggh4x" class="section level1">
+<h1>Update: Package <code>ggh4x</code></h1>
+<p>I just discovered this ggplot extension, <a href="https://teunbrand.github.io/ggh4x/index.html">ggh4x</a>, which provides some cool features, including overlay of normal densities.</p>
+<pre class="r"><code>#devtools::install_github(&quot;teunbrand/ggh4x&quot;)
+library(ggh4x)</code></pre>
+<pre class="r"><code>ggplot(d, aes(height)) +
+  geom_density() +
+  stat_theodensity(colour = &quot;red&quot;) +
+  facet_wrap(~ gender)</code></pre>
+<pre><code>## Warning: Removed 5 rows containing non-finite values (stat_density).</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="672" /></p>
+<pre><code>## $start.arg
+## $start.arg$mean
+## [1] 64.34442
+## 
+## $start.arg$sd
+## [1] 2.983323
+## 
+## 
+## $fix.arg
+## NULL
+## 
+## $start.arg
+## $start.arg$mean
+## [1] 69.66787
+## 
+## $start.arg$sd
+## [1] 3.548706
+## 
+## 
+## $fix.arg
+## NULL</code></pre>
+<p>Nice and clean!</p>
+</div>

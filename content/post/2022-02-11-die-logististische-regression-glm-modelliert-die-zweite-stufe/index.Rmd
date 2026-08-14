@@ -1,0 +1,172 @@
+---
+title: Die logististische Regression (glm) modelliert die zweite Stufe
+author: R package build
+date: '2022-02-11'
+slug: die-logististische-regression-glm-modelliert-die-zweite-stufe
+categories: []
+tags: []
+---
+
+
+
+
+# Welche Stufe modelliert die logististische Regression in R?
+
+Sagen wir, wir möchten vorhersagen, ob eine Person Frau oder Mann ist (nur diese zwei Stufen)
+anhand der Höhe des Trinkgelds, das diese Person gibt. 
+Dazu nutzen wir die Funktio `glm()` in R.
+
+
+# Vorbereitung
+
+```{r}
+library(tidyverse)
+```
+
+
+# Daten
+
+
+```{r}
+data(tips, package = "reshape2")
+```
+
+
+Die Zielvariable ist `sex`, sie ist nominalskaliert und sie hat zwei Stufen:
+
+```{r}
+levels(tips$sex)
+```
+
+Nominalskalierte Variablen werden in R als "Faktorvariablen" (factor) bezeichnet bzw. 
+mit solchen Variablen gefasst.
+
+
+1. Stufe: `Female`. 
+2. Stufe: `Male`.
+
+
+*glm() modelliert die zweite Stufe als Ereignisse von Interesse*.
+
+
+Das hat den Hintergrund, dass die zweite Stufe bei einer Skalierung mit den Werten 0 und 1,
+es ebenfalls die zweite Stufe, also die 1 ist, die von Interesse ist (normalerweise).
+
+Die 0-1-Skalierung nennt man auch binäre Skalierung.
+
+# Was ist der mittlere Trinkgeld-Betrag zwischen den Geschlechtern?
+
+
+
+```{r}
+tips %>% 
+  group_by(sex) %>%
+  summarise(mean(tip))
+```
+
+
+
+
+# Probieren wir's aus
+
+Hier die Zielvariable als Faktorvariable:
+
+```{r}
+glm1 <- glm(sex ~ tip, data=tips, family = "binomial")
+glm1
+```
+
+
+
+
+
+Hier die Zielvariable als binär skalierte Variable:
+
+```{r}
+tips <-
+  tips %>% 
+  mutate(sex_bin = ifelse(sex == "Female", 0, 1))
+```
+
+Also: 0 entspricht `Female`. 1 entspricht `Male`. 
+
+
+```{r}
+
+glm2 <- glm(sex_bin ~ tip, data = tips, family = "binomial")
+glm2
+```
+
+
+
+# Vergleichen wir
+
+
+```{r}
+glm1$coefficients[["tip"]]
+glm2$coefficients[["tip"]]
+```
+
+
+Identisch! Wir sehen also, die logistische Regression (allgemeiner: das generalisierte lineare Modell mit `glm()`) modelliert die *zweite* Stufe, wenn die Zielvariable eine Faktorvariable ist.
+
+Handelt es sich um eine 0-1-skalierte Variable, so wird die "1" modelliert.
+
+
+
+# Visualisierung
+
+
+```{r}
+pred_df <-
+  tibble(
+    tip = seq(min(tips$tip), max(tips$tip), by = .1),
+    y = predict(glm1, type = "response", newdata = tibble(tip))
+  )
+
+ggplot(tips) +
+  aes(x = tip, y = sex_bin) +
+  geom_point() +
+  geom_line(data = pred_df, aes(x = tip, y = y), color = "blue") +
+  labs(title = "Vorhersage von `Male` in Abhängigkeit des Trinkgelds (blaue Linie)",
+       subtitle = "Logististisches Modell")
+
+```
+
+
+
+# Zum Vergleich: lineare Regression
+
+
+```{r}
+lm1 <- lm(sex_bin ~ tip, data = tips)
+```
+
+
+```{r}
+pred_df <-
+  tibble(
+    tip = seq(min(tips$tip), max(tips$tip), by = .1),
+    y = predict(lm1,  newdata = tibble(tip))
+  )
+
+ggplot(tips) +
+  aes(x = tip, y = sex_bin) +
+  geom_point() +
+  geom_line(data = pred_df, aes(x = tip, y = y), color = "blue") +
+  labs(title = "Vorhersage von `Male` in Abhängigkeit des Trinkgelds (blaue Linie)",
+       subtitle = "Lineares Modell")
+
+```
+
+
+
+Keine großen Unterschiede (in den Vorhersagen), in diesem Fall, scheint's.
+
+
+
+# Fazit
+
+Für die Praxis sollte man sich merken, 
+dass die logistische Regression in R (mit `glm()`) die *zweite* Stufe der Zielvariable modelliert.
+

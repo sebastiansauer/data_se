@@ -1,0 +1,2406 @@
+---
+title: German weather
+author: Sebastian Sauer
+date: '2022-07-24'
+slug: german-weather
+categories:
+  - rstats
+tags:
+  - dataviz
+  - datawrangling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages" id="toc-load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#motivation" id="toc-motivation"><span class="toc-section-number">2</span> Motivation</a></li>
+<li><a href="#load-data" id="toc-load-data"><span class="toc-section-number">3</span> Load data</a></li>
+<li><a href="#main-temperature-trajectory-over-time" id="toc-main-temperature-trajectory-over-time"><span class="toc-section-number">4</span> Main temperature trajectory over time</a>
+<ul>
+<li><a href="#visualization" id="toc-visualization"><span class="toc-section-number">4.1</span> Visualization</a></li>
+<li><a href="#linear-model" id="toc-linear-model"><span class="toc-section-number">4.2</span> Linear model</a></li>
+</ul></li>
+<li><a href="#temperature-change-per-month" id="toc-temperature-change-per-month"><span class="toc-section-number">5</span> Temperature change per month</a>
+<ul>
+<li><a href="#vis-1-change-per-month-for-whole-of-germany" id="toc-vis-1-change-per-month-for-whole-of-germany"><span class="toc-section-number">5.1</span> Vis 1: Change per Month for whole of Germany</a></li>
+<li><a href="#linear-model-1" id="toc-linear-model-1"><span class="toc-section-number">5.2</span> Linear model</a></li>
+<li><a href="#vis-2-trend-by-bundesland" id="toc-vis-2-trend-by-bundesland"><span class="toc-section-number">5.3</span> Vis 2: Trend by Bundesland</a></li>
+</ul></li>
+<li><a href="#change-per-decade" id="toc-change-per-decade"><span class="toc-section-number">6</span> Change per decade</a>
+<ul>
+<li><a href="#vis-1" id="toc-vis-1"><span class="toc-section-number">6.1</span> Vis 1</a></li>
+<li><a href="#vis-2-temperature-change-per-decade" id="toc-vis-2-temperature-change-per-decade"><span class="toc-section-number">6.2</span> Vis 2: Temperature change per decade</a></li>
+</ul></li>
+<li><a href="#change-in-variability" id="toc-change-in-variability"><span class="toc-section-number">7</span> Change in variability</a>
+<ul>
+<li><a href="#vis" id="toc-vis"><span class="toc-section-number">7.1</span> Vis</a></li>
+</ul></li>
+<li><a href="#debrief" id="toc-debrief"><span class="toc-section-number">8</span> Debrief</a></li>
+<li><a href="#reproducibility" id="toc-reproducibility"><span class="toc-section-number">9</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(easystats)
+library(ggplot2); theme_set(theme_minimal())  # ggplot theme</code></pre>
+</div>
+<div id="motivation" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Motivation</h1>
+<p>Let’s explore the change over time in German weather.
+We are not pretending doing real meteorology here; rather, we are playing around a bit.
+At the very least, we’ll do over own analyses, so we know what’s going in.
+Data stems from <a href="https://www.dwd.de/DE/Home/home_node.html">Deutscher Wetter Diensts, DWD</a>.</p>
+</div>
+<div id="load-data" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Load data</h1>
+<p>The DWD data has been prepared from fast consumption as <a href="https://data-se.netlify.app/2022/07/24/preparing-german-weather-data/">laid out in this post</a>.</p>
+<p>As a result, the data have been made available <a href="https://github.com/sebastiansauer/datasets">in this repo</a>.</p>
+<pre class="r"><code>d_path &lt;- &quot;https://raw.githubusercontent.com/sebastiansauer/datasets/main/csv/precip_temp_DWD.csv&quot;
+
+d &lt;- read_csv(d_path)</code></pre>
+<pre class="r"><code>glimpse(d)
+#&gt; Rows: 28,866
+#&gt; Columns: 5
+#&gt; $ year   &lt;dbl&gt; 1881, 1881, 1881, 1881, 1881, 1881, 1881, 1881, 1881, 1881, 188…
+#&gt; $ month  &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …
+#&gt; $ region &lt;chr&gt; &quot;Brandenburg/Berlin&quot;, &quot;Brandenburg&quot;, &quot;Baden-Wuerttemberg&quot;, &quot;Bay…
+#&gt; $ precip &lt;dbl&gt; 20.4, 20.3, 36.2, 22.5, 33.2, 16.8, 35.1, 34.9, 40.6, 39.3, 21.…
+#&gt; $ temp   &lt;dbl&gt; -5.54, -5.56, -4.89, -6.51, -5.68, -5.07, -4.55, -4.55, -4.21, …</code></pre>
+</div>
+<div id="main-temperature-trajectory-over-time" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Main temperature trajectory over time</h1>
+<div id="visualization" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> Visualization</h2>
+<pre class="r"><code>d_grouped &lt;-
+  d %&gt;% 
+  group_by(region, year) %&gt;% 
+  summarise(temp_avg = mean(temp))
+
+d_grouped %&gt;% 
+  ggplot(aes(x = year, y = temp_avg, group = region)) +
+  geom_line(color = &quot;grey60&quot;) +
+  labs(title = &quot;Temperature change over time in Germany&quot;,
+       caption = &quot;Data Source: DWD&quot;,
+       subtitle = &quot;One grey line depicts one Bundesland&quot;) +
+  geom_smooth(method = &quot;lm&quot;, group = 1) </code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/vis1-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Temperature is on the rise, it appears.</p>
+</div>
+<div id="linear-model" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> Linear model</h2>
+<pre class="r"><code>m1 &lt;- lm(temp_avg ~ year, data = d_grouped)
+print_html(model_parameters(m1))</code></pre>
+<div id="nbirnbjhgw" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#nbirnbjhgw .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#nbirnbjhgw .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#nbirnbjhgw .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#nbirnbjhgw .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#nbirnbjhgw .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#nbirnbjhgw .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#nbirnbjhgw .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#nbirnbjhgw .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#nbirnbjhgw .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#nbirnbjhgw .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#nbirnbjhgw .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#nbirnbjhgw .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#nbirnbjhgw .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#nbirnbjhgw .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#nbirnbjhgw .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#nbirnbjhgw .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#nbirnbjhgw .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nbirnbjhgw .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#nbirnbjhgw .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#nbirnbjhgw .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nbirnbjhgw .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#nbirnbjhgw .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#nbirnbjhgw .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#nbirnbjhgw .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nbirnbjhgw .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#nbirnbjhgw .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#nbirnbjhgw .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#nbirnbjhgw .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#nbirnbjhgw .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nbirnbjhgw .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#nbirnbjhgw .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#nbirnbjhgw .gt_left {
+  text-align: left;
+}
+
+#nbirnbjhgw .gt_center {
+  text-align: center;
+}
+
+#nbirnbjhgw .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#nbirnbjhgw .gt_font_normal {
+  font-weight: normal;
+}
+
+#nbirnbjhgw .gt_font_bold {
+  font-weight: bold;
+}
+
+#nbirnbjhgw .gt_font_italic {
+  font-style: italic;
+}
+
+#nbirnbjhgw .gt_super {
+  font-size: 65%;
+}
+
+#nbirnbjhgw .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#nbirnbjhgw .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#nbirnbjhgw .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#nbirnbjhgw .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#nbirnbjhgw .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#nbirnbjhgw .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  <thead class="gt_header">
+    <tr>
+      <th colspan="6" class="gt_heading gt_title gt_font_normal gt_bottom_border" style>Model Summary</th>
+    </tr>
+    
+  </thead>
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Parameter</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Coefficient</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">SE</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">95% CI</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">t(2412)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">p</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">(Intercept)</td>
+<td class="gt_row gt_center">-14.14</td>
+<td class="gt_row gt_center">0.77</td>
+<td class="gt_row gt_center">(-15.64, -12.63)</td>
+<td class="gt_row gt_center">-18.45</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">year</td>
+<td class="gt_row gt_center">0.01</td>
+<td class="gt_row gt_center">3.93e-04</td>
+<td class="gt_row gt_center">(0.01, 0.01)</td>
+<td class="gt_row gt_center">29.54</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+  </tbody>
+  <tfoot class="gt_sourcenotes">
+    <tr>
+      <td class="gt_sourcenote" colspan="6"></td>
+    </tr>
+  </tfoot>
+  
+</table>
+</div>
+<p>This amounts to approx. 0.1 degrees Celcius per Dekade on average.</p>
+<pre class="r"><code>plot(parameters(m1), show_intercept = TRUE)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="temperature-change-per-month" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Temperature change per month</h1>
+<div id="vis-1-change-per-month-for-whole-of-germany" class="section level2" number="5.1">
+<h2><span class="header-section-number">5.1</span> Vis 1: Change per Month for whole of Germany</h2>
+<pre class="r"><code>d_grouped2 &lt;-
+  d %&gt;% 
+  group_by(region, year, month) %&gt;% 
+  summarise(temp_avg = mean(temp))
+
+d_grouped2 %&gt;% 
+  ggplot(aes(x = year, y = temp_avg, group = region)) +
+  geom_line(color = &quot;grey60&quot;) +
+  labs(title = &quot;Temperature change over time per month&quot;) +
+  facet_wrap(~ month, ncol = 3) +
+  geom_smooth(method = &quot;lm&quot;, group = 1)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/vis2-1.png" width="100%" style="display: block; margin: auto;" />
+It looks like that for each month, temperature is on the rise.</p>
+<p>I don’t think it is very important to check this trend for each Bundesland.
+However, it may well be that this trend is more pronounced for some Bundesländer as opposed to others.</p>
+</div>
+<div id="linear-model-1" class="section level2" number="5.2">
+<h2><span class="header-section-number">5.2</span> Linear model</h2>
+<pre class="r"><code>m2 &lt;- lm(temp_avg ~ as.factor(month) + year, data = d_grouped2)
+print_html(model_parameters(m2))</code></pre>
+<div id="upwhsoietm" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#upwhsoietm .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#upwhsoietm .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#upwhsoietm .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#upwhsoietm .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#upwhsoietm .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#upwhsoietm .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#upwhsoietm .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#upwhsoietm .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#upwhsoietm .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#upwhsoietm .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#upwhsoietm .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#upwhsoietm .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#upwhsoietm .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#upwhsoietm .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#upwhsoietm .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#upwhsoietm .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#upwhsoietm .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#upwhsoietm .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#upwhsoietm .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#upwhsoietm .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#upwhsoietm .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#upwhsoietm .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#upwhsoietm .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#upwhsoietm .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#upwhsoietm .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#upwhsoietm .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#upwhsoietm .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#upwhsoietm .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#upwhsoietm .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#upwhsoietm .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#upwhsoietm .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#upwhsoietm .gt_left {
+  text-align: left;
+}
+
+#upwhsoietm .gt_center {
+  text-align: center;
+}
+
+#upwhsoietm .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#upwhsoietm .gt_font_normal {
+  font-weight: normal;
+}
+
+#upwhsoietm .gt_font_bold {
+  font-weight: bold;
+}
+
+#upwhsoietm .gt_font_italic {
+  font-style: italic;
+}
+
+#upwhsoietm .gt_super {
+  font-size: 65%;
+}
+
+#upwhsoietm .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#upwhsoietm .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#upwhsoietm .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#upwhsoietm .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#upwhsoietm .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#upwhsoietm .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  <thead class="gt_header">
+    <tr>
+      <th colspan="6" class="gt_heading gt_title gt_font_normal gt_bottom_border" style>Model Summary</th>
+    </tr>
+    
+  </thead>
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Parameter</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Coefficient</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">SE</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">95% CI</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">t(28853)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">p</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">(Intercept)</td>
+<td class="gt_row gt_center">-23.41</td>
+<td class="gt_row gt_center">0.54</td>
+<td class="gt_row gt_center">(-24.46, -22.35)</td>
+<td class="gt_row gt_center">-43.56</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (2)</td>
+<td class="gt_row gt_center">0.74</td>
+<td class="gt_row gt_center">0.05</td>
+<td class="gt_row gt_center">(0.63, 0.85)</td>
+<td class="gt_row gt_center">13.49</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (3)</td>
+<td class="gt_row gt_center">3.83</td>
+<td class="gt_row gt_center">0.05</td>
+<td class="gt_row gt_center">(3.72, 3.93)</td>
+<td class="gt_row gt_center">69.75</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (4)</td>
+<td class="gt_row gt_center">7.93</td>
+<td class="gt_row gt_center">0.05</td>
+<td class="gt_row gt_center">(7.83, 8.04)</td>
+<td class="gt_row gt_center">144.62</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (5)</td>
+<td class="gt_row gt_center">12.65</td>
+<td class="gt_row gt_center">0.05</td>
+<td class="gt_row gt_center">(12.55, 12.76)</td>
+<td class="gt_row gt_center">230.64</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (6)</td>
+<td class="gt_row gt_center">15.86</td>
+<td class="gt_row gt_center">0.05</td>
+<td class="gt_row gt_center">(15.75, 15.97)</td>
+<td class="gt_row gt_center">289.06</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (7)</td>
+<td class="gt_row gt_center">17.57</td>
+<td class="gt_row gt_center">0.05</td>
+<td class="gt_row gt_center">(17.46, 17.68)</td>
+<td class="gt_row gt_center">319.71</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (8)</td>
+<td class="gt_row gt_center">16.94</td>
+<td class="gt_row gt_center">0.05</td>
+<td class="gt_row gt_center">(16.83, 17.05)</td>
+<td class="gt_row gt_center">308.19</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (9)</td>
+<td class="gt_row gt_center">13.59</td>
+<td class="gt_row gt_center">0.05</td>
+<td class="gt_row gt_center">(13.48, 13.69)</td>
+<td class="gt_row gt_center">247.21</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (10)</td>
+<td class="gt_row gt_center">8.95</td>
+<td class="gt_row gt_center">0.05</td>
+<td class="gt_row gt_center">(8.84, 9.06)</td>
+<td class="gt_row gt_center">162.90</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (11)</td>
+<td class="gt_row gt_center">4.31</td>
+<td class="gt_row gt_center">0.05</td>
+<td class="gt_row gt_center">(4.20, 4.42)</td>
+<td class="gt_row gt_center">78.40</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (12)</td>
+<td class="gt_row gt_center">1.26</td>
+<td class="gt_row gt_center">0.05</td>
+<td class="gt_row gt_center">(1.16, 1.37)</td>
+<td class="gt_row gt_center">23.00</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">year</td>
+<td class="gt_row gt_center">0.01</td>
+<td class="gt_row gt_center">2.75e-04</td>
+<td class="gt_row gt_center">(0.01, 0.01)</td>
+<td class="gt_row gt_center">43.42</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+  </tbody>
+  <tfoot class="gt_sourcenotes">
+    <tr>
+      <td class="gt_sourcenote" colspan="6"></td>
+    </tr>
+  </tfoot>
+  
+</table>
+</div>
+<pre class="r"><code>plot(parameters(m2), show_intercept = TRUE)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Here we see the effect of the month, with the Month of July being the warmest, which makes sense.
+Note that the intercept is not interpretable here as it shows the temperature in year 0, which is a bit far away.</p>
+<p>For comparison, let’s just see the avarage temperatures per month:</p>
+<pre class="r"><code>m3 &lt;- lm(temp_avg ~ as.factor(month), data = d_grouped2)
+print_html(model_parameters(m3))</code></pre>
+<div id="fgptfdyisl" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#fgptfdyisl .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#fgptfdyisl .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#fgptfdyisl .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#fgptfdyisl .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#fgptfdyisl .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#fgptfdyisl .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#fgptfdyisl .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#fgptfdyisl .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#fgptfdyisl .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#fgptfdyisl .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#fgptfdyisl .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#fgptfdyisl .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#fgptfdyisl .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#fgptfdyisl .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#fgptfdyisl .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#fgptfdyisl .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#fgptfdyisl .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fgptfdyisl .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#fgptfdyisl .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#fgptfdyisl .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fgptfdyisl .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#fgptfdyisl .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#fgptfdyisl .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#fgptfdyisl .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fgptfdyisl .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#fgptfdyisl .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#fgptfdyisl .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#fgptfdyisl .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#fgptfdyisl .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fgptfdyisl .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#fgptfdyisl .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#fgptfdyisl .gt_left {
+  text-align: left;
+}
+
+#fgptfdyisl .gt_center {
+  text-align: center;
+}
+
+#fgptfdyisl .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#fgptfdyisl .gt_font_normal {
+  font-weight: normal;
+}
+
+#fgptfdyisl .gt_font_bold {
+  font-weight: bold;
+}
+
+#fgptfdyisl .gt_font_italic {
+  font-style: italic;
+}
+
+#fgptfdyisl .gt_super {
+  font-size: 65%;
+}
+
+#fgptfdyisl .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#fgptfdyisl .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#fgptfdyisl .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#fgptfdyisl .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#fgptfdyisl .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#fgptfdyisl .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  <thead class="gt_header">
+    <tr>
+      <th colspan="6" class="gt_heading gt_title gt_font_normal gt_bottom_border" style>Model Summary</th>
+    </tr>
+    
+  </thead>
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Parameter</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Coefficient</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">SE</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">95% CI</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">t(28854)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">p</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">(Intercept)</td>
+<td class="gt_row gt_center">-0.13</td>
+<td class="gt_row gt_center">0.04</td>
+<td class="gt_row gt_center">(-0.21, -0.06)</td>
+<td class="gt_row gt_center">-3.36</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (2)</td>
+<td class="gt_row gt_center">0.74</td>
+<td class="gt_row gt_center">0.06</td>
+<td class="gt_row gt_center">(0.63, 0.85)</td>
+<td class="gt_row gt_center">13.07</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (3)</td>
+<td class="gt_row gt_center">3.83</td>
+<td class="gt_row gt_center">0.06</td>
+<td class="gt_row gt_center">(3.72, 3.94)</td>
+<td class="gt_row gt_center">67.57</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (4)</td>
+<td class="gt_row gt_center">7.93</td>
+<td class="gt_row gt_center">0.06</td>
+<td class="gt_row gt_center">(7.82, 8.04)</td>
+<td class="gt_row gt_center">140.12</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (5)</td>
+<td class="gt_row gt_center">12.65</td>
+<td class="gt_row gt_center">0.06</td>
+<td class="gt_row gt_center">(12.54, 12.76)</td>
+<td class="gt_row gt_center">223.46</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (6)</td>
+<td class="gt_row gt_center">15.86</td>
+<td class="gt_row gt_center">0.06</td>
+<td class="gt_row gt_center">(15.75, 15.97)</td>
+<td class="gt_row gt_center">280.06</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (7)</td>
+<td class="gt_row gt_center">17.57</td>
+<td class="gt_row gt_center">0.06</td>
+<td class="gt_row gt_center">(17.45, 17.68)</td>
+<td class="gt_row gt_center">309.65</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (8)</td>
+<td class="gt_row gt_center">16.93</td>
+<td class="gt_row gt_center">0.06</td>
+<td class="gt_row gt_center">(16.82, 17.04)</td>
+<td class="gt_row gt_center">298.49</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (9)</td>
+<td class="gt_row gt_center">13.58</td>
+<td class="gt_row gt_center">0.06</td>
+<td class="gt_row gt_center">(13.47, 13.69)</td>
+<td class="gt_row gt_center">239.40</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (10)</td>
+<td class="gt_row gt_center">8.95</td>
+<td class="gt_row gt_center">0.06</td>
+<td class="gt_row gt_center">(8.84, 9.06)</td>
+<td class="gt_row gt_center">157.72</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (11)</td>
+<td class="gt_row gt_center">4.30</td>
+<td class="gt_row gt_center">0.06</td>
+<td class="gt_row gt_center">(4.19, 4.41)</td>
+<td class="gt_row gt_center">75.86</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">month (12)</td>
+<td class="gt_row gt_center">1.26</td>
+<td class="gt_row gt_center">0.06</td>
+<td class="gt_row gt_center">(1.15, 1.37)</td>
+<td class="gt_row gt_center">22.18</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+  </tbody>
+  <tfoot class="gt_sourcenotes">
+    <tr>
+      <td class="gt_sourcenote" colspan="6"></td>
+    </tr>
+  </tfoot>
+  
+</table>
+</div>
+<p>Note that these are the averages across all the years in the data set.</p>
+<pre class="r"><code>plot(parameters(m3), show_intercept = TRUE)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="vis-2-trend-by-bundesland" class="section level2" number="5.3">
+<h2><span class="header-section-number">5.3</span> Vis 2: Trend by Bundesland</h2>
+<pre class="r"><code>d_grouped2a &lt;-
+  d %&gt;% 
+  group_by(region, year) %&gt;% 
+  summarise(temp_avg = mean(temp))
+
+d_grouped2a %&gt;% 
+  ggplot(aes(x = year, y = temp_avg)) +
+  geom_line(color = &quot;grey60&quot;) +
+  labs(title = &quot;Temperature change over time per Bundesland&quot;) +
+  facet_wrap(~ region, ncol = 3) +
+  geom_smooth(method = &quot;lm&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<pre class="r"><code>m4 &lt;- lm(temp ~ region + year, data = d)
+print_html(parameters(m4))</code></pre>
+<div id="jrnxlliwyh" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#jrnxlliwyh .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#jrnxlliwyh .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#jrnxlliwyh .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#jrnxlliwyh .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#jrnxlliwyh .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#jrnxlliwyh .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#jrnxlliwyh .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#jrnxlliwyh .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#jrnxlliwyh .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#jrnxlliwyh .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#jrnxlliwyh .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#jrnxlliwyh .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#jrnxlliwyh .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#jrnxlliwyh .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#jrnxlliwyh .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#jrnxlliwyh .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#jrnxlliwyh .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#jrnxlliwyh .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#jrnxlliwyh .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#jrnxlliwyh .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#jrnxlliwyh .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#jrnxlliwyh .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#jrnxlliwyh .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#jrnxlliwyh .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#jrnxlliwyh .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#jrnxlliwyh .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#jrnxlliwyh .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#jrnxlliwyh .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#jrnxlliwyh .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-left: 4px;
+  padding-right: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#jrnxlliwyh .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#jrnxlliwyh .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#jrnxlliwyh .gt_left {
+  text-align: left;
+}
+
+#jrnxlliwyh .gt_center {
+  text-align: center;
+}
+
+#jrnxlliwyh .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#jrnxlliwyh .gt_font_normal {
+  font-weight: normal;
+}
+
+#jrnxlliwyh .gt_font_bold {
+  font-weight: bold;
+}
+
+#jrnxlliwyh .gt_font_italic {
+  font-style: italic;
+}
+
+#jrnxlliwyh .gt_super {
+  font-size: 65%;
+}
+
+#jrnxlliwyh .gt_two_val_uncert {
+  display: inline-block;
+  line-height: 1em;
+  text-align: right;
+  font-size: 60%;
+  vertical-align: -0.25em;
+  margin-left: 0.1em;
+}
+
+#jrnxlliwyh .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 75%;
+  vertical-align: 0.4em;
+}
+
+#jrnxlliwyh .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#jrnxlliwyh .gt_slash_mark {
+  font-size: 0.7em;
+  line-height: 0.7em;
+  vertical-align: 0.15em;
+}
+
+#jrnxlliwyh .gt_fraction_numerator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: 0.45em;
+}
+
+#jrnxlliwyh .gt_fraction_denominator {
+  font-size: 0.6em;
+  line-height: 0.6em;
+  vertical-align: -0.05em;
+}
+</style>
+<table class="gt_table">
+  <thead class="gt_header">
+    <tr>
+      <th colspan="6" class="gt_heading gt_title gt_font_normal gt_bottom_border" style>Model Summary</th>
+    </tr>
+    
+  </thead>
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">Parameter</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">Coefficient</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">SE</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">95% CI</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">t(28848)</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">p</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">(Intercept)</td>
+<td class="gt_row gt_center">-14.49</td>
+<td class="gt_row gt_center">1.85</td>
+<td class="gt_row gt_center">(-18.13, -10.86)</td>
+<td class="gt_row gt_center">-7.82</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">region (Bayern)</td>
+<td class="gt_row gt_center">-0.63</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(-1.07, -0.19)</td>
+<td class="gt_row gt_center">-2.79</td>
+<td class="gt_row gt_center">0.005 </td></tr>
+    <tr><td class="gt_row gt_left">region (Brandenburg)</td>
+<td class="gt_row gt_center">0.57</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(0.13, 1.01)</td>
+<td class="gt_row gt_center">2.54</td>
+<td class="gt_row gt_center">0.011 </td></tr>
+    <tr><td class="gt_row gt_left">region (Brandenburg/Berlin)</td>
+<td class="gt_row gt_center">0.58</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(0.14, 1.03)</td>
+<td class="gt_row gt_center">2.59</td>
+<td class="gt_row gt_center">0.009 </td></tr>
+    <tr><td class="gt_row gt_left">region (Deutschland)</td>
+<td class="gt_row gt_center">0.13</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(-0.31, 0.57)</td>
+<td class="gt_row gt_center">0.58</td>
+<td class="gt_row gt_center">0.563 </td></tr>
+    <tr><td class="gt_row gt_left">region (Hessen)</td>
+<td class="gt_row gt_center">0.11</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(-0.33, 0.56)</td>
+<td class="gt_row gt_center">0.51</td>
+<td class="gt_row gt_center">0.611 </td></tr>
+    <tr><td class="gt_row gt_left">region (Mecklenburg-Vorpommern)</td>
+<td class="gt_row gt_center">0.08</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(-0.36, 0.52)</td>
+<td class="gt_row gt_center">0.34</td>
+<td class="gt_row gt_center">0.732 </td></tr>
+    <tr><td class="gt_row gt_left">region (Niedersachsen)</td>
+<td class="gt_row gt_center">0.52</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(0.08, 0.96)</td>
+<td class="gt_row gt_center">2.30</td>
+<td class="gt_row gt_center">0.022 </td></tr>
+    <tr><td class="gt_row gt_left">region (Niedersachsen/Hamburg/Bremen)</td>
+<td class="gt_row gt_center">0.52</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(0.08, 0.96)</td>
+<td class="gt_row gt_center">2.31</td>
+<td class="gt_row gt_center">0.021 </td></tr>
+    <tr><td class="gt_row gt_left">region (Nordrhein-Westfalen)</td>
+<td class="gt_row gt_center">0.80</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(0.36, 1.24)</td>
+<td class="gt_row gt_center">3.54</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+    <tr><td class="gt_row gt_left">region (Rheinland-Pfalz)</td>
+<td class="gt_row gt_center">0.46</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(0.02, 0.90)</td>
+<td class="gt_row gt_center">2.04</td>
+<td class="gt_row gt_center">0.042 </td></tr>
+    <tr><td class="gt_row gt_left">region (Saarland)</td>
+<td class="gt_row gt_center">0.71</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(0.27, 1.16)</td>
+<td class="gt_row gt_center">3.17</td>
+<td class="gt_row gt_center">0.002 </td></tr>
+    <tr><td class="gt_row gt_left">region (Sachsen)</td>
+<td class="gt_row gt_center">-0.04</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(-0.48, 0.40)</td>
+<td class="gt_row gt_center">-0.19</td>
+<td class="gt_row gt_center">0.853 </td></tr>
+    <tr><td class="gt_row gt_left">region (Sachsen-Anhalt)</td>
+<td class="gt_row gt_center">0.55</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(0.11, 1.00)</td>
+<td class="gt_row gt_center">2.46</td>
+<td class="gt_row gt_center">0.014 </td></tr>
+    <tr><td class="gt_row gt_left">region (Schleswig-Holstein)</td>
+<td class="gt_row gt_center">0.17</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(-0.27, 0.61)</td>
+<td class="gt_row gt_center">0.76</td>
+<td class="gt_row gt_center">0.445 </td></tr>
+    <tr><td class="gt_row gt_left">region (Thueringen)</td>
+<td class="gt_row gt_center">-0.48</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(-0.92, -0.03)</td>
+<td class="gt_row gt_center">-2.11</td>
+<td class="gt_row gt_center">0.035 </td></tr>
+    <tr><td class="gt_row gt_left">region (Thueringen/Sachsen-Anhalt)</td>
+<td class="gt_row gt_center">0.10</td>
+<td class="gt_row gt_center">0.23</td>
+<td class="gt_row gt_center">(-0.34, 0.54)</td>
+<td class="gt_row gt_center">0.44</td>
+<td class="gt_row gt_center">0.663 </td></tr>
+    <tr><td class="gt_row gt_left">year</td>
+<td class="gt_row gt_center">0.01</td>
+<td class="gt_row gt_center">9.46e-04</td>
+<td class="gt_row gt_center">(9.80e-03, 0.01)</td>
+<td class="gt_row gt_center">12.32</td>
+<td class="gt_row gt_center">&lt; .001</td></tr>
+  </tbody>
+  <tfoot class="gt_sourcenotes">
+    <tr>
+      <td class="gt_sourcenote" colspan="6"></td>
+    </tr>
+  </tfoot>
+  
+</table>
+</div>
+<p>The point estimate indicates that Saarland gained most in terms of temperature;
+however, the differences are not clear cut between the Bundesländer,
+so no strong conclusion can be drawn.</p>
+</div>
+</div>
+<div id="change-per-decade" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Change per decade</h1>
+<pre class="r"><code>d2 &lt;- 
+  d %&gt;% 
+  mutate(decade = trunc(year  / 10))
+
+head(d2)
+#&gt; # A tibble: 6 × 6
+#&gt;    year month region                 precip  temp decade
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;chr&gt;                   &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;
+#&gt; 1  1881     1 Brandenburg/Berlin       20.4 -5.54    188
+#&gt; 2  1881     1 Brandenburg              20.3 -5.56    188
+#&gt; 3  1881     1 Baden-Wuerttemberg       36.2 -4.89    188
+#&gt; 4  1881     1 Bayern                   22.5 -6.51    188
+#&gt; 5  1881     1 Hessen                   33.2 -5.68    188
+#&gt; 6  1881     1 Mecklenburg-Vorpommern   16.8 -5.07    188</code></pre>
+<pre class="r"><code>d_grouped3 &lt;-
+  d2 %&gt;% 
+  group_by(region, decade) %&gt;% 
+  summarise(temp_avg = mean(temp)) %&gt;% 
+  mutate(temp_dec_before = lag(temp_avg)) %&gt;% 
+  mutate(temp_change_decade = temp_avg - temp_dec_before)
+
+d_grouped3 %&gt;% 
+  head()
+#&gt; # A tibble: 6 × 5
+#&gt; # Groups:   region [1]
+#&gt;   region             decade temp_avg temp_dec_before temp_change_decade
+#&gt;   &lt;chr&gt;               &lt;dbl&gt;    &lt;dbl&gt;           &lt;dbl&gt;              &lt;dbl&gt;
+#&gt; 1 Baden-Wuerttemberg    188     7.63           NA               NA     
+#&gt; 2 Baden-Wuerttemberg    189     7.79            7.63             0.156 
+#&gt; 3 Baden-Wuerttemberg    190     7.82            7.79             0.0274
+#&gt; 4 Baden-Wuerttemberg    191     7.98            7.82             0.166 
+#&gt; 5 Baden-Wuerttemberg    192     8.09            7.98             0.110 
+#&gt; 6 Baden-Wuerttemberg    193     8.08            8.09            -0.0155</code></pre>
+<div id="vis-1" class="section level2" number="6.1">
+<h2><span class="header-section-number">6.1</span> Vis 1</h2>
+<pre class="r"><code>d_grouped3 %&gt;% 
+  ggplot(aes(x = decade, y = temp_avg)) +
+  geom_point(color = &quot;grey60&quot;) +
+  labs(title = &quot;Temperature change over decades in Germany&quot;,
+       caption = &quot;Data Source: DWD&quot;,
+       subtitle = &quot;One grey dot depicts one Bundesland&quot;,
+       y = &quot;Temperature in °C&quot;) +
+  stat_summary(geom = &quot;line&quot;, fun = mean) +
+  scale_x_continuous(breaks = 188:202)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Again, we see that temperature is on the rise.</p>
+</div>
+<div id="vis-2-temperature-change-per-decade" class="section level2" number="6.2">
+<h2><span class="header-section-number">6.2</span> Vis 2: Temperature change per decade</h2>
+<pre class="r"><code>d_grouped3 %&gt;% 
+  ggplot(aes(x = decade, y = temp_change_decade)) +
+  geom_point(color = &quot;grey60&quot;) +
+  labs(title = &quot;Temperature change over decades in Germany&quot;,
+       caption = &quot;Data Source: DWD&quot;,
+       subtitle = &quot;One grey dot depicts one Bundesland&quot;) +
+  stat_summary(geom = &quot;line&quot;, fun = mean) +
+  scale_x_continuous(breaks = 188:202)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>For any to given subsequent decades, we see that the the average temperature of the decase has risen.
+This trend is most pronounced in the 1990 and 2000 decades;
+but it is positive (hotter) for any data point in this graph <em>AFTER</em> 1960.</p>
+</div>
+</div>
+<div id="change-in-variability" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Change in variability</h1>
+<pre class="r"><code>d_grouped4 &lt;-
+  d2 %&gt;% 
+  group_by(region, decade) %&gt;% 
+  summarise(temp_sd = sd(temp)) %&gt;% 
+  mutate(temp_sd_dec_before = lag(temp_sd)) %&gt;% 
+  mutate(temp_sd_change_decade = temp_sd - temp_sd_dec_before)
+
+d_grouped4 %&gt;% 
+  head()
+#&gt; # A tibble: 6 × 5
+#&gt; # Groups:   region [1]
+#&gt;   region             decade temp_sd temp_sd_dec_before temp_sd_change_decade
+#&gt;   &lt;chr&gt;               &lt;dbl&gt;   &lt;dbl&gt;              &lt;dbl&gt;                 &lt;dbl&gt;
+#&gt; 1 Baden-Wuerttemberg    188    6.80              NA                  NA     
+#&gt; 2 Baden-Wuerttemberg    189    6.90               6.80                0.107 
+#&gt; 3 Baden-Wuerttemberg    190    6.70               6.90               -0.208 
+#&gt; 4 Baden-Wuerttemberg    191    6.21               6.70               -0.484 
+#&gt; 5 Baden-Wuerttemberg    192    6.51               6.21                0.299 
+#&gt; 6 Baden-Wuerttemberg    193    6.57               6.51                0.0571</code></pre>
+<div id="vis" class="section level2" number="7.1">
+<h2><span class="header-section-number">7.1</span> Vis</h2>
+<pre class="r"><code>d_grouped4 %&gt;% 
+  ggplot(aes(x = decade, y = temp_sd)) +
+  geom_point(color = &quot;grey60&quot;) +
+  labs(title = &quot;Temperature *variability* change over decades in Germany&quot;,
+       caption = &quot;Data Source: DWD&quot;,
+       subtitle = &quot;One grey dot depicts one Bundesland&quot;) +
+  stat_summary(geom = &quot;line&quot;, fun = mean) +
+  scale_x_continuous(breaks = 188:202)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-12-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Apart from the 1940, there’s no apparent change in variability (SD) per decade.</p>
+</div>
+</div>
+<div id="debrief" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Debrief</h1>
+<p>This post is NOT real meteorology science!
+Rather, it is some exploratory appraoching to a highly sophisticated field of research. Certainly,
+the state of art is not reflected in this post.
+The (aspired) benefit of this post is to bring the data-savy layman closer to weather data in an attempt not to have to (completely) rely on third persons.</p>
+</div>
+<div id="reproducibility" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value
+#&gt;  version  R version 4.2.0 (2022-04-22)
+#&gt;  os       macOS Big Sur/Monterey 10.16
+#&gt;  system   x86_64, darwin17.0
+#&gt;  ui       X11
+#&gt;  language (EN)
+#&gt;  collate  en_US.UTF-8
+#&gt;  ctype    en_US.UTF-8
+#&gt;  tz       Europe/Berlin
+#&gt;  date     2022-07-24
+#&gt;  pandoc   2.18 @ /usr/local/bin/ (via rmarkdown)
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package       * version date (UTC) lib source
+#&gt;  assertthat      0.2.1   2019-03-21 [1] CRAN (R 4.2.0)
+#&gt;  backports       1.4.1   2021-12-13 [1] CRAN (R 4.2.0)
+#&gt;  blogdown        1.10    2022-05-10 [1] CRAN (R 4.2.0)
+#&gt;  bookdown        0.27    2022-06-14 [1] CRAN (R 4.2.0)
+#&gt;  broom           1.0.0   2022-07-01 [1] CRAN (R 4.2.0)
+#&gt;  bslib           0.4.0   2022-07-16 [1] CRAN (R 4.2.0)
+#&gt;  cachem          1.0.6   2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  callr           3.7.1   2022-07-13 [1] CRAN (R 4.2.0)
+#&gt;  cellranger      1.1.0   2016-07-27 [1] CRAN (R 4.2.0)
+#&gt;  cli             3.3.0   2022-04-25 [1] CRAN (R 4.2.0)
+#&gt;  codetools       0.2-18  2020-11-04 [2] CRAN (R 4.2.0)
+#&gt;  colorout      * 1.2-2   2022-06-13 [1] local
+#&gt;  colorspace      2.0-3   2022-02-21 [1] CRAN (R 4.2.0)
+#&gt;  crayon          1.5.1   2022-03-26 [1] CRAN (R 4.2.0)
+#&gt;  DBI             1.1.3   2022-06-18 [1] CRAN (R 4.2.0)
+#&gt;  dbplyr          2.2.1   2022-06-27 [1] CRAN (R 4.2.0)
+#&gt;  devtools        2.4.4   2022-07-20 [1] CRAN (R 4.2.0)
+#&gt;  digest          0.6.29  2021-12-01 [1] CRAN (R 4.2.0)
+#&gt;  dplyr         * 1.0.9   2022-04-28 [1] CRAN (R 4.2.0)
+#&gt;  ellipsis        0.3.2   2021-04-29 [1] CRAN (R 4.2.0)
+#&gt;  evaluate        0.15    2022-02-18 [1] CRAN (R 4.2.0)
+#&gt;  fansi           1.0.3   2022-03-24 [1] CRAN (R 4.2.0)
+#&gt;  fastmap         1.1.0   2021-01-25 [1] CRAN (R 4.2.0)
+#&gt;  forcats       * 0.5.1   2021-01-27 [1] CRAN (R 4.2.0)
+#&gt;  fs              1.5.2   2021-12-08 [1] CRAN (R 4.2.0)
+#&gt;  gargle          1.2.0   2021-07-02 [1] CRAN (R 4.2.0)
+#&gt;  generics        0.1.3   2022-07-05 [1] CRAN (R 4.2.0)
+#&gt;  ggplot2       * 3.3.6   2022-05-03 [1] CRAN (R 4.2.0)
+#&gt;  glue            1.6.2   2022-02-24 [1] CRAN (R 4.2.0)
+#&gt;  googledrive     2.0.0   2021-07-08 [1] CRAN (R 4.2.0)
+#&gt;  googlesheets4   1.0.0   2021-07-21 [1] CRAN (R 4.2.0)
+#&gt;  gtable          0.3.0   2019-03-25 [1] CRAN (R 4.2.0)
+#&gt;  haven           2.5.0   2022-04-15 [1] CRAN (R 4.2.0)
+#&gt;  hms             1.1.1   2021-09-26 [1] CRAN (R 4.2.0)
+#&gt;  htmltools       0.5.3   2022-07-18 [1] CRAN (R 4.2.0)
+#&gt;  htmlwidgets     1.5.4   2021-09-08 [1] CRAN (R 4.2.0)
+#&gt;  httpuv          1.6.5   2022-01-05 [1] CRAN (R 4.2.0)
+#&gt;  httr            1.4.3   2022-05-04 [1] CRAN (R 4.2.0)
+#&gt;  jquerylib       0.1.4   2021-04-26 [1] CRAN (R 4.2.0)
+#&gt;  jsonlite        1.8.0   2022-02-22 [1] CRAN (R 4.2.0)
+#&gt;  knitr           1.39    2022-04-26 [1] CRAN (R 4.2.0)
+#&gt;  later           1.3.0   2021-08-18 [1] CRAN (R 4.2.0)
+#&gt;  lifecycle       1.0.1   2021-09-24 [1] CRAN (R 4.2.0)
+#&gt;  lubridate       1.8.0   2021-10-07 [1] CRAN (R 4.2.0)
+#&gt;  magrittr        2.0.3   2022-03-30 [1] CRAN (R 4.2.0)
+#&gt;  memoise         2.0.1   2021-11-26 [1] CRAN (R 4.2.0)
+#&gt;  mime            0.12    2021-09-28 [1] CRAN (R 4.2.0)
+#&gt;  miniUI          0.1.1.1 2018-05-18 [1] CRAN (R 4.2.0)
+#&gt;  modelr          0.1.8   2020-05-19 [1] CRAN (R 4.2.0)
+#&gt;  munsell         0.5.0   2018-06-12 [1] CRAN (R 4.2.0)
+#&gt;  pillar          1.8.0   2022-07-18 [1] CRAN (R 4.2.0)
+#&gt;  pkgbuild        1.3.1   2021-12-20 [1] CRAN (R 4.2.0)
+#&gt;  pkgconfig       2.0.3   2019-09-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgload         1.3.0   2022-06-27 [1] CRAN (R 4.2.0)
+#&gt;  prettyunits     1.1.1   2020-01-24 [1] CRAN (R 4.2.0)
+#&gt;  processx        3.7.0   2022-07-07 [1] CRAN (R 4.2.0)
+#&gt;  profvis         0.3.7   2020-11-02 [1] CRAN (R 4.2.0)
+#&gt;  promises        1.2.0.1 2021-02-11 [1] CRAN (R 4.2.0)
+#&gt;  ps              1.7.1   2022-06-18 [1] CRAN (R 4.2.0)
+#&gt;  purrr         * 0.3.4   2020-04-17 [1] CRAN (R 4.2.0)
+#&gt;  R6              2.5.1   2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  Rcpp            1.0.9   2022-07-08 [1] CRAN (R 4.2.0)
+#&gt;  readr         * 2.1.2   2022-01-30 [1] CRAN (R 4.2.0)
+#&gt;  readxl          1.4.0   2022-03-28 [1] CRAN (R 4.2.0)
+#&gt;  remotes         2.4.2   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  reprex          2.0.1   2021-08-05 [1] CRAN (R 4.2.0)
+#&gt;  rlang           1.0.4   2022-07-12 [1] CRAN (R 4.2.0)
+#&gt;  rmarkdown       2.14    2022-04-25 [1] CRAN (R 4.2.0)
+#&gt;  rstudioapi      0.13    2020-11-12 [1] CRAN (R 4.2.0)
+#&gt;  rvest           1.0.2   2021-10-16 [1] CRAN (R 4.2.0)
+#&gt;  sass            0.4.2   2022-07-16 [1] CRAN (R 4.2.0)
+#&gt;  scales          1.2.0   2022-04-13 [1] CRAN (R 4.2.0)
+#&gt;  sessioninfo     1.2.2   2021-12-06 [1] CRAN (R 4.2.0)
+#&gt;  shiny           1.7.2   2022-07-19 [1] CRAN (R 4.2.0)
+#&gt;  stringi         1.7.8   2022-07-11 [1] CRAN (R 4.2.0)
+#&gt;  stringr       * 1.4.0   2019-02-10 [1] CRAN (R 4.2.0)
+#&gt;  tibble        * 3.1.7   2022-05-03 [1] CRAN (R 4.2.0)
+#&gt;  tidyr         * 1.2.0   2022-02-01 [1] CRAN (R 4.2.0)
+#&gt;  tidyselect      1.1.2   2022-02-21 [1] CRAN (R 4.2.0)
+#&gt;  tidyverse     * 1.3.2   2022-07-18 [1] CRAN (R 4.2.0)
+#&gt;  tzdb            0.3.0   2022-03-28 [1] CRAN (R 4.2.0)
+#&gt;  urlchecker      1.0.1   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  usethis         2.1.6   2022-05-25 [1] CRAN (R 4.2.0)
+#&gt;  utf8            1.2.2   2021-07-24 [1] CRAN (R 4.2.0)
+#&gt;  vctrs           0.4.1   2022-04-13 [1] CRAN (R 4.2.0)
+#&gt;  withr           2.5.0   2022-03-03 [1] CRAN (R 4.2.0)
+#&gt;  xfun            0.31    2022-05-10 [1] CRAN (R 4.2.0)
+#&gt;  xml2            1.3.3   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  xtable          1.8-4   2019-04-21 [1] CRAN (R 4.2.0)
+#&gt;  yaml            2.3.5   2022-02-21 [1] CRAN (R 4.2.0)
+#&gt; 
+#&gt;  [1] /Users/sebastiansaueruser/Rlibs
+#&gt;  [2] /Library/Frameworks/R.framework/Versions/4.2/Resources/library
+#&gt; 
+#&gt; ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>

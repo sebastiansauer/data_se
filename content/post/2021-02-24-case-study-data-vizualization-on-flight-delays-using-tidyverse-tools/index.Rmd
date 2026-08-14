@@ -1,0 +1,287 @@
+---
+title: 'Case study: data vizualization on flight delays using tidyverse tools'
+author: Sebastian Sauer
+date: '2021-02-24'
+slug: case-study-data-vizualization-on-flight-delays-using-tidyverse-tools
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+
+# Load data
+
+
+```{r message = FALSE}
+library(tidyverse)
+library(nycflights13)
+
+data("flights")
+```
+
+
+
+# Exercises/questions
+
+See [here]()
+
+# Solutions
+
+##  Plot the distribution of the delays. Describe your insights.
+
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = dep_delay) +
+  geom_histogram()
+```
+
+Alternatively:
+
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = dep_delay) +
+  geom_density()
+```
+
+
+The distribution is skewed to the right. Some flights are extremely lated compared to the majority.
+
+
+##  Plot the distribution of the delays per origin airport.
+
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = dep_delay) +
+  geom_density() +
+  facet_wrap(~ origin)
+```
+
+
+
+## Visualize the assocation of delay and time of the day. Find a way to reduce overplotting. 
+
+Hint: Try out `geom_bind2d()` or `geom_density2d()` instead of using a scatter plot.
+
+
+
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = dep_time, dep_delay) +
+  geom_density2d()
+```
+
+
+Adding a "smoother" line:
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = dep_time, dep_delay) +
+  geom_density2d() +
+  geom_smooth()  # smoothing line
+```
+
+
+Alternatively:
+
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = dep_time, dep_delay) +
+  geom_bin2d() +
+  geom_smooth(method = "lm")  # smoothing line
+```
+
+
+
+
+## Visualize the assocation of delay and distance to destination. Separate by origin and month.
+
+
+
+
+
+
+```{r}
+flights %>% 
+  ggplot() +
+  aes(x = distance, dep_delay) +
+  geom_density2d() +
+  facet_grid(origin ~ month)
+```
+
+
+
+
+
+##  Visualize the assocation of delay and time of the day. Only include the three airlines where the delay is highest. 
+
+Reduce overplotting.
+
+
+
+
+```{r}
+flights %>% 
+  group_by(carrier) %>% 
+  summarise(dep_delay_carrier = mean(dep_delay, na.rm = TRUE)) %>% 
+  arrange(-dep_delay_carrier) %>% 
+  slice(1:3)
+```
+
+
+
+```{r}
+flights %>% 
+  filter(carrier %in% c("F9", "EV", "YV")) %>% 
+  ggplot() +
+  aes(x = dep_time, dep_delay) +
+  geom_density2d()
+```
+
+
+
+## Visualize the proportion of delayed flights per origin.
+
+
+
+
+
+
+```{r}
+flights %>% 
+  mutate(is_delayed = dep_delay > 0) %>% 
+  group_by(origin) %>% 
+  summarise(delay_n = sum(is_delayed == TRUE, na.rm = TRUE),
+            delay_prop = delay_n / n()) %>% 
+  ggplot() +
+  aes(x = origin, y = delay_prop) +
+  geom_col()
+  
+```
+
+Alternatively:
+
+
+```{r}
+flights %>% 
+  mutate(is_delayed = dep_delay > 0) %>% 
+  group_by(origin) %>% 
+  ggplot() +
+  aes(x = origin, fill = is_delayed) +
+  geom_bar()
+```
+
+
+
+Or even this way:
+
+
+```{r}
+flights %>% 
+  mutate(is_delayed = dep_delay > 0) %>% 
+  group_by(origin) %>% 
+  ggplot() +
+  aes(x = origin, fill = is_delayed) +
+  geom_bar(position = "fill")
+```
+
+
+
+## Visualize the proportion of delayed flights per time of the day
+
+
+
+
+```{r}
+flights %>% 
+  mutate(is_delayed = dep_delay > 0) %>% 
+  group_by(origin) %>% 
+  drop_na(is_delayed, origin) %>% 
+  ggplot() +
+  aes(x = origin, fill = is_delayed) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ hour) +
+  scale_fill_viridis_d()  # d as in "discrete"
+```
+
+
+##  Visualize the proportion of delayed flights per week day
+
+There's a package that does the weight lifting for us when it comes to working with times and dates: 
+
+
+
+```{r message = FALSE}
+library(lubridate)
+```
+
+
+```{r}
+flights %>% 
+  mutate(is_delayed = dep_delay > 0) %>% 
+  mutate(day_of_week = wday(time_hour)) %>%   # Wochentag
+  group_by(origin) %>% 
+  drop_na(is_delayed, origin) %>% 
+  ggplot() +
+  aes(x = origin, fill = is_delayed) +
+  geom_bar(position = "fill") +
+  facet_wrap(~ day_of_week) +
+  scale_fill_viridis_d()  # d wie "discrete"
+```
+
+
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

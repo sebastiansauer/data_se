@@ -1,0 +1,194 @@
+---
+title: Vorhersagen mit lm
+author: Sebastian Sauer
+date: '2020-12-15'
+slug: vorhersagen-mit-lm
+categories:
+  - rstats
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="index_files/header-attrs/header-attrs.js"></script>
+<link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+<script src="index_files/anchor-sections/anchor-sections.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#pakete-laden"><span class="toc-section-number">1</span> Pakete laden</a></li>
+<li><a href="#daten-laden"><span class="toc-section-number">2</span> Daten laden</a></li>
+<li><a href="#forschungsfrage"><span class="toc-section-number">3</span> Forschungsfrage</a>
+<ul>
+<li><a href="#daten-aufbereiten"><span class="toc-section-number">3.1</span> Daten aufbereiten</a></li>
+<li><a href="#modell-schätzen"><span class="toc-section-number">3.2</span> Modell schätzen</a></li>
+</ul></li>
+<li><a href="#vorhersage-mit-predict-ohne-schätzbereich"><span class="toc-section-number">4</span> Vorhersage mit <code>predict()</code> – ohne Schätzbereich</a></li>
+<li><a href="#vorhersage-mit-predict-mit-schätzbereich"><span class="toc-section-number">5</span> Vorhersage mit <code>predict()</code> – mit Schätzbereich</a></li>
+<li><a href="#reproducibility"><span class="toc-section-number">6</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="pakete-laden" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Pakete laden</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(moderndive)</code></pre>
+</div>
+<div id="daten-laden" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Daten laden</h1>
+<pre class="r"><code>data(movies, package = &quot;ggplot2movies&quot;)</code></pre>
+</div>
+<div id="forschungsfrage" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Forschungsfrage</h1>
+<p>Wie beliebt ist erwartungsgemäß ein Actionfilm nach dem Jahr 2000, der zu den Top-10-Prozent der Budgetverteilung gehört?</p>
+<div id="daten-aufbereiten" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Daten aufbereiten</h2>
+<pre class="r"><code>movies &lt;- 
+  movies %&gt;% 
+  mutate(year_after_2000 = case_when(
+    year &gt;= 2000 ~ &quot;yes&quot;,
+    TRUE ~ &quot;no&quot;
+  )) %&gt;% 
+  mutate(is_top10percent_budget = case_when(
+    percent_rank(budget) &gt; 0.90 ~ &quot;yes&quot;,
+    TRUE ~ &quot;no&quot;
+  ))</code></pre>
+</div>
+<div id="modell-schätzen" class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> Modell schätzen</h2>
+<pre class="r"><code>lm1 &lt;- lm(rating ~ year_after_2000 + is_top10percent_budget + Action, data = movies)</code></pre>
+<pre class="r"><code>lm1 %&gt;% 
+  get_regression_summaries()
+#&gt; # A tibble: 1 x 9
+#&gt;   r_squared adj_r_squared   mse  rmse sigma statistic p_value    df  nobs
+#&gt;       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     0.026         0.026  2.35  1.53  1.53      520.       0     3 58788</code></pre>
+<pre class="r"><code>lm1 %&gt;% 
+  get_regression_table()
+#&gt; # A tibble: 4 x 7
+#&gt;   term                    estimate std_error statistic p_value lower_ci upper_ci
+#&gt;   &lt;chr&gt;                      &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;
+#&gt; 1 intercept                  5.91      0.007    817.         0    5.90     5.93 
+#&gt; 2 year_after_2000yes         0.407     0.016     24.8        0    0.375    0.439
+#&gt; 3 is_top10percent_budget…    0.362     0.068      5.30       0    0.228    0.496
+#&gt; 4 Action                    -0.714     0.024    -30.3        0   -0.76    -0.668</code></pre>
+</div>
+</div>
+<div id="vorhersage-mit-predict-ohne-schätzbereich" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Vorhersage mit <code>predict()</code> – ohne Schätzbereich</h1>
+<pre class="r"><code>neue_daten &lt;-
+  tibble(year_after_2000 = &quot;yes&quot;,
+         is_top10percent_budget = &quot;yes&quot;,
+         Action = 1)</code></pre>
+<pre class="r"><code>predict(lm1, newdata = neue_daten)
+#&gt;        1 
+#&gt; 5.966912</code></pre>
+</div>
+<div id="vorhersage-mit-predict-mit-schätzbereich" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Vorhersage mit <code>predict()</code> – mit Schätzbereich</h1>
+<p>Ein Schätzintervall (im Form eines Konfidenzintervalls, 95%) lässt sich so anfordern:</p>
+<pre class="r"><code>predict(lm1, 
+        newdata = neue_daten,
+        interval = &quot;confidence&quot;)
+#&gt;        fit      lwr      upr
+#&gt; 1 5.966912 5.831909 6.101916</code></pre>
+<p>Diese Ausgabe würde etwa zu dieser Fragestellung passen</p>
+<blockquote>
+<p>Wie beliebt ist erwartungsgemäß ein Actionfilm nach dem Jahr 2000, der zu den Top-10-Prozent der Budgetverteilung gehört? (Intervalltschätzung)</p>
+</blockquote>
+</div>
+<div id="reproducibility" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.0.2 (2020-06-22)
+#&gt;  os       macOS Catalina 10.15.7      
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2020-12-15                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version     date       lib source                             
+#&gt;  assertthat    0.2.1       2019-03-21 [1] CRAN (R 4.0.0)                     
+#&gt;  backports     1.2.0       2020-11-02 [1] CRAN (R 4.0.2)                     
+#&gt;  blogdown      0.21        2020-10-11 [1] CRAN (R 4.0.2)                     
+#&gt;  bookdown      0.21        2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  broom         0.7.2       2020-10-20 [1] CRAN (R 4.0.2)                     
+#&gt;  callr         3.5.1       2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  cellranger    1.1.0       2016-07-27 [1] CRAN (R 4.0.0)                     
+#&gt;  cli           2.2.0       2020-11-20 [1] CRAN (R 4.0.2)                     
+#&gt;  codetools     0.2-16      2018-12-24 [2] CRAN (R 4.0.2)                     
+#&gt;  colorspace    2.0-0       2020-11-11 [1] CRAN (R 4.0.2)                     
+#&gt;  crayon        1.3.4       2017-09-16 [1] CRAN (R 4.0.0)                     
+#&gt;  DBI           1.1.0       2019-12-15 [1] CRAN (R 4.0.0)                     
+#&gt;  dbplyr        2.0.0       2020-11-03 [1] CRAN (R 4.0.2)                     
+#&gt;  desc          1.2.0       2018-05-01 [1] CRAN (R 4.0.0)                     
+#&gt;  devtools      2.3.2       2020-09-18 [1] CRAN (R 4.0.2)                     
+#&gt;  digest        0.6.27      2020-10-24 [1] CRAN (R 4.0.2)                     
+#&gt;  dplyr       * 1.0.2       2020-08-18 [1] CRAN (R 4.0.2)                     
+#&gt;  ellipsis      0.3.1       2020-05-15 [1] CRAN (R 4.0.0)                     
+#&gt;  evaluate      0.14        2019-05-28 [1] CRAN (R 4.0.0)                     
+#&gt;  fansi         0.4.1       2020-01-08 [1] CRAN (R 4.0.0)                     
+#&gt;  forcats     * 0.5.0       2020-03-01 [1] CRAN (R 4.0.0)                     
+#&gt;  fs            1.5.0       2020-07-31 [1] CRAN (R 4.0.2)                     
+#&gt;  generics      0.1.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  ggplot2     * 3.3.2       2020-06-19 [1] CRAN (R 4.0.0)                     
+#&gt;  glue          1.4.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  gtable        0.3.0       2019-03-25 [1] CRAN (R 4.0.0)                     
+#&gt;  haven         2.3.1       2020-06-01 [1] CRAN (R 4.0.0)                     
+#&gt;  hms           0.5.3       2020-01-08 [1] CRAN (R 4.0.0)                     
+#&gt;  htmltools     0.5.0       2020-06-16 [1] CRAN (R 4.0.0)                     
+#&gt;  httr          1.4.2       2020-07-20 [1] CRAN (R 4.0.2)                     
+#&gt;  jsonlite      1.7.1       2020-09-07 [1] CRAN (R 4.0.2)                     
+#&gt;  knitr         1.30        2020-09-22 [1] CRAN (R 4.0.2)                     
+#&gt;  lifecycle     0.2.0       2020-03-06 [1] CRAN (R 4.0.0)                     
+#&gt;  lubridate     1.7.9.2     2020-11-13 [1] CRAN (R 4.0.2)                     
+#&gt;  magrittr      2.0.1       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  memoise       1.1.0       2017-04-21 [1] CRAN (R 4.0.0)                     
+#&gt;  modelr        0.1.8       2020-05-19 [1] CRAN (R 4.0.0)                     
+#&gt;  munsell       0.5.0       2018-06-12 [1] CRAN (R 4.0.0)                     
+#&gt;  pillar        1.4.7       2020-11-20 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgbuild      1.1.0       2020-07-13 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgconfig     2.0.3       2019-09-22 [1] CRAN (R 4.0.0)                     
+#&gt;  pkgload       1.1.0       2020-05-29 [1] CRAN (R 4.0.0)                     
+#&gt;  prettyunits   1.1.1       2020-01-24 [1] CRAN (R 4.0.0)                     
+#&gt;  processx      3.4.5       2020-11-30 [1] CRAN (R 4.0.2)                     
+#&gt;  ps            1.4.0       2020-10-07 [1] CRAN (R 4.0.2)                     
+#&gt;  purrr       * 0.3.4       2020-04-17 [1] CRAN (R 4.0.0)                     
+#&gt;  R6            2.5.0       2020-10-28 [1] CRAN (R 4.0.2)                     
+#&gt;  Rcpp          1.0.5       2020-07-06 [1] CRAN (R 4.0.2)                     
+#&gt;  readr       * 1.4.0       2020-10-05 [1] CRAN (R 4.0.2)                     
+#&gt;  readxl        1.3.1       2019-03-13 [1] CRAN (R 4.0.0)                     
+#&gt;  remotes       2.2.0       2020-07-21 [1] CRAN (R 4.0.2)                     
+#&gt;  reprex        0.3.0       2019-05-16 [1] CRAN (R 4.0.0)                     
+#&gt;  rlang         0.4.9       2020-11-26 [1] CRAN (R 4.0.2)                     
+#&gt;  rmarkdown     2.5         2020-10-21 [1] CRAN (R 4.0.2)                     
+#&gt;  rprojroot     2.0.2       2020-11-15 [1] CRAN (R 4.0.2)                     
+#&gt;  rstudioapi    0.13.0-9000 2020-12-09 [1] Github (rstudio/rstudioapi@4baeb39)
+#&gt;  rvest         0.3.6       2020-07-25 [1] CRAN (R 4.0.2)                     
+#&gt;  scales        1.1.1       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  sessioninfo   1.1.1       2018-11-05 [1] CRAN (R 4.0.0)                     
+#&gt;  stringi       1.5.3       2020-09-09 [1] CRAN (R 4.0.2)                     
+#&gt;  stringr     * 1.4.0       2019-02-10 [1] CRAN (R 4.0.0)                     
+#&gt;  testthat      3.0.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  tibble      * 3.0.4       2020-10-12 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyr       * 1.1.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyselect    1.1.0       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  tidyverse   * 1.3.0       2019-11-21 [1] CRAN (R 4.0.0)                     
+#&gt;  usethis       1.6.3       2020-09-17 [1] CRAN (R 4.0.2)                     
+#&gt;  vctrs         0.3.5       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  withr         2.3.0       2020-09-22 [1] CRAN (R 4.0.2)                     
+#&gt;  xfun          0.19        2020-10-30 [1] CRAN (R 4.0.2)                     
+#&gt;  xml2          1.3.2       2020-04-23 [1] CRAN (R 4.0.0)                     
+#&gt;  yaml          2.2.1       2020-02-01 [1] CRAN (R 4.0.0)                     
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Rlibs
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre>
+</div>

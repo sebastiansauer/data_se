@@ -1,0 +1,179 @@
+---
+title: Beispiel zur Interpretation des Interaktionseffekts
+author: Sebastian Sauer
+date: '2021-06-17'
+slug: beispiel-zur-interpretation-des-interaktionseffekts
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+
+# Der Interaktionseffekt in der Regressionsanalyse
+
+Der Interaktionseffekt in der Regressionsanalyse ist nicht einfach zu interpretieren. Daher ist eine z-Transformation nützlich, die die Interpretation erleichtert. Das soll hier an einem Beispiel verdeutlicht werden.
+
+
+
+# Vorbereitung
+
+```{r message=FALSE}
+library(tidyverse)
+library(arm)  # für Funktion "display"
+```
+
+```{r}
+data(mtcars)
+```
+
+# Regression mit Interaktionseffekt, die Erste
+
+## z-Transformation des Prädiktors `hp`
+
+
+```{r}
+mtcars <- 
+  mtcars %>% 
+  mutate(hp_z = scale(hp))
+```
+
+
+`scale()` besorgt die z-Transformation für uns, praktische Sache.
+
+## lm1
+
+
+
+```{r}
+lm1 <- lm(mpg ~ hp + am + hp:am,
+          data = mtcars)
+display(lm1)
+```
+
+
+Wie man in der Ausgabe sehen kann, gibt es keinen Interaktionseffekt: Der Koeffizient liegt im Modell bei 0.00 (se=0.02). Pustekuchen. Also suchen wir uns einen anderen Datensatz.
+
+
+
+# Regression mit Interaktionseffekt, die Zweite
+
+Untersuchen wir, ob die Bewertung von Dozentis (Lehris) abhängig ist vom Alter (des Dozentis) und ob dieser Einfluss unterschiedlich ist bei Männern und Frauen (dieser Einfluss also vom Geschlecht abhängt; man sagt auch "vom Geschlecht modiert wird").
+
+
+## Daten
+
+```{r}
+teacherratings <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/AER/TeachingRatings.csv")
+```
+
+
+Eine Codebook findet sich [hier](https://vincentarelbundock.github.io/Rdatasets/doc/AER/TeachingRatings.html).
+
+
+## Ohne z-Transformation
+
+```{r}
+lm2 <- lm(eval ~ beauty + gender + beauty:gender,
+          data = teacherratings)
+
+display(lm2)
+```
+
+
+
+
+
+## Mit z-Transformation
+
+```{r}
+teacherratings <-
+  teacherratings %>% 
+  mutate(beauty_z = (beauty - mean(beauty))/sd(beauty),
+         age_z = (age - mean(age))/sd(age))
+```
+
+Dieses Mal haben wir die z-Transformation per Hand gerechnet.
+
+
+```{r}
+lm3 <- lm(eval ~ age_z + gender + age_z:gender,
+          data = teacherratings)
+
+display(lm3)
+```
+
+
+## Visualisierung
+
+
+```{r}
+vis1 <- ggplot(teacherratings) +
+  aes(x = age_z, y = eval, color = gender) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  scale_color_brewer(palette="Set1")
+
+vis1 
+```
+
+
+## Interpretation zum Vorhandensein eines Interpretationseffekts
+
+Da die Gerade *nicht* parallel sind, liegt ein Interaktionseffekt vor. Allerdings ist das Verhältnis von Signal zu Rauschen kleiner als 2, was als Beleg dafür gelten kann, dass auch ein Koeffizient von 0 (keine Interaktion) zu den Daten passen würde (mit den Daten kompatibel ist). Die gleiche Abwägung von Signal zu Rauschen ist bei den anderen Koeffizienten auch zu treffen.
+
+
+## Interpretation der Koeffizienten
+
+
+- `Intercept`: Die mittlere Bewertung von *weiblichen* Dozenten mit *mittlerem* Alter liegt im Modell bei knapp 4.
+- `age_z`: Pro Jahr an zusätzlichem Alter sinkt die Bewertung der *Frauen* um -0.13 Punkte (im Schnitt).
+- `gendermale`: Die mittlere Bewertung von *männlichen* Dozenten mit *mittlerem* Alter liegt im Modell 0.22 Punkten *über* dem der Frauen, also bei 3.86+0.22, d.i. etwas über 4.
+- `age_z:gendermale`: Für jedes Altersjahr steigt die mittlere Bewertung der *männlichen* Dozentis um 0.11 *mehr* als dies bei den Frauen der Fall ist, also um -0.13+0.11, d.i. etwa -0.02 Punkte.
+
+
+## Viel besser mit z-Transformation
+
+Ohne z-Transformation wäre der "Bezugspunkt" immer 0 Jahre Alter, was  für Dozentis nicht so das typische Berufsjahr ist... Mit z-Transformation ist der "Bezguspunkt" (der Nullwert) das *mittlere* Alter des Dozentis (in der Stichprobe). Viel schöner zu interpretieren!
+
+## Berechnen eines vorhergesagten Wertes mit der Hand
+
+Was ist die zu erwartenden Bewertung von folgenden Dozentis:
+
+- Dozi 1: Frau, mittlere Schönheit (Frau Orange)
+- Dozi 2: Mann, Alter (z) = 2 (Herr Rosa)
+- Dozi 3: Fau, Alter (z) = -2 (Frau Grün)
+
+
+```{r}
+y1 <- 3.8 - 0.13*0 + 0*0.22 + 0.11*(0*0)
+y2 <- 3.86 - 0.13*2 + 1*0.22 + 0.11*(1*2)
+y3 <- 3.86 - 0.13*(-2) + 0*0.22 + 0.11*(0*-2)
+```
+
+
+
+```{r}
+vis1 +
+  annotate(geom = "point", x = 0, y = y1, color = "orange") +
+  annotate(geom = "point", x = 2, y = y2, color = "pink") +
+  annotate(geom = "point", x = -2, y = y3, color = "green")
+```
+
+
+
+# Fazit
+
+
+Die z-Transformation macht die Interpretation leichter.
+
+
+
+<a href="https://imgflip.com/i/5dl6eg"><img src="https://i.imgflip.com/5dl6eg.jpg" title="made at imgflip.com"/></a><div><a href="https://imgflip.com/memegenerator">from Imgflip Meme Generator</a></div>
+

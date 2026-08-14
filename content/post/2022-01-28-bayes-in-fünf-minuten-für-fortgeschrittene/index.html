@@ -1,0 +1,600 @@
+---
+title: Bayes in fünf Minuten, für Fortgeschrittene
+author: Sebastian Sauer
+date: '2022-01-28'
+slug: bayes-in-fünf-minuten-für-fortgeschrittene
+categories:
+  - rstats
+tags:
+  - Bayes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="das-ist-wieder-ein-fünf-minuten-bayes-kurs" class="section level1">
+<h1>Das ist wieder ein Fünf-Minuten-Bayes-Kurs</h1>
+<p>Sie würden gerne Bayes lernen und dafür zwischen 1-3 Wochen Zeit investieren?
+Dann sind Sie hier falsch.
+Dieser Post zeigt einen Kurzüberblick in <em>leicht fortgechrittenen</em> Bayes-Statistik in fünf Minuten.
+Naja, ich probiere es jedenfalls.</p>
+</div>
+<div id="forschungsfrage" class="section level1">
+<h1>Forschungsfrage</h1>
+<p>Sagen wir, uns interessiert folgende Forschungsfrage, die mit Methoden der Inferenz-Statistik untersucht werden soll.
+In diesem Fall Bayes-Inferenz (nicht Frequentistische Statistik).</p>
+<blockquote>
+<p>Verbrauchen Autos mit Automatik-Getriebe im Durchschnitt mehr Sprit als Autos mit manuellem Getriebe?</p>
+</blockquote>
+<ul>
+<li>AV: mpg (miles per gallone)</li>
+<li>UV: am (automatic vs. manual)</li>
+</ul>
+<p>Die AV ist metrisch. Die UV ist binär. Wir vergleichen also zwei Gruppen,
+das ist ähnlich zum t-Test.</p>
+</div>
+<div id="vorbereitung" class="section level1">
+<h1>Vorbereitung</h1>
+<pre class="r"><code>data(&quot;mtcars&quot;)  # Datensatz laden
+library(rstanarm)  # Funktionen für Bayes-Statistik laden
+library(tidyverse)  # Für Datenjudo</code></pre>
+<p>Der Datensatz <code>mtcars</code> ist “fest eingebaut” in R, so dass wir ihn nicht irgendwo herunterladen müssen.</p>
+<p>Hilfe zum Datensatz bekommt man so:</p>
+<pre class="r"><code>help(mtcars) # Hilfe/Codebook zum Datensatz 
+# Output hier nicht dargestellt</code></pre>
+</div>
+<div id="visualisierung" class="section level1">
+<h1>Visualisierung</h1>
+<p>Zwar nicht Gegenstand dieses Posts,
+aber hilfreich,
+daher hier nur kurz ein Bild ohne Syntax:</p>
+<p><img src="chunk-img/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Jeder (leicht verwackelte) Punkt stellt ein Auto dar.
+Die Line ist die Regressionsgerade.
+Die roten Punkte sind die Mittelwerte der beiden Gruppen.</p>
+</div>
+<div id="zur-interpretation-der-regression" class="section level1">
+<h1>Zur Interpretation der Regression</h1>
+<p>Die einfache Regression (also mit nur einer UV) hat zwei Koeffizienten:
+Achsenabschnitt und Steigung.</p>
+<p>Bei einer binären (zweistufigen) UV bedeutet das:</p>
+<ul>
+<li>Der Achsenabschnitt zeigt den vorhergesagten Wert (der Mittelwert) der 1. Gruppe.</li>
+<li>Die Steigung zeigt den (vorhergesagten) Unterschied der zweiten Gruppe (im Vergleich zur 1. Gruppe).</li>
+</ul>
+<p>Der vorhergesagte Wert der zweiten Gruppe ergibt sich also als Summe von Achsenabschnitt plus Steigung.</p>
+</div>
+<div id="modell-berechnen" class="section level1">
+<h1>Modell berechnen</h1>
+<p>Nutzen wir das allgemeine (oder verallgemeinerte) lineare Modell,
+um unsere Forschungsfrage zu beantworten.
+Anders gesagt: Wir berechnen einen Regression.
+Das schöne an einer Regression ist,
+sie passt<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> auf die meisten Probleme,
+so ähnlich wie ein Schweizer Taschenmesser.</p>
+<pre class="r"><code>m1 &lt;- stan_glm(mpg ~ am, data = mtcars)</code></pre>
+<p>Schön oder: Die Syntax von <code>stan_glm()</code> entspricht der Syntax von <code>lm()</code>.</p>
+</div>
+<div id="unterschied-zwischen-den-zwei-gruppen" class="section level1">
+<h1>Unterschied zwischen den zwei Gruppen</h1>
+<pre class="r"><code>coef(m1)</code></pre>
+<pre><code>## (Intercept)          am 
+##   17.142936    7.220695</code></pre>
+<p>Was wir bekommen,
+sind Punktschätzer für die Population:</p>
+<p>Der Achsenabschnitt wird auf ca. 17 geschätzt.
+Die Steigung (Unterschied zwischen den Gruppen) wird auf ca. 7 geschätzt.</p>
+</div>
+<div id="ist-der-unterschied-praktisch-null" class="section level1">
+<h1>Ist der Unterschied “praktisch Null”?</h1>
+<p>Dass sich zwei Gruppen um <em>exakt</em> Null unterscheiden,
+ist wenig plausibel, if you think about it.
+Daher ist es sinnvoller, einen Bereich von “praktisch Null” zu definieren,
+und zu testen, ob wir diesen Bereich ausschließen können.</p>
+<p>Dieses Konzept nennt man auch das Testen auf einen “Region of practical equivalence” (ROPE),
+<a href="https://journals.sagepub.com/doi/full/10.1177/2515245918771304">hier ist ein schönes Paper</a> dazu.</p>
+<p>Sagen wir, wir definieren einen Unterschied von <em>1 Meile</em> (bei <code>mpg</code>) als “praktisch Null”
+(vernachlässigbar, äquivalent).
+Mit anderen Worten: Falls die beiden Gruppen von Autos im Schnitt mit einer Gallone Sprit gleich weit kommen <em>plus/minus 1 Meile</em>, dann sagen wir, dass der <em>Unterschied</em> im Spritverbrauch <em>praktisch Null</em> ist.</p>
+<p>In R können wir ROPE so berechnen:</p>
+<pre class="r"><code>library(bayestestR)
+m1_rope &lt;- rope(m1, range = c(-1,1))
+m1_rope</code></pre>
+<pre><code>## # Proportion of samples inside the ROPE [-1.00, 1.00]:
+## 
+## Parameter   | inside ROPE
+## -------------------------
+## (Intercept) |      0.00 %
+## am          |      0.00 %</code></pre>
+<p>Mit <code>range</code> haben wir die Grenzen des Rope bestimmt, hier eben von -1 (Meile) bis +1 (Meile).</p>
+<p>Hm, aber, was heißt das jetzt?</p>
+<p>Wenn du nicht mehr weiterweißt, mal ein Diagramm.</p>
+<pre class="r"><code>plot(m1_rope)</code></pre>
+<p><img src="chunk-img/unnamed-chunk-9-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Das Diagramm zeigt im Rechteck links den ROPE-Bereich, von -1 bis 1, wie oben spezifiert.</p>
+<p>Von unserem 95%-PI (des Grupenunterschieds) liegt <em>nix</em> im ROPE.</p>
+<p>Wir resümieren also: Der Gruppenunterschied ist <em>mehr als</em> “praktisch Null”.
+Der Spritverbrauch unterscheidet sich mehr als “praktisch Null” zwischen den beiden Gruppen.</p>
+</div>
+<div id="vorhersagen---punktschätzer" class="section level1">
+<h1>Vorhersagen - Punktschätzer</h1>
+<p>Eine natürliche Frage ist: “Welchen Spritverbrauch kann man denn erwarten von einem Auto aus jeder Gruppe”?</p>
+<p>Das ist nichts anderes als der Mittelwert pro Gruppe.
+Kann man auch so berechnen:</p>
+<pre class="r"><code>predict(m1, newdata = tibble(am = c(0,1)))</code></pre>
+<pre><code>##        1        2 
+## 17.15779 24.39492</code></pre>
+<p>Mit <code>newdata</code> haben wir gesagt “Hey R, mach mal ne Vorhersage für zwei neue Karren.
+Und zwar einmal eine mit <code>am=0</code> und eine mit <code>am=1</code>.
+Das ist nichts anderes als ein Autom mit Automatikgetriebe und eines mit manueller Schaltung.</p>
+<p>Solche Vorhersagen nennt man auch Punktschätzer.
+Aber: Punktschätzer ohne Angabe der Schätzgenauigkeit sind wenig nützlich.
+Ergänzen wir also die Schätzgenauigkeit.</p>
+<p>Bei der Schätzgenauigkeit sind wir ehrlich:</p>
+<ul>
+<li>wir berücksichtigen die Ungewissheit in den Modellkoeffizienten (schließlich sind wir nicht sicher, was der Unterschied zwischen den Gruppen <em>wirklich</em> ist, also in der Population <em>aller Autos</em>, wir haben ja nur eine Stichprobe mit 32 Autos)</li>
+<li>wir berücksichtigen die Ungewissheit <em>im Modell</em>; unser Modell gibt zu, dass es den Spritverbauch nicht perfekt vorhersagen kann. Dazu ist es zu einfach. Es bleibt Ungewissheit in der Vorhersage des Spritverbrauchts (auch wenn wir den Gruppenunterschied im Spritverbrauch exakt wüssten). Schließlich gibt es weitere Einflussfaktoren auf den Spritverbrauch (wie Gewicht des Autos), die wir nicht im Modell aufgenommen haben. Es ist also nicht überraschend,
+das unser Modell keine perfekten Vorhersagen machen, sondern Vorhersagen mit Ungewissheit.</li>
+</ul>
+<p>Berücksichtigt man diese beiden Quellen der Ungewissheit zur Vorhersagen neuer Beobachtungen,
+geht man von der sog. <em>Posteriori-Prädiktiv-Verteilung</em> (PPV) aus.</p>
+<p>In R kann man wie folgt Stichproben aus der PPV ziehen:</p>
+<pre class="r"><code>m1_ppv &lt;- posterior_predict(m1, newdata = tibble(am = c(0, 1)))
+
+m1_ppv &lt;- m1_ppv %&gt;% 
+  as_tibble() # in ordentliche Tabelle umwandeln</code></pre>
+<p>Sieht dann so aus (die ersten paar Zeilen):</p>
+<div id="dxuhxpeukf" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#dxuhxpeukf .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#dxuhxpeukf .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#dxuhxpeukf .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#dxuhxpeukf .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 6px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#dxuhxpeukf .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#dxuhxpeukf .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#dxuhxpeukf .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#dxuhxpeukf .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#dxuhxpeukf .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#dxuhxpeukf .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#dxuhxpeukf .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#dxuhxpeukf .gt_group_heading {
+  padding: 8px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#dxuhxpeukf .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#dxuhxpeukf .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#dxuhxpeukf .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#dxuhxpeukf .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#dxuhxpeukf .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 12px;
+}
+
+#dxuhxpeukf .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#dxuhxpeukf .gt_first_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+}
+
+#dxuhxpeukf .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#dxuhxpeukf .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#dxuhxpeukf .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#dxuhxpeukf .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#dxuhxpeukf .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#dxuhxpeukf .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding: 4px;
+}
+
+#dxuhxpeukf .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#dxuhxpeukf .gt_sourcenote {
+  font-size: 90%;
+  padding: 4px;
+}
+
+#dxuhxpeukf .gt_left {
+  text-align: left;
+}
+
+#dxuhxpeukf .gt_center {
+  text-align: center;
+}
+
+#dxuhxpeukf .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#dxuhxpeukf .gt_font_normal {
+  font-weight: normal;
+}
+
+#dxuhxpeukf .gt_font_bold {
+  font-weight: bold;
+}
+
+#dxuhxpeukf .gt_font_italic {
+  font-style: italic;
+}
+
+#dxuhxpeukf .gt_super {
+  font-size: 65%;
+}
+
+#dxuhxpeukf .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 65%;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">1</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan="1" colspan="1">2</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_center">9.443872</td>
+<td class="gt_row gt_center">26.69451</td></tr>
+    <tr><td class="gt_row gt_center">16.978284</td>
+<td class="gt_row gt_center">26.99028</td></tr>
+    <tr><td class="gt_row gt_center">19.387923</td>
+<td class="gt_row gt_center">15.53653</td></tr>
+    <tr><td class="gt_row gt_center">8.913925</td>
+<td class="gt_row gt_center">14.31588</td></tr>
+    <tr><td class="gt_row gt_center">20.383035</td>
+<td class="gt_row gt_center">13.35528</td></tr>
+    <tr><td class="gt_row gt_center">20.673459</td>
+<td class="gt_row gt_center">21.59201</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+<ul>
+<li>Erste Spalte: Gruppe 1 (<code>am = 0</code>).</li>
+<li>Zweite Spalte: Gruppe 2 (<code>am = 1</code>).</li>
+</ul>
+<p>Jetzt berechnen wir die Streuung in jeder Spalte,
+dann wissen wir die Ungewissheit in den Vorhersagen!</p>
+<pre class="r"><code>m1_ppv %&gt;% 
+  summarise(am_0_sd = sd(`1`),
+            am_1_sd = sd(`2`))</code></pre>
+<pre><code>## # A tibble: 1 × 2
+##   am_0_sd am_1_sd
+##     &lt;dbl&gt;   &lt;dbl&gt;
+## 1    5.08    5.32</code></pre>
+<p>Plotten wir mal die Vorhersagen, genauer gesagt ihre Streuung, also die Ungewissheit in den Vorhersagen:</p>
+<pre class="r"><code>m1_ppv %&gt;% 
+  ggplot() +
+  geom_density(aes(x = `1`), fill = &quot;blue&quot;, alpha = .7) +
+  geom_density(aes(x = `2`), fill = &quot;red&quot;, alpha = .7)  </code></pre>
+<p><img src="chunk-img/unnamed-chunk-14-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Ein bisschen schicker:</p>
+<pre class="r"><code>m1_ppv2 &lt;-
+  m1_ppv %&gt;% 
+  rename(am0 = `1`,
+         am1 = `2`)</code></pre>
+<pre class="r"><code>m1_ppv2 %&gt;% 
+  pivot_longer(everything()) %&gt;% 
+  ggplot(aes(x = value, fill = name)) +
+  geom_density(alpha = .7) +
+  theme_minimal() +
+  labs(fill = &quot;Art des Getriebes&quot;)</code></pre>
+<p><img src="chunk-img/unnamed-chunk-16-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="wie-groß-ist-die-wahrscheinlichkeit-dass-ein-automatik-auto-mehr-sprit-braucht-als-ein-schalt-auto" class="section level1">
+<h1>Wie groß ist die Wahrscheinlichkeit, dass ein Automatik-Auto mehr Sprit braucht, als ein Schalt-Auto?</h1>
+<p>Stellen Sie sich also vor: Wir ziehen zufällig ein Auto aus jeder der beiden Gruppen.
+Wie groß ist die Wahrscheinlichkeit, dass das Automatik-Auto mehr Sprit braucht (als das Auto mit manuellem Getriebe)?</p>
+<p>Die Frage können wir wie folgt beantworten:
+Schauen wir uns unsere 4000 Vorhersagen pro Gruppe (Automatik vs. Schaltung) an.
+Bei wie vielen dieser 4000 Paare hat die Automatikgruppe einen höheren Spritverbrauch
+(Achtung: Das bedeutet einen <em>kleineren</em> Wert in <code>mpg</code>)?</p>
+<p>Rechnen wir das mal aus:</p>
+<pre class="r"><code>wskt_spritverbrauch &lt;-
+  m1_ppv2 %&gt;% 
+  mutate(diff_am0_am1 = am0 - am1) %&gt;% 
+  count(weniger_verbrauch_automatik = diff_am0_am1 &gt; 0)
+
+wskt_spritverbrauch</code></pre>
+<pre><code>## # A tibble: 2 × 2
+##   weniger_verbrauch_automatik     n
+##   &lt;lgl&gt;                       &lt;int&gt;
+## 1 FALSE                        3354
+## 2 TRUE                          646</code></pre>
+<p>Also: In den meisten Fällen gilt: Ein Auto mit Automatik kommt weniger weit mit einer Meile Sprit.
+Mit anderen Worten: In den meisten Fällen hat einer Automatik-Auto einen geringen Wert in <code>mpg</code>.</p>
+<p>In diesem Beispiel liegt der Anteil bei:</p>
+<pre class="r"><code>wskt_spritverbrauch &lt;- 
+wskt_spritverbrauch %&gt;% 
+  mutate(prop = n / sum(n))
+
+wskt_spritverbrauch</code></pre>
+<pre><code>## # A tibble: 2 × 3
+##   weniger_verbrauch_automatik     n  prop
+##   &lt;lgl&gt;                       &lt;int&gt; &lt;dbl&gt;
+## 1 FALSE                        3354 0.838
+## 2 TRUE                          646 0.162</code></pre>
+<p>Die Anteile nehmen wir als Schätzwerte für die Wahrscheinlichkeit.
+Also: Die Wahrscheinlichkeit, dass ein Automatik-Auto weniger Sprit verbraucht,
+liegt nach unserem Modell bei ca. 0.16.</p>
+</div>
+<div id="fazit" class="section level1">
+<h1>Fazit</h1>
+<p>In diesem Post haben wir uns zwei Sachen angeschaut: Testen der “Praktischen Nullhypothese”
+und Vorhersagen.
+Das war etwas fortgeschrittener als im <a href="https://data-se.netlify.app/2022/01/27/bayes-in-f%C3%BCnf-minuten/">ersten Teil</a>.</p>
+<p>Aber dafür haben wir viel erreicht:
+In weites Spektrum wichtiger Forschungsfragen haben wir abgedeckt,
+in durchaus ziemlich cooler Wiese äh Weise.</p>
+<p>Das letzte Wort hat der late Philosophy Twitter Star Karl L.:</p>
+<a href="https://imgflip.com/i/630b4f"><img src="https://i.imgflip.com/630b4f.jpg" title="made at imgflip.com"/></a>
+<div>
+<a href="https://imgflip.com/memegenerator">from Imgflip Meme Generator</a>
+</div>
+<p><a href="https://imgflip.com/i/630b4f">Quelle: Image Flip</a></p>
+</div>
+<div class="footnotes footnotes-end-of-document">
+<hr />
+<ol>
+<li id="fn1"><p>Oft ist sie nur eine Näherung und manchmal eine schlechte, aber man kann erstaunlich viel mit der Regression machen, auch nicht-lineare wie polynombasierte oder exponentielle Zusammenhänge modellieren.<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>

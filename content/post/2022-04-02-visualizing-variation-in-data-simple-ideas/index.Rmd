@@ -1,0 +1,134 @@
+---
+title: Visualizing variation in data, simple ideas
+author: Sebastian Sauer
+date: '2022-04-02'
+slug: visualizing-variation-in-data-simple-ideas
+categories:
+  - rstats
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+# Simulate data
+
+
+```{r}
+low_spread <- 
+  tibble(var = rnorm(n = 100),
+         id = 1:100,
+         type = "low spread")
+high_spread <-
+  tibble(var= rnorm(n = 100, sd = 10),
+         id = 1:100,
+         type = "high spread")
+```
+
+```{r}
+d <-
+  low_spread %>% 
+  bind_rows(high_spread)
+```
+
+
+# Plot 1
+
+```{r}
+ggplot(d) +
+  aes(x = id, y = var) +
+  facet_wrap(~ type) +
+  geom_hline(yintercept = 0, color = "grey40") +
+  geom_point() +
+  theme_minimal()
+```
+
+
+# Plot 2
+
+```{r}
+ggplot(d) +
+  aes(x = type, y = var) +
+  geom_boxplot()
+```
+
+
+
+# Plot 3
+
+
+```{r}
+ggplot(d) +
+  aes(x = var, fill = type) +
+  geom_density(alpha = .5)
+```
+
+
+
+
+
+# Plot 4
+
+```{r}
+d2 <-
+  d %>% 
+  group_by(type) %>% 
+  mutate(avg = mean(var)) %>% 
+  ungroup() %>% 
+  mutate(delta = var - avg)
+  
+```
+
+
+```{r}
+ggplot(d2) +
+  aes(x = id, y = var) +
+  facet_wrap(~ type) +
+  geom_hline(yintercept = 0, color = "grey40") +
+  geom_point() +
+  theme_minimal() +
+  geom_errorbar(aes(x = id, ymin = var-delta, ymax = var), color = "blue")
+```
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

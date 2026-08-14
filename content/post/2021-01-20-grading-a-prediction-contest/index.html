@@ -1,0 +1,525 @@
+---
+title: Grading a prediction contest
+author: Sebastian Sauer
+date: '2021-01-20'
+slug: grading-a-prediction-contest
+categories:
+  - rstats
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="index_files/header-attrs/header-attrs.js"></script>
+<link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+<script src="index_files/anchor-sections/anchor-sections.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#motivation"><span class="toc-section-number">1</span> Motivation</a></li>
+<li><a href="#setup"><span class="toc-section-number">2</span> Setup</a></li>
+<li><a href="#helper-functions"><span class="toc-section-number">3</span> Helper functions</a>
+<ul>
+<li><a href="#function-to-parse-data"><span class="toc-section-number">3.1</span> Function to parse data</a></li>
+<li><a href="#function-to-compute-r2"><span class="toc-section-number">3.2</span> Function to compute <span class="math inline">\(R^2\)</span></a></li>
+<li><a href="#function-to-compute-mse"><span class="toc-section-number">3.3</span> Function to compute <span class="math inline">\(MSE\)</span></a></li>
+<li><a href="#function-to-compute-generalized-error-function"><span class="toc-section-number">3.4</span> Function to compute generalized error function</a></li>
+</ul></li>
+<li><a href="#import-solution-true-data-ie.-solution"><span class="toc-section-number">4</span> Import solution (true) data (ie., solution)</a></li>
+<li><a href="#parse-the-data"><span class="toc-section-number">5</span> Parse the data</a></li>
+<li><a href="#build-master-data-frame"><span class="toc-section-number">6</span> Build master data frame</a>
+<ul>
+<li><a href="#list-df-where-each-submission-is-one-row"><span class="toc-section-number">6.1</span> List df where each submission is one row</a></li>
+<li><a href="#change-character-to-numeric"><span class="toc-section-number">6.2</span> Change character to numeric</a></li>
+<li><a href="#add-observed-true-values"><span class="toc-section-number">6.3</span> Add observed (true) values</a></li>
+<li><a href="#check-lengths-of-submissions"><span class="toc-section-number">6.4</span> Check lengths of submissions</a></li>
+</ul></li>
+<li><a href="#compute-accuracy-r2-etc."><span class="toc-section-number">7</span> Compute accuracy (<span class="math inline">\(R^2\)</span> etc.)</a>
+<ul>
+<li><a href="#check-distribution-of-r2"><span class="toc-section-number">7.1</span> Check distribution of <span class="math inline">\(R^2\)</span></a></li>
+<li><a href="#number-of-distinct-values-for-r2"><span class="toc-section-number">7.2</span> Number of distinct values for <span class="math inline">\(R^2\)</span></a></li>
+</ul></li>
+<li><a href="#grading"><span class="toc-section-number">8</span> Grading</a>
+<ul>
+<li><a href="#note-4.0-model"><span class="toc-section-number">8.1</span> Note-4.0 model</a></li>
+<li><a href="#note-1.0-model"><span class="toc-section-number">8.2</span> Note-1.0 model</a></li>
+<li><a href="#grades-in-sequence"><span class="toc-section-number">8.3</span> Grades in sequence</a></li>
+<li><a href="#map-grades-to-individual-r2-values-of-the-students"><span class="toc-section-number">8.4</span> Map grades to individual <span class="math inline">\(R^2\)</span> values of the students</a></li>
+<li><a href="#grade-distribution"><span class="toc-section-number">8.5</span> Grade distribution</a></li>
+</ul></li>
+<li><a href="#reproducibility"><span class="toc-section-number">9</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="motivation" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Motivation</h1>
+<p>Being a teacher (in some part of my life), I conducted a prediction contest. Students had to predict a bunch of values as precisely as possible. That’s the sort of stuff data scientist do (or are said to do). As far as I am concerned, I was looking at a convenient way of grading the prediction data. Here’s an attempt.</p>
+<p>I’m sorry that post is not fully reproducible. The reason is a privacy rights of my students and that I do not want to fully undisclosure the data set I used, because I might use it for upcoming student cohorts. Teachers: Feel free to contact me if you like to know more about the data set.</p>
+</div>
+<div id="setup" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Setup</h1>
+<pre class="r"><code>library(tidyverse)
+library(testthat)
+library(data.table)
+library(glue)
+library(here)
+library(skimr)</code></pre>
+<p>Use <code>?data.table</code> etc. for help on the packages.</p>
+</div>
+<div id="helper-functions" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Helper functions</h1>
+<div id="function-to-parse-data" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Function to parse data</h2>
+<p>One trouble is that the CSV files I expected can be in different formats: standard CSV, CSV2 (semicolon delimiter, comma decimal). That’s why we need to come up with a more general data parsing function. Unfortunately, and to my suprise, I found no existing funtion that was able to deal with that matter (no, even <code>fread</code> did not).</p>
+<pre class="r"><code>try_readcsv &lt;- function(file, verbose = FALSE) {
+  
+  # import csv file:
+  x &lt;- data.table::fread(file, header = TRUE)
+  
+  # if more than 2 columns, only select first and last one:
+  if (ncol(x) &gt; 2) {
+    x &lt;- x %&gt;% 
+      select(1, last_col())
+  }
+  
+  # stop if only one column:
+  if (ncol(x) == 1) stop(&quot;Only 1 column! There should be (at least) two: ID and predictions.&quot;)
+  
+  # set names:
+  names(x) &lt;- c(&quot;id&quot;, &quot;pred&quot;)
+  
+  # replace commas with dots to deal with German locale:
+  x &lt;-
+    x %&gt;% 
+    mutate(across(where(is.character), 
+                  .fns = ~ str_replace_all(., 
+                                           pattern = &quot;,&quot;,
+                                           replacement = &quot;.&quot;)))
+  
+  # check how many columns where found in each CSV file:
+  if (verbose == TRUE) {print(&quot;Ncol: &quot;); print(ncol(x))}
+  return(x)
+  
+} </code></pre>
+</div>
+<div id="function-to-compute-r2" class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> Function to compute <span class="math inline">\(R^2\)</span></h2>
+<pre class="r"><code>r2 &lt;- function(predicted, observed) {
+  
+  rss &lt;- sum((predicted - observed) ^ 2)  ## residual sum of squares
+  tss &lt;- sum((observed - mean(observed)) ^ 2)  ## total sum of squares
+  rsq &lt;- 1 - rss/tss
+  
+  return(rsq)
+  
+}</code></pre>
+</div>
+<div id="function-to-compute-mse" class="section level2" number="3.3">
+<h2><span class="header-section-number">3.3</span> Function to compute <span class="math inline">\(MSE\)</span></h2>
+<p>Mean Squared Error</p>
+<pre class="r"><code>mse &lt;- function(predicted, observed) {
+  
+  mse &lt;- mean((predicted - observed) ^ 2)  ## mean residual sum of squares
+ 
+  return(mse)
+  
+}</code></pre>
+</div>
+<div id="function-to-compute-generalized-error-function" class="section level2" number="3.4">
+<h2><span class="header-section-number">3.4</span> Function to compute generalized error function</h2>
+<pre class="r"><code>gen_error &lt;- function(predicted, observed, degree = 1) {
+  
+  generr &lt;- mean(abs(predicted - observed) ^ degree)  ## mean residual sum of absolute errors to the `degree` power
+
+  return(generr)
+  
+}</code></pre>
+</div>
+</div>
+<div id="import-solution-true-data-ie.-solution" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Import solution (true) data (ie., solution)</h1>
+<p>Define solution file name, and check whether this file name exists:</p>
+<pre class="r"><code>solution_filename &lt;- paste0(&quot;/Users/sebastiansaueruser/Google Drive/Lehre/Lehre_AKTUELL/2020-WiSe/WisMeth/Prognose-Wettbewerb/Prognose-Material/Material-nur-fuer-Lehrende/test_df_teacher.csv&quot;)
+
+stopifnot(file.exists(solution_filename))</code></pre>
+<p>Import the solution data:</p>
+<pre class="r"><code>test_df_teacher &lt;- read_csv(solution_filename)
+
+test_df_teacher &lt;-
+  test_df_teacher %&gt;% 
+  mutate(id = row_number()) %&gt;% 
+  select(id, pay)</code></pre>
+</div>
+<div id="parse-the-data" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Parse the data</h1>
+<p>Get the list of existing files.</p>
+<p>Here’s the project path; in your case it will be different.</p>
+<pre class="r"><code>proj_path &lt;- &quot;/Users/sebastiansaueruser/Google Drive/Lehre/Lehre_AKTUELL/2020-WiSe/WisMeth/Prognose-Wettbewerb/Prognose-Material&quot;</code></pre>
+<pre class="r"><code>subm_path &lt;- paste0(proj_path, &quot;/Submissions/&quot;)
+
+submissions &lt;- list.files(path = subm_path,
+                          pattern = &quot;\\.csv$&quot;,
+                          recursive = TRUE,
+                          full.names = TRUE)</code></pre>
+<p>Here is the list of CSV files:</p>
+<pre class="r"><code>submissions %&gt;% 
+  head()
+#&gt; [1] &quot;/Users/sebastiansaueruser/Google Drive/Lehre/Lehre_AKTUELL/2020-WiSe/WisMeth/Prognose-Wettbewerb/Prognose-Material/Submissions//64d4faba5afe920efbf0001812299853.csv&quot;
+#&gt; [2] &quot;/Users/sebastiansaueruser/Google Drive/Lehre/Lehre_AKTUELL/2020-WiSe/WisMeth/Prognose-Wettbewerb/Prognose-Material/Submissions//9c31e89af1b4b1bc67c639708f5b5fa3.csv&quot;</code></pre>
+<p>No worries. That are anonymized data files.</p>
+<p>The length of this vector should match the number of students (or student teams) we expect:</p>
+<pre class="r"><code>length(submissions)
+#&gt; [1] 2</code></pre>
+</div>
+<div id="build-master-data-frame" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Build master data frame</h1>
+<p>We build a list data frame for a tidyverse style data manipulation.</p>
+<div id="list-df-where-each-submission-is-one-row" class="section level2" number="6.1">
+<h2><span class="header-section-number">6.1</span> List df where each submission is one row</h2>
+<pre class="r"><code>subm_df &lt;-
+  # create column file submission names:
+  tibble(filepath = submissions) %&gt;% 
+  
+  # cut the path away, leave only the file name:
+  mutate(filename = str_extract(filepath, &quot;/[^/]*.csv$&quot;)) %&gt;% 
+  
+  # create list column with submission data:
+  mutate(subm_data = purrr::map(.x = filepath,
+                                .f = ~ try_readcsv(.x))) %&gt;% 
+  
+  # unnest the columns of the list column:
+  unnest_wider(subm_data)</code></pre>
+<p>See:</p>
+<pre class="r"><code>subm_df
+#&gt; # A tibble: 2 x 4
+#&gt;   filepath                                filename              id       pred   
+#&gt;   &lt;chr&gt;                                   &lt;chr&gt;                 &lt;list&gt;   &lt;list&gt; 
+#&gt; 1 /Users/sebastiansaueruser/Google Drive… /64d4faba5afe920efbf… &lt;int [3… &lt;chr […
+#&gt; 2 /Users/sebastiansaueruser/Google Drive… /9c31e89af1b4b1bc67c… &lt;int [3… &lt;chr […</code></pre>
+<p>Check if all values of <code>pred</code> are of type <code>character</code>:</p>
+<pre class="r"><code>map_chr(subm_df$pred, class)
+#&gt; [1] &quot;character&quot; &quot;character&quot;</code></pre>
+<p>Which is the case. This is an artifact of data import; some CSV files had a German decimal delimiter (dot) whereas others used the standard (comma). So, a robust strategy is to parse those strange numbers all as characters. Then replace the delimiting commas with dots. Then transform to numeric. See the import function above for details.</p>
+</div>
+<div id="change-character-to-numeric" class="section level2" number="6.2">
+<h2><span class="header-section-number">6.2</span> Change character to numeric</h2>
+<p>We need to convert <code>pred</code> to numeric:</p>
+<pre class="r"><code>subm_df2 &lt;-
+  subm_df %&gt;% 
+  # render character into numeric (still a list column, hence we need the `map`):
+  mutate(pred_num = map(pred, as.numeric))</code></pre>
+<p>Check if all values <em>still</em> are of type character:</p>
+<pre class="r"><code>subm_df2$pred_num %&gt;% 
+  map_chr(class)  %&gt;% 
+  unique() 
+#&gt; [1] &quot;numeric&quot;</code></pre>
+<p>Nope. Numeric, as it should be.</p>
+<p>More programmatically:</p>
+<pre class="r"><code>subm_df2$pred_num %&gt;% 
+  map_chr(class)  %&gt;% 
+  unique() %&gt;% 
+  length() %&gt;% 
+  expect_equal(1)</code></pre>
+</div>
+<div id="add-observed-true-values" class="section level2" number="6.3">
+<h2><span class="header-section-number">6.3</span> Add observed (true) values</h2>
+<pre class="r"><code>subm_df3 &lt;-
+  subm_df2 %&gt;% 
+  # add y-value (to be predicted), again a list column:
+  mutate(observed = list(test_df_teacher$pay)) </code></pre>
+<p>See:</p>
+<pre class="r"><code>head(subm_df3)
+#&gt; # A tibble: 2 x 6
+#&gt;   filepath                    filename         id      pred    pred_num observed
+#&gt;   &lt;chr&gt;                       &lt;chr&gt;            &lt;list&gt;  &lt;list&gt;  &lt;list&gt;   &lt;list&gt;  
+#&gt; 1 /Users/sebastiansaueruser/… /64d4faba5afe92… &lt;int [… &lt;chr [… &lt;dbl [3… &lt;dbl [3…
+#&gt; 2 /Users/sebastiansaueruser/… /9c31e89af1b4b1… &lt;int [… &lt;chr [… &lt;dbl [3… &lt;dbl [3…</code></pre>
+</div>
+<div id="check-lengths-of-submissions" class="section level2" number="6.4">
+<h2><span class="header-section-number">6.4</span> Check lengths of submissions</h2>
+<pre class="r"><code>subm_df3$id %&gt;% 
+  map_dbl(length) %&gt;% 
+  unique() 
+#&gt; [1] 300</code></pre>
+<pre class="r"><code>subm_df3$id %&gt;% 
+  map_dbl(length) %&gt;% 
+  unique() %&gt;% 
+  length() %&gt;% 
+  expect_equal(1)</code></pre>
+<p>Each submission should consist of 300 entries in this example.</p>
+</div>
+</div>
+<div id="compute-accuracy-r2-etc." class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Compute accuracy (<span class="math inline">\(R^2\)</span> etc.)</h1>
+<pre class="r"><code>subm_df4 &lt;-
+  subm_df3 %&gt;% 
+  mutate(r2 = map2(.x = pred_num, 
+                     .y = observed, 
+                     .f = ~ r2(.x, .y)),
+         mse = map2(.x = pred_num, 
+                     .y = observed, 
+                     .f = ~ mse(.x, .y)),
+         mae = map2(.x = pred_num, 
+                     .y = observed, 
+                     .f = ~ gen_error(.x, .y))) %&gt;% 
+  unnest(r2)</code></pre>
+<p>See:</p>
+<pre class="r"><code>subm_df4 %&gt;% 
+  glimpse()
+#&gt; Rows: 2
+#&gt; Columns: 9
+#&gt; $ filepath &lt;chr&gt; &quot;/Users/sebastiansaueruser/Google Drive/Lehre/Lehre_AKTUELL/…
+#&gt; $ filename &lt;chr&gt; &quot;/64d4faba5afe920efbf0001812299853.csv&quot;, &quot;/9c31e89af1b4b1bc6…
+#&gt; $ id       &lt;list&gt; [&lt;1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17…
+#&gt; $ pred     &lt;list&gt; [&lt;&quot;102622.898614099&quot;, &quot;110032.651526331&quot;, &quot;97047.9425798611…
+#&gt; $ pred_num &lt;list&gt; [&lt;102622.90, 110032.65, 97047.94, 60826.89, 168182.88, 1562…
+#&gt; $ observed &lt;list&gt; [&lt;91336, 112286, 77536, 69872, 156896, 151509, 78267, 12535…
+#&gt; $ r2       &lt;dbl&gt; 0.8287524, 0.8280914
+#&gt; $ mse      &lt;list&gt; [107043353, 107456477]
+#&gt; $ mae      &lt;list&gt; [8392.041, 8453.271]</code></pre>
+<div id="check-distribution-of-r2" class="section level2" number="7.1">
+<h2><span class="header-section-number">7.1</span> Check distribution of <span class="math inline">\(R^2\)</span></h2>
+<pre class="r"><code>subm_df4 %&gt;%  
+  filter(between(r2,0, 1)) %&gt;% 
+  summarise(r2_mean = mean(r2),
+            r2_sd = sd(r2),
+            r2_med = median(r2),
+            r2_iqr = IQR(r2),
+            r2_min = min(r2),
+            r2_max = max(r2))
+#&gt; # A tibble: 1 x 6
+#&gt;   r2_mean    r2_sd r2_med   r2_iqr r2_min r2_max
+#&gt;     &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;
+#&gt; 1   0.828 0.000467  0.828 0.000330  0.828  0.829</code></pre>
+<pre class="r"><code>subm_df4 %&gt;% 
+  filter(between(r2, 0, 1)) %&gt;% 
+  ggplot(aes(x = r2)) +
+  geom_histogram()</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-21-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="number-of-distinct-values-for-r2" class="section level2" number="7.2">
+<h2><span class="header-section-number">7.2</span> Number of distinct values for <span class="math inline">\(R^2\)</span></h2>
+<pre class="r"><code>length(unique(subm_df4$r2))
+#&gt; [1] 2</code></pre>
+</div>
+</div>
+<div id="grading" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Grading</h1>
+<div id="note-4.0-model" class="section level2" number="8.1">
+<h2><span class="header-section-number">8.1</span> Note-4.0 model</h2>
+<pre class="r"><code>note4_r2 &lt;- 0.01</code></pre>
+</div>
+<div id="note-1.0-model" class="section level2" number="8.2">
+<h2><span class="header-section-number">8.2</span> Note-1.0 model</h2>
+<pre class="r"><code>note1_r2 &lt;- 0.83</code></pre>
+</div>
+<div id="grades-in-sequence" class="section level2" number="8.3">
+<h2><span class="header-section-number">8.3</span> Grades in sequence</h2>
+<p>There are 10 grades (from 4.0 to 1.0), plus the 5 (fail), plus the “supra-best” (only to define the maximum threshold), giving 12 grades in total.</p>
+<pre class="r"><code>grades_df &lt;-
+  tibble(thresholds = c(0, 
+                        seq(from = 0.01, to = 0.83, 
+                            length.out = 9), .85, 1),
+         thresholds2 = c(0, 
+                         seq(from = .51, to = 1, 
+                             length.out = 11)),
+         grades = c(5, 4, 3.7, 3.3, 3.0, 2.7, 2.3, 2, 1.7, 1.3, 1, .7)) %&gt;% 
+  mutate(id = nrow(.):1)
+grades_df
+#&gt; # A tibble: 12 x 4
+#&gt;    thresholds thresholds2 grades    id
+#&gt;         &lt;dbl&gt;       &lt;dbl&gt;  &lt;dbl&gt; &lt;int&gt;
+#&gt;  1      0           0        5      12
+#&gt;  2      0.01        0.51     4      11
+#&gt;  3      0.112       0.559    3.7    10
+#&gt;  4      0.215       0.608    3.3     9
+#&gt;  5      0.318       0.657    3       8
+#&gt;  6      0.42        0.706    2.7     7
+#&gt;  7      0.522       0.755    2.3     6
+#&gt;  8      0.625       0.804    2       5
+#&gt;  9      0.727       0.853    1.7     4
+#&gt; 10      0.83        0.902    1.3     3
+#&gt; 11      0.85        0.951    1       2
+#&gt; 12      1           1        0.7     1</code></pre>
+</div>
+<div id="map-grades-to-individual-r2-values-of-the-students" class="section level2" number="8.4">
+<h2><span class="header-section-number">8.4</span> Map grades to individual <span class="math inline">\(R^2\)</span> values of the students</h2>
+<pre class="r"><code>subm_df5 &lt;-
+  subm_df4 %&gt;% 
+  mutate(grade_id = map_dbl(r2,
+                         .f = ~ {`&gt;`(grades_df$thresholds, .x) %&gt;% sum()} )) %&gt;% 
+  left_join(grades_df %&gt;% select(-c(thresholds, thresholds2)), 
+            by = c(&quot;grade_id&quot; = &quot;id&quot;))</code></pre>
+</div>
+<div id="grade-distribution" class="section level2" number="8.5">
+<h2><span class="header-section-number">8.5</span> Grade distribution</h2>
+<pre class="r"><code>subm_df5 %&gt;% 
+  select(grades) %&gt;% 
+  skim()</code></pre>
+<table>
+<caption><span id="tab:unnamed-chunk-27">Table 8.1: </span>Data summary</caption>
+<tbody>
+<tr class="odd">
+<td align="left">Name</td>
+<td align="left">Piped data</td>
+</tr>
+<tr class="even">
+<td align="left">Number of rows</td>
+<td align="left">2</td>
+</tr>
+<tr class="odd">
+<td align="left">Number of columns</td>
+<td align="left">1</td>
+</tr>
+<tr class="even">
+<td align="left">_______________________</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Column type frequency:</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">numeric</td>
+<td align="left">1</td>
+</tr>
+<tr class="odd">
+<td align="left">________________________</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">Group variables</td>
+<td align="left">None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: numeric</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">p0</th>
+<th align="right">p25</th>
+<th align="right">p50</th>
+<th align="right">p75</th>
+<th align="right">p100</th>
+<th align="left">hist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">grades</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1.3</td>
+<td align="right">0</td>
+<td align="right">1.3</td>
+<td align="right">1.3</td>
+<td align="right">1.3</td>
+<td align="right">1.3</td>
+<td align="right">1.3</td>
+<td align="left">▁▁▇▁▁</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div id="reproducibility" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.0.2 (2020-06-22)
+#&gt;  os       macOS  10.16                
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2021-01-20                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version     date       lib source                             
+#&gt;  assertthat    0.2.1       2019-03-21 [1] CRAN (R 4.0.0)                     
+#&gt;  backports     1.2.0       2020-11-02 [1] CRAN (R 4.0.2)                     
+#&gt;  blogdown      0.21        2020-10-11 [1] CRAN (R 4.0.2)                     
+#&gt;  bookdown      0.21        2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  broom         0.7.2       2020-10-20 [1] CRAN (R 4.0.2)                     
+#&gt;  callr         3.5.1       2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  cellranger    1.1.0       2016-07-27 [1] CRAN (R 4.0.0)                     
+#&gt;  cli           2.2.0       2020-11-20 [1] CRAN (R 4.0.2)                     
+#&gt;  codetools     0.2-16      2018-12-24 [2] CRAN (R 4.0.2)                     
+#&gt;  colorspace    2.0-0       2020-11-11 [1] CRAN (R 4.0.2)                     
+#&gt;  crayon        1.3.4       2017-09-16 [1] CRAN (R 4.0.0)                     
+#&gt;  DBI           1.1.0       2019-12-15 [1] CRAN (R 4.0.0)                     
+#&gt;  dbplyr        2.0.0       2020-11-03 [1] CRAN (R 4.0.2)                     
+#&gt;  desc          1.2.0       2018-05-01 [1] CRAN (R 4.0.0)                     
+#&gt;  devtools      2.3.2       2020-09-18 [1] CRAN (R 4.0.2)                     
+#&gt;  digest        0.6.27      2020-10-24 [1] CRAN (R 4.0.2)                     
+#&gt;  dplyr       * 1.0.2       2020-08-18 [1] CRAN (R 4.0.2)                     
+#&gt;  ellipsis      0.3.1       2020-05-15 [1] CRAN (R 4.0.0)                     
+#&gt;  evaluate      0.14        2019-05-28 [1] CRAN (R 4.0.0)                     
+#&gt;  fansi         0.4.1       2020-01-08 [1] CRAN (R 4.0.0)                     
+#&gt;  forcats     * 0.5.0       2020-03-01 [1] CRAN (R 4.0.0)                     
+#&gt;  fs            1.5.0       2020-07-31 [1] CRAN (R 4.0.2)                     
+#&gt;  generics      0.1.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  ggplot2     * 3.3.2       2020-06-19 [1] CRAN (R 4.0.0)                     
+#&gt;  glue          1.4.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  gtable        0.3.0       2019-03-25 [1] CRAN (R 4.0.0)                     
+#&gt;  haven         2.3.1       2020-06-01 [1] CRAN (R 4.0.0)                     
+#&gt;  hms           0.5.3       2020-01-08 [1] CRAN (R 4.0.0)                     
+#&gt;  htmltools     0.5.0       2020-06-16 [1] CRAN (R 4.0.0)                     
+#&gt;  httr          1.4.2       2020-07-20 [1] CRAN (R 4.0.2)                     
+#&gt;  jsonlite      1.7.1       2020-09-07 [1] CRAN (R 4.0.2)                     
+#&gt;  knitr         1.30        2020-09-22 [1] CRAN (R 4.0.2)                     
+#&gt;  lifecycle     0.2.0       2020-03-06 [1] CRAN (R 4.0.0)                     
+#&gt;  lubridate     1.7.9.2     2020-11-13 [1] CRAN (R 4.0.2)                     
+#&gt;  magrittr      2.0.1       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  memoise       1.1.0       2017-04-21 [1] CRAN (R 4.0.0)                     
+#&gt;  modelr        0.1.8       2020-05-19 [1] CRAN (R 4.0.0)                     
+#&gt;  munsell       0.5.0       2018-06-12 [1] CRAN (R 4.0.0)                     
+#&gt;  pillar        1.4.7       2020-11-20 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgbuild      1.1.0       2020-07-13 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgconfig     2.0.3       2019-09-22 [1] CRAN (R 4.0.0)                     
+#&gt;  pkgload       1.1.0       2020-05-29 [1] CRAN (R 4.0.0)                     
+#&gt;  prettyunits   1.1.1       2020-01-24 [1] CRAN (R 4.0.0)                     
+#&gt;  processx      3.4.5       2020-11-30 [1] CRAN (R 4.0.2)                     
+#&gt;  ps            1.4.0       2020-10-07 [1] CRAN (R 4.0.2)                     
+#&gt;  purrr       * 0.3.4       2020-04-17 [1] CRAN (R 4.0.0)                     
+#&gt;  R6            2.5.0       2020-10-28 [1] CRAN (R 4.0.2)                     
+#&gt;  Rcpp          1.0.5       2020-07-06 [1] CRAN (R 4.0.2)                     
+#&gt;  readr       * 1.4.0       2020-10-05 [1] CRAN (R 4.0.2)                     
+#&gt;  readxl        1.3.1       2019-03-13 [1] CRAN (R 4.0.0)                     
+#&gt;  remotes       2.2.0       2020-07-21 [1] CRAN (R 4.0.2)                     
+#&gt;  reprex        0.3.0       2019-05-16 [1] CRAN (R 4.0.0)                     
+#&gt;  rlang         0.4.9       2020-11-26 [1] CRAN (R 4.0.2)                     
+#&gt;  rmarkdown     2.5         2020-10-21 [1] CRAN (R 4.0.2)                     
+#&gt;  rprojroot     2.0.2       2020-11-15 [1] CRAN (R 4.0.2)                     
+#&gt;  rstudioapi    0.13.0-9000 2020-12-09 [1] Github (rstudio/rstudioapi@4baeb39)
+#&gt;  rvest         0.3.6       2020-07-25 [1] CRAN (R 4.0.2)                     
+#&gt;  scales        1.1.1       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  sessioninfo   1.1.1       2018-11-05 [1] CRAN (R 4.0.0)                     
+#&gt;  stringi       1.5.3       2020-09-09 [1] CRAN (R 4.0.2)                     
+#&gt;  stringr     * 1.4.0       2019-02-10 [1] CRAN (R 4.0.0)                     
+#&gt;  testthat      3.0.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  tibble      * 3.0.4       2020-10-12 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyr       * 1.1.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyselect    1.1.0       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  tidyverse   * 1.3.0       2019-11-21 [1] CRAN (R 4.0.0)                     
+#&gt;  usethis       1.6.3       2020-09-17 [1] CRAN (R 4.0.2)                     
+#&gt;  vctrs         0.3.5       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  withr         2.3.0       2020-09-22 [1] CRAN (R 4.0.2)                     
+#&gt;  xfun          0.19        2020-10-30 [1] CRAN (R 4.0.2)                     
+#&gt;  xml2          1.3.2       2020-04-23 [1] CRAN (R 4.0.0)                     
+#&gt;  yaml          2.2.1       2020-02-01 [1] CRAN (R 4.0.0)                     
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Rlibs
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre>
+</div>

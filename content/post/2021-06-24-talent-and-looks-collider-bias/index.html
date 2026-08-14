@@ -1,0 +1,156 @@
+---
+title: Talent and Looks -- Collider bias
+author: Sebastian Sauer
+date: '2021-06-24'
+draft: false
+slug: talent-and-looks-collider-bias
+categories: [rstats, plotting, musing]
+tags:
+  - tutorial
+  - plotting
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="background" class="section level1">
+<h1>Background</h1>
+<p>Some musing on the collider bias.</p>
+<p>Let’s try to reverse engineer this image</p>
+<p><img src="https://brilliant-staff-media.s3-us-west-2.amazonaws.com/tiffany-wang/1Mvt8RPtlU.png" style="width:70.0%" /></p>
+</div>
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>library(tidyverse)
+library(ggdag)</code></pre>
+</div>
+<div id="simulate-some-data" class="section level1">
+<h1>Simulate some data</h1>
+<pre class="r"><code>n &lt;- 1000</code></pre>
+<pre class="r"><code>
+d &lt;- tibble(
+  x = rnorm(n, mean = 0, sd = 1),
+  y = rnorm(n, mean = 0, sd = 1),
+  e = rnorm(n, mean = 0, sd = 0.3),
+  z = abs(x) * abs(y))</code></pre>
+</div>
+<div id="d-uncorrelated-data" class="section level1">
+<h1>d: Uncorrelated data</h1>
+<p>The farer from the centroid the lighter the color.</p>
+<pre class="r"><code>ggplot(d) +
+  aes(x = x,
+      y = y,
+      color = z) +
+  geom_point() +
+  scale_color_viridis_c()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="d2-vertical-lines" class="section level1">
+<h1>d2: vertical lines</h1>
+<pre class="r"><code>d2 &lt;- tibble(
+  x = runif(n),
+  y = runif(n),
+  e = rnorm(n, mean = 0, sd = 0.3),
+  z = abs(x) * abs(y)
+)</code></pre>
+<p>Here we have the vertical line looked for, but it’s not symmetrical.</p>
+<pre class="r"><code>ggplot(d2) +
+  aes(x = x,
+      y = y,
+      color = z) +
+  geom_point() +
+  scale_color_viridis_c()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="circle-line" class="section level1">
+<h1>Circle line</h1>
+<pre class="r"><code>d3 &lt;- tibble(
+  x = rnorm(n),
+  y = rnorm(n)
+)</code></pre>
+<pre class="r"><code>d3 &lt;-
+  d3 %&gt;% 
+  mutate(status = case_when(
+    sqrt(x^2 + y^2) &gt; 1.4 ~ TRUE,
+    TRUE ~ FALSE
+  ))</code></pre>
+<pre class="r"><code>d3 %&gt;% 
+  ggplot() +
+  aes(x  = x,
+      y = y,
+      color = status) +
+  geom_point()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="put-a-triangle-on-random-data" class="section level1">
+<h1>Put a triangle on random data</h1>
+<pre class="r"><code>polygon_df &lt;- tibble(
+  x = c(0, 0, 0.75),
+  y = c(0, 0.75, 0)
+)
+polygon_df2 &lt;- tibble(
+  x = c(0.25, 1, 1),
+  y = c(1, 1, .25)
+)</code></pre>
+<pre class="r"><code>ggplot(d2) +
+  aes(x = x,
+      y = y) +
+  geom_point() +
+  scale_color_viridis_c() +
+  geom_polygon(data = polygon_df, alpha = .5) +
+  geom_polygon(data = polygon_df2, alpha = .5) +
+  theme_void()
+  </code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="compute-a-function-for-the-two-linear-borders" class="section level1">
+<h1>Compute a function for the two linear borders</h1>
+<pre class="r"><code>myf &lt;- function(x) -x+0.75
+
+myf2 &lt;- function(x) -x + 1.25</code></pre>
+<pre class="r"><code>d2 &lt;- tibble(
+  x = runif(n),
+  y = runif(n),
+  status = case_when(
+    y &gt; myf(x) &amp; y &lt; myf2(x) ~ TRUE,
+    TRUE ~ FALSE
+  )
+)</code></pre>
+<pre class="r"><code>d2 %&gt;% 
+  ggplot() +
+  aes(x  = x,
+      y = y,
+      color = status) +
+  geom_point() +
+  scale_color_manual(values = c(&quot;grey80&quot;, &quot;black&quot;)) +
+  theme_bw() +
+  labs(x = &quot;Looks&quot;,
+       y = &quot;Talent&quot;) +
+    theme(legend.position = &quot;bottom&quot;,
+          axis.text = element_blank())</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="70%" style="display: block; margin: auto;" /></p>
+<p>Here’s how the data look without the “filter” of status:</p>
+<pre class="r"><code>d2 %&gt;% 
+  ggplot() +
+  aes(x  = x,
+      y = y) +
+  geom_point() +
+ # scale_color_manual(values = c(&quot;grey80&quot;, &quot;black&quot;)) +
+  theme_bw() +
+  labs(x = &quot;Looks&quot;,
+       y = &quot;Talent&quot;) +
+    theme(legend.position = &quot;bottom&quot;,
+          axis.text = element_blank())</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-15-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="collider-triangle" class="section level1">
+<h1>Collider triangle</h1>
+<pre class="r"><code>collider_triangle(x = &quot;Looks&quot;,
+                  y = &quot;Talent&quot;,
+                  m = &quot;get_dated&quot;) %&gt;% 
+  ggdag_dseparated(controlling_for = &quot;m&quot;,
+                   text = TRUE,
+                   use_labels = &quot;label&quot;) +
+  theme_dag()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-16-1.png" width="70%" style="display: block; margin: auto;" /></p>
+</div>

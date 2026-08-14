@@ -1,0 +1,1241 @@
+---
+title: "Analyse einiger RKI-Coronadaten: Eine reproduzierbare Fallstudie"
+author: Sebastian Sauer
+date: '2021-11-27'
+slug: analyse-der-rki-coronadaten
+categories:
+  - rstats
+tags:
+  - covid19
+  - tutorial
+  - eda
+  - regression
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+
+```{r global-knitr-options, include=FALSE}
+  knitr::opts_chunk$set(
+  fig.pos = 'H',
+  fig.asp = 0.618,
+  fig.align='center',
+  fig.width = 5,
+  out.width = "100%",
+  fig.cap = "", 
+  #fig.path = "chunk-img/",
+  dpi = 300,
+  # tidy = TRUE,
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  fig.show = "hold")
+```
+
+# R-Pakete
+
+```{r include=FALSE}
+library(rcrossref)  # zitieren
+library(tidyverse)  # Datenjudo
+library(rstatix)  # EDA-Komfort
+library(forcats)  # Faktorvariablen sortieren
+library(tictoc)  # Rechenzeit messen
+library(gt)  # Tabellen im html
+library(lubridate)  # Datumsangaben
+library(ggrepel)  # Nicht überschneidende Labels
+library(corrr)   # Korrelation, tidy
+library(dagitty)  # Kausalanalyse
+library(directlabels)  # Zeitreihen mit Labels beschriften
+```
+
+
+
+# Hintergrund
+
+Die Corona-Epidemie beherrscht (wieder) die Nachrichten, Gespräche und Gedanken.
+Zu Recht, aus zwei Gründen. 
+Zum einen sind die Zahlen jetzt schon besorgniserregend, wenn nicht furchtbar.
+Zum anderen haben [Pandemien das Potenzial zu krassen Extremwerten](https://www.nature.com/articles/s41567-020-0921-x?report=reader).
+
+Dazu kommt, dass Falschmeldungen kursieren.
+Schlimmer noch als reine Unwahrheit sind Halbwahrheiten.
+Damit ist die Unsitte gemeint, einen einzelnen, (vielleicht) korrekten Fakt aufzugreifen,
+und damit eine vielschichtige Forschungsfrage für beantwortet zu erklären.
+Das gleicht dem Versuch, von einem 500-Teile-Puzzle ein Stück gefunden zu haben,
+und nun zu reklamieren, man wisse, wie das ganze Puzzle aussieht.
+Eher in Forschungsvokablen: Auf Basis einer Studie gibt man vor, 
+eine Antwort auf eine breite Forschungsfrage zu geben,
+ohne zu erwähnen, dass es noch 50 anders geartete Studien gibt,
+die zu (evtl.) anderen Ergebnissen kommen.
+
+
+Der Vergleich mehrerer Gruppen ist immer problematisch, 
+problematisch in dem Maße, wie sich die Gruppen in unbekannter Weise unterscheiden.
+So ist es beispielsweise schwierig, 
+die Übersterblichkeit in Deutschland in 2020 und 2021 zu vergleichen.
+Auf die Übersterblichkeit wirken viele Faktoren ein;
+so könnten etwa die Kontaktbeschränkungen dazu geführt haben,
+dass die Grippe sich nicht so ausbreiten konnte.
+Dadurch wurden Krankheits- und Todesfälle vermieden;
+man könnte aber auch (fälschlich) schlussfolgern,
+dass Corona doch "nicht so schlimm" gewesen war.
+Viele weitere Unterschiede sind denkbar;
+etwas Deltavariante vs. den Ursprungsvirus und so weiter.
+
+Der Vergleich zwischen Ländern ist aus dem gleichen Grund noch schwieriger.
+Länder unterscheiden sich in vielen Hinsichten;
+im Hinblick auf Corona sind vermutlich klimatorische Unterschiede entscheidend.
+In einem warmen Land wird - bei gleicher Kontakt- oder Impfsituation -
+sicherlich weniger Fälle auftreten als in einem kalten Land.
+Das ist nur einer von vielen Unterschieden, 
+die eine Rolle spielen können 
+und uns zeigen,
+warum die Menschen Experimente erfunden haben,
+um die Vergleichbarkeit von Gruppen gewährleisten zu können.
+
+Neben der Vergleichbarkeit der Daten spielt natürlich auch die Datenqualität
+(neben und über die Vergleichbarkeit der Datenqualität hinaus) eine wichtige Rolle.
+In Deutschland leistet das RKI gute Arbeit,
+Daten auf möglichst hohem Niveau zu sammeln.
+Praktischerweise sind diese Daten auch öffentlich und komfortabel zugänglich.
+
+Im Lichte der bisher (in jüngerer Geschichte) nicht dagewesesen gesundheitlichen 
+Gefährdungen durch die Epidemie und auch gesellschaftliche Brisanz ist die Frage
+nach den Fakten zu Corona und ihren Auswirkungen von höchstem Belang.
+
+Grund genug, sich die Daten und Analysen zu Corona auf *reproduzierbare* Art und Weise,
+also transparent und für alle nachprüfbar, anzuschauen.
+
+
+# Inzidenzen in Deutschland - Daten vom RKI
+
+Das [Robert-Koch-Institut](https://www.rki.de/DE/Home/homepage_node.html) (RKI) stellt die Daten zu den Corona-Infektionen [hier](https://github.com/robert-koch-institut/SARS-CoV-2_Infektionen_in_Deutschland) öffentlich zum Herunerladen bereit.
+
+Die [CSV-Datei mit den aktuellen Daten](https://github.com/robert-koch-institut/SARS-CoV-2_Infektionen_in_Deutschland/blob/master/Aktuell_Deutschland_SarsCov2_Infektionen.csv) ist groß; 150 MB (26.11.21).
+
+
+Die Daten werden unter der [CC-BY-Lizenz bereitgestellt vom RKI.](https://github.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland#lizenz)
+
+
+
+# Hospitalisierungen in Deutschland
+
+Aufgrund der großen Dateigröße fangen wir mit einer kleineren Datei an.
+[Die Datei mit den Hospitalisierungen](https://github.com/robert-koch-institut/COVID-19-Hospitalisierungen_in_Deutschland) ist viel kleiner (3MB).
+
+Es wird auch ein adjustierter Datensatz bereitgestellt:
+
+>   Zwischen dem Beginn des Krankenhausaufenthalts eines COVID-19-Falles und dem Zeitpunkt, an dem diese Information am RKI eingeht, entsteht ein zeitlicher Verzug. Um den Trend der Anzahl von Hospitalisierungen und der 7-Tage-Hospitalisierungsinzidenz besser bewerten zu können, ergänzen wir die berichtete Hospitalisierungsinzidenz um eine Schätzung der zu erwartenden Anzahl an verzögert berichteten Hospitalisierungen. Neben den Daten der gemeldeten COVID-19-Hospitalisierungen auf Bundes- und Länderebene wird daher ein Nowcasting der Anzahl hospitalisierter Fälle und der 7-Tage-Hospitalisierungsinzidenz auf Bundesebene durchgeführt. Ziel ist die Schätzung der Anzahl von hospitalisierten COVID-19-Fällen mit Meldedatum innerhalb der sieben vorhergehenden Tage - inklusive der noch nicht an das RKI berichteten Hospitalisierungen.
+
+Schauen wir uns den neuesten (adjustierten) Datensatz näher an.
+
+
+Zur Berechnung der adjustierten 7T-Inzidenz schreibt das RKI [hier](https://github.com/robert-koch-institut/COVID-19-Hospitalisierungen_in_Deutschland#berechnung-der-adjustierten-7-tage-hospitalisierungsinzidenz):
+
+>   Die adjustierte 7-Tage-Hospitalisierungsinzidenz berechnet sich aus der adjustierten Anzahl der hospitalisierten COVID-19-Fälle der letzten sieben Tage (vorherig des Berichtsdatums) und der Bevölkerungszahl. Zur einheitlichen Darstellung wird die Inzidenz auf 100.000 Bevölkerung normiert.
+
+
+## Adjustierte Daten
+
+### Daten importieren
+ 
+Weitere Informationen - wie das Codebook (d.h. die Erläuterungen zu den Variablen)
+- finden Sie auf dem [Github-Repo des RKI](https://github.com/robert-koch-institut/COVID-19-Hospitalisierungen_in_Deutschland).
+
+```{r}
+hosp_file <- "https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Hospitalisierungen_in_Deutschland/master/Archiv/2021-11-24_Deutschland_adjustierte-COVID-19-Hospitalisierungen.csv"
+
+hosp_adj <- read_csv(hosp_file)  # adj wie "adjustiert"
+```
+
+
+### EDA
+
+
+```{r}
+hosp_adj %>% 
+  ggplot() +
+  aes(x = Datum, y = PS_adjustierte_7T_Hospitalisierung_Inzidenz) +
+  geom_line() 
+```
+
+
+## Unadjustierte Daten
+
+### Daten importieren
+
+
+```{r}
+hosp_latest_file <- "https://github.com/robert-koch-institut/COVID-19-Hospitalisierungen_in_Deutschland/raw/master/Archiv/2021-11-27_Deutschland_COVID-19-Hospitalisierungen.csv"
+
+hosp_latest <- read_csv(hosp_latest_file)
+```
+
+
+### EDA
+
+
+#### Bundesgebiet
+
+```{r}
+hosp_latest %>% 
+  filter(Bundesland == "Bundesgebiet") %>% 
+  ggplot() +
+  aes(x = Datum, y = `7T_Hospitalisierung_Inzidenz`) +
+  geom_line(aes(color = Altersgruppe)) +
+  scale_color_brewer(type = "qual")
+```
+
+
+#### Nach Bundesland
+
+
+```{r}
+hosp_latest %>% 
+  filter(Bundesland != "Bundesgebiet") %>% 
+  ggplot() +
+  aes(x = Datum, y = `7T_Hospitalisierung_Inzidenz`) +
+  geom_line(aes(color = Altersgruppe)) +
+  scale_color_brewer(type = "qual") +
+  facet_wrap(~ Bundesland)
+```
+
+
+```{r}
+hosp_latest %>% 
+  filter(Bundesland != "Bundesgebiet") %>% 
+  filter(Datum == max(Datum)) %>% 
+  select(-Bundesland_Id, -`7T_Hospitalisierung_Faelle`) %>% 
+  mutate(Bundesland = factor(Bundesland)) %>% 
+  group_by(Bundesland) %>% 
+  summarise(Inz_7T_Hosp = mean(`7T_Hospitalisierung_Inzidenz`)) %>% 
+  ggplot() +
+  aes(y = fct_reorder(Bundesland, Inz_7T_Hosp), x = Inz_7T_Hosp) +
+  geom_col()
+```
+
+
+#### Nach Datum
+
+
+Erstellen wir ein paar weitere Variablen, die das Datum widerspiegeln:
+
+```{r}
+hosp_latest <-
+hosp_latest %>% 
+  mutate(Monat = month(Datum),
+         Woche = week(Datum),
+         Quartal = quarter(Datum),
+         Jahr = year(Datum)) %>% 
+  select(Datum, Monat, Woche, Quartal, Jahr, everything())
+```
+
+
+# Impfungen in Deutschland
+
+
+Weitere Informationen - wie das Codebook (d.h. die Erläuterungen zu den Variablen)
+- finden Sie auf dem [Github-Repo des RKI](https://github.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland).
+
+
+## Neueste Daten
+
+### Daten laden
+
+Von [diesem Github-Repo](https://github.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland) kann man sich die Impfdaten beim RKI herunterladen.
+
+
+Die Daten werden sogar pro Landkreis bereitgestellt.
+Wir begnügen uns hier aber mit den Daten pro Bundesland.
+
+
+```{r}
+vacc_file_latest <- "https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland/master/Archiv/2021-11-27_Deutschland_Impfquoten_COVID-19.csv"
+
+vacc_latest <- read_csv(vacc_file_latest)
+```
+
+
+```{r}
+glimpse(vacc_latest)
+```
+
+
+Die Datei gibt die Impfquote für einen Tag (hier 27.11.21) wieder.
+
+### EDA
+
+
+
+
+```{r}
+vacc_latest %>% 
+  #filter(Bundesland != "Deutschland") %>% 
+  mutate(Bundesland = factor(Bundesland)) %>% 
+  ggplot() +
+  aes(y = fct_reorder(Bundesland, Impfquote_gesamt_voll), 
+      x = Impfquote_gesamt_voll) +
+  geom_col() +
+  labs(title = "Impfquote am 27.11.2021",
+       caption = "Datenquelle: RKI")
+```
+
+
+Und hier als Vektor der Impfquoten (genauer gesagt: `Impfquote_gesamt_voll`), absteigend sortiert:
+
+```{r}
+vacc_latest_df <-
+  vacc_latest %>% 
+  filter(!Bundesland %in% c("Bundesressorts", "Deutschland")) %>% 
+  mutate(Bundesland = factor(Bundesland)) %>% 
+  select(Bundesland, Impfquote_gesamt_voll) %>% 
+  arrange(-Impfquote_gesamt_voll)
+
+vacc_latest_df %>%   
+  gt() %>% 
+  tab_options(
+              heading.align = "left"
+              )
+```
+
+
+Und wir speichern die Reihenfolge der Bundesländer nach Impfquote für spätere Verwendung in einem Vektor:
+
+
+```{r}
+bundeslaender_nach_impfquote <- 
+  vacc_latest_df %>% 
+  pull(Bundesland) %>% 
+  fct_inorder()  # Faktorstufen ordnen entsprechend ihrer empirischen Reihenfolge
+
+bundeslaender_nach_impfquote
+```
+
+
+## Impfquoten im Zeitverlauf
+
+
+
+### Daten laden 1
+
+```{r}
+vacc_time_file <- "https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland/master/Archiv/2021-11-24_Deutschland_Bundeslaender_COVID-19-Impfungen.csv"
+
+vacc_time <- read_csv(vacc_time_file)
+```
+
+
+
+```{r}
+glimpse(vacc_time)
+```
+
+Diese Datei gibt uns nicht direkt die Impfquoten, sondern die Anzahl der Impfungen pro Bundesland pro Tag. 
+Einfacher ist es vielleicht, die Dateien zu suchen, die uns die Impfquoten schon komfortabel zur Verfügung stellen.
+
+
+### Daten laden 2
+
+#### Relevante Daten finden
+
+Im RKI-Repo finden sich dazu Dateien mit dem Namen `JJJJ-MM-TT_Deutschland_Impfquoten_COVID-19.csv`.
+
+Unser Plan muss wohl sein, alle diese Dateien zusammenzutragen und dann in eine Tabelle (Dataframe) zusammenzufügen.
+
+Da ich das Repo auf meine Festplatte heruntergeladen habe, 
+kann ich recht komfortabel eine Liste der relevanten Dateien bekommen:
+
+```{r}
+vacc_dir <- "/Users/sebastiansaueruser/github-repos/COVID-19-Impfungen_in_Deutschland/Archiv"
+
+search_term <- "^\\d{4}-\\d{2}-\\d{2}_Deutschland_Impfquoten_COVID-19.csv$"
+
+vacc_time_files <- 
+  list.files(path = vacc_dir,
+             pattern = search_term)
+```
+
+
+```{r}
+head(vacc_time_files)
+length(vacc_time_files)
+```
+
+Wir haben also Daten von `r length(vacc_time_files)` Daten.
+
+
+#### Daten importieren
+
+Zwar liegen die Daten auch auf meinem Rechner, aber für die geneigten Lesis ist es vermutlich einfacher, die Daten direkt vom RKI-Repo zu importieren.
+
+Dafür müssen wir zuerst für jede Datei den Pfad vorne anfügen:
+
+```{r}
+vacc_path <- "https://raw.githubusercontent.com/robert-koch-institut/COVID-19-Impfungen_in_Deutschland/master/Archiv"
+
+vacc_time_files_w_path <-
+  paste0(vacc_path, "/", vacc_time_files)
+```
+
+
+```{r}
+head(vacc_time_files_w_path)
+```
+
+
+Könnte klappen...
+
+
+Jetzt "mappen" wir auf jeden Dateinamen die Funktion `read_csv`:
+
+```{r load-many-csvs}
+tic()
+vacc_time_df <- 
+  vacc_time_files_w_path %>% 
+  map_df(read_csv)
+toc()
+```
+
+
+Da das etwas Zeit kostet,
+macht es vielleicht Sinn, den Datensatz lokal abzuspeichern.
+
+```{r eval = FALSE}
+write_csv(vacc_time_df,
+          file = "/Users/sebastiansaueruser/datasets/Covid/vacc_time_df.csv")
+```
+
+
+Halt, besser noch in diesem Repo,
+damit die Daten für Sie einfach zugreifbar sind:
+
+```{r eval = FALSE}
+write_csv(vacc_time_df,
+          file = "static/datasets/vacc_time_df.csv")
+```
+
+
+Nämlich so:
+
+```{r eval = FALSE}
+vacc_time_df <-
+  read_csv("https://raw.githubusercontent.com/sebastiansauer/sesa-blog/main/static/datasets/vacc_time_df.csv")
+```
+
+
+
+Sie können [hier](https://raw.githubusercontent.com/sebastiansauer/sesa-blog/main/static/datasets/vacc_time_df.csv) die Daten herunterladen.
+
+
+## EDA
+
+### Impfquote Deutschland im Zeitverlauf
+
+```{r}
+vacc_time_df %>% 
+  filter(Bundesland == "Deutschland") %>% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll) +
+  geom_line()
+```
+
+
+### Impfquote der Bundesländer im Zeitverlauf
+
+```{r fig.asp = 1.3}
+vacc_time_df %>% 
+  filter(!Bundesland %in% c("Deutschland", "Bundesressorts")) %>% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll) +
+  geom_line() +
+  facet_wrap(~ Bundesland, ncol = 4)
+```
+
+```{r}
+vacc_time_df %>% 
+  filter(Bundesland != "Deutschland") %>% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll, color = Bundesland) +
+  geom_line() +
+  scale_color_viridis_d()
+```
+
+
+Die Daten reichen von ... bis ... :
+
+```{r}
+vacc_time_df %>% 
+  filter(Datum == min(Datum)) %>% 
+  pull(Datum)
+```
+
+```{r}
+vacc_time_df %>% 
+  filter(Datum == max(Datum)) %>% 
+  pull(Datum)
+```
+
+
+
+Noch ein ganz nettes Detail:
+Sortieren wir die Legende nach der Höhe der Impfquote.
+
+
+Zuerst brauchen wir eine nach Impfquote geordnete Liste. 
+Die haben wir oben schon mal erstellt:
+
+```{r}
+bundeslaender_nach_impfquote
+```
+
+
+
+```{r}
+vacc_time_df %>% 
+  filter(Bundesland != "Deutschland") %>% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll, color = Bundesland) +
+  geom_line() +
+  scale_color_viridis_d(breaks = bundeslaender_nach_impfquote)
+```
+
+
+Häufig ist es sinnvoll, Liniendiagramme mit mehreren Linien gleich mit dem passenden Label zu versehen. 
+Probieren wir das:
+
+
+```{r fig.asp = 1.5}
+vacc_time_df %>% 
+  filter(Bundesland != "Deutschland") %>% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll, color = Bundesland) +
+  geom_line() +
+  scale_color_viridis_d(breaks = NULL) +
+  geom_label(data = vacc_time_df %>% filter(Datum == max(Datum)),
+             aes(label = Bundesland),
+             size = 2)
+```
+
+
+Hm. Die Position der Labels ist nicht gut. 
+Vielleicht etwas dezenter?   
+
+
+
+```{r fig.asp = 1}
+vacc_time_df %>% 
+  filter(Bundesland != "Deutschland") %>% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll, color = Bundesland) +
+  geom_line() +
+  scale_color_viridis_d(breaks = NULL) +
+  geom_text(data = vacc_time_df %>% filter(Datum == max(Datum),
+                                           Bundesland != "Deutschland"),
+             aes(label = Bundesland),
+             size = 2,
+             nudge_x = +5)
+```
+
+Naja, ok.
+
+
+Oder vielleicht mit `geom_label_repel()`, das versucht, Überschneidungen der Labels zu verhindern:
+
+
+```{r fig.asp=1.5}
+vacc_time_df %>% 
+  filter(Bundesland != "Deutschland") %>% 
+  ggplot() +
+  aes(x = Datum, y = Impfquote_gesamt_voll, color = Bundesland) +
+  geom_line() +
+  scale_color_viridis_d(breaks = NULL) +
+  geom_label_repel(data = vacc_time_df %>% filter(Datum == max(Datum),
+                                                  Bundesland != "Deutschland"),
+             aes(label = Bundesland))
+```
+
+
+Hm, alles andere als perfekt. Aber lassen wir es damit gut sein und
+wenden uns wichtigeren Themen zu.
+Es ist allzu leicht, sich in (vielleicht ganz unterhaltsamen) Details zu verstricken.
+
+[Hier](http://rolandtanglao.com/2018/10/01/p1-directlabels-in-r-labels-at-the-end-of-lines/) gibt es noch ein interessantes Paket, 
+um Liniendiagramme mit Labels zu versehen.
+
+
+Probieren wir das doch mal aus:
+
+```{r fig.asp = 1.5}
+
+vacc_time_df %>% 
+  filter(Bundesland != "Deutschland") %>% 
+  ggplot() +
+  aes(x = Datum, 
+      y = Impfquote_gesamt_voll, 
+      color = Bundesland) +
+  geom_line() +
+  scale_x_date(limits = c(min(vacc_time_df$Datum),
+                                max(vacc_time_df$Datum)+30)) +
+  scale_color_viridis_d(breaks = NULL) +
+  geom_dl(aes(label = Bundesland),
+          method = list(dl.trans(x = x + 0.2), "last.points", cex = 0.8)) 
+```
+
+
+
+# Daten joinen
+
+## Verheiraten 
+
+"Verheiraten" wir die Daten zu Impfquoten und Hospitalisierungen.
+
+Das geht mit einem `join`. 
+Das Argument `by` gibt den "Schlüssel" (ID) an,
+anhand dessen Zeilen aus den beiden Tabellen "verheiratet" werden.
+
+[Hier](https://github.com/gadenbuie/tidyexplain#inner-join) findet sich eine gute visuelle Erklärung.
+
+```{r}
+hosp_vacc <- 
+  hosp_latest %>% 
+  inner_join(vacc_latest %>% select(-c(Bundesland, Datum)),
+             by = c("Bundesland_Id" = "BundeslandId_Impfort"))
+```
+
+
+Beim `inner_join` werden nur Zeilen übernommen, 
+für die es in beiden Tabellen eine Entsprechung (einen Wert für die ID-Variable) gibt.
+
+
+## In Datei speichern
+
+Speichern wir uns diesen Datensatz ab,
+so dass Sie einfach darauf zugreifen können:
+
+
+
+```{r write-hosp-vacc, eval = FALSE}
+write_csv(hosp_vacc,
+          file = "static/datasets/hosp_vacc.csv")
+```
+
+
+Nämlich so:
+
+```{r read-hosp-vacc, eval = FALSE}
+hosp_vacc <-
+  read_csv("https://raw.githubusercontent.com/sebastiansauer/sesa-blog/main/static/datasets/hosp_vacc.csv")
+```
+
+
+
+Alternativ können Sie [hier](https://raw.githubusercontent.com/sebastiansauer/sesa-blog/main/static/datasets/hosp_vacc.csv) die Daten herunterladen.
+
+
+
+
+
+# Zusammenhangsanalysen
+
+Vielleicht ist der wichtigste Hinweis an dieser Stelle,
+dass Beobachtungsdaten (also nicht von guten Experimenten stammend)
+keine Aussagen über Kausaleinflüsse erlauben -
+oder nur unter starken Annahmen.
+
+## Zusammenhang von Impfquote und Hospitalisierung
+
+### Im Zeitverlauf
+
+Hier stellt sich die Frage, auf welchen Zeitrahmen wir aggregieren, 
+um eine Korrelation zu berechnen?
+Je kürzer der Zeitrahmen, desto instabiler die Schätzwerte.
+Je länger der Zeitrahmen, desto mehr werden Veränderungen im Zeitverlauf unter den Teppich gekehrt.
+In so einer Situation ist es vielleicht am besten, 
+sich den Koeffizienten in hoher zeitlicher Auflösung anzuschauen,
+um dann zu entscheiden, wie sehr man aggregieren kann.
+
+```{r}
+korr_vacc_hosp <- 
+  hosp_vacc %>% 
+  select(Jahr,
+         Woche, Impfquote_gesamt_voll, 
+         Inz_7T_Hosp = `7T_Hospitalisierung_Inzidenz`) %>% 
+  filter(Jahr == 2021) %>% 
+  group_by(Woche) %>% 
+  summarise(Korr_Woche = cor(Impfquote_gesamt_voll,
+                             Inz_7T_Hosp))
+  
+```
+
+
+```{r}
+korr_vacc_hosp_joined <- 
+  korr_vacc_hosp %>% 
+  left_join(hosp_vacc %>% select(Datum, Woche, Monat, Quartal)) %>% 
+  group_by(Woche) %>% 
+  filter(row_number() == 1)
+```
+
+#### Korrelation nach Woche
+
+```{r}
+korr_vacc_hosp_joined %>% 
+  mutate(Quartal = factor(Quartal)) %>% 
+  ggplot() +
+  aes(y = Korr_Woche) +
+  geom_rect(aes(
+    x = NULL,
+    y = NULL,
+    xmin = Woche-1, 
+    xmax = Woche, 
+    ymin = -Inf,
+    ymax = +Inf,
+    fill = Quartal),
+    alpha = .5) +
+  scale_fill_manual(values = c("grey", "lightgreen", "darkgreen", "indianred4")) +
+    geom_hline(yintercept = 0, color = "white", size = 2) +
+  geom_point(alpha = .7, aes(x = Woche)) +
+  geom_line(aes(x = Woche)) +
+  labs(title = "Korrelation von Hospitalisierung und Impfquote pro Woche",
+       caption = "Quartale des Jahres 2021 sind eingefärbt. Datenquelle: RKI",
+       x = "Kalenderwoche 2021",
+       y = "Korrelation (Wochenbasis)")
+```
+
+
+Die positive Korrelation im Sommer 2021 - je mehr Impfung, desto mehr Hospitalisierung - ist vor dem Hintergrund der extrem niedrigen Inzidenzzahlen in dieser Zeit zu sehen.
+
+
+
+
+#### Korrelation nach Monat
+
+
+```{r}
+korr_vacc_hosp_monat <- 
+  hosp_vacc %>% 
+  select(Jahr,
+         Monat, 
+         Impfquote_gesamt_voll, 
+         Inz_7T_Hosp = `7T_Hospitalisierung_Inzidenz`) %>% 
+  filter(Jahr == 2021) %>% 
+  group_by(Monat) %>% 
+  summarise(Korr_Monat = cor(Impfquote_gesamt_voll,
+                             Inz_7T_Hosp))
+  
+```
+
+```{r}
+korr_vacc_hosp_monat %>% 
+  gt() %>% 
+  fmt_number(2, decimals = 2)
+```
+
+
+
+```{r}
+korr_vacc_hosp_monat_joined <- 
+  korr_vacc_hosp_monat %>% 
+  left_join(hosp_vacc %>% select(Datum, Monat, Quartal)) %>% 
+  group_by(Monat) %>% 
+  filter(row_number() == 1)
+```
+
+
+```{r}
+korr_vacc_hosp_monat_joined %>% 
+  mutate(Quartal = factor(Quartal)) %>% 
+  ggplot() +
+  aes(y = Korr_Monat) +
+  geom_rect(aes(
+    x = NULL,
+    y = NULL,
+    xmin = Monat-1, 
+    xmax = Monat, 
+    ymin = -Inf,
+    ymax = +Inf,
+    fill = Quartal),
+    alpha = .5) +
+  scale_fill_manual(values = c("grey", "lightgreen", "darkgreen", "indianred4")) +
+    geom_hline(yintercept = 0, color = "white", size = 2) +
+  geom_point(alpha = .7, aes(x = Monat)) +
+  geom_line(aes(x = Monat)) +
+  labs(title = "Korrelation von Hospitalisierung und Impfquote pro Monat",
+       caption = "Quartale des Jahres 2021 sind eingefärbt. Datenquelle: RKI",
+       x = "Kalenderwoche 2021",
+       y = "Korrelation (Wochenbasis)")
+```
+
+
+Insgesamt ergibt sich ein ähnliches Bild,
+wenn man noch Monat oder nach Woche aggregiert und dann die Korrelation jeweils berechnet.
+
+
+
+### Korrelation nach Bundesland
+
+#### November 2021
+
+```{r}
+hosp_vacc %>% 
+  filter(Monat == 11, Bundesland != "Bundesgebiet") %>% 
+  select(I = Impfquote_gesamt_voll,
+         H = `7T_Hospitalisierung_Inzidenz`,
+         B = Bundesland) %>% 
+  group_by(B) %>% 
+  summarise(I = mean(I),
+            H = mean(H)) %>% 
+  ggplot() +
+  aes(x = I,
+      y = H) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(x = "Impfquote (vollständig)",
+       y = "7Tage-Hospitalisierungsquote",
+       title = "Zusammenhang von Impfen und Hospitalisierung",
+       subtitle = "Daten für November 2021, alle Altersgruppe",
+       caption = "Datenquelle: RKI")
+```
+
+
+Fügen wir noch die Namen der Bundesländer zu den Punkten hinzu, aber vielleicht besser die Kurzform der Namen. 
+
+
+```{r}
+state_names <- 
+  tibble::tribble(
+    ~Bundesland, ~Kurzform,                          ~state,
+    "Deutschland",      "DE",                       "Germany",
+    "Baden-Württemberg",      "BW",             "Baden-Württemberg",
+    "Bayern",      "BY",          "Bavaria (FreeState)",
+    "Berlin",      "BE",                        "Berlin",
+    "Brandenburg",      "BB",                   "Brandenburg",
+    "Bremen",      "HB",       "Bremen (Hanseatic City)",
+    "Hamburg",      "HH",      "Hamburg (Hanseatic City)",
+    "Hessen",      "HE",                         "Hesse",
+    "Mecklenburg-Vorpommern",      "MV", "Mecklenburg-Western Pomerania",
+    "Niedersachsen",      "NI",                  "Lower Saxony",
+    "Nordrhein-Westfalen",      "NW",        "North Rhine-Westphalia",
+    "Rheinland-Pfalz",      "RP",          "Rhineland-Palatinate",
+    "Saarland",      "SL",                      "Saarland",
+    "Sachsen",      "SN",           "Saxony (Free tate)",
+    "Sachsen-Anhalt",      "ST",                 "Saxony-Anhalt",
+    "Schleswig-Holstein",      "SH",            "Schleswig-Holstein",
+    "Thüringen",      "TH",        "Thuringia (Free State)",
+    "Bundesgebiet",                "De", "Federal area"
+  )
+```
+
+
+```{r}
+state_names %>% 
+  gt()
+```
+
+
+[Quelle](https://www.destatis.de/DE/Methoden/abkuerzung-bundeslaender-DE-EN.html)
+
+Joinen wir die Kürzel der Bundesländer:
+
+```{r}
+hosp_vacc2 <- 
+  hosp_vacc %>% 
+  left_join(state_names)
+```
+
+
+```{r hosp-vacc-bl-nov}
+hosp_vacc_bundesland_nov <- 
+hosp_vacc %>% 
+  filter(Monat == 11, Bundesland != "Bundesgebiet") %>% 
+  select(I = Impfquote_gesamt_voll,
+         H = `7T_Hospitalisierung_Inzidenz`,
+         Bundesland) %>% 
+  group_by(Bundesland) %>% 
+  summarise(I = mean(I),
+            H = mean(H)) %>% 
+  left_join(state_names %>% select(-state))
+
+
+hosp_vacc_bundesland_nov %>% 
+  ggplot() +
+  aes(x = I,
+      y = H) +
+  geom_point(alpha = .5) +
+  geom_smooth(method = "lm") +
+  labs(x = "Impfquote (vollständig)",
+       y = "7Tage-Hospitalisierungsquote",
+       title = "Zusammenhang von Impfen und Hospitalisierung",
+       subtitle = "Daten für November 2021, alle Altersgruppe",
+       caption = "Datenquelle: RKI") +
+  geom_text(aes(label = Kurzform))
+```
+
+
+Und so sieht die zugehörige Tabelle aus:
+
+```{r}
+hosp_vacc_bundesland_nov %>% 
+  gt() %>% 
+  fmt_number(3, decimals = 2)
+```
+
+
+### Pro Quartal
+
+Aggregieren wir den Datensatz pro Quartal und pro Bundesland;:
+
+```{r hosp-vacc-bundes-land-aggr}
+hosp_vacc_bundesland_pro_Quartal <- 
+  hosp_vacc %>% 
+  filter(Bundesland != "Bundesgebiet") %>% 
+  select(I = Impfquote_gesamt_voll,
+         H = `7T_Hospitalisierung_Inzidenz`,
+         Bundesland,
+         Quartal) %>% 
+  group_by(Bundesland, Quartal) %>% 
+  summarise(I = mean(I),
+            H = mean(H)) %>% 
+  left_join(state_names)
+```
+
+
+So sieht die zugehörige Tabelle aus (die ersten paar Zeilen)
+```{r}
+hosp_vacc_bundesland_pro_Quartal %>% 
+  ungroup() %>% 
+  slice_head(n = 10) %>% 
+  gt() %>% 
+  fmt_number(3, decimals = 2)
+```
+
+
+
+Dann updaten wir das letzte Diagramm, nur eben dieses Mal erstellen pro Quartal ein Diagramm.
+
+Zuvor legen wir noch schönere Bezeichnungen der Facetten an, nicht nur 1,2,3,4, sondern "1. Quartal, "2. Quartal" etc.:
+
+
+```{r quartal-values}
+Quartal_values <- c("1. Quartal", "2. Quartal",
+                    "3. Quartal", "4. Quartal")
+names(Quartal_values) <- c(1:4)
+```
+
+Ansonsten ist es das gleiche Vorgehen wie eben auch:
+
+```{r corr-bundesland-quartal, eval = TRUE, fig.asp = 1.5}
+hosp_vacc_bundesland_pro_Quartal %>% 
+  ggplot() +
+  aes(x = I,
+      y = H) +
+  geom_point(alpha = .5) +
+  geom_smooth(method = "lm") +
+  labs(x = "Impfquote (vollständig)",
+       y = "7Tage-Hospitalisierungsquote",
+       title = "Zusammenhang von Impfen und Hospitalisierung",
+       subtitle = "Aufgeteilt nach Quartale, aggregiert über alle Altersgruppe",
+       caption = "Datenquelle: RKI") +
+  geom_text(aes(label = Kurzform)) +
+  facet_wrap(~ Quartal, labeller = labeller(Quartal = Quartal_values))
+```
+
+
+
+Wir sehen, dass es im 3. Quartal in der Inzidenz kaum Streuung gibt, 
+was die sehr geringe Korrelation erklärt.
+
+
+# Fazit zum Zusammenhang von Hospitalisierung und Impfquote
+
+
+## Deskriptiv
+
+Es fand sich ein negativer Zusammenhang von Hospitalisierung und Impfquote. Nur im Sommer, 
+als die Hospitalisierung praktisch Null war und daher keine Streuung aufwies, 
+fand sich (eine mathematisch notwendige Konsequenz) fast keine Korrelation.
+
+
+## Aber worum geht es uns eigentlich?
+
+Warum haben wir uns überhaupt für die Frage nach dem Zusammenhang von Impfquote und Hospitalisierung interessiert?
+Interessiert uns *allein* der *deskriptive* Sachverhalt des Kovariierens der beiden Größen?
+Ich glaube nicht.
+Wenn wir hören, dass "Störche und Babies korreliert sind",
+und vielleicht sogar Schmunzeln beim Gedanken,
+"wenn es viele Störche gibt, dann gibt es auch viele Babies (und umgekehrt)",
+haben wir eine *kausale* Verbindung,
+einen ursächlichen Einfluss von Störchen auf Babies im Kopf.
+Ich meine, nur deswegen finden wir den Zusammenhang interessant.
+Unser Kopf (unsere Wahrnehmung) hat einen Filter für kausale Einflüsse.
+Evolutionär kann man das sicher gut erklären:
+Wenn man weiß, was die Ursache für ein Problem ist,
+hat bessere Karten, das Problem zu lösen,
+als derjenige, der keinen Schimmer hat, 
+warum die Dinge gerade schieflaufen.
+Unser Hirn muss, könnte man aus evolutionäre Sicht behaupten,
+auf Kausalzusammenhänge getrimmt sein.
+
+Deswegen, meine ich, interessieren wir uns für den Zusammenhang
+von Impfquote und Inzidenz (der Hospitalisierung).
+Wir sind, naturgemäß und einsichtigerweise,
+sehr an dieser Frage interessiert, es ist eine sehr wichtige Frage.
+
+Allerdings: aus Korrelation kann man nicht einfach so Kausalzusammenhänge ableiten.
+
+Anders gesagt,
+wenn wir - vielleicht nur implizit - glauben, 
+die Impfquote I ist die (eine) Ursache von Hospitalisierung H,
+haben wir z.B. dieses Kausalmodell im Kopf:
+
+
+
+### Kausalmodell 1
+
+Kausalmodelle kann man mit *Directed Acyclic Graphs* (DAGs) darstellen.
+
+Also, ein Modell, das mit unserem impliziten Kausalmodell d'accord geht,
+sagt, sinngemäß:
+
+"Die Hospitalisierungsquote H wird von der Impfquote H beeinflusst.
+Natürlich spielen weitere, unbekannte Faktoren U eine Rolle;
+die haben aber nichts mit H zu tun."
+
+Als DAG:
+
+```{r}
+dag1 <-
+  dagitty(
+    'dag {
+    I [pos = "0,1"]
+    H [pos = "1,0"]
+    U [pos = "0, -1"]
+    I -> H
+    U -> H
+    }
+    '
+  )
+plot(dag1)
+
+```
+
+
+Nur wenn U nichts mit I zu tun hat (zumindest in einem bestimmten Sinn nichts zu tun hat),
+können wir mit der Korrelation von I und H den kausalen Effekt wahrnehmen,
+dem wir vermutlich auf der Fährte sind,
+zumindest ist das ein lohnendes Ziel.
+
+### Kausalmodell 2
+
+Allerdings könnte die Wahrheit auch so aussehen:
+
+
+
+
+```{r}
+dag2 <-
+  dagitty(
+    'dag {
+    I [pos = "0,1"]
+    H [pos = "1,0"]
+    U1 [pos = "0, -1"]
+    U2 [pos = "-1,0"]
+    I -> H
+    U1 -> H
+    U2 -> U1
+    U2 -> I
+    }
+    '
+  )
+plot(dag2)
+```
+
+
+Jetzt ist die Korrelation (allgemeiner: der statistische Zusammenhang) von I mit H nicht mehr so unbedarft.
+U2 hat seine Finger im Spiel.
+U1 ist nämlich über U2 (eine weitere unbekannte oder ungemessene Größe) mit I (und weiter nach H) verbunden.
+Man spricht von einer *Konfundierung*:
+In der Assoziation von I mit H mischt sich ein weiterer kausaler Pfad:
+Der von U1->U2->I->H.
+Damit ist die Assoziation  von I mit H die Summe (oder besser: die Mischung) von zwei Pfaden und man kann nicht ohne Weiteres sagen,
+welcher Pfad wieviel der Assoziation versursacht.
+Schlechte Nachrichten.
+Wenn wir aber U1 und U2 messen können, 
+können wir wiederum Hoffnung schöpfen,
+die kausalen Pfade klar zu ziehen.
+
+
+### Interpretation hängt vom Kausalmodell ab
+
+Ob wir also diese (oder eine andere) Korrelation interpretieren können 
+(und interpretieren, so glaube ich, ist oft oder in hohem Maße eine kausale Sache) hängt vom Kausalmodell ab, 
+an das wir glauben.
+
+Natürlich sind noch viele andere Kausalmodelle denkbar.
+Ja, die Sache ist kompliziert.
+
+Das ist übrigens der Grund, 
+warum die Menschen Experimente erfunden haben.
+Mit Experimenten kann man diese gordischen Kausalknoten durchschneiden,
+und dann vergleichsweise einfach die Kausalstrukturen klären.
+Leider sind Experimente nicht immer möglich.
+
+Glücklicherweise im Fall der Frage 
+"Was bringt Impfen gegen Corona?" schon.
+Da gibt es Experimente, die diese Frage untersuchen.
+Vermutlich sind diese Studien die besten Möglichkeiten,
+die kausale Frage nach der Wirksamkeit von Impfung zu klären.
+
+Natürlich, wenn man an ein Kausalmodell glaubt - bzw. es gut begründen kann - das die Vergleichbarkeit der Gruppen nahelegt, 
+dann ist wieder alles gut. 
+Wir wären also zurück beim Kausalmodell 1, oben.
+
+
+
+
+## Wo sind hier die Modelle?
+
+
+Wäre es jetzt nicht allerhöchste Zeit,
+mit dem Modellieren anzufangen?
+Eine paar ausgefeilte Regressionsmodelle zu prüfen?
+An sich ja.
+Leider gibt es zwei Probleme.
+Erstens muss man weitere Daten, also Kennwerte weiterer Messgrößen (Variablen) haben,
+die man dann in einer multiplen Analyse (eine Regression mit mehreren Prädiktoren) untersuchen kann.
+Und natürlich nicht irgendwelche Daten, sondern "die richtigen".
+Das führt uns zum zweiten Problem.
+Die verbreitete Praxis, alle Daten, die man hat,
+in ein Regressionsmodell zu "kippen" und dann das Beste zu hoffen,
+ist der falsche Weg.
+
+Das Hinzunehmen von Prädiktoren ohne ein stimmiges Kausalmodell
+kann genauso viel schaden wie nützen.
+
+Anders gesagt: Ohne ein (stimmiges) Kausalmodell kann man sich
+das Modellieren schenken,
+wenn es darum geht, "echte Effekte", 
+Kausaleffekte also, zu schätzen.
+
+Geht es einem hingegen "nur" darum,
+vorhersagen zu machen,
+etwa "Wie viele Coronafälle sind für nächste Woche zu erwarten?",
+dann ist kein Kausalmodell nötig (obwohl auch nützlich).
+Vorhersagen kann man anhand rein statistischer Zusammenhänge tätigen.
+In der Regel geht es einem aber 
+(in solchen Situationen wie der hier untersuchten Forschungsfrage)
+um kausale Fragen, die ohne ein Kausalmodell kaum zu beantworten sind.
+
+Natürlich könnte man argumentieren,
+ein Kausalmodell sei einem wurscht,
+man will sich nur an den statistischen Zusammenhängen erfreuen.
+So eine Behauptung gleicht der Aussage,
+man interessiere sich "einfach so" für den
+Zusammenhang von Störchen und Babies.
+
+
+```{r echo = FALSE}
+knitr::include_graphics("https://upload.wikimedia.org/wikipedia/commons/2/2f/Scheinkorrelation_Storchenpopulation_Geburtenzahl.jpg?download")
+```
+
+
+
+
+[Quelle: Herbert Kuhl, Wikimedia](https://commons.wikimedia.org/wiki/File:Scheinkorrelation_Storchenpopulation_Geburtenzahl.jpg)
+
+
+Etwas Googeln liefert ein paar weitere schöne Beispiele
+für Korrelationen ohne Anspruch an Kausalität:
+
+- Höhe des Deutschen Meisters im Stabhochsprung bei den Deutschen Hallenmeisterschaften und Anzahl der für Versuche und andere wissenschaftliche Zwecke verwendeten Kaninchen 
+- Geldvermögen der privaten Haushalte (orange) und Zahl der Patienten, die aus Krankenhäusern entlassen wurden und bei denen "Bestimmte infektiöse und parasitäre Krankheiten" diagnostiziert wurden
+- Beschäftigte auf Campingplätzen und Erntemenge von Gurken auf dem Freiland
+
+[Quelle](https://scheinkorrelation.jimdofree.com/)
+
+In allen diesen Beispielen fand sich eine (fast) perfekte Korrelation (0.9-1).
+Es fällt mir schwer, 
+mir vorzustellen,
+dass man sich "rein deskriptiv" für diese Zusammenhänge interessiert.
+
+Kurz gesagt: Modellieren macht nur Sinn,
+wenn man ein Kausalmodell hat;
+zumindest wenn man eine kausale Frage beantworten möchte.
+
+
+Ich will nicht abstreiten,
+dass es hier nicht möglich wäre,
+ein stimmiges Kausalmodell zu erstellen.
+Allerdings ist sehr viel mehr Wissen nötig
+als eine einfache Korrelation.
+
+Für die Zwecke dieser Fallstudie lassen wir es an dieser Stelle bewenden.
+
+
+
+
+
+## Interpretation hängt von der gesamten Befundlage ab
+
+Eine schwierige Frage zu beantworten sollte nicht auf Basis einer einzelnen Studie, 
+gerade wenn diese verschiedene Kausalinterpretationen erlaubt, passieren.
+Die "Gesamtantwort" muss im Lichte der Zusammenschau aller verfügbaren Ergebnissen geschehen.
+Das ist das Gleiche wie zu sagen,
+dass man ein Puzzle nicht anhand eines einzelnen Puzzlestücks einschätzen kann (in aller Regel).
+
+
+
+Was die Wirksamkeit der Corona-Impfung betrifft,
+sprechen die verfügbaren Daten, vor allem die aus hoch qualitativen Studien,
+zugunsten der Wirksamkeit der Impfung.
+
+Beispiele für hoch qualitative Studien zur Wirksamkeit der Corona-Impfung sind z.B. [hier](https://www.zotero.org/groups/4519707/covid_vaccination_effects) zu finden.
+
+
+
+Leider ist Corona so eine Art Puzzle, 
+das (durch Mutationen des Genoms) seine Form andauernd und vielleicht sogar massiv ändern kann.
+Und natürlich sind noch viele Fragen zur Biologie des Virus offen.
+So muss ein Fazit in diesem wie in vielen Fällen vorläufig bleiben.
+
+Immerhin haben wir die Impfung, die, in Zusammenschau der verfügbaren Daten,
+offenbar - Stand heute - hoch wirksam ist.
+In so kurzer Zeit eine so wirksame Therapie entwickelt zu haben,
+ist vermutlich ein großer, vielleicht historischer Erfolg,
+der Wissenschaft.
+
+
+
+## Notiz zum Umgang mit Fehlinformationen
+
+
+Leider kursieren eine Menge von Fehlinformationen zum Thema Corona-Impfung (im Internet).
+Eine ausführliche Beschäftigung damit würde den Rahmen dieses Posts sprengen.
+Nur zwei Notizen zu den Methoden, die gerne verwendet werden.
+Zum einen wird ein Befund herausgegriffen und verabsolutiert.
+Es wird nicht versucht, eine Zusammenschau von Informationen anzustrengend.
+Zum anderen wird gerne ein "Fakt" berichtet - etwa zur Frage, wie wirksam eine Corona-Impfung ist,
+der zwar nicht falsch ist, aber Wesentliches außen vor lässt.
+So wird vielleicht von einer möglichen Ursache gesprochen, 
+aber eine zweite außen vorgelassen.
+Oder es wird von einem Fall mit schweren Nebenwirkungen einer Impfung berichtet, aber nicht davon,
+dass eine viel größere Zahl von Menschenleben durch die Impfung gerettet wurde.
+
+Zum Glück gibt es auch viele gute Berichtserstattung, 
+z.B. - eine Replik auf einen Fall ähnlich gelagert 
+zu dem gerade Beschriebenen - [hier](https://www.tagesschau.de/faktenfinder/impfquote-uebersterblichkeit-101.html).
+
+
+# sessionInfo
+
+```{r}
+sessioninfo::session_info()
+```
+

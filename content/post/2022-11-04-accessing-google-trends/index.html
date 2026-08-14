@@ -1,0 +1,256 @@
+---
+title: Accessing Google Trends
+author: Sebastian Sauer
+date: '2022-11-04'
+slug: accessing-google-trends
+categories:
+  - rstats
+tags:
+  - web
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages" id="toc-load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#motivation" id="toc-motivation"><span class="toc-section-number">2</span> Motivation</a></li>
+<li><a href="#restrictions-and-quotas" id="toc-restrictions-and-quotas"><span class="toc-section-number">3</span> Restrictions and quotas</a></li>
+<li><a href="#access-via-r" id="toc-access-via-r"><span class="toc-section-number">4</span> Access via R</a></li>
+<li><a href="#options" id="toc-options"><span class="toc-section-number">5</span> Options</a></li>
+<li><a href="#get-data" id="toc-get-data"><span class="toc-section-number">6</span> Get data</a></li>
+<li><a href="#plot-it" id="toc-plot-it"><span class="toc-section-number">7</span> Plot it</a></li>
+<li><a href="#reproducibility" id="toc-reproducibility"><span class="toc-section-number">8</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling</code></pre>
+</div>
+<div id="motivation" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Motivation</h1>
+<p><a href="https://trends.google.com/">Google Trends</a> is, according to <a href="https://en.wikipedia.org/wiki/Google_Trends">Wikipedia</a>:</p>
+<blockquote>
+<p>Google Trends is a website by Google that analyzes the popularity of top search queries in Google Search across various regions and languages. The website uses graphs to compare the search volume of different queries over time.On August 5, 2008, Google launched Google Insights for Search, a more sophisticated and advanced service displaying search trends data. On September 27, 2012, Google merged Google Insights for Search into Google Trends.[1]</p>
+</blockquote>
+</div>
+<div id="restrictions-and-quotas" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Restrictions and quotas</h1>
+<p>You cannot download as much data as you like, there are some restrictions,
+again, from the same source as above:</p>
+<blockquote>
+<p>Google has incorporated quota limits for Trends searches. This limits the number of search attempts available per user/IP/device. Details of quota limits have not yet been provided, but it may depend on geographical location or browser privacy settings. It has been reported in some cases that this quota is reached very quickly if one is not logged into a Google account before trying to access the Trends service.[52]</p>
+</blockquote>
+</div>
+<div id="access-via-r" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Access via R</h1>
+<pre class="r"><code>#install.packages(&quot;gtrendsR&quot;)
+</code></pre>
+<pre class="r"><code>library(gtrendsR)
+library(tidyverse)</code></pre>
+</div>
+<div id="options" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Options</h1>
+<p>We can choose some geolocations:</p>
+<pre class="r"><code>data(countries, package = &quot;gtrendsR&quot;)
+head(countries)
+#&gt;   country_code sub_code        name
+#&gt; 1           AF     &lt;NA&gt; AFGHANISTAN
+#&gt; 2           AF   AF-BDS  BADAKHSHAN
+#&gt; 3           AF   AF-BDG     BADGHIS
+#&gt; 4           AF   AF-BGL     BAGHLAN
+#&gt; 5           AF   AF-BAL       BALKH
+#&gt; 6           AF   AF-BAM      BAMIAN</code></pre>
+<p>Let’s choose Germany’s Bundeslaender:</p>
+<pre class="r"><code>de &lt;- 
+countries %&gt;% 
+  filter(country_code == &quot;DE&quot;) %&gt;% 
+  slice_head(n=17) %&gt;% 
+  drop_na()
+
+de
+#&gt;    country_code sub_code                   name
+#&gt; 1            DE    DE-BW      BADEN-WURTTEMBERG
+#&gt; 2            DE    DE-BY                 BAYERN
+#&gt; 3            DE    DE-BE                 BERLIN
+#&gt; 4            DE    DE-BB            BRANDENBURG
+#&gt; 5            DE    DE-HB                 BREMEN
+#&gt; 6            DE    DE-HH                HAMBURG
+#&gt; 7            DE    DE-HE                 HESSEN
+#&gt; 8            DE    DE-MV MECKLENBURG-VORPOMMERN
+#&gt; 9            DE    DE-NI          NIEDERSACHSEN
+#&gt; 10           DE    DE-NW    NORDRHEIN-WESTFALEN
+#&gt; 11           DE    DE-RP        RHEINLAND-PFALZ
+#&gt; 12           DE    DE-SL               SAARLAND
+#&gt; 13           DE    DE-SN                SACHSEN
+#&gt; 14           DE    DE-ST         SACHSEN-ANHALT
+#&gt; 15           DE    DE-SH     SCHLESWIG-HOLSTEIN
+#&gt; 16           DE    DE-TH              THURINGEN</code></pre>
+<p>There’s a largish (but somehow seemingly arbritrary) list of categories:</p>
+<pre class="r"><code>data(&quot;categories&quot;)
+head(categories)
+#&gt;                               name   id
+#&gt; 1                   All categories    0
+#&gt; 3             Arts &amp; Entertainment    3
+#&gt; 5 Celebrities &amp; Entertainment News  184
+#&gt; 6               Comics &amp; Animation  316
+#&gt; 8                   Animated Films 1104
+#&gt; 9                    Anime &amp; Manga  317</code></pre>
+<p>Let’s search for some keywords in this list:</p>
+<pre class="r"><code>categories %&gt;% 
+  filter(str_detect(tolower(name), &quot;politics&quot;))
+#&gt;                  name  id
+#&gt; 1            Politics 396
+#&gt; 2  Left-Wing Politics 410
+#&gt; 3 Right-Wing Politics 409
+
+
+categories %&gt;% 
+  filter(str_detect(tolower(name), &quot;energy&quot;))
+#&gt;                             name  id
+#&gt; 1             Energy &amp; Utilities 233
+#&gt; 2                 Nuclear Energy 954
+#&gt; 3 Renewable &amp; Alternative Energy 657</code></pre>
+<p>Let’s say we are interested in politics:</p>
+<pre class="r"><code>cat1_v &lt;- c(&quot;News&quot;, &quot;Politics&quot;, &quot;International Relations&quot;)</code></pre>
+</div>
+<div id="get-data" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Get data</h1>
+<p>I tried different variants, but it seems that the quota limit is quickly reached.
+If you run out of quota, you may want to try later.</p>
+<pre class="r"><code>g1 &lt;- gtrends(keyword = cat1_v,
+              geo = de$sub_code[1:3],
+              time  =&quot;today 12-m&quot;,
+              gprop = &quot;web&quot;)</code></pre>
+</div>
+<div id="plot-it" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Plot it</h1>
+<p>There’s a convenient plotting method available:</p>
+<pre class="r"><code>plot(g1)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>As we can see, “News” is much more accessed compared to the other categories,
+which may be an artifact.
+However, it shows that we might confine our interest to relative differences.</p>
+</div>
+<div id="reproducibility" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value
+#&gt;  version  R version 4.2.1 (2022-06-23)
+#&gt;  os       macOS Big Sur ... 10.16
+#&gt;  system   x86_64, darwin17.0
+#&gt;  ui       X11
+#&gt;  language (EN)
+#&gt;  collate  en_US.UTF-8
+#&gt;  ctype    en_US.UTF-8
+#&gt;  tz       Europe/Berlin
+#&gt;  date     2022-11-04
+#&gt;  pandoc   2.19.2 @ /usr/local/bin/ (via rmarkdown)
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package       * version date (UTC) lib source
+#&gt;  assertthat      0.2.1   2019-03-21 [1] CRAN (R 4.2.0)
+#&gt;  backports       1.4.1   2021-12-13 [1] CRAN (R 4.2.0)
+#&gt;  blogdown        1.13    2022-09-24 [1] CRAN (R 4.2.0)
+#&gt;  bookdown        0.29    2022-09-12 [1] CRAN (R 4.2.0)
+#&gt;  broom           1.0.1   2022-08-29 [1] CRAN (R 4.2.0)
+#&gt;  bslib           0.4.0   2022-07-16 [1] CRAN (R 4.2.0)
+#&gt;  cachem          1.0.6   2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  callr           3.7.2   2022-08-22 [1] CRAN (R 4.2.0)
+#&gt;  cellranger      1.1.0   2016-07-27 [1] CRAN (R 4.2.0)
+#&gt;  cli             3.4.1   2022-09-23 [1] CRAN (R 4.2.0)
+#&gt;  codetools       0.2-18  2020-11-04 [2] CRAN (R 4.2.1)
+#&gt;  colorout      * 1.2-2   2022-06-13 [1] local
+#&gt;  colorspace      2.0-3   2022-02-21 [1] CRAN (R 4.2.0)
+#&gt;  crayon          1.5.2   2022-09-29 [1] CRAN (R 4.2.1)
+#&gt;  curl            4.3.3   2022-10-06 [1] CRAN (R 4.2.0)
+#&gt;  DBI             1.1.3   2022-06-18 [1] CRAN (R 4.2.0)
+#&gt;  dbplyr          2.2.1   2022-06-27 [1] CRAN (R 4.2.0)
+#&gt;  devtools        2.4.5   2022-10-11 [1] CRAN (R 4.2.1)
+#&gt;  digest          0.6.30  2022-10-18 [1] CRAN (R 4.2.0)
+#&gt;  dplyr         * 1.0.10  2022-09-01 [1] CRAN (R 4.2.0)
+#&gt;  ellipsis        0.3.2   2021-04-29 [1] CRAN (R 4.2.0)
+#&gt;  evaluate        0.17    2022-10-07 [1] CRAN (R 4.2.0)
+#&gt;  fansi           1.0.3   2022-03-24 [1] CRAN (R 4.2.0)
+#&gt;  farver          2.1.1   2022-07-06 [1] CRAN (R 4.2.0)
+#&gt;  fastmap         1.1.0   2021-01-25 [1] CRAN (R 4.2.0)
+#&gt;  forcats       * 0.5.2   2022-08-19 [1] CRAN (R 4.2.0)
+#&gt;  fs              1.5.2   2021-12-08 [1] CRAN (R 4.2.0)
+#&gt;  gargle          1.2.1   2022-09-08 [1] CRAN (R 4.2.0)
+#&gt;  generics        0.1.3   2022-07-05 [1] CRAN (R 4.2.0)
+#&gt;  ggplot2       * 3.3.6   2022-05-03 [1] CRAN (R 4.2.0)
+#&gt;  glue            1.6.2   2022-02-24 [1] CRAN (R 4.2.0)
+#&gt;  googledrive     2.0.0   2021-07-08 [1] CRAN (R 4.2.0)
+#&gt;  googlesheets4   1.0.1   2022-08-13 [1] CRAN (R 4.2.0)
+#&gt;  gtable          0.3.1   2022-09-01 [1] CRAN (R 4.2.0)
+#&gt;  gtrendsR      * 1.5.1   2022-05-23 [1] CRAN (R 4.2.0)
+#&gt;  haven           2.5.1   2022-08-22 [1] CRAN (R 4.2.0)
+#&gt;  highr           0.9     2021-04-16 [1] CRAN (R 4.2.0)
+#&gt;  hms             1.1.2   2022-08-19 [1] CRAN (R 4.2.0)
+#&gt;  htmltools       0.5.3   2022-07-18 [1] CRAN (R 4.2.0)
+#&gt;  htmlwidgets     1.5.4   2021-09-08 [1] CRAN (R 4.2.0)
+#&gt;  httpuv          1.6.6   2022-09-08 [1] CRAN (R 4.2.0)
+#&gt;  httr            1.4.4   2022-08-17 [1] CRAN (R 4.2.0)
+#&gt;  jquerylib       0.1.4   2021-04-26 [1] CRAN (R 4.2.0)
+#&gt;  jsonlite        1.8.3   2022-10-21 [1] CRAN (R 4.2.1)
+#&gt;  knitr           1.40    2022-08-24 [1] CRAN (R 4.2.0)
+#&gt;  labeling        0.4.2   2020-10-20 [1] CRAN (R 4.2.0)
+#&gt;  later           1.3.0   2021-08-18 [1] CRAN (R 4.2.0)
+#&gt;  lifecycle       1.0.3   2022-10-07 [1] CRAN (R 4.2.0)
+#&gt;  lubridate       1.8.0   2021-10-07 [1] CRAN (R 4.2.0)
+#&gt;  magrittr        2.0.3   2022-03-30 [1] CRAN (R 4.2.0)
+#&gt;  memoise         2.0.1   2021-11-26 [1] CRAN (R 4.2.0)
+#&gt;  mime            0.12    2021-09-28 [1] CRAN (R 4.2.0)
+#&gt;  miniUI          0.1.1.1 2018-05-18 [1] CRAN (R 4.2.0)
+#&gt;  modelr          0.1.9   2022-08-19 [1] CRAN (R 4.2.0)
+#&gt;  munsell         0.5.0   2018-06-12 [1] CRAN (R 4.2.0)
+#&gt;  pillar          1.8.1   2022-08-19 [1] CRAN (R 4.2.0)
+#&gt;  pkgbuild        1.3.1   2021-12-20 [1] CRAN (R 4.2.0)
+#&gt;  pkgconfig       2.0.3   2019-09-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgload         1.3.0   2022-06-27 [1] CRAN (R 4.2.0)
+#&gt;  prettyunits     1.1.1   2020-01-24 [1] CRAN (R 4.2.0)
+#&gt;  processx        3.7.0   2022-07-07 [1] CRAN (R 4.2.0)
+#&gt;  profvis         0.3.7   2020-11-02 [1] CRAN (R 4.2.0)
+#&gt;  promises        1.2.0.1 2021-02-11 [1] CRAN (R 4.2.0)
+#&gt;  ps              1.7.1   2022-06-18 [1] CRAN (R 4.2.0)
+#&gt;  purrr         * 0.3.5   2022-10-06 [1] CRAN (R 4.2.0)
+#&gt;  R6              2.5.1   2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  Rcpp            1.0.9   2022-07-08 [1] CRAN (R 4.2.0)
+#&gt;  readr         * 2.1.3   2022-10-01 [1] CRAN (R 4.2.0)
+#&gt;  readxl          1.4.1   2022-08-17 [1] CRAN (R 4.2.0)
+#&gt;  remotes         2.4.2   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  reprex          2.0.2   2022-08-17 [1] CRAN (R 4.2.0)
+#&gt;  rlang           1.0.6   2022-09-24 [1] CRAN (R 4.2.0)
+#&gt;  rmarkdown       2.17    2022-10-07 [1] CRAN (R 4.2.0)
+#&gt;  rstudioapi      0.14    2022-08-22 [1] CRAN (R 4.2.0)
+#&gt;  rvest           1.0.3   2022-08-19 [1] CRAN (R 4.2.0)
+#&gt;  sass            0.4.2   2022-07-16 [1] CRAN (R 4.2.0)
+#&gt;  scales          1.2.1   2022-08-20 [1] CRAN (R 4.2.0)
+#&gt;  sessioninfo     1.2.2   2021-12-06 [1] CRAN (R 4.2.0)
+#&gt;  shiny           1.7.2   2022-07-19 [1] CRAN (R 4.2.0)
+#&gt;  stringi         1.7.8   2022-07-11 [1] CRAN (R 4.2.0)
+#&gt;  stringr       * 1.4.1   2022-08-20 [1] CRAN (R 4.2.0)
+#&gt;  tibble        * 3.1.8   2022-07-22 [1] CRAN (R 4.2.0)
+#&gt;  tidyr         * 1.2.1   2022-09-08 [1] CRAN (R 4.2.0)
+#&gt;  tidyselect      1.2.0   2022-10-10 [1] CRAN (R 4.2.0)
+#&gt;  tidyverse     * 1.3.2   2022-07-18 [1] CRAN (R 4.2.0)
+#&gt;  tzdb            0.3.0   2022-03-28 [1] CRAN (R 4.2.0)
+#&gt;  urlchecker      1.0.1   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  usethis         2.1.6   2022-05-25 [1] CRAN (R 4.2.0)
+#&gt;  utf8            1.2.2   2021-07-24 [1] CRAN (R 4.2.0)
+#&gt;  vctrs           0.5.0   2022-10-22 [1] CRAN (R 4.2.0)
+#&gt;  withr           2.5.0   2022-03-03 [1] CRAN (R 4.2.0)
+#&gt;  xfun            0.34    2022-10-18 [1] CRAN (R 4.2.0)
+#&gt;  xml2            1.3.3   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  xtable          1.8-4   2019-04-21 [1] CRAN (R 4.2.0)
+#&gt;  yaml            2.3.6   2022-10-18 [1] CRAN (R 4.2.0)
+#&gt; 
+#&gt;  [1] /Users/sebastiansaueruser/Rlibs
+#&gt;  [2] /Library/Frameworks/R.framework/Versions/4.2/Resources/library
+#&gt; 
+#&gt; ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>

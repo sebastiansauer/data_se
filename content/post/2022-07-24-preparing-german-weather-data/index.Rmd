@@ -1,0 +1,307 @@
+---
+title: Preparing German weather data
+author: Sebastian Sauer
+date: '2022-07-24'
+slug: preparing-german-weather-data
+categories:
+  - rstats
+tags:
+  - data
+  - datawrangling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(glue)
+```
+
+
+# Motivation
+
+In this post, we'll prepare official German weather data. All data are accessed from [DWD](https://www.dwd.de/DE/Home/home_node.html).
+
+More specifically, the DWD (Deutscher Wetterdienst, German Weather Service) provides an open data section <https://opendata.dwd.de/>, from where the data were fetched.
+
+
+# Licence
+
+The licence can be read [here](https://opendata.dwd.de/README.txt), in short, the data are provided free of charge for everybody's use.
+
+At [this subpage](https://www.dwd.de/EN/service/copyright/copyright_node.html) however, it is stated that the materials are copy right protected and that source must be declared like this:
+
+>   Datenbasis: Deutscher Wetterdienst, eigene Elemente ergänzt.
+
+(Data Source: Deutscher Wetterdiesnt, own elements added).
+
+And, furthermore:
+
+>   When speaking of spatial data, this also includes any location-related weather and climate information presented on our open web pages.
+
+
+
+
+# It's a playful approach
+
+I'm not pretending to do full-fetched meterology research.
+What's being done is a rather playful appraoch to derive some basic insights noentheless.
+
+
+
+
+#  Air temperature means
+
+Here's the URL stem, indicating a folder where the data can be found:
+
+```{r url-stem-temp}
+url_stem <- "https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE/monthly/air_temperature_mean/"
+```
+
+
+There's one file for each month, providing the mean air temperature for the German Bundesländer:
+
+```{r build-file-names}
+months <- str_pad(1:12, width = 2, side = "left", pad = "0")
+months
+month_temp_data <- glue("regional_averages_tm_{months}.txt")
+month_temp_data
+```
+Let's glue the whole path:
+
+```{r build-urls}
+air_temp_path <- paste0(url_stem,month_temp_data)
+air_temp_path
+```
+
+
+# Download multiple files and bind them together rowwise
+
+First, check:
+
+Here's the first path:
+
+```{r}
+air_temp_path[1]
+```
+
+
+
+```{r readpath1}
+d <- read_delim(air_temp_path[1], delim = ";", skip = 1)
+head(d)
+```
+
+
+However, for this file, some columns are of a *different* type:
+
+
+
+
+```{r}
+d <- read_delim(air_temp_path[11], delim = ";", skip = 1)
+head(d)
+```
+
+See col `Monat`.
+
+So let's better read all cols as character, and post-process the numnbers out of the strings.
+
+
+
+
+```{r check2}
+d <- read_delim(air_temp_path[11], delim = ";", skip = 1, col_types = cols(.default = "c")) %>% select(-`...20`)
+
+head(d)
+```
+
+
+First, download all files and append to one tibble:
+
+```{r download-all-files}
+d_air_temp <- 
+  air_temp_path %>% 
+  map_df(~ read_delim(., skip = 1, col_types = cols(.default = "c"))) %>% 
+  select(-`...20`)
+```
+
+
+ 
+Second, let's parse the numbers out of the strings.
+
+```{r parse-numbers}
+d_air_temp2 <-
+  d_air_temp %>% 
+  mutate(across(.cols = everything(),
+                 .fns = parse_number))
+
+d_air_temp2 %>% 
+  head() %>% 
+  gt::gt()
+```
+
+# Format to long 
+
+```{r format-lng}
+d_air_temp3 <-
+  d_air_temp2 %>% 
+  pivot_longer(cols = -c(Jahr,, Monat), names_to = "region", values_to = "temp") %>% 
+  rename(year = Jahr, month = Monat)
+```
+
+
+# More post-processing
+
+```{r}
+d_air_temp3 <-
+  d_air_temp3 %>% 
+  janitor::clean_names()
+```
+
+
+# Save to disk
+
+I'm saving to my personal folder. Your folder path will be different.
+
+```{r}
+write_csv(d_air_temp3, file = "/Users/sebastiansaueruser/github-repos/datasets/csv/air_temp_de_DWD.csv")
+
+save(d_air_temp3, file = "/Users/sebastiansaueruser/github-repos/datasets/Rdata/air_temp_de_DWD.Rdata")
+```
+
+
+# Precipitation
+
+
+```{r url-stem-precip}
+url_stem <- "https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE/monthly/precipitation/"
+```
+
+
+There's one file for each month, providing the mean air temperature for the German Bundesländer:
+
+```{r build-file-names-precip}
+months <- str_pad(1:12, width = 2, side = "left", pad = "0")
+months
+month_precip_data <- glue("regional_averages_rr_{months}.txt")
+month_precip_data
+
+```
+
+
+Let's glue the whole path:
+
+```{r build-urls}
+precip_path <- paste0(url_stem, month_precip_data)
+precip_path
+```
+
+
+
+
+```{r download-all-files}
+d_precip <- 
+  precip_path %>% 
+  map_df(~ read_delim(., skip = 1, col_types = cols(.default = "c"))) %>% 
+  select(-`...20`)
+```
+
+
+ 
+Second, let's parse the numbers out of the strings.
+
+```{r parse-numbers}
+d_precip2 <-
+  d_precip %>% 
+  mutate(across(.cols = everything(),
+                 .fns = parse_number))
+
+d_precip2 %>% 
+  head() 
+```
+
+
+
+
+
+# Format to long 
+
+```{r format-lng}
+d_precip3 <-
+  d_precip2 %>% 
+  pivot_longer(cols = -c(Jahr,, Monat), names_to = "region", values_to = "precip") %>% 
+  rename(year = Jahr, month = Monat)
+
+head(d_precip3)
+```
+
+
+# Save to disk
+
+I'm saving to my personal folder. Your folder path will be different.
+
+```{r}
+write_csv(d_precip3, file = "/Users/sebastiansaueruser/github-repos/datasets/csv/precip_DWD.csv")
+
+save(d_precip3, file = "/Users/sebastiansaueruser/github-repos/datasets/Rdata/precip_DWD.Rdata")
+```
+
+
+# Join data
+
+```{r}
+d_precip_temp <- 
+d_precip3 %>% 
+  full_join(d_air_temp3)
+```
+
+
+
+
+# Save to disk
+
+I'm saving to my personal folder. Your folder path will be different.
+
+```{r}
+write_csv(d_precip_temp, file = "/Users/sebastiansaueruser/github-repos/datasets/csv/precip_temp_DWD.csv")
+
+save(d_precip3, file = "/Users/sebastiansaueruser/github-repos/datasets/Rdata/precip_temp_DWD.Rdata")
+```
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

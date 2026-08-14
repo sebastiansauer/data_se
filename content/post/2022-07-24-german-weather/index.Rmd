@@ -1,0 +1,305 @@
+---
+title: German weather
+author: Sebastian Sauer
+date: '2022-07-24'
+slug: german-weather
+categories:
+  - rstats
+tags:
+  - dataviz
+  - datawrangling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(easystats)
+library(ggplot2); theme_set(theme_minimal())  # ggplot theme
+```
+
+# Motivation
+
+Let's explore the change over time in German weather.
+We are not pretending doing real meteorology here; rather, we are playing around a bit.
+At the very least, we'll do over own analyses, so we know what's going in.
+Data stems from [Deutscher Wetter Diensts, DWD](https://www.dwd.de/DE/Home/home_node.html).
+
+
+
+# Load data
+
+The DWD data has been prepared from fast consumption as [laid out in this post](https://data-se.netlify.app/2022/07/24/preparing-german-weather-data/).
+
+As a result, the data have been made available [in this repo](https://github.com/sebastiansauer/datasets).
+
+```{r read-data}
+d_path <- "https://raw.githubusercontent.com/sebastiansauer/datasets/main/csv/precip_temp_DWD.csv"
+
+d <- read_csv(d_path)
+```
+
+
+```{r}
+glimpse(d)
+```
+
+
+
+
+# Main temperature trajectory over time
+
+## Visualization
+
+```{r vis1}
+d_grouped <-
+  d %>% 
+  group_by(region, year) %>% 
+  summarise(temp_avg = mean(temp))
+
+d_grouped %>% 
+  ggplot(aes(x = year, y = temp_avg, group = region)) +
+  geom_line(color = "grey60") +
+  labs(title = "Temperature change over time in Germany",
+       caption = "Data Source: DWD",
+       subtitle = "One grey line depicts one Bundesland") +
+  geom_smooth(method = "lm", group = 1) 
+```
+
+Temperature is on the rise, it appears.
+
+## Linear model
+
+
+```{r m1}
+m1 <- lm(temp_avg ~ year, data = d_grouped)
+print_html(model_parameters(m1))
+```
+
+This amounts to approx. 0.1 degrees Celcius per Dekade on average.
+
+
+```{r}
+plot(parameters(m1), show_intercept = TRUE)
+```
+
+# Temperature change per month
+
+## Vis 1: Change per Month for whole of Germany
+
+```{r  vis2, fig.asp = 1.5}
+d_grouped2 <-
+  d %>% 
+  group_by(region, year, month) %>% 
+  summarise(temp_avg = mean(temp))
+
+d_grouped2 %>% 
+  ggplot(aes(x = year, y = temp_avg, group = region)) +
+  geom_line(color = "grey60") +
+  labs(title = "Temperature change over time per month") +
+  facet_wrap(~ month, ncol = 3) +
+  geom_smooth(method = "lm", group = 1)
+```
+It looks like that for each month, temperature is on the rise.
+
+I don't think it is very important to check this trend for each Bundesland. 
+However, it may well be that this trend is more pronounced for some Bundesländer as opposed to others.
+
+
+
+
+## Linear model
+
+```{r m2}
+m2 <- lm(temp_avg ~ as.factor(month) + year, data = d_grouped2)
+print_html(model_parameters(m2))
+```
+
+
+
+```{r}
+plot(parameters(m2), show_intercept = TRUE)
+```
+
+
+Here we see the effect of the month, with the Month of July being the warmest, which makes sense.
+Note that the intercept is not interpretable here as it shows the temperature in year 0, which is a bit far away.
+
+For comparison, let's just see the avarage temperatures per month:
+
+```{r m3}
+m3 <- lm(temp_avg ~ as.factor(month), data = d_grouped2)
+print_html(model_parameters(m3))
+```
+
+Note that these are the averages across all the years in the data set.
+
+
+```{r}
+plot(parameters(m3), show_intercept = TRUE)
+```
+
+
+## Vis 2: Trend by Bundesland
+
+
+```{r fig.asp = 1.5}
+d_grouped2a <-
+  d %>% 
+  group_by(region, year) %>% 
+  summarise(temp_avg = mean(temp))
+
+d_grouped2a %>% 
+  ggplot(aes(x = year, y = temp_avg)) +
+  geom_line(color = "grey60") +
+  labs(title = "Temperature change over time per Bundesland") +
+  facet_wrap(~ region, ncol = 3) +
+  geom_smooth(method = "lm")
+```
+
+```{r}
+m4 <- lm(temp ~ region + year, data = d)
+print_html(parameters(m4))
+```
+
+The point estimate indicates that Saarland gained most in terms of temperature;
+however, the differences are not clear cut between the Bundesländer,
+so no strong conclusion can be drawn.
+
+# Change per decade
+
+
+```{r}
+d2 <- 
+  d %>% 
+  mutate(decade = trunc(year  / 10))
+
+head(d2)
+```
+
+
+```{r}
+d_grouped3 <-
+  d2 %>% 
+  group_by(region, decade) %>% 
+  summarise(temp_avg = mean(temp)) %>% 
+  mutate(temp_dec_before = lag(temp_avg)) %>% 
+  mutate(temp_change_decade = temp_avg - temp_dec_before)
+
+d_grouped3 %>% 
+  head()
+```
+
+
+## Vis 1
+
+```{r}
+d_grouped3 %>% 
+  ggplot(aes(x = decade, y = temp_avg)) +
+  geom_point(color = "grey60") +
+  labs(title = "Temperature change over decades in Germany",
+       caption = "Data Source: DWD",
+       subtitle = "One grey dot depicts one Bundesland",
+       y = "Temperature in °C") +
+  stat_summary(geom = "line", fun = mean) +
+  scale_x_continuous(breaks = 188:202)
+```
+
+Again, we see that temperature is on the rise.
+
+## Vis 2: Temperature change per decade
+
+```{r}
+d_grouped3 %>% 
+  ggplot(aes(x = decade, y = temp_change_decade)) +
+  geom_point(color = "grey60") +
+  labs(title = "Temperature change over decades in Germany",
+       caption = "Data Source: DWD",
+       subtitle = "One grey dot depicts one Bundesland") +
+  stat_summary(geom = "line", fun = mean) +
+  scale_x_continuous(breaks = 188:202)
+```
+
+For any to given subsequent decades, we see that the the average temperature of the decase has risen.
+This trend is most pronounced in the 1990 and 2000 decades;
+but it is positive (hotter) for any data point in this graph *AFTER* 1960.
+
+
+# Change in variability
+
+
+```{r}
+d_grouped4 <-
+  d2 %>% 
+  group_by(region, decade) %>% 
+  summarise(temp_sd = sd(temp)) %>% 
+  mutate(temp_sd_dec_before = lag(temp_sd)) %>% 
+  mutate(temp_sd_change_decade = temp_sd - temp_sd_dec_before)
+
+d_grouped4 %>% 
+  head()
+```
+
+
+
+## Vis 
+
+```{r}
+d_grouped4 %>% 
+  ggplot(aes(x = decade, y = temp_sd)) +
+  geom_point(color = "grey60") +
+  labs(title = "Temperature *variability* change over decades in Germany",
+       caption = "Data Source: DWD",
+       subtitle = "One grey dot depicts one Bundesland") +
+  stat_summary(geom = "line", fun = mean) +
+  scale_x_continuous(breaks = 188:202)
+```
+
+
+Apart from the 1940, there's no apparent change in variability (SD) per decade.
+
+
+
+# Debrief
+
+
+This post is NOT real meteorology science!
+Rather, it is some exploratory appraoching to a highly sophisticated field of research. Certainly,
+the state of art is not reflected in this post.
+The (aspired) benefit of this post is to bring the data-savy layman closer to weather data in an attempt not to have to (completely) rely on third persons.
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

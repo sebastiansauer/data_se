@@ -1,0 +1,309 @@
+---
+title: Estimating simulation variance in Stan models
+author: Sebastian Sauer
+date: '2023-03-17'
+slug: estimating-simulation-variance-in-stan-models
+cache: true
+categories:
+  - rstats
+tags:
+  - simulation
+  - Bayes
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(rstanarm)
+library(gt)
+```
+
+
+# Motivation
+
+`stan_glm()` allows for setting a seed value thereby eliminating the variance induced by random numbers.
+However, in case a seed is not used, how much variance is to be expected?
+This is the research question of this analysis.
+
+Let's choose $n=100$ repetitions in our simulation.
+
+
+
+# Model
+
+Let's compute a simple linear model of this type:
+
+`stan_glm(out_var ~ pred1 + pred2, data = d, refresh = 0)`.
+
+
+
+
+# Workhorse function
+
+
+```{r}
+get_simu_var_b1 <- function(dataset, n = 100) {
+  
+  all_dfs <- teachertools::teaching_df()
+  
+  d <- teachertools::teaching_df(dataset)
+  #d <- teachertools::teaching_df("gtcars")
+  
+  d_name <- attr(d, "df_name")
+  
+  d_path <- all_dfs |> 
+    dplyr::filter(datasets_names == d_name) |> 
+    dplyr::pull(source)
+  
+  preds_chosen <- attr(d, "preds_chosen")
+  focus_pred <- attr(d, "focus_pred")
+  output_var <- attr(d, "output_var")
+  
+  results <- vector(mode = "numeric", length = n)
+  
+  for (i in 1:n){
+  
+    mod <- stan_glm(av ~ uv1 + uv2, data = d, refresh = 0)
+    results[i] <- coef(mod)["uv1"] |> as.numeric()
+    cat(paste0("i = ", i, " of ", n, "\n"))
+  }
+  return(results)
+}
+```
+
+
+
+# Function for summarizing the simulation results
+
+
+
+
+```{r}
+summ_simu <- function(simu_data){
+  out <- 
+     list(
+       dataset = deparse(substitute(simu_data)),
+       std_dev = sd(simu_data),
+       variance = var(simu_data),
+       arithm_mean = mean(simu_data),
+       med = median(simu_data),
+       iqr = IQR(simu_data),
+       max_value = max(simu_data),
+       min_value = min(simu_data),
+       max_minus_min = max(simu_data) - min(simu_data),
+       max_to_min = max(simu_data) / min(simu_data),
+       var_coeff = sd(simu_data) / mean(simu_data),
+       rel_var = var(simu_data) /  mean(simu_data)
+       )
+}
+```
+
+
+
+
+# Dataset `mtcars`
+
+
+
+```{r mtcars, results = "hide"}
+mtcars_out <- get_simu_var_b1(dataset = "mtcars")
+hist(mtcars_out)
+```
+
+
+```{r}
+mtcars_results1 <-
+  summ_simu(mtcars_out)
+
+mtcars_results1
+```
+
+
+# Dataset `msleep`
+
+
+
+```{r msleep, results = "hide"}
+msleep_out <- get_simu_var_b1(dataset = "msleep")
+hist(msleep_out)
+```
+
+
+
+```{r}
+msleep_results1 <- summ_simu(msleep_out)
+
+msleep_results1
+```
+
+
+
+
+# Dataset `penguins`
+
+
+
+```{r penguins, results = "hide"}
+penguins_out <- get_simu_var_b1(dataset = "penguins")
+hist(penguins_out)
+```
+
+
+
+```{r}
+penguins_results1 <- summ_simu(penguins_out)
+
+penguins_results1
+```
+
+
+
+
+# Dataset `tips`
+
+
+
+
+```{r tips, results = "hide"}
+tips_out <- get_simu_var_b1(dataset = "tips")
+hist(tips_out)
+```
+
+
+
+```{r}
+tips_results1 <- summ_simu(tips_out)
+
+tips_results1
+```
+
+
+
+# Dataset `gtcars`
+
+
+
+```{r gtcars, results = "hide"}
+#saveRDS(gtcars_out, file = "gtcars_out.rds")
+gtcars_rdsfile_path <- "/Users/sebastiansaueruser/Publikationen/blog_ses/sesa-blog/gtcars_out.rds"
+if (file.exists(gtcars_rdsfile_path)) {
+  cat("RDS file exists")
+  gtcars_out <- readRDS(gtcars_rdsfile_path)
+} else {
+  cat("Coduncting simulation...")
+  gtcars_out <- get_simu_var_b1(dataset = "gtcars")
+}
+hist(gtcars_out)
+```
+
+```{r}
+gtcars_results1 <- summ_simu(gtcars_out)
+
+gtcars_results1
+```
+
+
+# Dataset `Boston`
+
+
+
+
+```{r Boston, results = "hide"}
+Boston_out <- get_simu_var_b1(dataset = "Boston")
+hist(Boston_out)
+```
+
+
+```{r}
+Boston_results1 <- summ_simu(Boston_out)
+
+Boston_results1
+```
+
+
+
+# Dataset `TeachingRatings`
+
+
+
+
+```{r TeachingRatings, results = "hide"}
+TeachingRatings_out <- get_simu_var_b1(dataset = "TeachingRatings")
+hist(TeachingRatings_out)
+```
+
+
+```{r}
+TeachingRatings_results1 <- summ_simu(TeachingRatings_out)
+
+TeachingRatings_results1
+```
+
+
+# Results overview
+
+
+```{r}
+main_results <-
+  bind_rows(Boston_results1,
+            gtcars_results1,
+            msleep_results1,
+            mtcars_results1,
+            penguins_results1,
+            TeachingRatings_results1,
+            tips_results1)
+
+out2 <- main_results %>% 
+  mutate(across(where(is.numeric), round, 3))
+
+
+gt(main_results) %>% 
+  fmt_number(where(is.numeric), decimals = 3)
+```
+
+
+# Conclusion
+
+
+The simulation results are quite close to each other, the coefficient of variation is always below 5%. 
+In situations however where the absolute values are close to zero, the relative deviations can be comparatively high.
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

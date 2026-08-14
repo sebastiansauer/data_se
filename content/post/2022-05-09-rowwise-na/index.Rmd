@@ -1,0 +1,141 @@
+---
+title: Rowwise NA
+author: Sebastian Sauer
+date: '2022-05-09'
+slug: rowwise-na
+categories:
+  - rstats
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+# Sample data
+
+
+```{r}
+data("mtcars")
+```
+
+
+Create some NA:
+
+
+```{r}
+mtcars$mpg[c(1,2,3)] <- NA
+mtcars$hp[c(1,2,3)] <- NA
+```
+
+
+# Count NA rowwise
+
+
+What we would like to achieve is to comfortable count the missing values *per row*.
+
+Define helper function:
+
+```{r}
+sum_isna <- function(x) sum(is.na(x))
+```
+
+
+# Way 1: rowwise sum with mutate and `c_across`
+
+```{r}
+mtcars %>% 
+  rowwise() %>% 
+  mutate(Na_n = sum_isna(c_across(everything()))) %>% 
+  ungroup()
+
+```
+
+
+A more in-depth treatment can be found [here](https://dplyr.tidyverse.org/articles/rowwise.html).
+
+
+
+# Way 2: `apply()` with margin 1
+
+Margin 1 means rowwise:
+
+```{r}
+mtcars %>% 
+  mutate(Na_n = apply(mtcars, 1, sum_isna))
+```
+
+
+
+# Way 3: `rowSums`
+
+
+```{r}
+mtcars %>% 
+  mutate(Na_n = rowSums(is.na(mtcars)))
+```
+
+
+[Source](https://stackoverflow.com/questions/64356552/count-missing-values-with-rowwise-and-add-number-of-missing-values)
+
+
+# Way 4: `cur_data()`
+
+
+`cur_data()` refers to the data in the *current* group, which is, in the case
+of `rowwise()` the current row.
+
+```{r}
+mtcars %>% 
+  rowwise() %>% 
+  mutate(NA_n = sum_isna(cur_data()))
+```
+
+# Why not `map()`?
+
+
+When using `map()` in relation with `mutate()`, we map a *column* of the data frame to some function.
+However, when counting missing values per row, we would like to map a row to a function,
+which is not possible using `map()`. 
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

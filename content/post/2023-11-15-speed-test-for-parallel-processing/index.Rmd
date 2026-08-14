@@ -1,0 +1,298 @@
+---
+title: 'Speed test for parallel processing '
+author: Sebastian Sauer
+date: '2023-11-15'
+slug: speed-test-for-parallel-processing
+categories:
+  - rstats
+tags:
+  - tidymodels
+  - speed
+draft: no
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+### How fast is fast?
+
+
+Let's see how quickly some predictive model runs, in order to estimate time consumption for larger machine learning pipelines. 
+In addtion, let's see how much time is saves when using multiples cores, ie. when parallel processing is enabled.
+
+Let's use a Ranger (Random Forest) as learner.
+
+
+### Tidymodels pipeline
+
+Let's copy [this template](https://datenwerk.netlify.app/posts/tidymodels-vorlage2/tidymodels-vorlage2.html) in order to not have to type all the verbose Tidymodels code.
+
+
+### Setup
+
+```{r setup}
+# Setup:
+library(tidymodels)
+library(tidyverse)
+library(tictoc)  # Zeitmessung
+
+
+
+# Data:
+d <- palmerpenguins::penguins |> na.omit()
+
+set.seed(42)
+d_split <- initial_split(d)
+d_train <- training(d_split)
+d_test <- testing(d_split)
+```
+
+
+### Simple Fit
+
+```{r}
+# model:
+mod1 <-
+  rand_forest(mode = "regression")
+
+
+# cv:
+set.seed(42)
+rsmpl <- vfold_cv(d_train)
+
+
+# recipe:
+rec1 <- 
+  recipe(body_mass_g ~  ., data = d_train) |> 
+  step_dummy(all_nominal_predictors()) |> 
+  step_normalize(all_predictors())
+
+
+# workflow:
+wf1 <-
+  workflow() %>% 
+  add_model(mod1) %>% 
+  add_recipe(rec1)
+
+
+# fitting:
+tic()
+wf1_fit <-
+  wf1 %>% 
+  fit(data = d_train)
+toc()
+```
+
+
+
+
+### Resampling
+
+10 times CV
+
+```{r fitting-rsmple}
+# fitting:
+tic()
+wf1_fit <-
+  wf1 %>% 
+  fit_resamples(resamples = rsmpl,
+                control = control_grid(verbose = TRUE))
+toc()
+```
+
+
+### Tuning
+
+10 tuning parameters, 10 times CV
+
+```{r tune-10}
+# model:
+mod_tune <-
+  rand_forest(mode = "regression",
+              mtry = tune())
+
+
+# cv:
+set.seed(42)
+rsmpl <- vfold_cv(d_train)
+
+
+# recipe:
+rec1 <- 
+  recipe(body_mass_g ~  ., data = d_train) |> 
+  step_dummy(all_nominal_predictors()) |> 
+  step_normalize(all_predictors())
+
+
+# workflow:
+wf_tune <-
+  workflow() %>% 
+  add_model(mod_tune) %>% 
+  add_recipe(rec1)
+
+
+# fitting:
+tic()
+wf_tune_fit <-
+  wf_tune %>% 
+  tune_grid(
+    resamples = rsmpl,
+    grid = 10,
+    control = control_grid(verbose = FALSE))
+toc()
+```
+
+
+
+
+### More tuning params
+
+```{r tune-100}
+# model:
+mod_tune <-
+  rand_forest(mode = "regression",
+              mtry = tune())
+
+
+# cv:
+set.seed(42)
+rsmpl <- vfold_cv(d_train)
+
+
+# recipe:
+rec1 <- 
+  recipe(body_mass_g ~  ., data = d_train) |> 
+  step_dummy(all_nominal_predictors()) |> 
+  step_normalize(all_predictors())
+
+
+# workflow:
+wf_tune <-
+  workflow() %>% 
+  add_model(mod_tune) %>% 
+  add_recipe(rec1)
+
+
+# fitting:
+tic()
+wf_tune_fit <-
+  wf_tune %>% 
+  tune_grid(
+    resamples = rsmpl,
+    grid = 1e2,
+    control = control_grid(verbose = FALSE))
+toc()
+```
+
+
+### Parallel processing
+
+
+```{r tune-parallel}
+tic()
+wf_parallel_fit <-
+  wf_tune %>% 
+  tune_grid(
+    resamples = rsmpl,
+    grid = 1e2,
+    control = control_grid(
+      verbose = FALSE,
+      allow_par = TRUE))
+toc()
+```
+
+
+
+
+
+
+### Parallel processing - explicitly
+
+
+```{r register-to-parallel}
+library(doParallel)
+
+# Set up a parallel backend with multiple cores
+cl <- makeCluster(3)  # 4 cores, adjust as needed
+registerDoParallel(cl)
+```
+
+
+
+```{r fit-doParallel}
+tic()
+wf_parallel_fit <-
+  wf_tune %>% 
+  tune_grid(
+    resamples = rsmpl,
+    grid = 1e2,
+    control = control_grid(
+      verbose = FALSE,
+      allow_par = TRUE))
+toc()
+```
+
+
+Again, a drop in computation time. Interesting.
+
+
+### ANOVA race
+
+Can we get a speed-up using an ANOVA race?
+
+```{r fit-anova-race}
+library(finetune)
+tic()
+wf_race_fit <-
+  wf_tune %>% 
+  tune_race_anova(
+    resamples = rsmpl,
+    grid = 1e2,
+    control = control_race(
+      verbose = FALSE,
+      allow_par = TRUE))
+toc()
+```
+
+Not really. At least not in this case.
+
+However, the authors [report a benchmark with a juicy speed-up](https://finetune.tidymodels.org/reference/tune_race_anova.html).
+
+
+
+
+### Acknowledgements
+
+
+
+
+
+
+
+### Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+```

@@ -1,0 +1,142 @@
+---
+title: Some ways to plot the distribution of each variable of a data frame
+author: Sebastian Sauer
+date: '2022-09-26'
+slug: some-ways-to-plot-the-distribution-of-each-variable-of-a-data-frame
+categories:
+  - plotting
+  - dataviz
+  - rstats
+tags:
+  - plotting
+  - ggplot2
+  - tidyverse
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Motivation
+
+
+Often times, in explorative data analysis, one would like to plot the distribution of the relevant variables.
+Whereas ggplot provides handy tools to plot *one* variable after each other,
+it would come handy to plot 'em all in one go.
+
+Of course, there are many ways to achieve this comfort. This posts presents some of them in brevity.
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+
+# Load data
+
+Demo data.
+
+```{r}
+d_path <- "https://raw.githubusercontent.com/sebastiansauer/pradadata/master/data-raw/extra.csv"
+d <- read_csv(d_path)
+head(d)
+```
+
+
+Select the items (columns) we would like to plot the distribution for:
+
+
+```{r}
+d_items <- 
+  d %>% 
+  select(matches("i\\d\\d")) %>% 
+  select(-i21)
+```
+
+
+```{r}
+d_item_names <-
+  names(d_items)
+
+d_item_names
+```
+
+
+# Let's plot
+
+## Way 1
+```{r eval = TRUE}
+map(d_item_names,
+    ~ ggplot(data = d_items) + geom_bar(aes(x = .data[[.x]])) + labs(y = .x))
+```
+
+
+## Way 2
+
+```{r eval = TRUE}
+d_items %>% 
+  pivot_longer(everything(), names_to = "item") %>%
+  group_by(item) %>% 
+  group_split() %>% 
+  map(~ {ggplot(., aes(x = value)) + geom_bar()})
+```
+
+
+## Way 3
+
+
+```{r fig.asp = 1}
+d_items %>% 
+  pivot_longer(everything(), names_to = "item") %>%
+  mutate(item = factor(item, levels = d_item_names)) %>% 
+  ggplot(aes(x = value)) +
+  geom_bar() +
+  facet_wrap(~ item)
+
+```
+
+
+## Way 4
+
+```{r}
+library(DataExplorer)
+
+d_items %>% 
+  plot_histogram()
+```
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

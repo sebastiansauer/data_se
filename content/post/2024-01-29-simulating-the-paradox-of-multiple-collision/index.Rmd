@@ -1,0 +1,562 @@
+---
+title: Simulating multiple event collision
+author: Sebastian Sauer
+date: '2024-01-29'
+slug: simulating-multiple-event-collision
+categories:
+  - rstats
+tags:
+  - simulation
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+# Motivation
+
+Have you ever tried to find a time slot for a meeting using a tool such as "[Doodle](https://doodle.com/en/)"?
+
+
+
+If not, consider yourself lucky.
+Otherwise you will be well aware of the chagrin of finding a time slot that suits all of your colleagues.
+
+Let's call a time slot where all of your colleagues invited for the meeting have a free time slot a *matching time slot*, or a *match* for short.
+
+
+Here's a sample image for a "doodle" in order to find a a match.
+
+![](doodle.png)
+
+Some persons find that the best way to find a matchting time slot is to offer a great number of time slots to your colleagues. 
+Personally I find this appraoch difficult as I would have to keep track of and block a lot of time slots in my calendar. In addition, I feel it would be difficult to find a matching time slot as most colleagues will not take the hazzle and report many free time slots.
+Call me pessimistic, but I suspect that most colleagues will choose about 3 time slots, but not more, because it would be too difficult for them to keep their calendars in sync. (A sentiment I share.)
+
+Now, I wondered that's the probability of finding at least one matching time slot when addressing *n* colleagues, providing each of them with *o* options, assuming each colleague will pick *p* options completely random.
+
+In more stochastic parlance, this problem is a somewhat involved example of the collision problem.
+
+Here's a simulation study for that.
+
+# Setup
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(tictoc)  # measure time
+```
+
+
+
+
+# Constants/Parameters
+
+
+```{r}
+n_colleagues <- 3  # number of colleagues invited to your meeting
+p <- 3  # number of appointment options _p_icked per colleague
+o <- 30 # number of possible _o_ptions to choose from
+r <- 1e3  # number of simulated _r_epetions/samples
+dep <- 0  # dependency between reviewers
+```
+
+
+# Model
+
+A number of `n_colleague` colleagues pick *p* options from a list of *o* possible options.
+We are interested in the probability that all colleagues pick (at least) one time the same slot.
+We consider the the number picked options, *p*, fix.
+
+
+# Some Assumptions
+
+1. Picking slots (within a colleague) is independent, eg., picking slot 1 is dependent from picking slot 2. In other words, knowing that you have picked slot 1 does not tell my anythin new about the probability that you will pick slot 2.
+
+2. The colleagues pick slots independently from each other.
+
+
+# Example
+
+Three colleagues - A,B,C - pick 3 slots from 10 options. 
+
+For example, colleague A picks options 1, 2, and 3.
+
+
+| Colleague 	| Pick1 	| Pick2 	| Pick3 	|
+|-----------	|-------	|-------	|-------	|
+| A         	| 1     	| 2     	| 3     	|
+| B         	| 1     	| 7     	| 9     	|
+| C         	| 1     	| 7     	| 10    	|
+
+
+
+
+We have one match: All chose the option 1. (And to choose the option, but that's not enough for a match, as not all persons chose this number.)
+
+# Analytical approach
+
+
+## Limiting to picking 1 option
+
+Finding an analytical solution for the probability of $n$ person picking 1 number from $o$ options is quite straight forward.
+For example, let's assume for the moment $n=3, o=10$. Then we have
+
+1. The first person can choose any number, i.e., $Pr_1=1$.
+2. The second person must choose the same number as the first one, so 1 out of 10, ie., $Pr_2=1/10$.
+3. The third peson must again choose the same number, so $Pr_3=1/10$.
+
+In total, $Pr = Pr_1 \cdot Pr_2 \cdot Pr_3$, as we assume independence between persons.
+
+More generally, $Pr = \frac{1}{o}^{n-1}$.
+
+## Generalizing to picking $p$ options
+
+Let's consider picking $p=3$ options.
+
+One might think that the solution is
+
+$Pr =  \frac{1}{o}^{n-1} +  \frac{1}{o-1}^{n-1} + \frac{1}{o-2}^{n-1}$
+
+but this appears not to be quite right, at least quite different numbers are found using the Monte Carlo approach below.
+
+
+
+
+Anyhow, a simple alternative to an analytical solution is to use simulation, ie., a Monte Carlo approach.
+
+
+
+# Monte Carlo as an alternative
+
+[The R package 'doodleproblem'](https://github.com/sebastiansauer/doodleproblem') provides Monte Carlo methods to compute the Doodle match probability.
+
+>   This repo analyzes the probability of finding an agreed time slot between multiple colleagues ("doodle problem"). Different influence factors are considered, different assumptions are tested, and their effect is compared. Monte Carlo methods are used.
+
+## Setup
+
+
+```{r message=FALSE}
+library(tidyverse)
+library(doodleproblem)
+```
+
+
+
+## Test
+
+```{r}
+prob_doodle_match(n_colleagues = 5,
+                  o = 10,
+                  p = 3,
+                  dep = 0)
+```
+
+
+# Modelling without dependency
+
+## Examples
+
+3 colleagues pick 1 option from 10 options:
+
+```{r}
+prob_doodle_match(n_colleagues = 3,
+              o = 8,
+              p = 1,
+              dep = 0)
+```
+
+
+
+3 colleagues pick 2 options from 10 options:
+
+
+```{r}
+prob_doodle_match(n_colleagues = 3,
+              o = 10,
+              p = 2,
+              dep = 0)
+```
+
+## Sampling distribution
+
+Get the sampling distribution:
+
+
+```{r smpl_distrib1}
+tic()
+smpl_distrib <- mosaic::do(100) * prob_doodle_match(n_colleagues = 3,
+              o = 10,
+              p = 2,
+              dep = 0)
+toc()
+```
+
+
+```{r}
+mean(smpl_distrib$prob_doodle_match)
+sd(smpl_distrib$prob_doodle_match)
+```
+
+
+```{r}
+ggplot(smpl_distrib) +
+  aes(x = prob_doodle_match) +
+  geom_density()
+```
+
+
+
+
+As can be seen, the probability of finding a matching time slot is quite small, given the parameter values above.
+Not impossible, but too low to rely on this approach in my opinion.
+
+
+## o=10; Make a matching more probable
+
+Let's provide less options to chose from in order to find a time slot for the meeting to your colleagues:
+
+
+
+```{r}
+n_colleagues <- 3
+o <- 7
+
+smples_tbl2 <- prob_doodle_match(n_colleagues = n_colleagues,
+                             o = o,
+                             p = p,
+                             dep = dep,
+                             return_prob = FALSE)
+
+smples_tbl2
+```
+
+
+Looks much better; we have some realistic chances of finding a match.
+
+
+```{r fig.width=9}
+plot_matches(smples_tbl2, n_colleagues, p = p, o = o, dep = dep)
+```
+
+
+Now we can see that a matching has become more probable, although still not highly likely.
+
+
+
+
+
+
+## o=5; Make a matching highly probable
+
+Let's provide only a few options too chose from in order to find a time slot for the meeting to your colleagues:
+
+
+
+
+
+```{r plot-smpls3, fig.width=9}
+o <- 5  # number of time slot options too chose from
+
+smples_tbl3 <- prob_doodle_match(n_colleagues = n_colleagues,
+              o = o,
+              p = p,
+              dep = dep,
+              return_prob = FALSE)
+
+plot_matches(smples_tbl3,  n_colleagues, p = p, o = o, dep = dep)
+```
+
+
+
+That really looks good; that's a realistic chance to find a match.
+
+## Grid of different parameter values
+
+
+Let's try different parameter values and compute the probability of a match.
+
+Here's the grid using a cartesian expansion:
+
+
+
+
+## Populate grid
+
+
+```{r populate-grid1, eval=FALSE}
+tic()
+grid1 <- populate_grid(n_colleagues = 2:5, 
+                      o = c(5, 10, 15, 20, 25, 30), 
+                      p = c(3, 5, 7, 10), 
+                      dep = 0)
+toc()
+
+```
+
+Quite slow.
+
+It's quicker to load it from disk.
+
+```{r}
+data(grid1)
+```
+
+
+```{r}
+glimpse(grid1)
+```
+
+
+
+## Visualize grid 1
+
+
+```{r vis-grid1, fig.asp = 1.5, out.width="100%"}
+grid1 |> 
+  rename(n = n_colleagues) |> 
+  ggplot(aes(x = o, y = match_prob)) +
+  geom_line() +
+  geom_point() +
+  facet_grid(n ~ p,
+             labeller = labeller(n = label_both, p = label_both)) +
+  labs(title = "Proportiong of a match when Doodling for an joint meeting",
+       caption = "p: Number of options picked per colleague;\n
+       n: number of colleagues approached"
+       )
+```
+
+## Visualize grid 2
+
+Let's try a different visualization.
+
+
+```{r}
+vis_grid(grid1)
+```
+
+
+## Caveats
+
+This analysis builds on some assumptions. One is that the the colleagues choose their slots randomly. 
+However, assumption may fail.
+For example, if 3 have 5 options and ask to choose 3, people may feel pushed too hard and do crazy things.
+
+
+
+## Conclusion
+
+There are a number of things to be learnt from this simulation:
+
+1. The higher the number of _o_ptions to pick from, the less likely is it to come to a match.
+2. The highher the number of _p_icked appointment options, the more likely it is to come to a match.
+3. The more colleagues are in the game, the less likely it is to come to a match.
+
+All these insights are straight forward. However, we can also make some quantitative conclusions:
+
+- More than 20 options to choose from is crazy no matter what.
+- If each colleagues picks 3 options only (what I would do), than you need to present less than 10 options. 
+- If you can present 5 options only, you will be on the safe side and will likely come to a match.
+
+
+
+# Introducing dependency between colleagues
+
+
+More realistically, there is dependency to be expected in the chosen slots between the reviewers.
+
+Let's try to model that.
+
+## Some notation
+
+First, let's note that we begin with a LaPlaceian assumption, ie. that the probability of a slot is uniformly distributed. In other words, we are indifferent to the plausibility of each option.
+That means the probability of chosing some option $i$ is 1 divided by the number of options:
+
+$$Pr_{oi} = \frac{1}{|o|}$$
+
+
+
+
+
+- $Pr_p$: The probability of the set of picked options.
+
+```{r}
+Pr_P <-  p / o
+```
+
+
+- $Pr_{pi}$: The probability of the $i$th picked option
+- $Pr_{pi} := \frac{|p|}{|o|}$
+
+```{r}
+Pr_pi = Pr_P / p
+```
+
+
+
+- $Pr_{ui}$: The probability of the $i$ *un*picked option
+- $Pr_{ui} := 1 - Pr_pi = \frac{|o-p|}{|o|} = \frac{|u|}{|o|}$, where $|u|$ indicates the cardinality of $U$.
+
+```{r}
+u <- o - p
+Pr_ui = u / o
+```
+
+
+- $Pr_U$: The probability of the set $U$.
+
+```{r}
+Pr_U <- 1 - Pr_P
+```
+
+
+
+
+Let's call the $d$ the degree of dependency between the colleagues. 
+For simplicity, let's only allow the values 0, .3, .6., .9 for dependency,
+indicating no, weak, medium, and strong dependency.
+
+Let's call $P$ the set of picked options, $O$ the set of all options, and $U$ the set of unpicked options.
+
+
+## Reallocating probability
+
+For example, introducing a "strong" dependency is defined here as reallocating $d=.9$ of the probability from $U$ to $P$.
+
+$Pr_u^n$ is the *n*ew probability of $Pr_u$ after reallocating the probability.
+
+```{r}
+d <- .9
+Pr_U_new <- Pr_U - d*Pr_U
+```
+
+$Pr_{ui}^n$  is the new probability of the $i$th option in the set of *u*npicked options.
+
+```{r}
+Pr_Ui_new <- Pr_U_new / u
+```
+
+
+$Pr_p^n$ is the *n*ew probability of $Pr_p$ after reallocating the probability.
+
+
+
+
+```{r}
+Pr_P_new <- Pr_P + d*Pr_U
+```
+
+
+$Pr_{pi}^n$ is the new probability of the $i$th option in the set of *p*icked options.
+
+```{r}
+Pr_Pi_new <- Pr_P_new / p
+```
+
+
+## Function for reallocating probability
+
+
+
+Check:
+
+```{r}
+sample_with_dependency(p_set = c(3, 1, 9), o = 10, dep = .6)
+```
+
+
+
+Check:
+
+```{r}
+slots_chosen <- sample_with_dependency(p_set = c(3, 1, 9), o = 10, dep = .3)
+slots_chosen
+```
+
+
+## Examples with dependency
+
+
+
+```{r}
+prob_doodle_match(n_colleagues = 3,
+              o = 8,
+              p = 1,
+              dep = .6)
+```
+
+
+## Grid of different parameter values
+
+
+Let's try different parameter values and compute the probability of a match.
+
+Here's the grid using a cartesian expansion:
+
+
+
+
+## Populate grid with depedency
+
+
+
+```{r pop-grid, cache=TRUE}
+#| eval: true
+tic()
+grid2 <- populate_grid(n_colleagues = 3:5, 
+                      o = c(5, 10, 15), 
+                      p = c(3, 5), 
+                      dep = c(0, .25, .5, .75))
+toc()
+```
+
+It's quicker to load from disk:
+
+```{r}
+#| eval: false
+data(grid2)
+```
+
+
+## Vis grid
+
+
+
+
+```{r vis-grid2, fig.width=9, dpi=300, out.width="100%", fig.asp=1.5, eval=FALSE}
+vis_grid2(grid2, facet_var = "dep")
+```
+
+![](sensitivity2.png){width="100%"}
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

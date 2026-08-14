@@ -1,0 +1,518 @@
+---
+title: "Energie sparen (!)"
+author: "Karsten Lübke und Sebastian Sauer"
+date: "`r Sys.Date()`"
+slug: fallstudie-spritverbrauch
+draft: FALSE
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+Karsten Lübke erstellte die ursprüngliche Version dieser Fallstudie. 
+Sebastian Sauer änderte einige Teile, v.a. zu R, ab.
+
+
+
+
+
+
+
+```{r global-knitr-options, include=FALSE}
+  knitr::opts_chunk$set(
+  fig.pos = 'H',
+  fig.asp = 0.618,
+  fig.align='center',
+  fig.width = 5,
+  out.width = "100%",
+  fig.cap = "", 
+#  fig.path = "chunk-img/",
+  dpi = 300,
+  # tidy = TRUE,
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = FALSE,
+  fig.show = "hold")
+```
+
+
+# Vorbereitung
+
+## R-Pakete
+
+
+```{r setup, message=FALSE, echo = TRUE}
+library(tidyverse)
+library(easystats)
+```
+
+
+
+## Forschungsfrage
+
+- Womit hängt der Energieverbrauch (z.B. Benzin) beim Autofahren zusammen?
+
+Mögliche Einflußfaktoren für $y$ (Verbrauch) sind u.a.
+
+- Fahrzeugtyp
+- Geschwindigkeit
+- Fahrtstrecke
+- Terrain
+- Art des Benzins
+- Fahrstil
+- Straße
+- Temperatur
+- Klimanalage
+- Gewicht
+
+
+## Versuchsdaten
+
+Das Buch *Transportation Energy Data Book Edition 39* liefert Daten für den Zusammenhang zwischen Geschwindigkeit und Benzinverbrauch: 
+[https://tedb.ornl.gov/wp-content/uploads/2021/02/TEDB_Ed_39.pdf#page=136](https://tedb.ornl.gov/wp-content/uploads/2021/02/TEDB_Ed_39.pdf#page=136)
+
+Diese werden hier abgeschrieben und in der Datentabelle `TEBD` hinterlegt:
+
+```{r TEDB-Daten}
+TEBD <- data.frame(
+  mpg = c(24.4, 27.9, 30.5, 31.7, 31.2, 31.0, 31.6,
+          32.4, 32.4, 31.4, 29.2, 26.8, 24.8),
+  mph = seq(from = 15, to= 75, by = 5)
+)
+# Datenstruktur
+str(TEBD)
+# Obere 6 Beobachtungen
+head(TEBD)
+```
+
+# Beschreibung des Datensatzes
+
+## Fragen
+
+- Handelt es sich um Daten von aktuellen Fahrzeugen? Die Daten kommen von Autos aus dem Jahr 1997.
+
+- Sind es die Verbrauchsdaten eines Fahrzeugs? Nein, von 9 Fahrzeugen.
+
+## Umrechnung
+
+Die Daten liegen im amerikanischen Messsystem vor: *miles per gallon* (`mpg`) und *miles per hour* (`mph`).
+
+Zur besseren Lesbarkeit sollten wir diese in die uns bekannten Einheiten umrechnen. 
+Eine Meile entspricht 1.609344 km, eine (amerikanische) Gallone 3.785411784 l:
+
+```{r TEBD-Umrechnung}
+TEBD <- 
+  TEBD %>%
+  mutate(kmh = mph * 1.609344) %>%
+  mutate(l100km = 	(100 * 3.785411784) / (1.609344 * mpg))
+```
+
+
+# Zusammenhang Geschwindigkeit und Verbrauch
+
+
+## Linearität des Zusammenhangs
+
+- Ist der Zusammenhang zwischen `l100km` und `mpg` linear? Nein: $l100km = 	\frac{(100 * 3.785411784)}{(1.609344 * mpg)}$
+
+
+Korrelation mit Streudiagramm:
+
+
+```{r}
+plot1 <- 
+TEBD %>% 
+  cor_test("kmh", "l100km") %>% 
+  plot()
+
+plot1
+```
+
+Wie man sieht, gibt es (praktisch) keinen linearen Zusammenhang zwischen den beiden Variablen.
+
+
+
+So kann man die Korrelation auch berechnen:
+
+
+```{r}
+TEBD %>% 
+  select(kmh, l100km) %>% 
+  correlation()
+```
+
+
+
+```{r}
+TEBD %>% 
+  select(kmh, l100km) %>% 
+  correlation() %>% 
+  summary() %>% 
+  plot()
+```
+
+Natürlich gibt es viele Möglichkeiten,
+die Korrelation (mit R) zu berechnen und zu visualisieren.
+
+## Fragen
+
+- Ist der Zusammenhang zwischen `kmh` und `l100km` linear? Nein, eher eine Parabel.
+- Bei welcher Geschwindigkeit ist der Verbrauch minimal? Zwischen 80 und 90 km/h.
+
+## Verschönern
+
+Fügen wir noch Achsenbeschriftungen und ein anderes "Stylesheet" hinzu:
+
+```{r TEBD-Streu2, message=FALSE}
+plot1 + 
+  labs( x = "km/h", 
+        y = "l/100km",
+        title = "Verbrauch je Geschwindigkeit", 
+        subtitle ="Quelle: Transportation Energy Data Book, Edition 39, Tablle 4.34") +
+  theme_modern()
+```
+
+Über `ylim()` bzw. `xlim()` können die Achsenskalierung angepasst werden, z.B. die y-Achse so, dass diese bei 0 anfängt und bei 10 aufhört.
+
+```{r TEBD-Streu3}
+plot1 + 
+  labs( x = "km/h", 
+        y = "l/100km",
+        title = "Verbrauch je Geschwindigkeit", 
+        subtitle ="Quelle: Transportation Energy Data Book, Edition 39, Tablle 4.34") +
+  ylim(c(0, 10))
+```
+
+## Vor- und Nachteile der Skalierung
+
+- Welche Vor- und Nachteile hat die Skalierung?
+
+Ohne Skalierung (Beginn bei $y=0$) wird suggeriert, dass der Verbauch schon *minimal* (bei 0 ist), aber die Unterschiede werden deutlicher. Mit Skalierung wird deutlicher erkennbar, dass auch im minimialen Fall über 7l verbraucht werden.
+
+Die Achsenskalierung sollte zielgruppen - und zweckorientiert sein, aber nicht manipulieren.
+
+**Achte auf die Achsenskalierung!**
+
+# Verbrauchsdaten
+
+Andreas Wagener hat für ein paar Monate am Ende einer Autofahrt seine Verbrauchsdaten samt Kovariablen (wie z.B. Temperatur) gesammelt und über [Kaggle](https://www.kaggle.com/) unter der [GPL 2](http://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html) Lizenz veröffentlicht. 
+Für diesen Kurs stehen die Daten unter [https://statistix.org/Data/VerbrauchAW.csv](https://statistix.org/Data/VerbrauchAW.csv]):
+
+```{r AW-Daten1, eval = TRUE}
+# URL der Daten
+d_url <- "https://statistix.org/Data/VerbrauchAW.csv"
+# Daten herunterladen
+d <- read_csv2(d_url)
+```
+
+<!-- Hinweis: Nachdem die Daten einmal heruntergeladen wurden, kann die Option `eval = TRUE` auf `eval = FALSE` geändert werden. Dann wird der Chunk nicht mehr ausgeführt. --> 
+
+ Kontrolle der Daten:
+```{r AW-Daten2}
+# Struktur
+str(d)
+# Obere Beobachtungen der Tabelle
+head(d)
+```
+
+## Fragen zum Datensatz
+
+- Handelt es sich um eine Beobachtungsstudie oder um ein randomisiertes Experiment? Beobachtungsstudie
+- Was ist hier eine Beobachtungseinheit? Eine Fahrt
+- Wie viele Beobachtungen liegen vor? 388
+- Wie viele Variablen liegen vor? 12
+- Welches Skalenniveau hat die Variable `consume` (angegebener Verbrauch in l/100km)? Metrisch-Verhältnisskaliert  
+- Welches Skalenniveau hat die Variable `AC` (Klimaanlage)? Nominal mit 2 Ausprägungen (1: an, 0: aus)
+
+## Beschreibung des Datensatzes
+
+
+
+
+```{r AW-Histogramm1}
+d_describe <- d %>% 
+  select(consume) %>% 
+  describe_distribution() 
+
+d_describe
+```
+
+
+
+Ein Histogramm visualisiert die Verteilung der von Andreas Wagener bei seinen Fahrten realisierten Verbräuche:
+
+```{r}
+describe_distribution(d$consume) %>% 
+  plot()
+```
+
+
+### Interpretation der Verteilung 
+
+- Was können Sie dem Histogramm entnehmen?
+
+Am häufigsten liegt der Verbrauch zwischen 4 und 5 l/100km. Selten liegt der Verbrauch über 8 l/100km.
+Es gibt häufig vergleichsweise niedrige Verbräuche, selten relativ hohe, d.h. die Verteilung ist rechtschief (linkssteil). Es gibt nur einen Schwerpunkt, d.h. die Verteilung ist unimodal.
+
+
+## Empirische Verteilungsfunktion
+
+Berechnen wir den Anteil `p` mit einem Verbrauch nicht größer als `q`, d.h. den Wert der empirischen Verteilungsfunktion $F_n$, den Wert also der dem Anteil der Fahrten entspricht, in denen der Verbrauch z.B. kleiner oder gleich `q = 10`l war:
+
+
+```{r AW-pdata}
+d %>% 
+  count(consume <= 10) %>% 
+  mutate(prop = n / sum(n))
+```
+
+
+
+
+
+
+
+### Fragen
+
+Ändern Sie den Code so, dass Sie die folgenden Fragen beantworten können.
+
+```{r AW-pdata-Fragen}
+d %>% 
+  count(consume <= 10) %>% 
+  mutate(prop = n / sum(n))
+```
+
+- Wie hoch ist der Anteil der Fahren mit einem Verbrauch kleiner gleich 5l?
+
+```{r}
+d %>% 
+  count(consume <= 5) %>% 
+  mutate(prop = n / sum(n))
+```
+
+Er schafft es in ca. 67% seiner Fahrten einen Verbrauch unter 5l/100km zu erreichen.
+
+- Wie hoch ist der Anteil der Fahren mit einem Verbrauch größer als 7.5l?
+
+```{r}
+d %>% 
+  count(consume > 7.5) %>% 
+  mutate(prop = n / sum(n))
+```
+
+
+## Quantile der empirischen Verteilung
+
+Suchen wir das 5%-Quantil der "Verbrauch-Verteilung",
+den Wert also, der von 5% der Verbrauchswerte aller Fahrten nicht übertroffen wird.
+
+
+Dazu berechnen wir die *kumulierte (Häufigkeits-)Verteilung*:
+
+
+```{r}
+d <- 
+  d %>% 
+  mutate(consume_cume_dist = cume_dist(consume))
+```
+
+
+Das sieht so aus:
+
+
+```{r}
+d %>% 
+  ggplot(aes(x = consume, y = consume_cume_dist)) +
+  geom_line()
+```
+
+
+Jetzt ziehen wir die Zeile, bei der `consume_cume_dist==.05`,
+bzw. der größte Wert unter dieser Grenze:
+
+```{r}
+d %>% 
+  filter(consume_cume_dist < .05) %>% 
+  summarise(max(consume))
+```
+
+
+In 5% seiner Fahrten lag der Verbrauch bei ca. 3,7l - oder darunter.
+
+Ändern Sie den Code so, dass Sie die folgende Frage beantworten können.
+
+
+
+## Frage
+
+- Mit welchem (maximalem) Verbrauch kam Andreas Wagener in 80% seiner Fahren zurecht?
+
+
+```{r}
+d %>% 
+  filter(consume_cume_dist < .80) %>% 
+  pull(consume) %>% 
+  max()
+```
+
+
+
+In 80% seiner Fahrten kam er mit 5.4l/100km - oder weniger hin.
+
+
+
+Merke: Die empirische *Verteilungsfunktion* $F_n(X)$ zeigt die *kumulierte (relative) Häufigkeit* eines Merkmals $X$.
+
+
+# Überblick über die Verteilung
+
+`describe_distribution()` liefert einen Überblick über die gängigen Kennzahlen einer metrischen Variable:
+
+```{r AW-favstats}
+d %>% 
+  select(consume) %>% 
+  describe_distribution()
+```
+
+## Fragen
+
+- Wie hoch ist der durchschnittliche Verbrauch? 4.9
+- Wie groß ist der Median? 4.7
+- In welchen Bereich liegen 50% der Verbräuche? min-median, also 3.3 bis 4.7; Q1 bis Q3 (die mittleren 50%), also 4.3 bs 5.3; und median bis max, also 4.7 bis 5.3 (jeweils einschließlich)
+- In der Datentabelle liegen außerdem noch die Innentemperatur (`temp_inside`) sowie die Außentemperatur vor (`temp_outside`). Beim welcher Temperatur wird die Streuung größer sein? `temp_outside`
+
+```{r}
+d %>% 
+  select(temp_outside, temp_inside) %>% 
+  describe_distribution()
+```
+
+
+# Klimaanlage
+
+
+Vergleichen wir den Verbrauch bei Fahrt mit vs. ohne Klimananlage.
+
+
+Die Variable `AC` muss aber zunächst als kategoriale Variable definiert werden.
+
+```{r}
+d <-
+  d %>% 
+  mutate(AC_f = case_when(AC == 0 ~ "Nein",
+                        AC == 1 ~ "Ja"))
+```
+
+
+```{r}
+lm1 <- lm(consume ~ AC_f, data = d)
+```
+
+
+```{r}
+estimate_means(lm1)
+```
+
+
+Plotten wir den Unterschied:
+
+```{r}
+estimate_means(lm1) %>% 
+  plot() 
+```
+
+
+
+Sieht nicht so schön aus. 
+Probieren wir es so:
+
+
+```{r}
+ggplot(d, aes(x = AC_f, y = consume, fill = AC_f)) +
+  geom_violin() +
+  geom_jitter2() +
+  theme_modern()
+```
+
+Oder mit Boxplot:
+
+```{r}
+ggplot(d, aes(x = AC_f, y = consume, fill = AC_f)) +
+  geom_boxplot() +
+  geom_jitter(alpha = .3, width = .2) +
+  theme_modern()
+```
+
+## Frage
+
+- Was können Sie über eine Vergleich der Verteilungen der der Verbräuche mit und ohne Klimaanlage aussagen?
+
+So wohl im Diagramm, als auch in den Kennzahlen (z.B. Median (`median`), aber auch arithmetischer Mittelwert (`mean`)), ist zu erkennen, dass die Verteilung des Verbrauchs in l/100km höher ist, wenn die Klimaanlage an ist.
+In beiden Gruppen gibt es Ausreißer nach oben.
+
+# Geschwindigkeit und Verbrauch
+
+
+Berechnen wir die Korrelation (zur Erinnerung, eine Kennzahl zum linearen Zusammenhang).
+
+
+```{r}
+d %>% 
+  cor_test("consume", "speed") 
+```
+
+Oder eine Korrelationsmatrix, also alle Korrelationen von mehreren Variablen:
+
+```{r}
+d %>% 
+  select(consume, speed, distance) %>% 
+  correlation()
+```
+
+Streudiagram::
+
+```{r}
+d %>% 
+  cor_test("consume", "speed") %>% 
+  plot()
+```
+
+
+
+## Frage
+
+- Was ist zu beachten, wenn in dieser Datentabelle der Zusammenhang zwischen `consume` und `speed` analysiert wird?
+
+Es handelt sich um die Durchschnittswerte der Variablen. So kann es bei niedrigen Durchschnittsgeschwindigkeiten z.B. sein, das häufig gebremst und beschleunigt wurde, was den Spritverbrauch erhöht. Bei hohen Durchschnittsgeschwindigkeiten konnte vielleicht *gleichmäßiger* gefahren werden.
+D.h., hier können viele Kovariablen das Bild verzerren.
+
+Der Korrelationskoeffizient $r$ misst nur lineare Zusammenhänge, im Streudiagramm ist aber zu erkennen dass der Zusammenhang hier nicht linear ist - siehe auch die `TEBD`-Auswertung oben.
+
+# Your-Turn
+
+Analysieren Sie den Zusammenhang zwischen `consume` und einer weiteren Kovariable. Was stellen Sie fest?
+
+```{r feld-fuer-R-Code}
+
+```
+
+
+
+
+
+
+
+
+# Reproduzierbarkeit
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

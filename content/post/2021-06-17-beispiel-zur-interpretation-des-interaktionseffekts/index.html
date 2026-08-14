@@ -1,0 +1,198 @@
+---
+title: Beispiel zur Interpretation des Interaktionseffekts
+author: Sebastian Sauer
+date: '2021-06-17'
+slug: beispiel-zur-interpretation-des-interaktionseffekts
+categories:
+  - rstats
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#der-interaktionseffekt-in-der-regressionsanalyse"><span class="toc-section-number">1</span> Der Interaktionseffekt in der Regressionsanalyse</a></li>
+<li><a href="#vorbereitung"><span class="toc-section-number">2</span> Vorbereitung</a></li>
+<li><a href="#regression-mit-interaktionseffekt-die-erste"><span class="toc-section-number">3</span> Regression mit Interaktionseffekt, die Erste</a>
+<ul>
+<li><a href="#z-transformation-des-prädiktors-hp"><span class="toc-section-number">3.1</span> z-Transformation des Prädiktors <code>hp</code></a></li>
+<li><a href="#lm1"><span class="toc-section-number">3.2</span> lm1</a></li>
+</ul></li>
+<li><a href="#regression-mit-interaktionseffekt-die-zweite"><span class="toc-section-number">4</span> Regression mit Interaktionseffekt, die Zweite</a>
+<ul>
+<li><a href="#daten"><span class="toc-section-number">4.1</span> Daten</a></li>
+<li><a href="#ohne-z-transformation"><span class="toc-section-number">4.2</span> Ohne z-Transformation</a></li>
+<li><a href="#mit-z-transformation"><span class="toc-section-number">4.3</span> Mit z-Transformation</a></li>
+<li><a href="#visualisierung"><span class="toc-section-number">4.4</span> Visualisierung</a></li>
+<li><a href="#interpretation-zum-vorhandensein-eines-interpretationseffekts"><span class="toc-section-number">4.5</span> Interpretation zum Vorhandensein eines Interpretationseffekts</a></li>
+<li><a href="#interpretation-der-koeffizienten"><span class="toc-section-number">4.6</span> Interpretation der Koeffizienten</a></li>
+<li><a href="#viel-besser-mit-z-transformation"><span class="toc-section-number">4.7</span> Viel besser mit z-Transformation</a></li>
+<li><a href="#berechnen-eines-vorhergesagten-wertes-mit-der-hand"><span class="toc-section-number">4.8</span> Berechnen eines vorhergesagten Wertes mit der Hand</a></li>
+</ul></li>
+<li><a href="#fazit"><span class="toc-section-number">5</span> Fazit</a></li>
+</ul>
+</div>
+
+<div id="der-interaktionseffekt-in-der-regressionsanalyse" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Der Interaktionseffekt in der Regressionsanalyse</h1>
+<p>Der Interaktionseffekt in der Regressionsanalyse ist nicht einfach zu interpretieren. Daher ist eine z-Transformation nützlich, die die Interpretation erleichtert. Das soll hier an einem Beispiel verdeutlicht werden.</p>
+</div>
+<div id="vorbereitung" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Vorbereitung</h1>
+<pre class="r"><code>library(tidyverse)
+library(arm)  # für Funktion &quot;display&quot;</code></pre>
+<pre class="r"><code>data(mtcars)</code></pre>
+</div>
+<div id="regression-mit-interaktionseffekt-die-erste" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Regression mit Interaktionseffekt, die Erste</h1>
+<div id="z-transformation-des-prädiktors-hp" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> z-Transformation des Prädiktors <code>hp</code></h2>
+<pre class="r"><code>mtcars &lt;- 
+  mtcars %&gt;% 
+  mutate(hp_z = scale(hp))</code></pre>
+<p><code>scale()</code> besorgt die z-Transformation für uns, praktische Sache.</p>
+</div>
+<div id="lm1" class="section level2" number="3.2">
+<h2><span class="header-section-number">3.2</span> lm1</h2>
+<pre class="r"><code>lm1 &lt;- lm(mpg ~ hp + am + hp:am,
+          data = mtcars)
+display(lm1)</code></pre>
+<pre><code>## lm(formula = mpg ~ hp + am + hp:am, data = mtcars)
+##             coef.est coef.se
+## (Intercept) 26.62     2.18  
+## hp          -0.06     0.01  
+## am           5.22     2.67  
+## hp:am        0.00     0.02  
+## ---
+## n = 32, k = 4
+## residual sd = 2.96, R-Squared = 0.78</code></pre>
+<p>Wie man in der Ausgabe sehen kann, gibt es keinen Interaktionseffekt: Der Koeffizient liegt im Modell bei 0.00 (se=0.02). Pustekuchen. Also suchen wir uns einen anderen Datensatz.</p>
+</div>
+</div>
+<div id="regression-mit-interaktionseffekt-die-zweite" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Regression mit Interaktionseffekt, die Zweite</h1>
+<p>Untersuchen wir, ob die Bewertung von Dozentis (Lehris) abhängig ist vom Alter (des Dozentis) und ob dieser Einfluss unterschiedlich ist bei Männern und Frauen (dieser Einfluss also vom Geschlecht abhängt; man sagt auch “vom Geschlecht modiert wird”).</p>
+<div id="daten" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> Daten</h2>
+<pre class="r"><code>teacherratings &lt;- read_csv(&quot;https://vincentarelbundock.github.io/Rdatasets/csv/AER/TeachingRatings.csv&quot;)</code></pre>
+<pre><code>## Warning: Missing column names filled in: &#39;X1&#39; [1]</code></pre>
+<pre><code>## 
+## ── Column specification ────────────────────────────────────────────────────────
+## cols(
+##   X1 = col_double(),
+##   minority = col_character(),
+##   age = col_double(),
+##   gender = col_character(),
+##   credits = col_character(),
+##   beauty = col_double(),
+##   eval = col_double(),
+##   division = col_character(),
+##   native = col_character(),
+##   tenure = col_character(),
+##   students = col_double(),
+##   allstudents = col_double(),
+##   prof = col_double()
+## )</code></pre>
+<p>Eine Codebook findet sich <a href="https://vincentarelbundock.github.io/Rdatasets/doc/AER/TeachingRatings.html">hier</a>.</p>
+</div>
+<div id="ohne-z-transformation" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> Ohne z-Transformation</h2>
+<pre class="r"><code>lm2 &lt;- lm(eval ~ beauty + gender + beauty:gender,
+          data = teacherratings)
+
+display(lm2)</code></pre>
+<pre><code>## lm(formula = eval ~ beauty + gender + beauty:gender, data = teacherratings)
+##                   coef.est coef.se
+## (Intercept)       3.89     0.04   
+## beauty            0.09     0.05   
+## gendermale        0.20     0.05   
+## beauty:gendermale 0.11     0.06   
+## ---
+## n = 463, k = 4
+## residual sd = 0.54, R-Squared = 0.07</code></pre>
+</div>
+<div id="mit-z-transformation" class="section level2" number="4.3">
+<h2><span class="header-section-number">4.3</span> Mit z-Transformation</h2>
+<pre class="r"><code>teacherratings &lt;-
+  teacherratings %&gt;% 
+  mutate(beauty_z = (beauty - mean(beauty))/sd(beauty),
+         age_z = (age - mean(age))/sd(age))</code></pre>
+<p>Dieses Mal haben wir die z-Transformation per Hand gerechnet.</p>
+<pre class="r"><code>lm3 &lt;- lm(eval ~ age_z + gender + age_z:gender,
+          data = teacherratings)
+
+display(lm3)</code></pre>
+<pre><code>## lm(formula = eval ~ age_z + gender + age_z:gender, data = teacherratings)
+##                  coef.est coef.se
+## (Intercept)       3.86     0.04  
+## age_z            -0.13     0.04  
+## gendermale        0.22     0.05  
+## age_z:gendermale  0.11     0.06  
+## ---
+## n = 463, k = 4
+## residual sd = 0.55, R-Squared = 0.04</code></pre>
+</div>
+<div id="visualisierung" class="section level2" number="4.4">
+<h2><span class="header-section-number">4.4</span> Visualisierung</h2>
+<pre class="r"><code>vis1 &lt;- ggplot(teacherratings) +
+  aes(x = age_z, y = eval, color = gender) +
+  geom_point() +
+  geom_smooth(method = &quot;lm&quot;) +
+  scale_color_brewer(palette=&quot;Set1&quot;)
+
+vis1 </code></pre>
+<pre><code>## `geom_smooth()` using formula &#39;y ~ x&#39;</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="672" /></p>
+</div>
+<div id="interpretation-zum-vorhandensein-eines-interpretationseffekts" class="section level2" number="4.5">
+<h2><span class="header-section-number">4.5</span> Interpretation zum Vorhandensein eines Interpretationseffekts</h2>
+<p>Da die Gerade <em>nicht</em> parallel sind, liegt ein Interaktionseffekt vor. Allerdings ist das Verhältnis von Signal zu Rauschen kleiner als 2, was als Beleg dafür gelten kann, dass auch ein Koeffizient von 0 (keine Interaktion) zu den Daten passen würde (mit den Daten kompatibel ist). Die gleiche Abwägung von Signal zu Rauschen ist bei den anderen Koeffizienten auch zu treffen.</p>
+</div>
+<div id="interpretation-der-koeffizienten" class="section level2" number="4.6">
+<h2><span class="header-section-number">4.6</span> Interpretation der Koeffizienten</h2>
+<ul>
+<li><code>Intercept</code>: Die mittlere Bewertung von <em>weiblichen</em> Dozenten mit <em>mittlerem</em> Alter liegt im Modell bei knapp 4.</li>
+<li><code>age_z</code>: Pro Jahr an zusätzlichem Alter sinkt die Bewertung der <em>Frauen</em> um -0.13 Punkte (im Schnitt).</li>
+<li><code>gendermale</code>: Die mittlere Bewertung von <em>männlichen</em> Dozenten mit <em>mittlerem</em> Alter liegt im Modell 0.22 Punkten <em>über</em> dem der Frauen, also bei 3.86+0.22, d.i. etwas über 4.</li>
+<li><code>age_z:gendermale</code>: Für jedes Altersjahr steigt die mittlere Bewertung der <em>männlichen</em> Dozentis um 0.11 <em>mehr</em> als dies bei den Frauen der Fall ist, also um -0.13+0.11, d.i. etwa -0.02 Punkte.</li>
+</ul>
+</div>
+<div id="viel-besser-mit-z-transformation" class="section level2" number="4.7">
+<h2><span class="header-section-number">4.7</span> Viel besser mit z-Transformation</h2>
+<p>Ohne z-Transformation wäre der “Bezugspunkt” immer 0 Jahre Alter, was für Dozentis nicht so das typische Berufsjahr ist… Mit z-Transformation ist der “Bezguspunkt” (der Nullwert) das <em>mittlere</em> Alter des Dozentis (in der Stichprobe). Viel schöner zu interpretieren!</p>
+</div>
+<div id="berechnen-eines-vorhergesagten-wertes-mit-der-hand" class="section level2" number="4.8">
+<h2><span class="header-section-number">4.8</span> Berechnen eines vorhergesagten Wertes mit der Hand</h2>
+<p>Was ist die zu erwartenden Bewertung von folgenden Dozentis:</p>
+<ul>
+<li>Dozi 1: Frau, mittlere Schönheit (Frau Orange)</li>
+<li>Dozi 2: Mann, Alter (z) = 2 (Herr Rosa)</li>
+<li>Dozi 3: Fau, Alter (z) = -2 (Frau Grün)</li>
+</ul>
+<pre class="r"><code>y1 &lt;- 3.8 - 0.13*0 + 0*0.22 + 0.11*(0*0)
+y2 &lt;- 3.86 - 0.13*2 + 1*0.22 + 0.11*(1*2)
+y3 &lt;- 3.86 - 0.13*(-2) + 0*0.22 + 0.11*(0*-2)</code></pre>
+<pre class="r"><code>vis1 +
+  annotate(geom = &quot;point&quot;, x = 0, y = y1, color = &quot;orange&quot;) +
+  annotate(geom = &quot;point&quot;, x = 2, y = y2, color = &quot;pink&quot;) +
+  annotate(geom = &quot;point&quot;, x = -2, y = y3, color = &quot;green&quot;)</code></pre>
+<pre><code>## `geom_smooth()` using formula &#39;y ~ x&#39;</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+</div>
+</div>
+<div id="fazit" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Fazit</h1>
+<p>Die z-Transformation macht die Interpretation leichter.</p>
+<a href="https://imgflip.com/i/5dl6eg"><img src="https://i.imgflip.com/5dl6eg.jpg" title="made at imgflip.com"/></a>
+<div>
+<a href="https://imgflip.com/memegenerator">from Imgflip Meme Generator</a>
+</div>
+</div>

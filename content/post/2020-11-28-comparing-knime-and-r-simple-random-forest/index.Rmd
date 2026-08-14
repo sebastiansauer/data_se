@@ -1,0 +1,300 @@
+---
+title: 'Comparing Knime and R: Simple Random Forest'
+author: Sebastian Sauer
+date: '2020-11-28'
+slug: comparing-knime-and-r-simple-random-forest
+output:
+  blogdown::html_page:
+    toc: true
+categories:
+  
+tags:
+  - comparison
+---
+
+
+# Knime Workflow
+
+Consider [this](https://hub.knime.com/knime/spaces/Examples/latest/04_Analytics/13_Meta_Learning/02_Learning_a_Random_Forest) Knime workflow:
+
+<a href="https://ibb.co/7j3crnM"><img src="https://i.ibb.co/djN9kPC/knime-rf.png" alt="knime-rf" border="0"></a><br /><a target='_blank' href='https://de.imgbb.com/'>de picture</a><br />
+
+
+
+
+
+
+
+
+
+That's a simple Random Forest workflow, you can download the Knime worfklow [here](https://kni.me/w/Sim-pKlioDWrgj_T).
+
+
+# Translate it to R!
+
+
+## Load Packages
+
+```{r message= FALSE}
+library(tidyverse)  # data wrangling
+library(tidymodels)  # modelling
+library(conflicted)  # name clashes
+library(caret)  # confusion matrix
+library(vip)  # variance importance plots
+library(gt)  # nice table formatting
+```
+
+## Load Data
+
+```{r}
+data(iris)
+```
+
+
+```{r}
+glimpse(iris)
+```
+
+
+## Stratified sampling
+
+
+```{r}
+split_vector <- initial_split(iris,
+                              strata = Species)
+```
+
+
+```{r}
+traindata <- training(split_vector)
+
+testdata <- testing(split_vector)
+```
+
+
+# Random Forest classification model in R
+
+
+## Define and run Random Forest classification model
+
+
+
+### Define learner (model)
+
+
+First define the model:
+
+```{r}
+rf_mod <- 
+  rand_forest(trees = 100) %>% 
+  set_engine("ranger") %>% 
+  set_mode("classification")
+```
+
+
+
+### Define recipe
+
+```{r}
+rf_recipe <-
+  recipe(Species ~ ., data = traindata) %>% 
+  step_zv(all_predictors())  # filter zero variance variables
+```
+
+
+A recipe only contains 
+
+- names of variables
+- their roles
+- planned prepossing steps (here only filter all zero variance variables)
+
+
+```{r}
+rf_recipe
+```
+
+
+### Put workflow together
+
+```{r}
+workflow() %>% 
+  add_recipe(rf_recipe) %>% 
+  add_model(rf_mod) -> rf_wf
+
+rf_wf
+```
+
+
+### Fit the model to the train data
+
+Then fit it:
+
+```{r}
+set.seed(123)
+
+rf_fit <-
+  rf_wf %>% 
+  fit(data = traindata)
+
+```
+
+
+
+## OOB results
+
+
+```{r}
+rf_fit
+```
+
+
+## Model results in test data
+
+```{r}
+testdata %>% 
+  bind_cols(predict(rf_fit, testdata, type = "prob")) %>% 
+  bind_cols(predict(rf_fit, testdata)) -> testdata_augmented
+
+```
+
+
+
+### Multiclass accuracy
+
+```{r}
+testdata_augmented %>% 
+  roc_auc(truth = Species, 
+          .pred_setosa:.pred_virginica)
+```
+
+
+
+```{r}
+testdata_augmented %>% 
+  metrics(truth = Species, 
+          estimate = .pred_class)
+```
+
+
+
+### ROC
+
+```{r}
+testdata_augmented %>% 
+  roc_curve(truth = Species, 
+            estimate = .pred_setosa:.pred_virginica) %>% 
+  autoplot()
+```
+
+
+
+
+
+
+
+
+### Confusion Matrix
+
+
+
+```{r}
+confusionMatrix(data = testdata_augmented$.pred_class,
+                reference = testdata_augmented$Species)
+```
+
+
+# Random Forest regression model in R
+
+
+## Define and run the model
+
+### Update model to regression
+
+
+Update the classification model to regression
+
+```{r}
+rf_mod  %>%  
+  set_mode("regression") %>% 
+  set_args(mtry = 3, importance = "impurity") -> rf_mod_regr
+```
+
+
+
+
+### Define recipe
+
+```{r}
+rf_recipe_regr <-
+  recipe(Petal.Width ~ ., data = traindata)
+```
+
+
+
+
+### Put workflow together
+
+
+```{r}
+workflow() %>% 
+  add_recipe(rf_recipe_regr) %>% 
+  add_model(rf_mod_regr)  -> rf_wf_regr
+
+rf_wf_regr
+```
+
+
+
+## OOB results
+
+
+Then fit the model:
+
+```{r}
+set.seed(123)
+
+rf_fit_regr <-
+  rf_wf_regr %>% 
+  fit(data = traindata)
+
+```
+
+
+
+```{r}
+rf_fit_regr
+```
+
+
+
+## Model results in test data
+
+```{r}
+testdata %>% 
+  bind_cols(predict(rf_fit_regr, testdata)) -> testdata_augmented
+
+```
+
+
+
+
+## Variabble importance
+
+```{r}
+pull_workflow_fit(rf_fit_regr) %>% 
+  vip()
+```
+
+
+
+## Collect performance metrics
+
+
+```{r}
+testdata %>% 
+  bind_cols(rf_fit_regr %>% predict(testdata)) %>% 
+  metrics(truth = Petal.Width,
+          estimate = .pred) %>% 
+  gt()
+```
+

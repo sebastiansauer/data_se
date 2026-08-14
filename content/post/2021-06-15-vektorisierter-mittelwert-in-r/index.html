@@ -1,0 +1,183 @@
+---
+title: Vektorisierter Mittelwert in R
+author: R package build
+date: '2021-06-15'
+slug: vektorisierter-mittelwert-in-r
+categories:
+  - rstats
+tags:
+  - tutorial
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>library(tidyverse)</code></pre>
+<pre><code>## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──</code></pre>
+<pre><code>## ✓ ggplot2 3.3.3     ✓ purrr   0.3.4
+## ✓ tibble  3.1.2     ✓ dplyr   1.0.6
+## ✓ tidyr   1.1.3     ✓ stringr 1.4.0
+## ✓ readr   1.4.0     ✓ forcats 0.5.1</code></pre>
+<pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()</code></pre>
+</div>
+<div id="einige-funktionen-in-r-sind-vektorisiert-andere-nicht" class="section level1">
+<h1>Einige Funktionen in R sind vektorisiert, andere nicht</h1>
+<p>Einige Funktionen in R sind vektorisiert: sie führen ihren Dienst für jedes Element eines Vektors aus. Erzeugen wir dazu ein paar Daten:</p>
+<pre class="r"><code>x = c(1,2,3)
+y = c(1,2,4)</code></pre>
+<pre class="r"><code>x + y</code></pre>
+<pre><code>## [1] 2 4 7</code></pre>
+<p>Wie man sieht, wird die Funktion “Summe” elementweise ausgeführt: Für jedes Paar von (x,y) wird die Summe berechnet.</p>
+<p>Leide sind nicht alle Funktionen vektorisiert:</p>
+<pre class="r"><code>sum(x,y)</code></pre>
+<pre><code>## [1] 13</code></pre>
+<p>Klappt auch nicht:</p>
+<pre class="r"><code>sum(c(x,y))</code></pre>
+<pre><code>## [1] 13</code></pre>
+</div>
+<div id="beispiel-für-vektorisierte-funktionen" class="section level1">
+<h1>Beispiel für vektorisierte Funktionen</h1>
+<p>Inflix-Funktionen scheinen alle vektorisiert zu sein:</p>
+<pre class="r"><code>x - y</code></pre>
+<pre><code>## [1]  0  0 -1</code></pre>
+<pre class="r"><code>x == y</code></pre>
+<pre><code>## [1]  TRUE  TRUE FALSE</code></pre>
+<pre class="r"><code>x * y</code></pre>
+<pre><code>## [1]  1  4 12</code></pre>
+<pre class="r"><code>x %% y  # Rest (Modulo)</code></pre>
+<pre><code>## [1] 0 0 3</code></pre>
+<div id="beispiel-für-nicht-vektorisierte-funktionen" class="section level2">
+<h2>Beispiel für nicht-vektorisierte Funktionen</h2>
+<p>Die Liste ist lang, wichtige Beispiele sind:</p>
+<ul>
+<li>mean</li>
+<li>sum</li>
+<li>identical</li>
+<li>…</li>
+</ul>
+</div>
+<div id="typischer-anwendungsfall" class="section level2">
+<h2>Typischer Anwendungsfall</h2>
+<p>Ein typischer Anwendungsfall sind <em>zeilenweise</em> Berechnungen, etwa der Mittelwert pro Zeile einer Tabelle.</p>
+</div>
+</div>
+<div id="vektorisieren-für-mittelwerte-und-summen" class="section level1">
+<h1>Vektorisieren für Mittelwerte und Summen</h1>
+<p>Möchte man <code>sum</code> und <code>mean</code> vektorisiert über Zeilen einer Tabelle anwenden, so gibt es Helferfuntionen, nämlich <code>rowSums</code> und <code>rowMeans</code>.</p>
+<p>Dazu brauchen wir zuerst eine Tabelle:</p>
+<pre class="r"><code>d &lt;- tibble(
+  x = c(1,2,3),
+  y = c(1,2,4)
+)</code></pre>
+<pre class="r"><code>knitr::kable(d)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="right">x</th>
+<th align="right">y</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">1</td>
+<td align="right">1</td>
+</tr>
+<tr class="even">
+<td align="right">2</td>
+<td align="right">2</td>
+</tr>
+<tr class="odd">
+<td align="right">3</td>
+<td align="right">4</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>rowSums(d)</code></pre>
+<pre><code>## [1] 2 4 7</code></pre>
+<pre class="r"><code>rowMeans(d)</code></pre>
+<pre><code>## [1] 1.0 2.0 3.5</code></pre>
+</div>
+<div id="vektorisieren-mit-dem-tidyverse" class="section level1">
+<h1>Vektorisieren mit dem Tidyverse</h1>
+<p>Mittels Tidyverse-Methoden gibt es eine Reihe von Ansätzen.</p>
+<div id="map" class="section level2">
+<h2><code>map</code></h2>
+<pre class="r"><code>d %&gt;% 
+  map2_dbl(.x = x,
+         .y = y,
+         .f = ~ mean(c(.x,.y)))</code></pre>
+<pre><code>## [1] 1.0 2.0 3.5</code></pre>
+<p><code>map</code> wendet eine Funktion auf jedes Element eines Vektors oder einer Liste an. Im Standard wird eine Liste zurückgegeben.</p>
+<p><code>map_dbl</code> gibt einen Wert vom Typ <code>dbl</code> (Gleitkommazahl) zurück. <code>map2</code> übergibt jeweils ein Element von <em>zwei</em> Vektoren x und y an eine Funktionen <em>f</em>: f(x, y) für jedes Elementenpaar von x und y, d.h. (<span class="math inline">\(x_1\)</span>, <span class="math inline">\(y_1\)</span>), )<span class="math inline">\(x_2,y_2\)</span>), ….</p>
+</div>
+<div id="rowwise" class="section level2">
+<h2><code>rowwise</code></h2>
+<p><code>rowwise</code> teilt die Tabelle in zeilenweise Gruppen ein: jede Zeile wird eine eigene Gruppe, also Teil-Tabelle. Dann wird <code>mean</code> etc. wieder funktionieren.</p>
+<pre class="r"><code>d %&gt;% 
+  rowwise() %&gt;% 
+  mutate(row_mean = mean(c(x,y)),
+         row_identical = identical(x,y))</code></pre>
+<pre><code>## # A tibble: 3 x 4
+## # Rowwise: 
+##       x     y row_mean row_identical
+##   &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt; &lt;lgl&gt;        
+## 1     1     1      1   TRUE         
+## 2     2     2      2   TRUE         
+## 3     3     4      3.5 FALSE</code></pre>
+</div>
+<div id="map-mit-mutate" class="section level2">
+<h2><code>map</code> mit <code>mutate</code></h2>
+<p>Möchte man das Ergebnis von <code>map</code> in eine Tabelle einbinden, so macht man das wie gewohnt mit <code>mutate</code>:</p>
+<pre class="r"><code>d %&gt;% 
+  mutate(row_mean = map2_dbl(.x = x,
+                            .y = y,
+                            .f = ~ mean(c(.x,.y))) )</code></pre>
+<pre><code>## # A tibble: 3 x 3
+##       x     y row_mean
+##   &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;
+## 1     1     1      1  
+## 2     2     2      2  
+## 3     3     4      3.5</code></pre>
+</div>
+<div id="mutate-und-rowmeans" class="section level2">
+<h2><code>mutate</code> und <code>rowMeans</code></h2>
+<p>Auch das geht, wenn auch etwas umständlich, da <code>rowMeans</code> eine Tabelle als Input erwartet:</p>
+<pre class="r"><code>d %&gt;% 
+  mutate(row_mean = rowMeans(select(., x,y)))</code></pre>
+<pre><code>## # A tibble: 3 x 3
+##       x     y row_mean
+##   &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;
+## 1     1     1      1  
+## 2     2     2      2  
+## 3     3     4      3.5</code></pre>
+<p>Oder so:</p>
+<pre class="r"><code>d %&gt;% 
+  mutate(row_mean = rowMeans(across(.cols = c(x, y))))</code></pre>
+<pre><code>## # A tibble: 3 x 3
+##       x     y row_mean
+##   &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;
+## 1     1     1      1  
+## 2     2     2      2  
+## 3     3     4      3.5</code></pre>
+<p>Das funktioniert, da <a href="https://dplyr.tidyverse.org/reference/across.html">across</a> einen Tibble (d.h. eine Tabelle) zurückliefert.</p>
+</div>
+<div id="mit-infix-funktionen" class="section level2">
+<h2>Mit Infix-Funktionen</h2>
+<pre class="r"><code>d %&gt;% 
+  mutate(row_mean = (x + y)/2)</code></pre>
+<pre><code>## # A tibble: 3 x 3
+##       x     y row_mean
+##   &lt;dbl&gt; &lt;dbl&gt;    &lt;dbl&gt;
+## 1     1     1      1  
+## 2     2     2      2  
+## 3     3     4      3.5</code></pre>
+</div>
+</div>
+<div id="weiterführende-infos" class="section level1">
+<h1>Weiterführende Infos</h1>
+<p><a href="https://dplyr.tidyverse.org/articles/rowwise.html">Hier</a> findet sich eine gute Einführung in zeilenweise Operationen im Tidyverse.</p>
+</div>

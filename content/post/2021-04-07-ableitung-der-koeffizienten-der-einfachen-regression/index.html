@@ -1,0 +1,134 @@
+---
+title: Ableitung der Koeffizienten der einfachen Regression
+author: Sebastian Sauer
+date: '2022-05-23'
+slug: ableitung-der-koeffizienten-der-einfachen-regression
+categories:
+  - statistics
+tags:
+  - regression
+  - modelling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#was-ist-die-regression" id="toc-was-ist-die-regression"><span class="toc-section-number">1</span> Was ist die Regression?</a></li>
+<li><a href="#wie-findet-man-die-regressionsgerade" id="toc-wie-findet-man-die-regressionsgerade"><span class="toc-section-number">2</span> Wie findet man die Regressionsgerade?</a>
+<ul>
+<li><a href="#b_0" id="toc-b_0"><span class="toc-section-number">2.1</span> <span class="math inline">\(b_0\)</span></a></li>
+<li><a href="#b_1" id="toc-b_1"><span class="toc-section-number">2.2</span> <span class="math inline">\(b_1\)</span></a></li>
+<li><a href="#weitere-umformung-von-b_1" id="toc-weitere-umformung-von-b_1"><span class="toc-section-number">2.3</span> Weitere Umformung von <span class="math inline">\(b_1\)</span></a></li>
+</ul></li>
+<li><a href="#quellenangabe" id="toc-quellenangabe"><span class="toc-section-number">3</span> Quellenangabe</a></li>
+<li><a href="#fazit" id="toc-fazit"><span class="toc-section-number">4</span> Fazit</a></li>
+</ul>
+</div>
+
+<pre class="r"><code>library(tidyverse)</code></pre>
+<div id="was-ist-die-regression" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Was ist die Regression?</h1>
+<p>In diesem Post geht es um die einfache Regression (d.h. mit einem Prädiktor); genauer gesagt um die Frage, wie man auf die Formeln der Koeffizienten der einfachen Regression kommt.</p>
+<p>Gehen wir von einigen zweidimensionalen Datenpunkten aus, die zu einem Phänomen gemessen wurden: <span class="math inline">\({(x_1, y_1), (x_2, y_2), \ldots, (x_n,y_n)}\)</span>.</p>
+<p>Gehen wir weiter davon aus, dass der Zusammenhang <em>in Wirklichkeit</em> von einer Geraden erklärt werden kann:</p>
+<p><span class="math display">\[\hat{y}=b_0 + b_1x.\]</span></p>
+<p>Eine Gerade kann durch zwei Koeffizienten definiert werden, den Achsenabschnitt <span class="math inline">\(b_0\)</span> und die Steigung <span class="math inline">\(b_1\)</span>.</p>
+<p>Für jeden Datenpunkt <span class="math inline">\(y_i\)</span> können wir die Abweichung (den Fehler) zum vorhergesagten Wert <span class="math inline">\(\hat{y_i}\)</span> ausrechnen:</p>
+<p><span class="math display">\[e_i = y_i - \hat{y_i}\]</span></p>
+<p>Nennen wir die Summe der quadrierten Fehler <span class="math inline">\(e_i\)</span> im Folgenden <span class="math inline">\(QS\)</span> (für Quadratsumme):</p>
+<p><span class="math display">\[\begin{align*}
+QS &amp;= \sum_{i=1}^{n}e_i^2\\
+QS &amp;=  \sum_{i=1}^{n}(y_i - \hat{y_i})^2\\
+QS &amp;=  \sum_{i=1}^{n}(y_i - b_0 - b_1x_i)^2
+\end{align*}\]</span></p>
+<p>Alle Summen belaufen sich über die Beobachtungen <span class="math inline">\(1,2,i,...,n\)</span>.</p>
+<p>Betrachten wir das an einem Datenbeispiel:</p>
+<pre class="r"><code>d &lt;- mtcars
+lm1 &lt;- lm(mpg ~ hp, data = d)
+
+d &lt;-
+  d %&gt;% 
+  mutate(pred = predict(lm1),
+         resid = residuals(lm1))</code></pre>
+<p>Jetzt visualisieren wir die Residuen (Abweichungen, Fehler):</p>
+<pre class="r"><code>ggplot(d, 
+       aes(x = hp, y = mpg)) +
+  geom_smooth(method = &quot;lm&quot;, se = FALSE, color = &quot;dodgerblue&quot;) +
+  geom_segment(aes(xend = hp, yend = pred), alpha = .5) +
+  geom_point() +
+  geom_hline(yintercept = mean(d$mpg), 
+             color = &quot;grey60&quot;, linetype = &quot;dashed&quot;) +
+  geom_vline(xintercept = mean(d$hp), 
+             color = &quot;grey60&quot;, linetype = &quot;dashed&quot;) + 
+  annotate(&quot;point&quot;, x = mean(d$hp), y = mean(d$mpg),
+           size = 5, color = &quot;red&quot;, alpha = .5)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Die blaue Gerade ist die Regressionsgerade; die vertikalen Balken stellen die Residuen dar und die gestrichelten Linien repräsentieren jeweils die Mittelwerte von <code>hp</code> bzw. <code>mpg</code>. Man beachte, dass der Schnittpunkt der Mittelwertslinien auf der Regressionsgeraden liegt.</p>
+</div>
+<div id="wie-findet-man-die-regressionsgerade" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Wie findet man die Regressionsgerade?</h1>
+<p>Um die Koeffizienten der Regressionsgeraden zu bestimmen, können wir die <em>Methode der kleinsten Quadrate (least squares bzw. ordinary least squares)</em> verwenden.
+Diese Methode gibt uns diejenigen Koeffizienten der Regressionsgeraden (also <span class="math inline">\(b_0\)</span> und <span class="math inline">\(b_1\)</span>),
+die die <em>Quadratsumme (QS) der Residuen</em> <span class="math inline">\(e_i\)</span> <em>minimieren</em>.</p>
+<p>Um die Quadratsumme zu minimieren, bilden wir jeweils die erste (parzielle) Ableitung und setzen diese Null.
+Anschließend löst man nach dem gesuchten Koeffizienten auf. Beginnen wir mit <span class="math inline">\(b_0\)</span>.</p>
+<div id="b_0" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> <span class="math inline">\(b_0\)</span></h2>
+<p>Wir leiten nach <span class="math inline">\(\beta_0\)</span> ab (Kettenregel) und setzen die Gleichung Null:</p>
+<p><span class="math display">\[\frac{\partial{QS}}{\partial{\beta_0}} = \sum 2\left(y_i - \beta_0 - \beta_1x_i\right)^1 (-1) = 0\]</span></p>
+<p>Teilen durch -2:</p>
+<p><span class="math display">\[\sum \left(y_i - \beta_0 - \beta_1x_i\right) = 0\]</span></p>
+<p>Auflösen nach <span class="math inline">\(\beta_0\)</span>, der gesuchten Größe:</p>
+<p><span class="math display">\[\sum \beta_0 = \sum y_i -\beta_1 \sum x_i\]</span>
+<span class="math inline">\(\sum \beta_0 = n\beta_0\)</span>:</p>
+<p><span class="math display">\[n\beta_0 = \sum y_i -\beta_1 \sum x_i \\\]</span></p>
+<p>Teilen durch <span class="math inline">\(n\)</span>:</p>
+<p><span class="math display">\[\beta_0 = \frac{1}{n}\sum y_i -\beta_1 \frac{1}{n}\sum x_i  \tag{1}\]</span></p>
+<p>Kürzer fassen:</p>
+<p><span class="math display">\[\beta_0 = \bar y - \beta_1 \bar x\]</span></p>
+<p>Das Ergebnis zeigt auch, dass der Punkt <span class="math inline">\((\bar{x}, \bar{y})\)</span> auf der Regressionsgerade liegt.</p>
+</div>
+<div id="b_1" class="section level2" number="2.2">
+<h2><span class="header-section-number">2.2</span> <span class="math inline">\(b_1\)</span></h2>
+<p>Analog verfahren wir für den zweiten Koeffizienten, <span class="math inline">\(b_1\)</span>.
+Wieder bilden wir die parzielle Ableitung, setzen diese Null und lösen nach dem gesuchten Koeffizienten auf. Das Nachdifferenzieren (Kettenregel) liefert allerdings ein anderes Ergebnis:</p>
+<p><span class="math display">\[\frac{\partial{S}}{\partial{\beta_1}} = \sum 2\left(y_i - \beta_0 - \beta_1x_i\right)^1 (-x_i) = 0\]</span>
+Gleichung multiplizieren mit <span class="math inline">\(-1/2\)</span> und letzten Faktor, <span class="math inline">\(x_i\)</span> nach vorne ziehen:</p>
+<p><span class="math display">\[\sum x_i \left(y_i - \beta_0 - \beta_1x_i\right) = 0\]</span>
+Summenzeichen auflösen:</p>
+<p><span class="math display">\[\sum x_iy_i - \beta_0 \sum x_i - \beta_1 \sum x_i^2 = 0 \tag{2}\]</span></p>
+<p>Jetzt setzen wir <span class="math inline">\((1)\)</span> in <span class="math inline">\((2)\)</span> ein:</p>
+<p><span class="math display">\[\sum x_iy_i - \left( \frac{1}{n}\sum y_i -\beta_1 \frac{1}{n}\sum x_i\right) \sum x_i - \beta_1 \sum x_i^2 = 0\]</span></p>
+<p>Klammer auflösen:</p>
+<p><span class="math display">\[\sum x_iy_i - \frac{1}{n} \sum x_i \sum y_i + \beta_1 \frac{1}{n} \left( \sum x_i \right) ^2 - \beta_1 \sum x_i^2 = 0\]</span></p>
+<p>Alle Terme mit <span class="math inline">\(\beta_1\)</span> auf die rechte Seite bringen:</p>
+<p><span class="math display">\[\sum x_iy_i - \frac{1}{n} \sum x_i \sum y_i  = - \beta_1 \frac{1}{n} \left( \sum x_i \right) ^2 + \beta_1 \sum x_i^2\]</span></p>
+<p><span class="math inline">\(\beta_1\)</span> vor die Klammer ziehen:</p>
+<p><span class="math display">\[\sum x_iy_i - \frac{1}{n} \sum x_i \sum y_i  =  \beta_1 \left(\sum x_i^2 - \frac{1}{n} \left( \sum x_i \right) ^2 \right)\]</span></p>
+<p>Nach <span class="math inline">\(\beta_1\)</span> auflösen:</p>
+<p><span class="math display">\[\beta_1  = \frac{\sum x_iy_i - \frac{1}{n} \sum x_i \sum y_i}{\sum x_i^2 - \frac{1}{n} \left( \sum x_i \right) ^2 } = \frac{cov(x,y)}{var(x)}\]</span></p>
+<p>Wie man sieht, kann <span class="math inline">\(\beta_1\)</span> als das Verhältnis von Kovarianz zu Varianz dargestellt werden.</p>
+</div>
+<div id="weitere-umformung-von-b_1" class="section level2" number="2.3">
+<h2><span class="header-section-number">2.3</span> Weitere Umformung von <span class="math inline">\(b_1\)</span></h2>
+<p><span class="math display">\[\begin{align*}
+b_1 &amp;= \frac{cov(x,y)}{s^2(x)} \\
+&amp;= \frac{cov(x,y)}{s^2(x)} \cdot \frac{s(y)}{s(y)} \\
+&amp;= \frac{cov(x,y)}{s(x)s(y)}  \cdot \frac{s(y)}{s(x)} \\
+&amp;= cor(x,y) \cdot \frac{s(y)}{s(x)}
+\end{align*}\]</span></p>
+</div>
+</div>
+<div id="quellenangabe" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Quellenangabe</h1>
+<p>Dies Post ist eine kommentierte und leicht angepasste Version von <a href="https://math.stackexchange.com/questions/716826/derivation-of-simple-linear-regression-parameters">diesem Post auf StackExchange</a>.</p>
+</div>
+<div id="fazit" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Fazit</h1>
+<p>In diesem Post ging es um die Ableitung der Formeln der Regressionskoeffizienten, zumindest der einfachen Regression. Dabei wurden grundlegende Algebra und partielle Ableitungen verwendet. Wir haben also bewiesen, dass die Regressionskoeffizienten die Form haben, wie sie gewöhnlich in einführenden, angewandten Lehrbüchern gezeigt werden.</p>
+<p>Für die Ableitung der multiplen Regression sind Ansätze auf Basis der linearen Algebra praktischer.</p>
+</div>

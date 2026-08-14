@@ -1,0 +1,224 @@
+---
+title: Plotting multiple plots using purrr::map and ggplot
+author: Sebastian Sauer
+date: '2021-02-06'
+slug: plotting-multiple-plots-using-purrr-map-and-ggplot
+categories:
+  
+tags:
+  - visualization
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+
+# Sample data
+
+
+`mtcars` to the rescue!
+
+```{r mtcars}
+mtcars <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/datasets/mtcars.csv")
+```
+
+
+
+# Motivation
+
+
+Say we have a data frame where we would like to plot each numeric variables's distribution.
+
+There are a number of good solutions outthere such as [this one](https://aosmith.rbind.io/2018/08/20/automating-exploratory-plots/), or [here](https://stackoverflow.com/questions/62323725/problem-with-passing-ggplot-titles-in-a-purrr-loop-list-columns), or [here](https://stackoverflow.com/questions/45362462/how-do-pipes-work-with-purrr-map-function-and-the-dot-symbol).
+
+
+
+
+# Way 1
+
+
+```{r way1, fig.show="hold", out.width="70%" }
+mtcars %>% 
+  select(where(is.numeric)) %>% 
+  map( ~ {ggplot(mtcars, aes(x = .)) + geom_density()}
+  )
+```
+
+Note that the chunks options above were like this:
+
+`{r fig.show="hold", out.width=70%"}`
+
+
+Works. But does not show the variable names. 
+Next try.
+
+
+
+# Way 2
+
+
+```{r way2, fig.show="hold", results="hide" }
+dens_fun <- function(var, name) {
+  
+  ggplot(mtcars, aes(x = var)) +
+    geom_density() +
+    labs(x = name,
+         title = name)
+}
+
+mtcars %>% 
+  select(where(is.numeric)) %>% 
+  map2(.y = names(.),
+       ~ dens_fun(.x, .y)
+  )
+```
+
+
+
+# Way 3
+
+Now let's assume with a character vector, `cols`, encompassing the columns to be processed.
+
+```{r}
+cols <- c("mpg", "hp", "qsec")
+```
+
+
+To address a variable - eg., `"hp"`,  stored as a string, in recent tidyverse parlance should 
+make use of `.data[["hp"]]`.
+
+```{r dens-fun2}
+dens_fun2 <- function(var_string) {
+  
+  ggplot(mtcars, aes(x = .data[[var_string]])) +
+    geom_density() +
+    labs(x = var_string,
+         title = var_string)
+}
+```
+
+See:
+
+```{r run-dens-fun2}
+dens_fun2("hp")
+```
+
+Now let's cycle through some columns:
+
+```{r}
+cols %>% 
+  map(~ dens_fun2(.x))
+```
+
+
+# More general
+
+
+Not all in life is `mtcars`. Let's be more general.
+
+And: there's also the `iris` data set.
+
+```{r iris}
+iris <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/datasets/iris.csv")
+```
+
+
+
+```{r}
+dens_fun3 <- function(df, var_string) {
+  
+  ggplot(df, aes(x = .data[[var_string]])) +
+    geom_density() +
+    labs(x = var_string,
+         title = var_string)
+}
+```
+
+
+
+
+```{r}
+dens_fun3(iris, "Sepal.Length")
+```
+
+
+# Introducing curly-curly 
+
+Or, alternatively, we can build our plot *not* with strings (character) variables as input,
+but bare, unquoted column names such as `Sepal.Length`.
+
+This operator is called "curly curly",
+as it consists of two curly braces.
+
+
+For that purpose,
+we need to quote and evaluate the parameter,
+which is a buit unusual at the beginning:
+
+```{r}
+dens_fun4 <- function(df, col) {
+  
+  ggplot(df, aes({{col}})) +
+    geom_density() +
+    labs(title = deparse(substitute(col)))
+}
+```
+
+To make things worse,
+we need a string for the title lable.
+
+```{r}
+iris %>% 
+  dens_fun4(Sepal.Length)
+```
+
+
+```{r}
+iris %>% 
+  select(where(is.numeric)) %>% 
+  map(~ dens_fun4(iris, .))
+```
+
+Unfortunately,
+the title lab did not work out.
+We'll fix that in some other post.
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

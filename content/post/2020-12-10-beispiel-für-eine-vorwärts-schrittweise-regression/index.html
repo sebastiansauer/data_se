@@ -1,0 +1,564 @@
+---
+title: Beispiel für eine Vorwärts-schrittweise-Regression
+author: Sebastian Sauer
+date: '2020-12-10'
+slug: beispiel-für-eine-vorwärts-schrittweise-regression
+categories:
+  - rstats
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="index_files/header-attrs/header-attrs.js"></script>
+<link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+<script src="index_files/anchor-sections/anchor-sections.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#hintergrund"><span class="toc-section-number">1</span> Hintergrund</a></li>
+<li><a href="#achtung"><span class="toc-section-number">2</span> Achtung</a></li>
+<li><a href="#pakete"><span class="toc-section-number">3</span> Pakete</a></li>
+<li><a href="#daten-laden"><span class="toc-section-number">4</span> Daten laden</a></li>
+<li><a href="#fehlende-werte"><span class="toc-section-number">5</span> Fehlende Werte</a></li>
+<li><a href="#modell-0"><span class="toc-section-number">6</span> Modell 0</a></li>
+<li><a href="#modelle-mit-einer-variablen-lm1"><span class="toc-section-number">7</span> Modelle mit einer Variablen (<code>lm1</code>)</a>
+<ul>
+<li><a href="#lm1a"><span class="toc-section-number">7.1</span> lm1a</a></li>
+<li><a href="#lm1b"><span class="toc-section-number">7.2</span> lm1b</a></li>
+<li><a href="#lm1c"><span class="toc-section-number">7.3</span> lm1c</a></li>
+<li><a href="#moment-mal"><span class="toc-section-number">7.4</span> Moment mal…</a></li>
+</ul></li>
+<li><a href="#automatisiertes-vorwärts-regression"><span class="toc-section-number">8</span> Automatisiertes Vorwärts-Regression</a></li>
+<li><a href="#modellgüten-der-modelle-mit-einem-prädiktor"><span class="toc-section-number">9</span> Modellgüten der Modelle mit einem Prädiktor</a></li>
+<li><a href="#reproduzierbarkeit"><span class="toc-section-number">10</span> Reproduzierbarkeit</a></li>
+</ul>
+</div>
+
+<div id="hintergrund" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Hintergrund</h1>
+<p>Diese Übung bezieht sich auf <a href="https://www.openintro.org/book/isrs/">ISRS</a>, Kap. 6.2.</p>
+</div>
+<div id="achtung" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Achtung</h1>
+<p>Gelman hasst schrittweise Regression …</p>
+</div>
+<div id="pakete" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Pakete</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(broom)  # tidy Regressionsoutput
+library(skimr)  # EDA
+library(moderndive)  # Komfort
+library(olsrr)  # Schrittweise Regression</code></pre>
+</div>
+<div id="daten-laden" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Daten laden</h1>
+<p>Auf <a href="https://www.openintro.org/data/index.php?data=mariokart">dieser Seite</a> sind die Daten zu finden.</p>
+<pre class="r"><code>d &lt;- read_csv(&quot;https://www.openintro.org/data/csv/mariokart.csv&quot;)</code></pre>
+<p>(“d” wie <em>D</em>aten.)</p>
+<p>Wir werfen einen Blick in die Daten:</p>
+<pre class="r"><code>glimpse(d)
+#&gt; Rows: 143
+#&gt; Columns: 12
+#&gt; $ id          &lt;dbl&gt; 150377422259, 260483376854, 320432342985, 280405224677, 1…
+#&gt; $ duration    &lt;dbl&gt; 3, 7, 3, 3, 1, 3, 1, 1, 3, 7, 1, 1, 1, 1, 7, 7, 3, 3, 1, …
+#&gt; $ n_bids      &lt;dbl&gt; 20, 13, 16, 18, 20, 19, 13, 15, 29, 8, 15, 15, 13, 16, 6,…
+#&gt; $ cond        &lt;chr&gt; &quot;new&quot;, &quot;used&quot;, &quot;new&quot;, &quot;new&quot;, &quot;new&quot;, &quot;new&quot;, &quot;used&quot;, &quot;new&quot;,…
+#&gt; $ start_pr    &lt;dbl&gt; 0.99, 0.99, 0.99, 0.99, 0.01, 0.99, 0.01, 1.00, 0.99, 19.…
+#&gt; $ ship_pr     &lt;dbl&gt; 4.00, 3.99, 3.50, 0.00, 0.00, 4.00, 0.00, 2.99, 4.00, 4.0…
+#&gt; $ total_pr    &lt;dbl&gt; 51.55, 37.04, 45.50, 44.00, 71.00, 45.00, 37.02, 53.99, 4…
+#&gt; $ ship_sp     &lt;chr&gt; &quot;standard&quot;, &quot;firstClass&quot;, &quot;firstClass&quot;, &quot;standard&quot;, &quot;medi…
+#&gt; $ seller_rate &lt;dbl&gt; 1580, 365, 998, 7, 820, 270144, 7284, 4858, 27, 201, 4858…
+#&gt; $ stock_photo &lt;chr&gt; &quot;yes&quot;, &quot;yes&quot;, &quot;no&quot;, &quot;yes&quot;, &quot;yes&quot;, &quot;yes&quot;, &quot;yes&quot;, &quot;yes&quot;, &quot;y…
+#&gt; $ wheels      &lt;dbl&gt; 1, 1, 1, 1, 2, 0, 0, 2, 1, 1, 2, 2, 2, 2, 1, 0, 1, 1, 2, …
+#&gt; $ title       &lt;chr&gt; &quot;~~ Wii MARIO KART &amp;amp; WHEEL ~ NINTENDO Wii ~ BRAND NEW…</code></pre>
+<p>Oder lieber so:</p>
+<pre class="r"><code>skim(d)</code></pre>
+<table>
+<caption><span id="tab:unnamed-chunk-3">Table 4.1: </span>Data summary</caption>
+<tbody>
+<tr class="odd">
+<td align="left">Name</td>
+<td align="left">d</td>
+</tr>
+<tr class="even">
+<td align="left">Number of rows</td>
+<td align="left">143</td>
+</tr>
+<tr class="odd">
+<td align="left">Number of columns</td>
+<td align="left">12</td>
+</tr>
+<tr class="even">
+<td align="left">_______________________</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Column type frequency:</td>
+<td align="left"></td>
+</tr>
+<tr class="even">
+<td align="left">character</td>
+<td align="left">4</td>
+</tr>
+<tr class="odd">
+<td align="left">numeric</td>
+<td align="left">8</td>
+</tr>
+<tr class="even">
+<td align="left">________________________</td>
+<td align="left"></td>
+</tr>
+<tr class="odd">
+<td align="left">Group variables</td>
+<td align="left">None</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: character</strong></p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">min</th>
+<th align="right">max</th>
+<th align="right">empty</th>
+<th align="right">n_unique</th>
+<th align="right">whitespace</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">cond</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">3</td>
+<td align="right">4</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">ship_sp</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">5</td>
+<td align="right">10</td>
+<td align="right">0</td>
+<td align="right">8</td>
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="left">stock_photo</td>
+<td align="right">0</td>
+<td align="right">1.00</td>
+<td align="right">2</td>
+<td align="right">3</td>
+<td align="right">0</td>
+<td align="right">2</td>
+<td align="right">0</td>
+</tr>
+<tr class="even">
+<td align="left">title</td>
+<td align="right">1</td>
+<td align="right">0.99</td>
+<td align="right">13</td>
+<td align="right">59</td>
+<td align="right">0</td>
+<td align="right">80</td>
+<td align="right">0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Variable type: numeric</strong></p>
+<table style="width:100%;">
+<colgroup>
+<col width="10%" />
+<col width="7%" />
+<col width="10%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="9%" />
+<col width="4%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">skim_variable</th>
+<th align="right">n_missing</th>
+<th align="right">complete_rate</th>
+<th align="right">mean</th>
+<th align="right">sd</th>
+<th align="right">p0</th>
+<th align="right">p25</th>
+<th align="right">p50</th>
+<th align="right">p75</th>
+<th align="right">p100</th>
+<th align="left">hist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">id</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">2.235290e+11</td>
+<td align="right">8.809543e+10</td>
+<td align="right">1.104392e+11</td>
+<td align="right">1.403506e+11</td>
+<td align="right">2.204911e+11</td>
+<td align="right">2.953551e+11</td>
+<td align="right">4.000775e+11</td>
+<td align="left">▇▃▅▅▃</td>
+</tr>
+<tr class="even">
+<td align="left">duration</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">3.770000e+00</td>
+<td align="right">2.590000e+00</td>
+<td align="right">1.000000e+00</td>
+<td align="right">1.000000e+00</td>
+<td align="right">3.000000e+00</td>
+<td align="right">7.000000e+00</td>
+<td align="right">1.000000e+01</td>
+<td align="left">▇▅▂▆▁</td>
+</tr>
+<tr class="odd">
+<td align="left">n_bids</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1.354000e+01</td>
+<td align="right">5.880000e+00</td>
+<td align="right">1.000000e+00</td>
+<td align="right">1.000000e+01</td>
+<td align="right">1.400000e+01</td>
+<td align="right">1.700000e+01</td>
+<td align="right">2.900000e+01</td>
+<td align="left">▂▅▇▃▁</td>
+</tr>
+<tr class="even">
+<td align="left">start_pr</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">8.780000e+00</td>
+<td align="right">1.507000e+01</td>
+<td align="right">1.000000e-02</td>
+<td align="right">9.900000e-01</td>
+<td align="right">1.000000e+00</td>
+<td align="right">1.000000e+01</td>
+<td align="right">6.995000e+01</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">ship_pr</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">3.140000e+00</td>
+<td align="right">3.210000e+00</td>
+<td align="right">0.000000e+00</td>
+<td align="right">0.000000e+00</td>
+<td align="right">3.000000e+00</td>
+<td align="right">4.000000e+00</td>
+<td align="right">2.551000e+01</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">total_pr</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">4.988000e+01</td>
+<td align="right">2.569000e+01</td>
+<td align="right">2.898000e+01</td>
+<td align="right">4.117000e+01</td>
+<td align="right">4.650000e+01</td>
+<td align="right">5.399000e+01</td>
+<td align="right">3.265100e+02</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="odd">
+<td align="left">seller_rate</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1.589842e+04</td>
+<td align="right">5.184032e+04</td>
+<td align="right">0.000000e+00</td>
+<td align="right">1.090000e+02</td>
+<td align="right">8.200000e+02</td>
+<td align="right">4.858000e+03</td>
+<td align="right">2.701440e+05</td>
+<td align="left">▇▁▁▁▁</td>
+</tr>
+<tr class="even">
+<td align="left">wheels</td>
+<td align="right">0</td>
+<td align="right">1</td>
+<td align="right">1.150000e+00</td>
+<td align="right">8.500000e-01</td>
+<td align="right">0.000000e+00</td>
+<td align="right">0.000000e+00</td>
+<td align="right">1.000000e+00</td>
+<td align="right">2.000000e+00</td>
+<td align="right">4.000000e+00</td>
+<td align="left">▆▇▇▁▁</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="fehlende-werte" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Fehlende Werte</h1>
+<p>Fehlende Werte können Probleme bereiten. Entfernen wir einfach alle fehlenden Werte, es sind ja nicht so viele.</p>
+<pre class="r"><code>d_nona &lt;- d %&gt;%   # nona wie &quot;no NA&quot;, keine fehlenden Werte
+  drop_na()</code></pre>
+</div>
+<div id="modell-0" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Modell 0</h1>
+<pre class="r"><code>lm0 &lt;- lm(total_pr ~ 1, data = d_nona)</code></pre>
+<p>Wie ist das R-Quadrat?</p>
+<pre class="r"><code>summary(lm0)
+#&gt; 
+#&gt; Call:
+#&gt; lm(formula = total_pr ~ 1, data = d_nona)
+#&gt; 
+#&gt; Residuals:
+#&gt;     Min      1Q  Median      3Q     Max 
+#&gt; -20.903  -8.796  -3.618   4.107 276.627 
+#&gt; 
+#&gt; Coefficients:
+#&gt;             Estimate Std. Error t value Pr(&gt;|t|)    
+#&gt; (Intercept)   49.883      2.163   23.06   &lt;2e-16 ***
+#&gt; ---
+#&gt; Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+#&gt; 
+#&gt; Residual standard error: 25.78 on 141 degrees of freedom</code></pre>
+<p>Oder so:</p>
+<pre class="r"><code>lm0_guete &lt;- glance(lm0)
+lm0_guete
+#&gt; # A tibble: 1 x 12
+#&gt;   r.squared adj.r.squared sigma statistic p.value    df logLik   AIC   BIC
+#&gt;       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1         0             0  25.8        NA      NA    NA  -662. 1329. 1335.
+#&gt; # … with 3 more variables: deviance &lt;dbl&gt;, df.residual &lt;int&gt;, nobs &lt;int&gt;</code></pre>
+<p>Nur das <code>adj.r.squared</code>:</p>
+<pre class="r"><code>lm0_guete %&gt;% 
+  select(adj.r.squared)
+#&gt; # A tibble: 1 x 1
+#&gt;   adj.r.squared
+#&gt;           &lt;dbl&gt;
+#&gt; 1             0</code></pre>
+</div>
+<div id="modelle-mit-einer-variablen-lm1" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Modelle mit einer Variablen (<code>lm1</code>)</h1>
+<p>Jetzt probieren wir alle Prädiktoren aus, um zu sehen, welche zum höchsten <span class="math inline">\(R^2\)</span>-Wert führt.</p>
+<div id="lm1a" class="section level2" number="7.1">
+<h2><span class="header-section-number">7.1</span> lm1a</h2>
+<pre class="r"><code>lm1a &lt;- lm(total_pr ~ duration, data = d_nona)</code></pre>
+<pre class="r"><code>glance(lm1a) %&gt;% 
+  select(adj.r.squared)
+#&gt; # A tibble: 1 x 1
+#&gt;   adj.r.squared
+#&gt;           &lt;dbl&gt;
+#&gt; 1      -0.00543</code></pre>
+</div>
+<div id="lm1b" class="section level2" number="7.2">
+<h2><span class="header-section-number">7.2</span> lm1b</h2>
+<pre class="r"><code>lm1b &lt;- lm(total_pr ~ n_bids, data = d_nona)</code></pre>
+<pre class="r"><code>glance(lm1b) %&gt;% 
+  select(adj.r.squared)
+#&gt; # A tibble: 1 x 1
+#&gt;   adj.r.squared
+#&gt;           &lt;dbl&gt;
+#&gt; 1       0.00972</code></pre>
+</div>
+<div id="lm1c" class="section level2" number="7.3">
+<h2><span class="header-section-number">7.3</span> lm1c</h2>
+<pre class="r"><code>lm1c &lt;- lm(total_pr ~ cond, data = d_nona)</code></pre>
+<pre class="r"><code>glance(lm1c) %&gt;% 
+  select(adj.r.squared)
+#&gt; # A tibble: 1 x 1
+#&gt;   adj.r.squared
+#&gt;           &lt;dbl&gt;
+#&gt; 1       0.00925</code></pre>
+</div>
+<div id="moment-mal" class="section level2" number="7.4">
+<h2><span class="header-section-number">7.4</span> Moment mal…</h2>
+<p>Es muss einen besseren Weg geben, das ist auf die Dauer zu umständlich.</p>
+</div>
+</div>
+<div id="automatisiertes-vorwärts-regression" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Automatisiertes Vorwärts-Regression</h1>
+<p>Zuerst legen wir fest, wie das maximal große Modell aussehen soll, bzw. welche Prädiktoren im maximal großen Modell enthalten sein sollen. Sagen wir b alle.</p>
+<p>Dann sieht das Modell so aus.</p>
+<pre class="r"><code>lm_alle &lt;- lm(total_pr ~ ., 
+            data = d_nona)  # kann etwas Zeit brauchen</code></pre>
+<pre class="r"><code>vorwaerts &lt;- step(object = lm0, 
+                  direction = &#39;forward&#39;, 
+                  scope = formula(lm_alle), 
+                  trace = 0)  # Infos zum Fortschritt ausdrucken?</code></pre>
+<p>Dieses Vorgehen nennt man schrittweise (Vorwärts-)Regression.</p>
+<p>Schauen wir uns das Ergebnis an:</p>
+<pre class="r"><code>tidy(vorwaerts)
+#&gt; # A tibble: 90 x 5
+#&gt;    term                                    estimate std.error statistic  p.value
+#&gt;    &lt;chr&gt;                                      &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+#&gt;  1 (Intercept)                               44.4        4.78    9.28   1.07e-12
+#&gt;  2 title10 Nintendo Wii Games - MarioKart…   71.8        5.99   12.0    1.05e-16
+#&gt;  3 titleBrand New Mario Kart Wii Comes wi…   -6.55       4.39   -1.49   1.42e- 1
+#&gt;  4 titleBRAND NEW NINTENDO 1 WII MARIO KA…    6.22       5.61    1.11   2.72e- 1
+#&gt;  5 titleBRAND NEW NINTENDO MARIO KART WIT…   -0.245      5.67   -0.0431 9.66e- 1
+#&gt;  6 titleBRAND NEW! FACTORY SEALED! MARIO …    0.397      6.13    0.0647 9.49e- 1
+#&gt;  7 titleMARIO KART - NINTENDO WII =======…    1.00       7.43    0.135  8.93e- 1
+#&gt;  8 titleMario Kart (Wii) with Wii Wheel      -6.15       6.88   -0.894  3.76e- 1
+#&gt;  9 titleMario Kart &amp;amp; Wheel Nintendo W…   -7.72       6.12   -1.26   2.12e- 1
+#&gt; 10 titleMARIO KART for Nintendo Wii          -5.21       5.71   -0.913  3.65e- 1
+#&gt; # … with 80 more rows</code></pre>
+<p>Und wie gut ist das <span class="math inline">\(R^2\)</span>?</p>
+<pre class="r"><code>glance(vorwaerts)
+#&gt; # A tibble: 1 x 12
+#&gt;   r.squared adj.r.squared sigma statistic  p.value    df logLik   AIC   BIC
+#&gt;       &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1     0.993         0.981  3.59      82.2 1.80e-38    88  -313.  806. 1072.
+#&gt; # … with 3 more variables: deviance &lt;dbl&gt;, df.residual &lt;int&gt;, nobs &lt;int&gt;</code></pre>
+<p>Yeah!</p>
+</div>
+<div id="modellgüten-der-modelle-mit-einem-prädiktor" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Modellgüten der Modelle mit einem Prädiktor</h1>
+<p>Wir speichern und mal die Namen der Prädiktoren in einem Vektor; kann man vielleicht ja noch später gebrauchen …</p>
+<pre class="r"><code>predictor_names &lt;- 
+  d_nona %&gt;% 
+  select(-c(id, total_pr)) %&gt;% 
+  names()</code></pre>
+<p>Voila:</p>
+<pre class="r"><code>predictor_names
+#&gt;  [1] &quot;duration&quot;    &quot;n_bids&quot;      &quot;cond&quot;        &quot;start_pr&quot;    &quot;ship_pr&quot;    
+#&gt;  [6] &quot;ship_sp&quot;     &quot;seller_rate&quot; &quot;stock_photo&quot; &quot;wheels&quot;      &quot;title&quot;</code></pre>
+<pre class="r"><code>modellguete_1pred &lt;- 
+  d_nona %&gt;% 
+  select(-c(id, total_pr)) %&gt;% 
+  map_dfr( ~ lm(total_pr ~ .x, data = d_nona) %&gt;% glance()) %&gt;% 
+  mutate(predictor = predictor_names) %&gt;% 
+  select(predictor, everything()) 
+
+modellguete_1pred  
+#&gt; # A tibble: 10 x 13
+#&gt;    predictor r.squared adj.r.squared sigma statistic  p.value    df logLik   AIC
+#&gt;    &lt;chr&gt;         &lt;dbl&gt;         &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt;
+#&gt;  1 duration  0.00170        -0.00543 25.8     0.238  6.26e- 1     1  -662. 1331.
+#&gt;  2 n_bids    0.0167          0.00972 25.7     2.38   1.25e- 1     1  -661. 1328.
+#&gt;  3 cond      0.0163          0.00925 25.7     2.32   1.30e- 1     1  -661. 1329.
+#&gt;  4 start_pr  0.00539        -0.00171 25.8     0.759  3.85e- 1     1  -662. 1330.
+#&gt;  5 ship_pr   0.294           0.289   21.7    58.4    3.03e-12     1  -638. 1281.
+#&gt;  6 ship_sp   0.0935          0.0461  25.2     1.97   6.31e- 2     7  -655. 1329.
+#&gt;  7 seller_r… 0.0000885      -0.00705 25.9     0.0124 9.12e- 1     1  -662. 1331.
+#&gt;  8 stock_ph… 0.00809         0.00100 25.8     1.14   2.87e- 1     1  -662. 1330.
+#&gt;  9 wheels    0.110           0.103   24.4    17.3    5.65e- 5     1  -654. 1314.
+#&gt; 10 title     0.987           0.970    4.43   59.5    1.15e-39    79  -354.  870.
+#&gt; # … with 4 more variables: BIC &lt;dbl&gt;, deviance &lt;dbl&gt;, df.residual &lt;int&gt;,
+#&gt; #   nobs &lt;int&gt;</code></pre>
+<p>Und dann stellen wir das grafisch dar:</p>
+<pre class="r"><code>modellguete_1pred %&gt;% 
+  ggplot(aes(x = reorder(predictor, -r.squared), y = r.squared)) +
+  geom_point(size = 5, color = &quot;red&quot;, alpha = .7)</code></pre>
+<p><img src="index_files/figure-html/unnamed-chunk-22-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Welcher Prädiktor sollte also in einer Vorwärts-Regression als erstes aufgenommen werden (auf Basis dieser Ergebnisse)?</p>
+</div>
+<div id="reproduzierbarkeit" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> Reproduzierbarkeit</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.0.2 (2020-06-22)
+#&gt;  os       macOS Catalina 10.15.7      
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2020-12-10                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version     date       lib source                             
+#&gt;  assertthat    0.2.1       2019-03-21 [1] CRAN (R 4.0.0)                     
+#&gt;  backports     1.2.0       2020-11-02 [1] CRAN (R 4.0.2)                     
+#&gt;  blogdown      0.21        2020-10-11 [1] CRAN (R 4.0.2)                     
+#&gt;  bookdown      0.21        2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  broom         0.7.2       2020-10-20 [1] CRAN (R 4.0.2)                     
+#&gt;  callr         3.5.1       2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  cellranger    1.1.0       2016-07-27 [1] CRAN (R 4.0.0)                     
+#&gt;  cli           2.2.0       2020-11-20 [1] CRAN (R 4.0.2)                     
+#&gt;  codetools     0.2-16      2018-12-24 [2] CRAN (R 4.0.2)                     
+#&gt;  colorspace    2.0-0       2020-11-11 [1] CRAN (R 4.0.2)                     
+#&gt;  crayon        1.3.4       2017-09-16 [1] CRAN (R 4.0.0)                     
+#&gt;  DBI           1.1.0       2019-12-15 [1] CRAN (R 4.0.0)                     
+#&gt;  dbplyr        2.0.0       2020-11-03 [1] CRAN (R 4.0.2)                     
+#&gt;  desc          1.2.0       2018-05-01 [1] CRAN (R 4.0.0)                     
+#&gt;  devtools      2.3.2       2020-09-18 [1] CRAN (R 4.0.2)                     
+#&gt;  digest        0.6.27      2020-10-24 [1] CRAN (R 4.0.2)                     
+#&gt;  dplyr       * 1.0.2       2020-08-18 [1] CRAN (R 4.0.2)                     
+#&gt;  ellipsis      0.3.1       2020-05-15 [1] CRAN (R 4.0.0)                     
+#&gt;  evaluate      0.14        2019-05-28 [1] CRAN (R 4.0.0)                     
+#&gt;  fansi         0.4.1       2020-01-08 [1] CRAN (R 4.0.0)                     
+#&gt;  forcats     * 0.5.0       2020-03-01 [1] CRAN (R 4.0.0)                     
+#&gt;  fs            1.5.0       2020-07-31 [1] CRAN (R 4.0.2)                     
+#&gt;  generics      0.1.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  ggplot2     * 3.3.2       2020-06-19 [1] CRAN (R 4.0.0)                     
+#&gt;  glue          1.4.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  gtable        0.3.0       2019-03-25 [1] CRAN (R 4.0.0)                     
+#&gt;  haven         2.3.1       2020-06-01 [1] CRAN (R 4.0.0)                     
+#&gt;  hms           0.5.3       2020-01-08 [1] CRAN (R 4.0.0)                     
+#&gt;  htmltools     0.5.0       2020-06-16 [1] CRAN (R 4.0.0)                     
+#&gt;  httr          1.4.2       2020-07-20 [1] CRAN (R 4.0.2)                     
+#&gt;  jsonlite      1.7.1       2020-09-07 [1] CRAN (R 4.0.2)                     
+#&gt;  knitr         1.30        2020-09-22 [1] CRAN (R 4.0.2)                     
+#&gt;  lifecycle     0.2.0       2020-03-06 [1] CRAN (R 4.0.0)                     
+#&gt;  lubridate     1.7.9.2     2020-11-13 [1] CRAN (R 4.0.2)                     
+#&gt;  magrittr      2.0.1       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  memoise       1.1.0       2017-04-21 [1] CRAN (R 4.0.0)                     
+#&gt;  modelr        0.1.8       2020-05-19 [1] CRAN (R 4.0.0)                     
+#&gt;  munsell       0.5.0       2018-06-12 [1] CRAN (R 4.0.0)                     
+#&gt;  pillar        1.4.7       2020-11-20 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgbuild      1.1.0       2020-07-13 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgconfig     2.0.3       2019-09-22 [1] CRAN (R 4.0.0)                     
+#&gt;  pkgload       1.1.0       2020-05-29 [1] CRAN (R 4.0.0)                     
+#&gt;  prettyunits   1.1.1       2020-01-24 [1] CRAN (R 4.0.0)                     
+#&gt;  processx      3.4.5       2020-11-30 [1] CRAN (R 4.0.2)                     
+#&gt;  ps            1.4.0       2020-10-07 [1] CRAN (R 4.0.2)                     
+#&gt;  purrr       * 0.3.4       2020-04-17 [1] CRAN (R 4.0.0)                     
+#&gt;  R6            2.5.0       2020-10-28 [1] CRAN (R 4.0.2)                     
+#&gt;  Rcpp          1.0.5       2020-07-06 [1] CRAN (R 4.0.2)                     
+#&gt;  readr       * 1.4.0       2020-10-05 [1] CRAN (R 4.0.2)                     
+#&gt;  readxl        1.3.1       2019-03-13 [1] CRAN (R 4.0.0)                     
+#&gt;  remotes       2.2.0       2020-07-21 [1] CRAN (R 4.0.2)                     
+#&gt;  reprex        0.3.0       2019-05-16 [1] CRAN (R 4.0.0)                     
+#&gt;  rlang         0.4.9       2020-11-26 [1] CRAN (R 4.0.2)                     
+#&gt;  rmarkdown     2.5         2020-10-21 [1] CRAN (R 4.0.2)                     
+#&gt;  rprojroot     2.0.2       2020-11-15 [1] CRAN (R 4.0.2)                     
+#&gt;  rstudioapi    0.13.0-9000 2020-12-09 [1] Github (rstudio/rstudioapi@4baeb39)
+#&gt;  rvest         0.3.6       2020-07-25 [1] CRAN (R 4.0.2)                     
+#&gt;  scales        1.1.1       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  sessioninfo   1.1.1       2018-11-05 [1] CRAN (R 4.0.0)                     
+#&gt;  stringi       1.5.3       2020-09-09 [1] CRAN (R 4.0.2)                     
+#&gt;  stringr     * 1.4.0       2019-02-10 [1] CRAN (R 4.0.0)                     
+#&gt;  testthat      3.0.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  tibble      * 3.0.4       2020-10-12 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyr       * 1.1.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyselect    1.1.0       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  tidyverse   * 1.3.0       2019-11-21 [1] CRAN (R 4.0.0)                     
+#&gt;  usethis       1.6.3       2020-09-17 [1] CRAN (R 4.0.2)                     
+#&gt;  vctrs         0.3.5       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  withr         2.3.0       2020-09-22 [1] CRAN (R 4.0.2)                     
+#&gt;  xfun          0.19        2020-10-30 [1] CRAN (R 4.0.2)                     
+#&gt;  xml2          1.3.2       2020-04-23 [1] CRAN (R 4.0.0)                     
+#&gt;  yaml          2.2.1       2020-02-01 [1] CRAN (R 4.0.0)                     
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Rlibs
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre>
+</div>

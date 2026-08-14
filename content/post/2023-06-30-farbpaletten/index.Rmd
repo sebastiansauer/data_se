@@ -1,0 +1,509 @@
+---
+title: Farbpaletten für nominale Variablen
+author: Sebastian Sauer
+date: '2023-06-30'
+slug: farbpaletten
+categories:
+  - rstats
+draft: no
+tags:
+  - visualization
+  - ggplot2
+  - color
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+# Setup
+
+
+```{r setup}
+library(tidyverse)
+library(paletteer)
+library(scales)  # show_col()
+library(colorblindr)  # from github
+library(ggthemes)
+```
+
+
+Das Paket [`paletteer`](https://emilhvitfeldt.github.io/paletteer/) trägt eine große Auswahl an Farbpaletten zusammen und erleichtert die Handhabung in R.
+
+
+# tl;dr
+
+Die Farbpalette von [Okabe und Ito](https://jfly.uni-koeln.de/color/) ist eine gute Wahl, um eine nominale Variable in Farben zu kodieren.
+
+
+
+
+```{r}
+paletteer_d("colorblindr::OkabeIto")
+```
+
+
+Mehr Details [weiter unten](#okabe-ito).
+
+
+
+# Beispiel für Farbwahl bei einer nominaler Variablen
+
+Hier ist ein Beispiel für Farbwahl bei nominal skalierten Variablen:
+
+
+```{r}
+ggplot(iris) +
+  aes(x = Species, y = Sepal.Width) +
+  geom_boxplot(aes(fill = Species))
+```
+
+
+# Anforderungen an eine Farbpalette (für nominale Variablen)
+
+Hier sind einige (der wichtigsten) Anforderungen an eine Farbpalette für nominal skalierte Variablen:
+
+1. optisch klar unterscheidbare Farben
+2. visuelle Gleichabständigkeit der Farben
+3. Robust bei Farb-Sehschwächen
+4. Robust bei Schwarz-Weiß-Druck
+5. gut benennbare Farben ("grün" und "gelb")
+6. gleich starke Farben (z.B. kann ein sanftes Grau wie eine Abschwächung der Bedeutung wirken)
+7. nicht zu hell, damit sie auf weißem Hintergrund erkennbar sind
+
+
+# Auswahl
+
+Hier ist eine Auswahl an Farben, z.B. von [Wes Andersons Blog](https://wesandersonpalettes.tumblr.com/), vermittelt durch das R-Paket [`wesanderson`](https://github.com/karthik/wesanderson).
+
+
+```{r}
+wesanderson::wes_palette("FantasticFox1")
+```
+
+
+Die Farbauswahl ist nett, aber ich fand keine Hinweise, ob die Farbpaletten geprüft sind auf alle unsere Anforderungen.
+
+# Hilfsfunktion 
+
+Schreiben wir uns eine Hilfsfunktion, um die Farben einer Palette großflächig zu zeigen.
+
+
+
+```{r}
+show_cols <- function(col_pal, n = 5){
+d <- tibble(x = 1:length(col_pal[1:n]),
+            col = factor(col_pal[1:n], levels = col_pal[1:n]))
+
+ggplot(d) +
+  aes(x=x)+
+  geom_bar(aes(fill = col)) +
+  theme_void() +
+  scale_fill_manual(values = col_pal)
+}
+```
+
+
+
+
+```{r}
+paletteer_d("awtools::a_palette")
+```
+
+
+
+```{r}
+paletteer_d("awtools::a_palette") %>% show_cols()
+```
+
+
+Ah, es gibt auch eine Plot-Methode, die den Job erledigt :-)
+
+
+
+```{r}
+paletteer_d("awtools::a_palette", n = 5) %>% plot()
+```
+
+Allerdings ohne die RGB-Werte auszugeben.
+
+
+# AWTools
+
+Ähnliches wie für Wes Andersons Farben gilt für [Austin Wehrweins](https://austinwehrwein.com/) Paletten, vermittelt über das Paket [`awtools`](https://github.com/awhstin/awtools).
+
+
+```{r}
+paletteer_d("awtools::mpalette", n = 5)
+```
+
+
+
+```{r}
+paletteer_d("awtools::mpalette", n = 5) %>% show_cols()
+```
+
+
+# ggthemes
+
+Auch das Paket [`ggthemes](https://jrnold.github.io/ggthemes/) stellt eine nette Auswahl vor.
+
+
+```{r}
+show_cols(paletteer_d("ggthemes::colorblind", n = 5))
+```
+
+Schwarz sticht hier hervor; die anderen Farben sind dezent, das Schwarz ist, anders, naja, schwarz!
+
+# Weitere Paletten
+
+Paletteer stellt noch weitere Paletten bereit, wie z.B. diese hier
+
+```{r}
+paletteer_d(`"beyonce::X18"`)
+```
+
+
+
+
+
+
+
+```{r}
+paletteer_d(`"beyonce::X18"`) %>% show_cols()
+```
+
+# rtist
+
+Visuell ansprechend (nach meiner Meinung) sind auch die Paletten von [`rtist`](https://github.com/cran/rtist):
+
+```{r}
+paletteer_d(`"rtist::picasso"`, n = 5) %>% show_cols()
+```
+
+
+```{r}
+paletteer_d(`"rtist::oldenburg"`, n = 5) %>% show_cols()
+```
+
+
+Hier standen die Werke bekannter Male Pate, weniger unsere Desiderata.
+
+
+# ggsci
+
+
+```{r}
+paletteer_d(`"ggsci::default_locuszoom"`, n = 5) %>% show_cols()
+```
+
+
+
+```{r}
+paletteer_d(`"ggsci::legacy_tron"`, n = 5) %>% show_cols()
+```
+
+
+Es gibt auch dynamische Paletten:
+
+
+```{r}
+paletteer_dynamic(`"ggthemes_solarized::blue"`, n = 5) %>% show_cols()
+```
+
+
+
+# jcolors
+
+
+```{r}
+paletteer_d(`"jcolors::default"`, n = 5) %>% show_cols()
+```
+
+
+
+```{r}
+paletteer_d(`"jcolors::pal5"`, n = 5) %>% show_cols()
+```
+
+
+
+```{r}
+paletteer_d(`"jcolors::rainbow"`, n = 5) %>% show_cols()
+```
+
+
+# Viridis
+
+[Viridis](https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html) ist eine bekannte Farbpalette.
+
+
+
+```{r}
+paletteer_c("viridis::viridis", n = 5)
+```
+
+
+```{r}
+paletteer_c("viridis::viridis", n = 5) %>% 
+  show_cols()
+```
+
+
+
+
+```{r}
+paletteer_c("viridis::viridis", n = 7) %>% 
+  show_cols(n = 7)
+```
+
+
+
+# Magma
+
+Eine Variante zu Viridis ist Magma:
+
+
+
+
+```{r}
+paletteer_c("viridis::magma", n = 5)
+```
+
+
+```{r}
+paletteer_c("viridis::magma", n = 5) %>% 
+  show_cols()
+```
+
+# Color Lisa
+
+[Color Lisa](https://colorlisa.com/) ist ebenfalls von bekannten Malern - bzw. deren Farbauswahl - inspiert.
+
+```{r}
+paletteer_d("lisa::MarcChagall", n = 5) %>% show_cols()
+```
+
+
+```{r}
+paletteer_d("lisa::RobertDelaunay", n = 5) %>% show_cols()
+```
+
+
+
+```{r}
+paletteer_d("lisa::GeneDavis", n = 5) %>% show_cols()
+```
+
+
+
+
+# Okabe-Ito
+
+[Okabe und Ito](https://jfly.uni-koeln.de/color/) stellen eine Palette bereit, die unseren Anforderungen genügt!
+
+
+```{r}
+paletteer_d("colorblindr::OkabeIto")
+```
+
+
+
+
+```{r}
+paletteer_d("colorblindr::OkabeIto") %>% show_cols(n=8)
+```
+
+
+
+Sagen wir uns gefallen die folgenden 5 Farben daraus:
+
+```{r}
+okebeito_auswahl <- paletteer_d("colorblindr::OkabeIto")[c(1,3,4,5,7)]
+okebeito_auswahl
+```
+
+
+
+```{r}
+okebeito_auswahl %>%  show_cols()
+```
+
+Es gibt ein R-Paket, [`ggokebito`](https://malcolmbarrett.github.io/ggokabeito/), das die Farbwahl für ggplot verfügbar macht.
+
+```{r}
+library(ggokabeito)
+
+ggplot(mpg, aes(cty, hwy, color = class)) +
+  geom_point() +
+  scale_color_okabe_ito()
+```
+
+Oder für Füllfarben:
+
+```{r}
+ggplot(mpg, aes(hwy, color = class, fill = class)) +
+  geom_density() +
+  scale_fill_okabe_ito(name = "Class", alpha = .9) +
+  scale_color_okabe_ito(name = "Class")
+```
+
+
+Die Farbnamen findet man z.B. [hier](https://mikemol.github.io/technique/colorblind/2018/02/11/color-safe-palette.html).
+
+# Tableau 10
+
+```{r}
+show_col(tableau_color_pal("Tableau 10")(10))
+```
+
+
+# Farbnamen
+
+```{r}
+library(plotrix)
+
+paletteer_d("colorblindr::OkabeIto") %>% 
+  map(color.id)
+```
+
+
+# Show color 2
+
+Natürlich hat jemand die Funktion `show_cols` schon geschrieben, z.B. im Paket `scales`:
+
+
+```{r}
+scales::show_col(paletteer_d("colorblindr::OkabeIto"))
+```
+
+
+
+# Farbenblindheit
+
+## Okabe Ito
+
+```{r}
+show_cols(paletteer_d("colorblindr::OkabeIto"), n = 8) %>% 
+  cvd_grid()
+```
+
+Insgesamt stimmen die Resultate nicht so ganz zufrieden.
+
+Versuchen wir es mit 5 Farben aus Okabe und Ito:
+
+
+
+```{r}
+show_cols(paletteer_d("colorblindr::OkabeIto")) %>% 
+  cvd_grid()
+```
+
+Besser.
+
+Oder mit nur 3 Farben?
+
+
+```{r}
+show_cols(paletteer_d("colorblindr::OkabeIto"), n = 3) %>% 
+  cvd_grid()
+```
+Noch etwas besser.
+
+
+## Gene Davis
+
+```{r}
+paletteer_d("lisa::GeneDavis") %>% 
+  show_cols() %>% 
+  cvd_grid()
+```
+
+Naja, einigermaßen ok.
+
+
+
+## X18
+
+
+```{r}
+paletteer_d(`"beyonce::X18"`) %>% 
+  show_cols() %>% 
+  cvd_grid()
+```
+
+Nicht super, aber vielleicht geht es nicht viel besser.
+
+## Tableau 10
+
+
+```{r}
+show_cols(tableau_color_pal("Tableau 10")(10)) %>% 
+  cvd_grid()
+```
+
+Nicht so super.
+
+## Viridis 
+
+```{r}
+paletteer_c("viridis::viridis", n = 7) %>% 
+  show_cols(n = 7) %>% 
+  cvd_grid()
+```
+
+Oh, gut!
+
+
+Probieren wir mit 5 Farben,
+dann wird es sogar noch einfacher.
+
+```{r}
+paletteer_c("viridis::viridis", n = 5) %>% 
+  show_cols(n = 5) %>% 
+  cvd_grid()
+```
+
+
+Viridis sieht bei Farbschwäche super aus.
+Allerdings ist Viridis nicht unbedingt geignet,
+um nominale Variablen darzustellen,
+zumindest hat man einen "natürlichen" Verlauf der Farbe,
+was eine Sequenz oder eine ordinale Abfolge suggiert.
+
+
+
+# Fazit
+
+Mittlerweile gibt es eine Reihe guter Farbpaletten (für R). 
+Okabe und Ito ist ein Beispiel für eine gute Wahl.
+Es gibt aber auch noch andere; so hat [Base R mittlerweile auch eine gute Standardpalette](https://developer.r-project.org/Blog/public/2019/11/21/a-new-palette-for-r/).
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+sessioninfo::session_info()
+```

@@ -1,0 +1,270 @@
+---
+title: 'titanic-tidymodels: boost simple'
+author: Sebastian Sauer
+date: '2020-12-14'
+slug: titanic-tidymodels-boost-simple
+categories:
+  - rstats
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="index_files/header-attrs/header-attrs.js"></script>
+<link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+<script src="index_files/anchor-sections/anchor-sections.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#objective"><span class="toc-section-number">2</span> Objective</a></li>
+<li><a href="#load-and-prepare-data"><span class="toc-section-number">3</span> Load and prepare data</a>
+<ul>
+<li><a href="#hide-details-in-a-function"><span class="toc-section-number">3.1</span> Hide details in a function</a></li>
+</ul></li>
+<li><a href="#split-data-into-train-and-test"><span class="toc-section-number">4</span> Split data into train and test</a></li>
+<li><a href="#define-recipe"><span class="toc-section-number">5</span> Define recipe</a></li>
+<li><a href="#define-model"><span class="toc-section-number">6</span> Define model</a></li>
+<li><a href="#define-workflow"><span class="toc-section-number">7</span> Define workflow</a></li>
+<li><a href="#fit-the-model"><span class="toc-section-number">8</span> Fit the model</a></li>
+<li><a href="#predict-the-test-data"><span class="toc-section-number">9</span> Predict the test data</a></li>
+<li><a href="#save-csv-file-to-disk"><span class="toc-section-number">10</span> Save csv file to disk</a></li>
+<li><a href="#reproducibility"><span class="toc-section-number">11</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(tidymodels)  # modelling</code></pre>
+</div>
+<div id="objective" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Objective</h1>
+<p>Predicting the survival in the Titanic disaster. We’ll be using a tidymodels approach.</p>
+</div>
+<div id="load-and-prepare-data" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Load and prepare data</h1>
+<div id="hide-details-in-a-function" class="section level2" number="3.1">
+<h2><span class="header-section-number">3.1</span> Hide details in a function</h2>
+<pre class="r"><code>prepare_data &lt;- function(traindata_url = &quot;https://raw.githubusercontent.com/sebastiansauer/Statistiklehre/main/data/titanic/train.csv&quot;,
+                         testdata_url = &quot;https://raw.githubusercontent.com/sebastiansauer/Statistiklehre/main/data/titanic/test.csv&quot;) {
+
+
+  # import the data:
+  train &lt;- read_csv(traindata_url)
+  test &lt;- read_csv(testdata_url)
+  
+ 
+  # bind both samples into one:
+  data_raw &lt;-
+    train %&gt;% 
+    bind_rows(test)
+  
+  
+  # drop unused variables:
+  data &lt;-
+    data_raw %&gt;% 
+    select(-c(Name, Cabin, Ticket))
+  
+  
+  # convert string to factors:
+  data2 &lt;- 
+    data %&gt;% 
+    mutate(across(where(is.character), as.factor))
+  
+  # convert numeric outcome to nominal, to indicate classification:
+  data2 &lt;- data2 %&gt;% 
+    mutate(Survived = as.factor(Survived))
+  
+  
+  return(data2)
+}</code></pre>
+<pre class="r"><code>data2 &lt;- prepare_data()</code></pre>
+</div>
+</div>
+<div id="split-data-into-train-and-test" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Split data into train and test</h1>
+<pre class="r"><code>split_titanic &lt;- initial_time_split(data = data2, prop = 891/1309)
+train &lt;- training(split_titanic)
+test &lt;- testing(split_titanic)</code></pre>
+</div>
+<div id="define-recipe" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Define recipe</h1>
+<pre class="r"><code>
+titanic_recipe &lt;- 
+  
+  # define model formula:
+  recipe(Survived ~ ., data = train) %&gt;%
+  
+  # Use &quot;ID&quot; etc as ID, not as predictor:
+  update_role(PassengerId, new_role = &quot;ID&quot;) %&gt;%   
+
+  # impute missing values:
+  step_knnimpute(all_predictors(), neighbors = 3) %&gt;%  
+  
+  # convert character and factor type variables into dummy variables:
+  step_dummy(all_nominal(), -all_outcomes()) %&gt;%   
+  
+  # exclude near zero variance predictors:
+  step_nzv(all_predictors()) %&gt;%  
+  
+  # exclude highly correlated vars:
+  step_corr(all_predictors()) %&gt;% 
+  
+  # center (set mean to zero):
+  step_center(all_predictors(), -all_outcomes()) %&gt;%  
+  
+  # set sd=1 
+  step_scale(all_predictors(), -all_outcomes())  </code></pre>
+</div>
+<div id="define-model" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Define model</h1>
+<pre class="r"><code>boost_mod &lt;- 
+  boost_tree(mtry = 100, 
+             min_n = 10, 
+             learn_rate = 0.1,
+             tree_depth = 4) %&gt;% 
+  set_engine(&quot;xgboost&quot;) %&gt;% 
+  set_mode(&quot;classification&quot;)</code></pre>
+<p>See details of the model:</p>
+<pre class="r"><code>boost_mod %&gt;% 
+  translate()
+#&gt; Boosted Tree Model Specification (classification)
+#&gt; 
+#&gt; Main Arguments:
+#&gt;   mtry = 100
+#&gt;   min_n = 10
+#&gt;   tree_depth = 4
+#&gt;   learn_rate = 0.1
+#&gt; 
+#&gt; Computational engine: xgboost 
+#&gt; 
+#&gt; Model fit template:
+#&gt; parsnip::xgb_train(x = missing_arg(), y = missing_arg(), colsample_bytree = 100, 
+#&gt;     min_child_weight = 10, max_depth = 4, eta = 0.1, nthread = 1, 
+#&gt;     verbose = 0)</code></pre>
+</div>
+<div id="define-workflow" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Define workflow</h1>
+<pre class="r"><code>titanic_boost_wf1 &lt;-
+  workflow() %&gt;% 
+  add_model(boost_mod) %&gt;% 
+  add_recipe(titanic_recipe)</code></pre>
+</div>
+<div id="fit-the-model" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Fit the model</h1>
+<pre class="r"><code>titanic_boost_wf1 &lt;-
+  titanic_boost_wf1 %&gt;% 
+  fit(data = train)</code></pre>
+</div>
+<div id="predict-the-test-data" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Predict the test data</h1>
+<p>Test data need to be baked (and hence prepped):</p>
+<pre class="r"><code>test_baked &lt;- bake(prep(titanic_recipe), 
+                   new_data = test)</code></pre>
+<pre class="r"><code>test_with_pred &lt;-
+  test_baked %&gt;% 
+  bind_cols(predict(titanic_boost_wf1, test)) %&gt;% 
+  rename(pred_glm1 = .pred_class)</code></pre>
+</div>
+<div id="save-csv-file-to-disk" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> Save csv file to disk</h1>
+<pre class="r"><code>test_with_pred %&gt;% 
+  select(PassengerId, Survived = pred_glm1) %&gt;% 
+  write_csv(file = &quot;titanic-boost1.csv&quot;)</code></pre>
+</div>
+<div id="reproducibility" class="section level1" number="11">
+<h1><span class="header-section-number">11</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.0.2 (2020-06-22)
+#&gt;  os       macOS Catalina 10.15.7      
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2020-12-14                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version     date       lib source                             
+#&gt;  assertthat    0.2.1       2019-03-21 [1] CRAN (R 4.0.0)                     
+#&gt;  backports     1.2.0       2020-11-02 [1] CRAN (R 4.0.2)                     
+#&gt;  blogdown      0.21        2020-10-11 [1] CRAN (R 4.0.2)                     
+#&gt;  bookdown      0.21        2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  broom         0.7.2       2020-10-20 [1] CRAN (R 4.0.2)                     
+#&gt;  callr         3.5.1       2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  cellranger    1.1.0       2016-07-27 [1] CRAN (R 4.0.0)                     
+#&gt;  cli           2.2.0       2020-11-20 [1] CRAN (R 4.0.2)                     
+#&gt;  codetools     0.2-16      2018-12-24 [2] CRAN (R 4.0.2)                     
+#&gt;  colorspace    2.0-0       2020-11-11 [1] CRAN (R 4.0.2)                     
+#&gt;  crayon        1.3.4       2017-09-16 [1] CRAN (R 4.0.0)                     
+#&gt;  DBI           1.1.0       2019-12-15 [1] CRAN (R 4.0.0)                     
+#&gt;  dbplyr        2.0.0       2020-11-03 [1] CRAN (R 4.0.2)                     
+#&gt;  desc          1.2.0       2018-05-01 [1] CRAN (R 4.0.0)                     
+#&gt;  devtools      2.3.2       2020-09-18 [1] CRAN (R 4.0.2)                     
+#&gt;  digest        0.6.27      2020-10-24 [1] CRAN (R 4.0.2)                     
+#&gt;  dplyr       * 1.0.2       2020-08-18 [1] CRAN (R 4.0.2)                     
+#&gt;  ellipsis      0.3.1       2020-05-15 [1] CRAN (R 4.0.0)                     
+#&gt;  evaluate      0.14        2019-05-28 [1] CRAN (R 4.0.0)                     
+#&gt;  fansi         0.4.1       2020-01-08 [1] CRAN (R 4.0.0)                     
+#&gt;  forcats     * 0.5.0       2020-03-01 [1] CRAN (R 4.0.0)                     
+#&gt;  fs            1.5.0       2020-07-31 [1] CRAN (R 4.0.2)                     
+#&gt;  generics      0.1.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  ggplot2     * 3.3.2       2020-06-19 [1] CRAN (R 4.0.0)                     
+#&gt;  glue          1.4.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  gtable        0.3.0       2019-03-25 [1] CRAN (R 4.0.0)                     
+#&gt;  haven         2.3.1       2020-06-01 [1] CRAN (R 4.0.0)                     
+#&gt;  hms           0.5.3       2020-01-08 [1] CRAN (R 4.0.0)                     
+#&gt;  htmltools     0.5.0       2020-06-16 [1] CRAN (R 4.0.0)                     
+#&gt;  httr          1.4.2       2020-07-20 [1] CRAN (R 4.0.2)                     
+#&gt;  jsonlite      1.7.1       2020-09-07 [1] CRAN (R 4.0.2)                     
+#&gt;  knitr         1.30        2020-09-22 [1] CRAN (R 4.0.2)                     
+#&gt;  lifecycle     0.2.0       2020-03-06 [1] CRAN (R 4.0.0)                     
+#&gt;  lubridate     1.7.9.2     2020-11-13 [1] CRAN (R 4.0.2)                     
+#&gt;  magrittr      2.0.1       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  memoise       1.1.0       2017-04-21 [1] CRAN (R 4.0.0)                     
+#&gt;  modelr        0.1.8       2020-05-19 [1] CRAN (R 4.0.0)                     
+#&gt;  munsell       0.5.0       2018-06-12 [1] CRAN (R 4.0.0)                     
+#&gt;  pillar        1.4.7       2020-11-20 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgbuild      1.1.0       2020-07-13 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgconfig     2.0.3       2019-09-22 [1] CRAN (R 4.0.0)                     
+#&gt;  pkgload       1.1.0       2020-05-29 [1] CRAN (R 4.0.0)                     
+#&gt;  prettyunits   1.1.1       2020-01-24 [1] CRAN (R 4.0.0)                     
+#&gt;  processx      3.4.5       2020-11-30 [1] CRAN (R 4.0.2)                     
+#&gt;  ps            1.4.0       2020-10-07 [1] CRAN (R 4.0.2)                     
+#&gt;  purrr       * 0.3.4       2020-04-17 [1] CRAN (R 4.0.0)                     
+#&gt;  R6            2.5.0       2020-10-28 [1] CRAN (R 4.0.2)                     
+#&gt;  Rcpp          1.0.5       2020-07-06 [1] CRAN (R 4.0.2)                     
+#&gt;  readr       * 1.4.0       2020-10-05 [1] CRAN (R 4.0.2)                     
+#&gt;  readxl        1.3.1       2019-03-13 [1] CRAN (R 4.0.0)                     
+#&gt;  remotes       2.2.0       2020-07-21 [1] CRAN (R 4.0.2)                     
+#&gt;  reprex        0.3.0       2019-05-16 [1] CRAN (R 4.0.0)                     
+#&gt;  rlang         0.4.9       2020-11-26 [1] CRAN (R 4.0.2)                     
+#&gt;  rmarkdown     2.5         2020-10-21 [1] CRAN (R 4.0.2)                     
+#&gt;  rprojroot     2.0.2       2020-11-15 [1] CRAN (R 4.0.2)                     
+#&gt;  rstudioapi    0.13.0-9000 2020-12-09 [1] Github (rstudio/rstudioapi@4baeb39)
+#&gt;  rvest         0.3.6       2020-07-25 [1] CRAN (R 4.0.2)                     
+#&gt;  scales        1.1.1       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  sessioninfo   1.1.1       2018-11-05 [1] CRAN (R 4.0.0)                     
+#&gt;  stringi       1.5.3       2020-09-09 [1] CRAN (R 4.0.2)                     
+#&gt;  stringr     * 1.4.0       2019-02-10 [1] CRAN (R 4.0.0)                     
+#&gt;  testthat      3.0.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  tibble      * 3.0.4       2020-10-12 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyr       * 1.1.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyselect    1.1.0       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  tidyverse   * 1.3.0       2019-11-21 [1] CRAN (R 4.0.0)                     
+#&gt;  usethis       1.6.3       2020-09-17 [1] CRAN (R 4.0.2)                     
+#&gt;  vctrs         0.3.5       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  withr         2.3.0       2020-09-22 [1] CRAN (R 4.0.2)                     
+#&gt;  xfun          0.19        2020-10-30 [1] CRAN (R 4.0.2)                     
+#&gt;  xml2          1.3.2       2020-04-23 [1] CRAN (R 4.0.0)                     
+#&gt;  yaml          2.2.1       2020-02-01 [1] CRAN (R 4.0.0)                     
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Rlibs
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre>
+</div>

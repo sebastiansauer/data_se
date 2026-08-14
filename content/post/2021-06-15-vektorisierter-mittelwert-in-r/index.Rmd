@@ -1,0 +1,200 @@
+---
+title: Vektorisierter Mittelwert in R
+author: R package build
+date: '2021-06-15'
+slug: vektorisierter-mittelwert-in-r
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+# Setup
+
+```{r}
+library(tidyverse)
+```
+
+
+
+
+# Einige Funktionen in R sind vektorisiert, andere nicht
+
+Einige Funktionen in R sind vektorisiert: sie führen ihren Dienst für jedes Element eines Vektors aus. Erzeugen wir dazu ein paar Daten:
+
+```{r}
+x = c(1,2,3)
+y = c(1,2,4)
+```
+
+
+```{r}
+x + y
+```
+
+Wie man sieht, wird die Funktion "Summe" elementweise ausgeführt: Für jedes Paar von (x,y) wird die Summe berechnet.
+
+Leide sind nicht alle Funktionen vektorisiert:
+
+```{r}
+sum(x,y)
+```
+
+Klappt auch nicht:
+
+
+```{r}
+sum(c(x,y))
+```
+
+
+# Beispiel für vektorisierte Funktionen
+
+Inflix-Funktionen scheinen alle vektorisiert zu sein:
+
+```{r}
+x - y
+```
+
+```{r}
+x == y
+```
+
+```{r}
+x * y
+```
+
+
+```{r}
+x %% y  # Rest (Modulo)
+```
+
+
+## Beispiel für nicht-vektorisierte Funktionen
+
+Die Liste ist lang, wichtige Beispiele sind:
+
+- mean
+- sum
+- identical
+- ...
+
+## Typischer Anwendungsfall
+
+Ein typischer Anwendungsfall sind *zeilenweise* Berechnungen, etwa der Mittelwert pro Zeile einer Tabelle.
+
+# Vektorisieren für Mittelwerte und Summen
+
+
+Möchte man `sum` und `mean` vektorisiert über Zeilen einer Tabelle anwenden, so gibt es Helferfuntionen, nämlich `rowSums` und `rowMeans`.
+
+Dazu brauchen wir zuerst eine Tabelle:
+
+
+```{r}
+d <- tibble(
+  x = c(1,2,3),
+  y = c(1,2,4)
+)
+```
+
+```{r}
+knitr::kable(d)
+```
+
+
+```{r}
+rowSums(d)
+```
+
+
+```{r}
+rowMeans(d)
+```
+
+
+
+# Vektorisieren mit dem Tidyverse
+
+
+Mittels Tidyverse-Methoden gibt es eine Reihe von Ansätzen.
+
+
+## `map`
+
+```{r}
+d %>% 
+  map2_dbl(.x = x,
+         .y = y,
+         .f = ~ mean(c(.x,.y)))
+```
+
+
+`map` wendet eine Funktion auf jedes Element eines Vektors oder einer Liste an. Im Standard wird eine Liste zurückgegeben.
+
+`map_dbl` gibt einen Wert vom Typ `dbl` (Gleitkommazahl) zurück. `map2` übergibt jeweils ein Element von *zwei* Vektoren x und y an eine Funktionen *f*: f(x, y) für jedes Elementenpaar von x und y, d.h. ($x_1$, $y_1$), )$x_2,y_2$), ....
+
+
+## `rowwise`
+
+`rowwise` teilt die Tabelle in zeilenweise Gruppen ein: jede Zeile wird eine eigene Gruppe, also Teil-Tabelle. Dann wird `mean` etc. wieder funktionieren.
+
+```{r}
+d %>% 
+  rowwise() %>% 
+  mutate(row_mean = mean(c(x,y)),
+         row_identical = identical(x,y))
+```
+
+
+## `map` mit `mutate`
+
+Möchte man das Ergebnis von `map` in eine Tabelle einbinden, so macht man das wie gewohnt mit `mutate`: 
+
+```{r}
+d %>% 
+  mutate(row_mean = map2_dbl(.x = x,
+                            .y = y,
+                            .f = ~ mean(c(.x,.y))) )
+```
+
+
+
+## `mutate` und `rowMeans`
+
+Auch das geht, wenn auch etwas umständlich, da `rowMeans` eine Tabelle als Input erwartet:
+
+```{r}
+d %>% 
+  mutate(row_mean = rowMeans(select(., x,y)))
+```
+
+
+Oder so:
+
+```{r}
+d %>% 
+  mutate(row_mean = rowMeans(across(.cols = c(x, y))))
+```
+
+Das funktioniert, da [across](https://dplyr.tidyverse.org/reference/across.html) einen Tibble (d.h. eine Tabelle) zurückliefert.
+
+## Mit Infix-Funktionen
+
+```{r}
+d %>% 
+  mutate(row_mean = (x + y)/2)
+```
+
+
+
+
+
+# Weiterführende Infos
+
+[Hier](https://dplyr.tidyverse.org/articles/rowwise.html) findet sich eine gute Einführung in zeilenweise Operationen im Tidyverse.
+

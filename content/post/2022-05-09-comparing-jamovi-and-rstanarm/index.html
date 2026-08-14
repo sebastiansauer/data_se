@@ -1,0 +1,262 @@
+---
+title: Comparing Jamovi and rstanarm
+author: Sebastian Sauer
+date: '2022-05-09'
+slug: comparing-jamovi-and-rstanarm
+categories:
+  - rstats
+tags:
+  - Bayes
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages" id="toc-load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#motivation" id="toc-motivation"><span class="toc-section-number">2</span> Motivation</a></li>
+<li><a href="#data" id="toc-data"><span class="toc-section-number">3</span> data</a></li>
+<li><a href="#model-1" id="toc-model-1"><span class="toc-section-number">4</span> Model 1</a>
+<ul>
+<li><a href="#rstanarm" id="toc-rstanarm"><span class="toc-section-number">4.1</span> rstanarm</a></li>
+<li><a href="#jamovi" id="toc-jamovi"><span class="toc-section-number">4.2</span> Jamovi</a></li>
+</ul></li>
+<li><a href="#model-2" id="toc-model-2"><span class="toc-section-number">5</span> Model 2</a>
+<ul>
+<li><a href="#rstanarm-1" id="toc-rstanarm-1"><span class="toc-section-number">5.1</span> rstanarm</a></li>
+<li><a href="#jamovi-1" id="toc-jamovi-1"><span class="toc-section-number">5.2</span> Jamovi</a></li>
+<li><a href="#interim-conclusion" id="toc-interim-conclusion"><span class="toc-section-number">5.3</span> Interim conclusion</a></li>
+</ul></li>
+<li><a href="#reproducibility" id="toc-reproducibility"><span class="toc-section-number">6</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling</code></pre>
+</div>
+<div id="motivation" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Motivation</h1>
+<p>Let’s try to see how much the results of Jamovi (2.2.5) and rstanarm (2.21.1) converge.
+It’s probably difficult to say because the defaults are different,
+and it may not be straight forward to translate back and forth.</p>
+<p>Anyhow, let’s see.</p>
+</div>
+<div id="data" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> data</h1>
+<p>The ubiqious <code>mtcars</code>.</p>
+<pre class="r"><code>data(mtcars)
+
+write_csv(mtcars, file = &quot;mtcars.csv&quot;)</code></pre>
+</div>
+<div id="model-1" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Model 1</h1>
+<p>Let’s try: <code>mpg ~ am</code>.</p>
+<div id="rstanarm" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> rstanarm</h2>
+<pre class="r"><code>library(rstanarm)
+
+m1 &lt;- stan_glm(mpg ~ am, data = mtcars, refresh = 0)
+
+posterior_interval(m1)
+#&gt;                    5%       95%
+#&gt; (Intercept) 15.166342 19.115190
+#&gt; am           4.331449 10.211882
+#&gt; sigma        4.080859  6.218033</code></pre>
+<p>I did not touch the defaults, which can be accessed like this:</p>
+<pre class="r"><code>prior_summary(m1)
+#&gt; Priors for model &#39;m1&#39; 
+#&gt; ------
+#&gt; Intercept (after predictors centered)
+#&gt;   Specified prior:
+#&gt;     ~ normal(location = 20, scale = 2.5)
+#&gt;   Adjusted prior:
+#&gt;     ~ normal(location = 20, scale = 15)
+#&gt; 
+#&gt; Coefficients
+#&gt;   Specified prior:
+#&gt;     ~ normal(location = 0, scale = 2.5)
+#&gt;   Adjusted prior:
+#&gt;     ~ normal(location = 0, scale = 30)
+#&gt; 
+#&gt; Auxiliary (sigma)
+#&gt;   Specified prior:
+#&gt;     ~ exponential(rate = 1)
+#&gt;   Adjusted prior:
+#&gt;     ~ exponential(rate = 0.17)
+#&gt; ------
+#&gt; See help(&#39;prior_summary.stanreg&#39;) for more details</code></pre>
+</div>
+<div id="jamovi" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> Jamovi</h2>
+<p>I did not touch the defaults, which is a JZS prior with scale r = 0.354.</p>
+<p>Jamovi report a 95% CI of [3.07, 9.88] which is quite close to what rstanarm found.</p>
+</div>
+</div>
+<div id="model-2" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Model 2</h1>
+<p><code>mpg ~ am + hp</code></p>
+<div id="rstanarm-1" class="section level2" number="5.1">
+<h2><span class="header-section-number">5.1</span> rstanarm</h2>
+<pre class="r"><code>m2 &lt;- stan_glm(mpg ~ am + hp, data = mtcars, refresh = 0)
+posterior_interval(m2)
+#&gt;                      5%         95%
+#&gt; (Intercept) 24.04358663 29.18365031
+#&gt; am           3.39356991  7.20358097
+#&gt; hp          -0.07265686 -0.04540518
+#&gt; sigma        2.41869351  3.74714944</code></pre>
+</div>
+<div id="jamovi-1" class="section level2" number="5.2">
+<h2><span class="header-section-number">5.2</span> Jamovi</h2>
+<p>Jamovi provides R code for Bayes regresison, but it not yet kind of released.</p>
+<pre class="r"><code>jsq::blinReg(
+    data = data,
+    dep = mpg,
+    covs = vars(am, hp),
+    postSumm = TRUE,
+    modelTerms = list(
+        list(
+            components=&quot;am&quot;,
+            isNuisance=FALSE),
+        list(
+            components=&quot;hp&quot;,
+            isNuisance=FALSE)))</code></pre>
+<p>The source code can be accessed <a href="https://github.com/jonathon-love/jsq">here</a> though.</p>
+<p>Anyhow, it produces (in Jamovi) this output:</p>
+<pre><code>#
+#  Model Comparison                                                            
+#  ─────────────────────────────────────────────────────────────────────────── 
+#    Models        P(M)      P(M|data)    BF-M           BF-10        R²       
+#  ─────────────────────────────────────────────────────────────────────────── 
+#    Null model    0.2500     2.919e-8       8.756e-8        1.000    0.0000   
+#    am + hp       0.2500     0.998333    1796.888017     3.421e+7    0.7820   
+#    hp            0.2500     0.001664       0.005001    57020.790    0.6024   
+#    am            0.2500     2.549e-6       7.648e-6       87.348    0.3598   
+#  ─────────────────────────────────────────────────────────────────────────── 
+# 
+#
+#
+#
+#  Posterior Summaries of Coefficients                                                                        
+#  ────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+#    Coefficient    Mean        SD          P(incl)    P(incl|data)    BF-inclusion    Lower       Upper      
+#  ────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+#    Intercept      20.09062    0.514278     1.0000          1.0000           1.000    19.04175    21.13950   
+#    am              5.11035    1.062349     0.5000          0.9983         599.882     2.94368     7.27703   
+#    hp             -0.05703    0.007732     0.5000          1.0000      387822.393    -0.07280    -0.04126   
+#  ────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+# 
+# 
+#</code></pre>
+<p>Which is in turn quite comparable to rstanarm.</p>
+</div>
+<div id="interim-conclusion" class="section level2" number="5.3">
+<h2><span class="header-section-number">5.3</span> Interim conclusion</h2>
+<p>This little exercise shows that the two software packages <em>may</em> yield similar results,
+at least in some cases.</p>
+</div>
+</div>
+<div id="reproducibility" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.1.3 (2022-03-10)
+#&gt;  os       macOS Big Sur/Monterey 10.16
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2022-05-09                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version date       lib source                            
+#&gt;  assertthat    0.2.1   2019-03-21 [1] CRAN (R 4.1.0)                    
+#&gt;  backports     1.4.1   2021-12-13 [1] CRAN (R 4.1.0)                    
+#&gt;  blogdown      1.8     2022-02-16 [2] CRAN (R 4.1.2)                    
+#&gt;  bookdown      0.26.2  2022-05-02 [1] Github (rstudio/bookdown@6adacc3) 
+#&gt;  brio          1.1.3   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  broom         0.8.0   2022-04-13 [1] CRAN (R 4.1.2)                    
+#&gt;  bslib         0.3.1   2021-10-06 [1] CRAN (R 4.1.0)                    
+#&gt;  cachem        1.0.6   2021-08-19 [1] CRAN (R 4.1.0)                    
+#&gt;  callr         3.7.0   2021-04-20 [1] CRAN (R 4.1.0)                    
+#&gt;  cellranger    1.1.0   2016-07-27 [1] CRAN (R 4.1.0)                    
+#&gt;  cli           3.3.0   2022-04-25 [1] CRAN (R 4.1.2)                    
+#&gt;  codetools     0.2-18  2020-11-04 [2] CRAN (R 4.1.3)                    
+#&gt;  colorout    * 1.2-2   2022-01-04 [1] Github (jalvesaq/colorout@79931fd)
+#&gt;  colorspace    2.0-3   2022-02-21 [1] CRAN (R 4.1.2)                    
+#&gt;  crayon        1.5.1   2022-03-26 [1] CRAN (R 4.1.2)                    
+#&gt;  DBI           1.1.2   2021-12-20 [1] CRAN (R 4.1.0)                    
+#&gt;  dbplyr        2.1.1   2021-04-06 [1] CRAN (R 4.1.0)                    
+#&gt;  desc          1.4.1   2022-03-06 [1] CRAN (R 4.1.2)                    
+#&gt;  devtools      2.4.3   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  digest        0.6.29  2021-12-01 [1] CRAN (R 4.1.0)                    
+#&gt;  dplyr       * 1.0.9   2022-04-28 [1] CRAN (R 4.1.2)                    
+#&gt;  ellipsis      0.3.2   2021-04-29 [1] CRAN (R 4.1.0)                    
+#&gt;  evaluate      0.15    2022-02-18 [1] CRAN (R 4.1.2)                    
+#&gt;  fansi         1.0.3   2022-03-24 [1] CRAN (R 4.1.2)                    
+#&gt;  fastmap       1.1.0   2021-01-25 [2] CRAN (R 4.1.0)                    
+#&gt;  forcats     * 0.5.1   2021-01-27 [1] CRAN (R 4.1.0)                    
+#&gt;  fs            1.5.2   2021-12-08 [1] CRAN (R 4.1.0)                    
+#&gt;  generics      0.1.2   2022-01-31 [1] CRAN (R 4.1.2)                    
+#&gt;  ggplot2     * 3.3.6   2022-05-03 [1] CRAN (R 4.1.2)                    
+#&gt;  glue          1.6.2   2022-02-24 [1] CRAN (R 4.1.2)                    
+#&gt;  gtable        0.3.0   2019-03-25 [1] CRAN (R 4.1.0)                    
+#&gt;  haven         2.4.3   2021-08-04 [1] CRAN (R 4.1.0)                    
+#&gt;  hms           1.1.1   2021-09-26 [1] CRAN (R 4.1.0)                    
+#&gt;  htmltools     0.5.2   2021-08-25 [1] CRAN (R 4.1.0)                    
+#&gt;  httr          1.4.3   2022-05-04 [1] CRAN (R 4.1.2)                    
+#&gt;  jquerylib     0.1.4   2021-04-26 [1] CRAN (R 4.1.0)                    
+#&gt;  jsonlite      1.8.0   2022-02-22 [1] CRAN (R 4.1.2)                    
+#&gt;  knitr         1.39    2022-04-26 [1] CRAN (R 4.1.2)                    
+#&gt;  lifecycle     1.0.1   2021-09-24 [1] CRAN (R 4.1.0)                    
+#&gt;  lubridate     1.8.0   2021-10-07 [1] CRAN (R 4.1.0)                    
+#&gt;  magrittr      2.0.3   2022-03-30 [1] CRAN (R 4.1.2)                    
+#&gt;  memoise       2.0.0   2021-01-26 [2] CRAN (R 4.1.0)                    
+#&gt;  modelr        0.1.8   2020-05-19 [1] CRAN (R 4.1.0)                    
+#&gt;  munsell       0.5.0   2018-06-12 [1] CRAN (R 4.1.0)                    
+#&gt;  pillar        1.7.0   2022-02-01 [1] CRAN (R 4.1.2)                    
+#&gt;  pkgbuild      1.2.0   2020-12-15 [2] CRAN (R 4.1.0)                    
+#&gt;  pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.1.0)                    
+#&gt;  pkgload       1.2.4   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  prettyunits   1.1.1   2020-01-24 [1] CRAN (R 4.1.0)                    
+#&gt;  processx      3.5.3   2022-03-25 [1] CRAN (R 4.1.2)                    
+#&gt;  ps            1.7.0   2022-04-23 [1] CRAN (R 4.1.2)                    
+#&gt;  purrr       * 0.3.4   2020-04-17 [1] CRAN (R 4.1.0)                    
+#&gt;  R6            2.5.1   2021-08-19 [1] CRAN (R 4.1.0)                    
+#&gt;  Rcpp          1.0.8.3 2022-03-17 [1] CRAN (R 4.1.2)                    
+#&gt;  readr       * 2.1.2   2022-01-30 [1] CRAN (R 4.1.2)                    
+#&gt;  readxl        1.3.1   2019-03-13 [1] CRAN (R 4.1.0)                    
+#&gt;  remotes       2.4.0   2021-06-02 [2] CRAN (R 4.1.0)                    
+#&gt;  reprex        2.0.1   2021-08-05 [1] CRAN (R 4.1.0)                    
+#&gt;  rlang         1.0.2   2022-03-04 [1] CRAN (R 4.1.2)                    
+#&gt;  rmarkdown     2.14    2022-04-25 [1] CRAN (R 4.1.2)                    
+#&gt;  rprojroot     2.0.3   2022-04-02 [1] CRAN (R 4.1.2)                    
+#&gt;  rstudioapi    0.13    2020-11-12 [1] CRAN (R 4.1.0)                    
+#&gt;  rvest         1.0.2   2021-10-16 [1] CRAN (R 4.1.0)                    
+#&gt;  sass          0.4.1   2022-03-23 [1] CRAN (R 4.1.2)                    
+#&gt;  scales        1.2.0   2022-04-13 [1] CRAN (R 4.1.3)                    
+#&gt;  sessioninfo   1.1.1   2018-11-05 [2] CRAN (R 4.1.0)                    
+#&gt;  stringi       1.7.6   2021-11-29 [1] CRAN (R 4.1.0)                    
+#&gt;  stringr     * 1.4.0   2019-02-10 [1] CRAN (R 4.1.0)                    
+#&gt;  testthat      3.1.4   2022-04-26 [1] CRAN (R 4.1.2)                    
+#&gt;  tibble      * 3.1.7   2022-05-03 [1] CRAN (R 4.1.2)                    
+#&gt;  tidyr       * 1.2.0   2022-02-01 [1] CRAN (R 4.1.2)                    
+#&gt;  tidyselect    1.1.2   2022-02-21 [1] CRAN (R 4.1.2)                    
+#&gt;  tidyverse   * 1.3.1   2021-04-15 [1] CRAN (R 4.1.0)                    
+#&gt;  tzdb          0.1.2   2021-07-20 [2] CRAN (R 4.1.0)                    
+#&gt;  usethis       2.0.1   2021-02-10 [2] CRAN (R 4.1.0)                    
+#&gt;  utf8          1.2.2   2021-07-24 [1] CRAN (R 4.1.0)                    
+#&gt;  vctrs         0.4.1   2022-04-13 [1] CRAN (R 4.1.2)                    
+#&gt;  withr         2.5.0   2022-03-03 [1] CRAN (R 4.1.2)                    
+#&gt;  xfun          0.30    2022-03-02 [1] CRAN (R 4.1.2)                    
+#&gt;  xml2          1.3.3   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  yaml          2.3.5   2022-02-21 [1] CRAN (R 4.1.2)                    
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Library/R/x86_64/4.1/library
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.1/Resources/library</code></pre>
+</div>

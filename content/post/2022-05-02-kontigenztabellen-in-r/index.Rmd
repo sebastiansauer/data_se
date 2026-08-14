@@ -1,0 +1,430 @@
+---
+title: Kontigenztabellen in R
+author: Sebastian Sauer
+date: '2022-05-02'
+slug: kontigenztabellen-in-r
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Pakete und Daten
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+
+data("mtcars")
+```
+
+
+
+# Häufigkeiten berechnen
+
+## Tidyverse
+
+### Univariat
+
+Wie viele Autos gibt es mit Automatik- bzw. mit manueller Schaltung?
+Anders gesagt: Was ist die Häufigkeitverteilung von `am`?
+
+
+```{r}
+mtcars %>% 
+  count(am)
+```
+
+Anteile dazu:
+
+```{r}
+mtcars %>% 
+  count(am) %>% 
+  mutate(prop = n / sum(n))
+```
+
+
+
+### Bivariat
+
+Wie viele Autos mit mehr als 100 PS gibt es in den Stufen von `am`?
+
+```{r}
+mtcars %>%  
+  count(am, hp > 200) %>% 
+  mutate(prop = n / sum(n))
+```
+
+Die Anteile sind hier auf *alle* Autos bezogen.
+
+### Bezogen auf was?
+
+Vielleicht möchten wir die Anteile lieber pro Stufe von `am`? 
+
+```{r}
+mtcars %>%  
+  count(am, hp > 200) %>% 
+  group_by(am) %>% 
+  mutate(prop = n / sum(n))
+```
+
+### Kontingenztabelle durch Pivotieren
+
+Nicht wirklich praktisch im Tidyverse:
+
+```{r}
+mtcars %>%  
+  count(am, hp > 200) %>% 
+  group_by(am) %>% 
+  mutate(prop = n / sum(n)) %>% 
+  select(-n) %>% 
+  pivot_wider(names_from = am, values_from = prop)
+```
+
+
+## Easystats
+
+
+```{r}
+library(easystats)
+```
+
+
+Mit `data_tabulate()` bekommt man Häufigkeitstabellen, 
+aber keine "richtigen" Kontingenztabellen, scheint's:
+
+```{r}
+data_tabulate(mtcars, select = c("am", "vs"))
+```
+
+`data_tabulate` gibt's wohl erst ab 0.4.0.17 in ``{{datawizard}}``. 
+
+
+
+```{r}
+mtcars %>% 
+  group_by(am) %>% 
+  data_tabulate("vs")
+```
+
+
+## sjmisc
+
+
+```{r}
+library(sjmisc)
+```
+
+### Kontingenztabelle
+
+```{r}
+mtcars %>% 
+  flat_table(am, vs)
+```
+
+### Anteile
+
+
+Aufsummiert pro Zeile:
+
+```{r}
+mtcars %>% 
+  flat_table(am, vs, margin = "row")
+```
+
+Aufsummiert pro Spalte:
+
+
+```{r}
+mtcars %>% 
+  flat_table(am, vs, margin = "col")
+```
+
+
+Aufsummiert auf die ganze Tabelle:
+
+
+```{r}
+mtcars %>% 
+  flat_table(am, vs, margin = "cell")
+```
+
+
+### Kontingenztabelle gruppiert
+
+
+```{r}
+mtcars %>% 
+  group_by(hp > 100) %>% 
+  flat_table(am, vs)
+```
+
+
+
+## Base R
+
+
+### Kontingenztabelle
+
+```{r}
+table(mtcars$am, mtcars$vs)
+```
+
+
+Oder, komfortabler:
+
+```{r}
+with(mtcars, table(am, vs))
+```
+
+
+### ftable
+
+Auch nett:
+
+
+```{r}
+mtcars %>% 
+  select(am, vs) %>% 
+  ftable()
+```
+
+
+### Anteile
+
+
+```{r}
+table(mtcars$am, mtcars$vs) %>% prop.table()
+```
+
+
+Bzw.:
+
+```{r}
+with(mtcars, table(am, vs)) %>% prop.table()
+```
+
+Mit `margin` kann man die Dimension (Spalten vs. Zeilenin 2D) wählen,
+über die summiert wird.
+
+Summiere pro Spalte:
+
+```{r}
+with(mtcars, table(am, vs)) %>% prop.table(margin = 1)
+```
+
+Summiere pro Zeile:
+
+```{r}
+with(mtcars, table(am, vs)) %>% prop.table(margin = 2)
+```
+
+
+
+# Schöne Tabellen in html
+
+
+## gt
+
+
+```{r}
+library(gt)
+```
+
+Naja, geht so:
+
+
+### flat_table
+
+```{r}
+mtcars %>%
+  flat_table(am, vs, margin = "cell") %>% 
+  as_tibble() %>% 
+  gt()
+```
+
+
+### pivot_wider
+
+```{r}
+mtcars %>%  
+  count(am, hp > 200) %>% 
+  group_by(am) %>% 
+  mutate(prop = n / sum(n)) %>% 
+  select(-n) %>% 
+  pivot_wider(names_from = am, values_from = prop) %>% 
+  gt()
+```
+
+# Exportieren
+
+## Export als CSV- oder XLSX-Datei
+
+
+Tidyverse gibt stets Tabellen (Tibbles) zurück,
+das macht es einfach,
+da Tibbles direkt als CSV- oder Excel-Tabellen abgespeichert werden können:
+
+
+```{r}
+meine_tab <- 
+  mtcars %>%  
+  count(am, hp > 200) %>% 
+  group_by(am) %>% 
+  mutate(prop = n / sum(n))
+```
+
+
+Und raus mit euch:
+
+```{r eval = FALSE}
+write_csv(meine_tab, "meine_tab.csv")
+```
+
+
+### CSV für Excel
+
+Achtung: Excel will liebe eine besondere CSV-Datei, aus der Hilfeseite:
+
+>   All columns are encoded as UTF-8. write_excel_csv() and write_excel_csv2() also include a UTF-8 Byte order mark which indicates to Excel the csv is UTF-8 encoded.
+
+
+```{r eval = FALSE}
+write_excel_csv(meine_tab, "meine_tab_excel.csv")
+```
+
+
+
+
+### Deutsch formatierte Excel-CSV
+
+
+
+```{r eval = FALSE}
+write_excel_csv2(meine_tab, "meine_tab_excel2.csv")
+```
+
+
+
+### XLSX-Datei
+
+Das Paket `{{rio}}` stellt eine praktische Import und Exportfunktion bereit,
+die nutzen wir:
+
+```{r}
+library(rio)
+```
+
+```{r eval = FALSE}
+export(meine_tab, file = "meine_tab.xlsx")
+```
+
+
+
+
+## Export nach Word
+
+
+### Tabelle in Word auf Basis von Textdaten erstellen
+
+
+[Hier](https://www.rforecology.com/post/exporting-tables-from-r-to-microsoft-word/) ist eine Anleitung, wie man eine CSV-Datei in Word als Tabelle einfügt.
+
+
+### Copy-Paste aus RStudio
+
+
+1. html-Ausgabe, z.B. von `gt()` suchen
+2. Alles markieren (z.B. rechte Maustaste "select all")
+3. Copy
+4. Nach Word gehen
+5. Paste
+
+
+Hat auf diesem Rechner hier gut funktioniert.
+
+
+Ein Nutzer auf [StackOverflow](https://stackoverflow.com/questions/60815583/how-to-save-table1-package-output-table-to-doc-format-r) hat noch eine andere Idee:
+
+
+>   Another possible solution: The above strategy did not work for me when I had a similar issue, but it was resolved once I knitted the table1 object and opened the html in browser to copy the html table and successfully paste into word. Doing it within RStudio viewer would not work for me for some reason.
+
+
+
+### Flextable
+
+
+### Let's go
+
+[flextable](https://davidgohel.github.io/flextable/) hat eine nette Webseite.
+
+```{r}
+library(flextable)
+```
+
+
+
+```{r}
+flextable(meine_tab)
+```
+
+Es gibt viele Funktionen bzw. Einstellungsmöglichkeiten für Flextable, die Sie auf der zugehörigen Webseite nachlesen können.
+
+Die [Gallerie](https://ardata-fr.github.io/flextable-gallery/gallery/) sieht recht beeindruckend aus.
+
+
+### Export
+
+Zuerst erzeugen wir ein Objekt vom Typ `flextable`:
+
+```{r}
+meine_tab_flex <- flextable(meine_tab)
+```
+
+
+
+Und dann exporiteren wir:
+
+
+```{r eval = FALSE}
+save_as_docx("Tabelle 1 " = meine_tab_flex, path = "meine_tab.docx")
+
+save_as_pptx("Tabelle 1 " = meine_tab_flex, path = "meine_tab.pptx")
+```
+
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

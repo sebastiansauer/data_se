@@ -1,0 +1,321 @@
+---
+title: Consistency of set.seed across different systems
+author: Sebastian Sauer
+date: '2022-12-13'
+slug: consistency-of-set-seed-across-different-systems
+categories:
+  - rstats
+tags:
+  - simulation
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages" id="toc-load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#motivation" id="toc-motivation"><span class="toc-section-number">2</span> Motivation</a></li>
+<li><a href="#user-error" id="toc-user-error"><span class="toc-section-number">3</span> User error</a></li>
+<li><a href="#your-help-needed" id="toc-your-help-needed"><span class="toc-section-number">4</span> Your help needed</a></li>
+<li><a href="#same-random-numbers" id="toc-same-random-numbers"><span class="toc-section-number">5</span> Same random numbers</a>
+<ul>
+<li><a href="#without-seed" id="toc-without-seed"><span class="toc-section-number">5.1</span> Without seed</a></li>
+<li><a href="#with-seed" id="toc-with-seed"><span class="toc-section-number">5.2</span> With seed</a></li>
+<li><a href="#using-a-hash" id="toc-using-a-hash"><span class="toc-section-number">5.3</span> Using a hash</a></li>
+</ul></li>
+<li><a href="#seeds-in-regression-models" id="toc-seeds-in-regression-models"><span class="toc-section-number">6</span> Seeds in regression models</a>
+<ul>
+<li><a href="#lm" id="toc-lm"><span class="toc-section-number">6.1</span> lm</a></li>
+<li><a href="#stan-mtcars" id="toc-stan-mtcars"><span class="toc-section-number">6.2</span> Stan mtcars</a></li>
+<li><a href="#stan-penguins" id="toc-stan-penguins"><span class="toc-section-number">6.3</span> Stan penguins</a></li>
+</ul></li>
+<li><a href="#session-info" id="toc-session-info"><span class="toc-section-number">7</span> Session info</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(digest)
+library(rstanarm)</code></pre>
+</div>
+<div id="motivation" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Motivation</h1>
+<p>Reproducibility of results is a major concern in science and industry alike.
+However, there are numerous pitfalls which may threaten reproducibility.
+This post explores one possible issue - the fixation of start values of random numbers drawn by R.</p>
+<p>Reasons that seeds in R across different systems may (possibly) vary (I don’t know if they do, but I heard so) may include:</p>
+<ul>
+<li>different OSes</li>
+<li>different version of OSes</li>
+<li>different versions of R</li>
+</ul>
+</div>
+<div id="user-error" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> User error</h1>
+<p>Maybe the most straight forward explanation is a user error.
+Don’t forget to call <code>set.seed()</code> right before the calculation.
+Be sure to use a pre defined seed value.</p>
+</div>
+<div id="your-help-needed" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Your help needed</h1>
+<p>Please let me know whether (or not) you get the same random numbers,
+once the seed is fixed.
+In order to check the possible influence source,
+please note your OS, and the R version (or paste the session info).</p>
+<p>Thanks!</p>
+</div>
+<div id="same-random-numbers" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Same random numbers</h1>
+<p>What <code>set.seed()</code> does is the fix the value of <code>.Random.seed</code>,
+which is in turn used to initiate the random number generator of R.</p>
+<pre class="r"><code>.Random.seed %&gt;% head()
+#&gt; [1]      10403        624 -709689667  906139226 -133236717 1588108856</code></pre>
+<div id="without-seed" class="section level2" number="5.1">
+<h2><span class="header-section-number">5.1</span> Without seed</h2>
+<p>Without seed, the random numbers drawn by R will be transient, ie., subject of change:</p>
+<pre class="r"><code>rnorm(1)
+#&gt; [1] -1.051114</code></pre>
+<pre class="r"><code>replicate(n = 10, expr = rnorm(1))
+#&gt;  [1]  0.01176695 -1.21472604  1.86946816  0.72725355 -2.53246585 -0.17330070
+#&gt;  [7] -1.61645738  0.44063028  0.73718828 -1.89312377</code></pre>
+</div>
+<div id="with-seed" class="section level2" number="5.2">
+<h2><span class="header-section-number">5.2</span> With seed</h2>
+<pre class="r"><code>set.seed(42)
+
+rnorm(1)
+#&gt; [1] 1.370958</code></pre>
+<pre class="r"><code>set.seed(42)
+replicate(n = 10, expr = rnorm(1))
+#&gt;  [1]  1.37095845 -0.56469817  0.36312841  0.63286260  0.40426832 -0.10612452
+#&gt;  [7]  1.51152200 -0.09465904  2.01842371 -0.06271410</code></pre>
+</div>
+<div id="using-a-hash" class="section level2" number="5.3">
+<h2><span class="header-section-number">5.3</span> Using a hash</h2>
+<p>Let’s use a hash number to control the output more succinctly:</p>
+<pre class="r"><code>set.seed(42)
+x &lt;- replicate(n = 10, expr = rnorm(1))
+
+digest(x)
+#&gt; [1] &quot;8cbf5bafbba3d3c63d39c586f29b3a3d&quot;</code></pre>
+<p>Let’s recompute and compare the hash values:</p>
+<pre class="r"><code>set.seed(42)
+x2 &lt;- replicate(n = 10, expr = rnorm(1))
+
+digest(x2)
+#&gt; [1] &quot;8cbf5bafbba3d3c63d39c586f29b3a3d&quot;</code></pre>
+<pre class="r"><code>identical(x, x2)
+#&gt; [1] TRUE</code></pre>
+<p>Identical, as expected.</p>
+</div>
+</div>
+<div id="seeds-in-regression-models" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Seeds in regression models</h1>
+<div id="lm" class="section level2" number="6.1">
+<h2><span class="header-section-number">6.1</span> lm</h2>
+<pre class="r"><code>set.seed(42)
+lm1 &lt;- lm(mpg ~ hp, data = mtcars)
+lm1_coef &lt;- coef(lm1)
+lm1_coef
+#&gt; (Intercept)          hp 
+#&gt; 30.09886054 -0.06822828</code></pre>
+<p>Rerun to double check:</p>
+<pre class="r"><code>set.seed(42)
+lm1 &lt;- lm(mpg ~ hp, data = mtcars)
+lm1_coef &lt;- coef(lm1)
+lm1_coef
+#&gt; (Intercept)          hp 
+#&gt; 30.09886054 -0.06822828</code></pre>
+</div>
+<div id="stan-mtcars" class="section level2" number="6.2">
+<h2><span class="header-section-number">6.2</span> Stan mtcars</h2>
+<pre class="r"><code>lm2 &lt;- stan_glm(mpg ~ hp, data = mtcars, seed = 42, refresh = 0)
+lm2_coef &lt;- coef(lm2)
+lm2_coef
+#&gt; (Intercept)          hp 
+#&gt; 30.11668130 -0.06820988</code></pre>
+<p>Rerun:</p>
+<pre class="r"><code>lm2 &lt;- stan_glm(mpg ~ hp, data = mtcars, seed = 42, refresh = 0)
+lm2_coef &lt;- coef(lm2)
+lm2_coef
+#&gt; (Intercept)          hp 
+#&gt; 30.11668130 -0.06820988</code></pre>
+</div>
+<div id="stan-penguins" class="section level2" number="6.3">
+<h2><span class="header-section-number">6.3</span> Stan penguins</h2>
+<p>Import data and run the model:</p>
+<pre class="r"><code>penguins &lt;- read.csv(&quot;https://vincentarelbundock.github.io/Rdatasets/csv/palmerpenguins/penguins.csv&quot;)
+
+library(rstanarm)
+lm3 &lt;- stan_glm(body_mass_g ~ bill_length_mm, 
+                seed = 42,
+                refresh = 0,
+                data = penguins)
+coef(lm3)
+#&gt;    (Intercept) bill_length_mm 
+#&gt;      356.57465       87.45281</code></pre>
+<p>By the way:</p>
+<p>Copy-paste the chunk above (which is self-containing in terms of data and R packages) and then type <code>reprex::reprex()</code> in the console (you need to have the package <code>reprex</code> installed). You’ll get a reproducible example on your clipboard.</p>
+<p>Rerun:</p>
+<pre class="r"><code>lm3 &lt;- stan_glm(body_mass_g ~ bill_length_mm, 
+                seed = 42,
+                refresh = 0,
+                data = penguins)
+coef(lm3)
+#&gt;    (Intercept) bill_length_mm 
+#&gt;      356.57465       87.45281</code></pre>
+</div>
+</div>
+<div id="session-info" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Session info</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value
+#&gt;  version  R version 4.2.1 (2022-06-23)
+#&gt;  os       macOS Big Sur ... 10.16
+#&gt;  system   x86_64, darwin17.0
+#&gt;  ui       X11
+#&gt;  language (EN)
+#&gt;  collate  en_US.UTF-8
+#&gt;  ctype    en_US.UTF-8
+#&gt;  tz       Europe/Berlin
+#&gt;  date     2023-01-18
+#&gt;  pandoc   2.19.2 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/ (via rmarkdown)
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package       * version  date (UTC) lib source
+#&gt;  assertthat      0.2.1    2019-03-21 [1] CRAN (R 4.2.0)
+#&gt;  backports       1.4.1    2021-12-13 [1] CRAN (R 4.2.0)
+#&gt;  base64enc       0.1-3    2015-07-28 [1] CRAN (R 4.2.0)
+#&gt;  bayesplot       1.10.0   2022-11-16 [1] CRAN (R 4.2.0)
+#&gt;  blogdown        1.16     2022-12-13 [1] CRAN (R 4.2.0)
+#&gt;  bookdown        0.31     2022-12-13 [1] CRAN (R 4.2.0)
+#&gt;  boot            1.3-28.1 2022-11-22 [1] CRAN (R 4.2.0)
+#&gt;  broom           1.0.2    2022-12-15 [1] CRAN (R 4.2.0)
+#&gt;  bslib           0.4.2    2022-12-16 [1] CRAN (R 4.2.0)
+#&gt;  cachem          1.0.6    2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  callr           3.7.3    2022-11-02 [1] CRAN (R 4.2.0)
+#&gt;  cellranger      1.1.0    2016-07-27 [1] CRAN (R 4.2.0)
+#&gt;  cli             3.6.0    2023-01-09 [1] CRAN (R 4.2.0)
+#&gt;  codetools       0.2-18   2020-11-04 [2] CRAN (R 4.2.1)
+#&gt;  colorout      * 1.2-2    2022-06-13 [1] local
+#&gt;  colorspace      2.0-3    2022-02-21 [1] CRAN (R 4.2.0)
+#&gt;  colourpicker    1.2.0    2022-10-28 [1] CRAN (R 4.2.0)
+#&gt;  crayon          1.5.2    2022-09-29 [1] CRAN (R 4.2.1)
+#&gt;  crosstalk       1.2.0    2021-11-04 [1] CRAN (R 4.2.0)
+#&gt;  DBI             1.1.3    2022-06-18 [1] CRAN (R 4.2.0)
+#&gt;  dbplyr          2.2.1    2022-06-27 [1] CRAN (R 4.2.0)
+#&gt;  devtools        2.4.5    2022-10-11 [1] CRAN (R 4.2.1)
+#&gt;  digest        * 0.6.31   2022-12-11 [1] CRAN (R 4.2.0)
+#&gt;  dplyr         * 1.0.10   2022-09-01 [1] CRAN (R 4.2.0)
+#&gt;  DT              0.26     2022-10-19 [1] CRAN (R 4.2.0)
+#&gt;  dygraphs        1.1.1.6  2018-07-11 [1] CRAN (R 4.2.0)
+#&gt;  ellipsis        0.3.2    2021-04-29 [1] CRAN (R 4.2.0)
+#&gt;  evaluate        0.19     2022-12-13 [1] CRAN (R 4.2.0)
+#&gt;  fansi           1.0.3    2022-03-24 [1] CRAN (R 4.2.0)
+#&gt;  fastmap         1.1.0    2021-01-25 [1] CRAN (R 4.2.0)
+#&gt;  forcats       * 0.5.2    2022-08-19 [1] CRAN (R 4.2.0)
+#&gt;  fs              1.5.2    2021-12-08 [1] CRAN (R 4.2.0)
+#&gt;  gargle          1.2.1    2022-09-08 [1] CRAN (R 4.2.0)
+#&gt;  generics        0.1.3    2022-07-05 [1] CRAN (R 4.2.0)
+#&gt;  ggplot2       * 3.4.0    2022-11-04 [1] CRAN (R 4.2.0)
+#&gt;  glue            1.6.2    2022-02-24 [1] CRAN (R 4.2.0)
+#&gt;  googledrive     2.0.0    2021-07-08 [1] CRAN (R 4.2.0)
+#&gt;  googlesheets4   1.0.1    2022-08-13 [1] CRAN (R 4.2.0)
+#&gt;  gridExtra       2.3      2017-09-09 [1] CRAN (R 4.2.0)
+#&gt;  gtable          0.3.1    2022-09-01 [1] CRAN (R 4.2.0)
+#&gt;  gtools          3.9.4    2022-11-27 [1] CRAN (R 4.2.0)
+#&gt;  haven           2.5.1    2022-08-22 [1] CRAN (R 4.2.0)
+#&gt;  hms             1.1.2    2022-08-19 [1] CRAN (R 4.2.0)
+#&gt;  htmltools       0.5.4    2022-12-07 [1] CRAN (R 4.2.0)
+#&gt;  htmlwidgets     1.6.1    2023-01-07 [1] CRAN (R 4.2.0)
+#&gt;  httpuv          1.6.8    2023-01-12 [1] CRAN (R 4.2.0)
+#&gt;  httr            1.4.4    2022-08-17 [1] CRAN (R 4.2.0)
+#&gt;  igraph          1.3.5    2022-09-22 [1] CRAN (R 4.2.0)
+#&gt;  inline          0.3.19   2021-05-31 [1] CRAN (R 4.2.0)
+#&gt;  jquerylib       0.1.4    2021-04-26 [1] CRAN (R 4.2.0)
+#&gt;  jsonlite        1.8.4    2022-12-06 [1] CRAN (R 4.2.0)
+#&gt;  knitr           1.41     2022-11-18 [1] CRAN (R 4.2.0)
+#&gt;  later           1.3.0    2021-08-18 [1] CRAN (R 4.2.0)
+#&gt;  lattice         0.20-45  2021-09-22 [2] CRAN (R 4.2.1)
+#&gt;  lifecycle       1.0.3    2022-10-07 [1] CRAN (R 4.2.0)
+#&gt;  lme4            1.1-31   2022-11-01 [1] CRAN (R 4.2.0)
+#&gt;  loo             2.5.1    2022-03-24 [1] CRAN (R 4.2.0)
+#&gt;  lubridate       1.9.0    2022-11-06 [1] CRAN (R 4.2.0)
+#&gt;  magrittr        2.0.3    2022-03-30 [1] CRAN (R 4.2.0)
+#&gt;  markdown        1.4      2022-11-16 [1] CRAN (R 4.2.0)
+#&gt;  MASS            7.3-58.1 2022-08-03 [1] CRAN (R 4.2.0)
+#&gt;  Matrix          1.5-3    2022-11-11 [1] CRAN (R 4.2.0)
+#&gt;  matrixStats     0.63.0   2022-11-18 [1] CRAN (R 4.2.0)
+#&gt;  memoise         2.0.1    2021-11-26 [1] CRAN (R 4.2.0)
+#&gt;  mime            0.12     2021-09-28 [1] CRAN (R 4.2.0)
+#&gt;  miniUI          0.1.1.1  2018-05-18 [1] CRAN (R 4.2.0)
+#&gt;  minqa           1.2.5    2022-10-19 [1] CRAN (R 4.2.1)
+#&gt;  modelr          0.1.10   2022-11-11 [1] CRAN (R 4.2.0)
+#&gt;  munsell         0.5.0    2018-06-12 [1] CRAN (R 4.2.0)
+#&gt;  nlme            3.1-161  2022-12-15 [1] CRAN (R 4.2.0)
+#&gt;  nloptr          2.0.3    2022-05-26 [1] CRAN (R 4.2.0)
+#&gt;  pillar          1.8.1    2022-08-19 [1] CRAN (R 4.2.0)
+#&gt;  pkgbuild        1.4.0    2022-11-27 [1] CRAN (R 4.2.0)
+#&gt;  pkgconfig       2.0.3    2019-09-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgload         1.3.2    2022-11-16 [1] CRAN (R 4.2.0)
+#&gt;  plyr            1.8.8    2022-11-11 [1] CRAN (R 4.2.0)
+#&gt;  prettyunits     1.1.1    2020-01-24 [1] CRAN (R 4.2.0)
+#&gt;  processx        3.8.0    2022-10-26 [1] CRAN (R 4.2.0)
+#&gt;  profvis         0.3.7    2020-11-02 [1] CRAN (R 4.2.0)
+#&gt;  promises        1.2.0.1  2021-02-11 [1] CRAN (R 4.2.0)
+#&gt;  ps              1.7.2    2022-10-26 [1] CRAN (R 4.2.0)
+#&gt;  purrr         * 1.0.1    2023-01-10 [1] CRAN (R 4.2.0)
+#&gt;  R6              2.5.1    2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  Rcpp          * 1.0.9    2022-07-08 [1] CRAN (R 4.2.0)
+#&gt;  RcppParallel    5.1.6    2023-01-09 [1] CRAN (R 4.2.0)
+#&gt;  readr         * 2.1.3    2022-10-01 [1] CRAN (R 4.2.0)
+#&gt;  readxl          1.4.1    2022-08-17 [1] CRAN (R 4.2.0)
+#&gt;  remotes         2.4.2    2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  reprex          2.0.2    2022-08-17 [1] CRAN (R 4.2.0)
+#&gt;  reshape2        1.4.4    2020-04-09 [1] CRAN (R 4.2.0)
+#&gt;  rlang           1.0.6    2022-09-24 [1] CRAN (R 4.2.0)
+#&gt;  rmarkdown       2.19     2022-12-15 [1] CRAN (R 4.2.0)
+#&gt;  rstan           2.21.7   2022-09-08 [1] CRAN (R 4.2.0)
+#&gt;  rstanarm      * 2.21.3   2022-04-09 [1] CRAN (R 4.2.0)
+#&gt;  rstantools      2.2.0    2022-04-08 [1] CRAN (R 4.2.0)
+#&gt;  rstudioapi      0.14     2022-08-22 [1] CRAN (R 4.2.0)
+#&gt;  rvest           1.0.3    2022-08-19 [1] CRAN (R 4.2.0)
+#&gt;  sass            0.4.4    2022-11-24 [1] CRAN (R 4.2.0)
+#&gt;  scales          1.2.1    2022-08-20 [1] CRAN (R 4.2.0)
+#&gt;  sessioninfo     1.2.2    2021-12-06 [1] CRAN (R 4.2.0)
+#&gt;  shiny           1.7.4    2022-12-15 [1] CRAN (R 4.2.0)
+#&gt;  shinyjs         2.1.0    2021-12-23 [1] CRAN (R 4.2.0)
+#&gt;  shinystan       2.6.0    2022-03-03 [1] CRAN (R 4.2.0)
+#&gt;  shinythemes     1.2.0    2021-01-25 [1] CRAN (R 4.2.0)
+#&gt;  StanHeaders     2.21.0-7 2020-12-17 [1] CRAN (R 4.2.0)
+#&gt;  stringi         1.7.12   2023-01-11 [1] CRAN (R 4.2.0)
+#&gt;  stringr       * 1.5.0    2022-12-02 [1] CRAN (R 4.2.0)
+#&gt;  survival        3.5-0    2023-01-09 [1] CRAN (R 4.2.0)
+#&gt;  threejs         0.3.3    2020-01-21 [1] CRAN (R 4.2.0)
+#&gt;  tibble        * 3.1.8    2022-07-22 [1] CRAN (R 4.2.0)
+#&gt;  tidyr         * 1.2.1    2022-09-08 [1] CRAN (R 4.2.0)
+#&gt;  tidyselect      1.2.0    2022-10-10 [1] CRAN (R 4.2.0)
+#&gt;  tidyverse     * 1.3.2    2022-07-18 [1] CRAN (R 4.2.0)
+#&gt;  timechange      0.2.0    2023-01-11 [1] CRAN (R 4.2.0)
+#&gt;  tzdb            0.3.0    2022-03-28 [1] CRAN (R 4.2.0)
+#&gt;  urlchecker      1.0.1    2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  usethis         2.1.6    2022-05-25 [1] CRAN (R 4.2.0)
+#&gt;  utf8            1.2.2    2021-07-24 [1] CRAN (R 4.2.0)
+#&gt;  vctrs           0.5.1    2022-11-16 [1] CRAN (R 4.2.0)
+#&gt;  withr           2.5.0    2022-03-03 [1] CRAN (R 4.2.0)
+#&gt;  xfun            0.36     2022-12-21 [1] CRAN (R 4.2.0)
+#&gt;  xml2            1.3.3    2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  xtable          1.8-4    2019-04-21 [1] CRAN (R 4.2.0)
+#&gt;  xts             0.12.2   2022-10-16 [1] CRAN (R 4.2.0)
+#&gt;  yaml            2.3.6    2022-10-18 [1] CRAN (R 4.2.0)
+#&gt;  zoo             1.8-11   2022-09-17 [1] CRAN (R 4.2.0)
+#&gt; 
+#&gt;  [1] /Users/sebastiansaueruser/Rlibs
+#&gt;  [2] /Library/Frameworks/R.framework/Versions/4.2/Resources/library
+#&gt; 
+#&gt; ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>

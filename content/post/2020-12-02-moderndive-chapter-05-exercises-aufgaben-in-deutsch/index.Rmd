@@ -1,0 +1,553 @@
+---
+title: ModernDive, Chapter 05 - Exercises/Aufgaben (in Deutsch)
+author: Sebastian Sauer
+date: '2020-12-02'
+slug: moderndive-chapter-05-exercises-aufgaben-in-deutsch
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: TRUE
+    number_sections: TRUE
+---
+
+
+---
+title: "Aufgaben zur Regression (Kapitel 5 ModernDive)"
+author: "Sebastian Sauer"
+date: "12/1/2020"
+output: 
+  html_document:
+    toc: TRUE
+    number_sections: TRUE
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+## Überblick
+
+
+Diese Aufgaben beziehen sich auf [Kapitel 5](https://moderndive.com/5-regression.html) aus dem Buch ModernDive.
+
+
+```{r message = FALSE}
+library(tidyverse)  # Datenjudo
+library(moderndive)  # Daten
+library(gapminder)  # Daten
+```
+
+
+
+Als Datensätze werden verwendet `evals` und `gapminder`:
+
+
+```{r}
+data("evals")
+data("gapminder")
+```
+
+
+
+# Stärkster univariater Prädiktor der Dozentenbeurteilung
+
+
+## Aufgabe 
+
+Identifizieren Sie den stärksten (univariaten) Prädiktor für die (Höhe der) Dozentenbeurteilung! (Datensatz `evals` aus dem Paket `modernDive`)
+
+
+
+
+## Hilfe
+
+
+
+Hilfe zur Tabelle `evals` bekommt man so:
+
+```{r}
+help(evals)
+```
+
+
+
+## Hinweise
+
+
+Ein möglicher Start ist: Berechnen Sie die Korrelationen der möglichen Prädiktoren (UV) mit dem Kriterium `score` (AV, Zielvariable)! 
+
+
+
+Unsere Forschungsfrage lautet also: 
+
+*Welche Variablenausprägungen gehen mit einer guten Dozentenbeurteilung einher?*
+
+Anstelle von "gehen einher" könnte man sagen "sind korreliert mit" oder "sind assoziiert mit" oder "sind statistisch abhängig voneinander". Geht man von einer Kausalbeziehung aus, könnte man sagen "welche Variable hat den größten Einfluss auf die Dozentenbeurteilung?". Allerdings braucht man für die vollmundinge Behauptung einer Kausalbeziehung schon gute Argumente.
+
+
+Wir suchen also die "wichtigste" UV!
+
+
+Mit "univariat" ist gemeint, dass wir nur Modelle in Betracht ziehen, in denen es *eine* UV gibt.
+
+
+Schauen wir uns die ersten paar Zeilen auf `evals` an:
+
+
+```{r}
+head(evals)
+```
+
+
+Um herauszufinden, welche Variable mit der AV `score` positiv einhergeht, kann man sich ein Streudiagramm ausgeben und zwar für jeden (numerischen) Prädiktor:
+
+```{r}
+evals %>% 
+  ggplot() +
+  aes(x = cls_students, y = score) +
+  geom_point()
+```
+
+
+
+```{r}
+evals %>% 
+  ggplot() +
+  aes(x = bty_avg, y = score) +
+  geom_point()
+```
+
+
+Hm, die Schönheit einer Lehrkraft könnte eine (kleine) Rolle spielen.
+
+
+## Lösung
+
+
+
+Man kann die Korrelation jedes (numerischen) Prädiktors berechnen und dann die höchste Korrelation ablesen:
+
+```{r}
+evals %>% 
+  summarise(r_bty = cor(score, bty_avg),
+            r_ge = cor(score, age))
+```
+
+Und so weiter.
+
+Aber was machen wir mit den nicht-numerischen Werten? Die kann man nicht (direkt) korrelieren. Lassen wir die mal außen vor.
+
+
+## Für Fortgeschrittene
+
+So geht es komfortabler:
+
+
+```{r}
+library(corrr)
+evals %>% 
+  select(where(is.numeric)) %>%   # nimm die Spalten, wo eine numerische Spalte ist
+  select(-c(ID, prof_ID)) %>%  # Prof_ID und ID brauchen wir nicht
+  correlate() %>%  # korrelieren
+  focus(score) %>%  # Fokus auf `score`
+  arrange()  # sortieren
+```
+
+
+
+# $R^2$ für univariate Regression von `score` auf den stärksten Prädiktor
+
+
+## Aufgabe
+
+Führen Sie eine einfache (univariate) Regression von `score` (AV) zurück auf den stärksten Prädiktor. Wenn Sie den stärksten Prädiktor nicht gefunden haben, wählen Sie einen beliebigen Prädiktor. Geben Sie das $R^2$ an.
+
+
+## Lösung
+
+```{r}
+lm1 <- lm(score ~ bty_avg, data = evals)
+summary(lm1)
+```
+
+Das $R^2$ liegt bei etwa 3%.
+
+
+# Visualisieren Sie die univariate Regression
+
+
+## Aufgabe
+
+Visualisieren Sie die Regression aus der letzter Aufgabe anhand eines geeigneten Diagramms. Begründen Sie Ihre Wahl. Wenn Sie die letzte Aufgabe nicht gelöst haben, wählen Sie eine beliebige Regression.
+
+
+## Lösung
+
+
+```{r}
+evals %>% 
+  ggplot(aes(x = bty_avg, y = score)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+
+## Variante
+
+
+
+```{r}
+evals %>% 
+  ggplot(aes(x = bty_avg, y = score)) +
+  geom_density_2d() +  # geom_hex()
+  geom_smooth(method = "lm")
+```
+
+# Vergleich zur Korrelation
+
+
+## Aufgabe
+
+Was ist der Unterschied zwischen den folgenden drei Kennwerten:
+
+
+1. $R^2$
+2. $\beta_1$
+3. $r$
+
+
+Hinweis: Beziehen Sie sich auf den Kontext der Regressionsanalyse (lineare Modelle).
+
+
+## Lösung
+
+1. $R^2$ gibt die Höhe des durch das Regressionsmodell erklärten Varianzanteils an.
+2. $\beta_1$ gibt die Steigung der Regressionsgeraden an, $\beta_0$ gibt den Wert des Achsenabschnitts an.
+3. $r$ gibt die Höhe des Korrelationskoeffizienten wieder. Bei univariaten Regressionsmodellen ist $R^2$ das Quadrat von $r$.
+
+
+
+# Standardisierte Prädiktoren
+
+
+## Aufgabe
+
+Führen Sie eine z-Standardisierung des Prädiktors (UV) und des Kriteriums (AV) durch. Mit diesen transformierten Variablen wiederholen Sie dann die Regression. Diskutieren Sie die Veränderung.
+
+
+
+## Lösung
+
+```{r}
+evals %>% 
+  mutate(bty_avg_z = ((bty_avg - mean(bty_avg)) / sd(bty_avg)),
+         score_z = ((score - mean(score)) / sd(score))) -> evals
+```
+
+
+```{r}
+lm2 <- lm(score_z ~ bty_avg_z, data = evals)
+summary(lm2)
+```
+
+Die Werte von $\beta_0$ und $\beta_1$ haben sich geändert. $R^2$ ist gleich geblieben.
+
+Das Diagramm sieht fast genau aus:
+
+
+
+```{r}
+evals %>% 
+  ggplot(aes(x = bty_avg_z, y = score_z)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+
+
+# Lebenserwartung nach Kontinent berechnen
+
+## Aufgabe
+
+Fassen Sie die mittlere Lebenserwartungen nach Kontinent zusammen. 
+
+
+## Lösung
+
+Daten laden:
+
+
+```{r}
+data("gapminder")
+```
+
+
+
+
+
+```{r}
+gapminder %>% 
+  group_by(continent) %>% 
+  summarise(lifeExp = mean(lifeExp))
+```
+
+
+
+## Hinweis
+
+Sinnvoller wäre es, vorher nach einem Jahr zu filtern, entsprechend dem Vorgehen im Buch.
+
+```{r}
+gapminder %>%
+  filter(year == 2007) -> gapminder_2007
+```
+
+
+
+
+
+```{r}
+gapminder_2007 %>% 
+  group_by(continent) %>% 
+  summarise(lifeExp = mean(lifeExp))
+```
+
+
+Speichern wir die zusammengefassten Statistiken für etwaige spätere Verwendung: 
+
+```{r}
+gapminder_2007 %>%
+  group_by(continent) %>% 
+  summarise(lifeExp_avg = mean(lifeExp, na.rm = TRUE),
+            lifeExp_sd = sd(lifeExp, na.rm = TRUE)) -> gapminder_2007_summary
+```
+
+
+
+
+# Lebenserwartung nach Kontinent visualisieren
+
+## Aufgabe
+
+Visualisieren Sie die Lebenserwartung nach Kontinent mit einem geeigneten Diagramm. Begründen Sie Ihre Wahl.
+
+
+
+## Lösung
+
+
+```{r}
+gapminder %>% 
+  filter(year == 2007) %>% 
+  ggplot() +
+  aes(x = continent, y = lifeExp) +
+  geom_boxplot()
+```
+
+
+Da die Boxplots aber Mediane anstelle von Mittelwerten zeigen, wäre folgendes Vorgehen sinvoller:
+
+
+```{r}
+gapminder_2007_summary %>% 
+  ggplot() +
+  aes(x = continent, y = lifeExp_avg) +
+  geom_point() +
+  geom_errorbar(aes(ymin = lifeExp_avg - lifeExp_avg + 2*lifeExp_sd,
+                ymax = lifeExp_avg + lifeExp_avg + 2*lifeExp_sd))
+```
+
+Oder so:
+
+```{r}
+gapminder %>% 
+  filter(year == 2007) %>% 
+  ggplot() +
+  aes(x = continent, y = lifeExp) +
+  geom_boxplot() +
+  geom_point(data = gapminder_2007_summary, 
+             aes(y = lifeExp_avg),
+             color = "red",
+             size = 5,
+             alpha = .7) 
+```
+
+
+# Lebenserwartung nach Kontinent und Regression
+
+## Aufgabe
+
+Führen Sie eine Regression mit Lebenserwartung als AV und Kontinent als UV durch. Vergleichen Sie die Regressionskoeffizienten mit den Mittelwerten aus den vorherigen Aufgaben. Was fällt Ihnen auf? (Wenn Sie die Mittelwerte nicht  berechnet haben, schlagen Sie sie im Buch nach.)
+
+
+## Lösung
+
+
+```{r}
+lm3 <- lm(lifeExp ~  continent, data = gapminder_2007)
+summary(lm3)
+```
+
+Die `Estimate`-Werte entsprechen genau den Mittelwerten pro Kontinenten bzw. den Unterschieden der Kontinente im Vergleich zum "Referenzkontinent", Afrika.
+
+
+# Berechnung der Lebenswertung für einen spezifischen Kontinent
+
+
+## Aufgabe
+
+Nutzen Sie die Ausgabe der Regressionsanalyse (`lm()`), um die Rechenvorschrift der Lebenserwartung für
+
+- Afrika
+- Europa
+
+
+aufzuschreiben.
+
+
+## Lösung
+
+
+
+`lifeExp_Africa = 54.806`
+
+
+`lifeExp_Europe = 65.806 + 22.843`
+
+
+
+
+# Bedeutung der Residuen in der Regressionsanalyse
+
+
+## Aufgabe
+
+Erläutern Sie:
+
+1. Was gibt diese Formel wieder: $\sum (y - \hat{y})$
+2. Welchen Effekt hat es, wenn man die Formel wie folgt verändert: $\sum (y - \hat{y})^2$?
+3. Wie nennt man die Größe $y - \hat{y}$?
+
+
+
+## Lösung
+
+
+1. Der Ausdruck $\sum (y - \hat{y})$ gibt die Summe der Residuen wieder. (Diese summieren sich zu Null auf.)
+2. Damit werden die Quadrate der Residuen aufaddiert; das Vorzeichen verliert dabei die Bedeutung.
+3. Der Ausdruck $y - \hat{y}$ definiert das Residuum, $e$.
+
+
+# Konfundierung
+
+
+## Aufgabe
+
+
+Geben Sie ein Beispiel für eine Konfundierung (confounding) aus Ihrem persönlichen Umfeld!
+
+
+
+## Lösung
+
+
+*Freude am Unterricht*  (F) und *Klausurerfolg*  (E) seien korreliert. In Wahrheit sei *Lernzeit* (L) die konfundierende Variable.
+
+
+# Optimierungskriterium der Regression
+
+## Aufgabe
+
+Die Regression "sucht" nach der am besten passenden Geraden (best fitting line). 
+
+1. Welcher Ausdruck wird dabei minimiert?
+2. Warum wird er minimiert (und nicht maximiert)?
+3. Lassen Sie sich diesen Term in R ausgeben für Ihre Regression zur Lebenserwartung nach Kontinent.
+
+
+
+## Lösung
+
+
+1. Die Summe der quadrierten Residuen wird minimiert (s.o.).
+2. Es wir die Lösung gesucht, bei der die Residuen minimal sind; die Vorhersage also maximal gut.
+3. 
+
+
+```{r}
+get_regression_points(lm3) %>% 
+  select(residual)
+```
+
+
+
+## Hinweis
+
+
+Die Summe der Residuen beträgt:
+
+
+
+```{r}
+get_regression_points(lm3) %>% 
+  select(residual) %>% 
+  summarise(residual_sum = sum(residual))
+```
+
+Das ist praktisch Null.
+
+
+
+Die Summe der *quadrierten* Residuen beträgt:
+
+
+
+```{r}
+get_regression_points(lm3) %>% 
+  select(residual) %>% 
+  summarise(residual_sum = sum(residual^2)) -> residual_squared_sum
+residual_squared_sum
+```
+
+
+
+
+Die Summe der quadrierten Abweichungen vom Mittelwert beträgt:
+
+
+```{r}
+get_regression_points(lm3) %>% 
+  mutate(dev_mean_sq = (lifeExp - mean(lifeExp))^2) %>% 
+  summarise(dev_mean_sq_sum = sum(dev_mean_sq)) -> dev_mean_squared_sum
+dev_mean_squared_sum
+```
+
+Teilt man `residual_squared_sum` durch `dev_mean_squared_sum`, so erhält man den *nicht* erklärten Streuungsanteil:
+
+```{r}
+variance_unexplained <- residual_squared_sum / dev_mean_squared_sum
+variance_unexplained
+```
+
+
+Zieht man von 1 den Anteil nicht erklärter Varianz ab, so erhält man $R^2$:
+
+
+
+```{r}
+1 - variance_unexplained
+```
+
+
+Vergleiche:
+
+
+```{r}
+summary(lm3)
+```
+

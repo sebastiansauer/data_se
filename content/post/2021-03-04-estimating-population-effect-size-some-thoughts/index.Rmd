@@ -1,0 +1,345 @@
+---
+title: Estimating population effect size, some thoughts
+author: Sebastian Sauer
+date: '2021-03-04'
+slug: estimating-population-effect-size-some-thoughts
+categories:
+  
+tags:
+  - simulation
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+# Motivation
+
+In some sense, science is about estimating the effect sizes in a population, such as $\mu$. In the most basic form, perhaps, the question is nothing more than whether $\mu=0$ or not.
+
+Given a population of limited size, we might be tempted to say, let's measure all instances (such as individuals) of the population to come up wit the "real" $\mu$. For concreteness, the population might consist of parts produced by some machine, or papers written by some scientists, which is the same for the question we are looking at now.
+
+In this post, we will simulate the effect of sample sizes on population parameter estimates, in particular $\mu$, but without of loss of generality, this applies to other type of population parameter in the same way. Of note, effect sizes can be converted from one to one other, such as $r, OR, SMD, RR$, and the like.
+
+
+# True value of the parameter
+
+Let's decide on the true population parameter value. I argue that it is impossible, or at least unlikely, that the absolute value of this parameter is large. It it were large, we had no doubts about it. For instance, the effect size of water in the face of thirst is large. The effect of parachutes on falling speed is large. No need for estimating population parameter values. 
+
+For the sake of concreteness, I will speak of the "effectiveness of some medical intervention" in the following when I refer to the parameter value of $\mu$.
+
+On the other hand, if the value of the parameter is not large (in absolute terms), we arrive at the question whether the value is zero or not. I doubt that more precise values can be estimated in most practical cases. For example, to be confident that $\mu=0.42$ rather than $\mu=0.271$ (in SMD units) is beyond hope given the large amount of uncertainty we face even (or particularly) in modern science.
+
+
+Hence, let's assume that $\mu=0.5$ in the following. For the sake of simplicity, I will assume that the parameter under investigation is normally distributed. However, more ink could (and should) be spilled on this question.
+
+```{r}
+mu <- 0.5
+```
+
+
+
+As I think the uncertainty is large, we must allow for a relatively large standard deviation of the distribution of effects. Some reasons why I think the uncertainty in our population parameter value is lage include: publication bias, researcher degrees of freedom, variety in protocols and operationalization, plain errors in the course of a study, trickiness of nature, and more.
+
+
+Hence, let's take $\sigma=.5$.
+
+```{r}
+s <- 0.5
+```
+
+
+In sum:
+
+$$\mu \sim \mathfreac{N}(0.5, 0.5)$$ 
+
+
+What is the probability to observere a sample value larger less than zero?
+
+
+```{r}
+p0 <- pnorm(q = 0, mean = 0.5, sd = .5) %>% round(2)
+p0
+```
+
+In other words, we think that the probability that $\mu \le 0$ equals to `r p0`; let's call it $p_0$.
+
+
+
+Given this model, we assume that the probability that the treatment is effective equals to $p_1 = 1-p_0$, that is
+
+```{r}
+p1 <- 1 - p0
+p1
+```
+
+And so forth.
+
+
+# Drawing samples
+
+Let's draw multiple sample for different samples sizes and see how precisely we will measure the (true) population value. Than we can plot the precision of the population value estimation as a function of the sample size. In other words, we conduct some kind of power analysis.
+
+
+# Define some constants
+
+
+Let's define some auxiliary constants.
+
+We'll draw $k$ sample of a given size:
+
+```{r}
+k <- 100
+```
+
+Let's check sample sizes according to the log 2 sequence:
+
+```{r}
+x <- 1:15
+n <- 2^x
+
+n
+```
+
+
+
+
+# Simulating samples
+
+## SummayFunction to compute sample statistics
+
+```{r}
+comp_sample_stats <- function(sample_size,
+                              mu, 
+                              sigma) {
+  # draws sample and computes summary stats
+  
+  sample_temp <- rnorm(n = sample_size, 
+                       mean = mu, 
+                       sd = sigma)
+  sample_mean <- mean(sample_temp)
+  sample_sd <- sd(sample_temp)
+  sample_se <- sample_sd / sqrt(n)
+  sample_ci_u <- sample_mean + 2 * sample_se
+  sample_ci_l <- sample_mean - 2 * sample_se
+  mu_in_ci <- (mu > sample_ci_l) & (mu < sample_ci_u)
+  zero_in_ci <- (sample_ci_l < 0) & (sample_ci_u > 0)
+  
+  sample_stats <- 
+    tibble(
+      avg = sample_mean,
+      stddev = sample_sd,
+      se = sample_se,
+      ci_u = sample_ci_u,
+      ci_l = sample_ci_l,
+      mu_in_ci = mu_in_ci,
+      zero_in_ci = zero_in_ci
+    )
+  
+  return(sample_stats)
+}
+
+```
+
+
+## Run the function multiple ($k$) times
+
+
+
+```{r}
+
+# sample_size <- 30  # delete me later!
+
+comp_sample_stats_many_samples <-
+  function(sample_size,
+           mu, 
+           sigma,
+           k  # number of repetitions
+           ) {
+  # draws sample and computes summary stats
+  # for k multiples samples
+  # of a fixed sample size
+
+  many_samples_results <-
+    1:k %>% 
+    map_dfr( ~ comp_sample_stats(sample_size = sample_size,
+                             mu = mu,
+                             sigma = s),
+             .id = "id") %>% 
+    mutate(n = sample_size,
+           id = as.numeric(id))
+  
+  return(many_samples_results)
+  }
+
+```
+
+
+## Run the summary function $k$ times for all sample sizes
+
+
+```{r}
+simulated_samples <-
+  n %>% 
+  map_dfr( ~ comp_sample_stats_many_samples(
+    sample_size = .x,
+    mu = mu,
+    sigma = s,
+    k = k)) %>% 
+    mutate(ci_width = ci_u - ci_l)
+
+```
+
+
+# Plot the results
+
+
+Remeber that all results presented here hinge of the assumption stated above. In particular, we have simulated $k = `r k`$ samples.
+
+## Estimated population mean
+
+
+```{r}
+p1 <- simulated_samples %>% 
+  ggplot() +
+  aes(x = n, y = avg) +
+  geom_jitter(alpha = .03)
+
+p1
+```
+
+As can be seen, all sample sizes greater than small do precisely show the true parameter ($mu=0.5$).
+
+Let's zoom in.
+
+```{r}
+p1 +
+  xlim(0, 1024)
+```
+And even closer:
+
+
+
+```{r}
+p1 +
+  xlim(0, 256)
+```
+
+Larger sample sizes yield stable estimates, as seen above. But even the difference between $n=128$ and $n=128$ ($2^7, 2^8$) appears negligible, from a practical point of view, given the large uncertainties associated with research study results in practice. Let's remember that we should try to be more precise as it is possible (don't estimate the age of the earth in seconds, rather in millions of years).
+
+It appears that a sample size of 128 or even 64 is sufficiently precise to estimate the population effect size. 
+
+
+## Width of the CI
+
+```{r}
+p2 <- simulated_samples %>% 
+  ggplot() +
+  aes(x = factor(n), y = ci_width) +
+  geom_boxplot(aes(group = n)) 
+
+p2
+```
+
+
+Again, zoom in:
+
+```{r}
+p3 <- simulated_samples %>% 
+  filter(n <= 1024) %>% 
+  ggplot() +
+  aes(x = factor(n), y = ci_width) +
+  geom_boxplot(aes(group = n)) 
+
+p3
+```
+
+We can see that the width of the CI remains constant after an initial stabilizing phase. So, at say, $n=32$ we already have stable width estimates.
+
+
+# Summarise the results
+
+
+## Compute summaries per sample size
+
+```{r}
+simulated_samples_summarized <- simulated_samples %>% 
+  group_by(n)  %>% 
+  summarise(across(
+    .cols = everything(),
+    .fn = list(avg = mean, sd = sd),
+    .names = "{.col}_{.fn}"))  
+
+glimpse(simulated_samples_summarized)
+```
+
+
+## Plot the (summarized) results
+
+
+```{r}
+simulated_samples_summarized %>% 
+  ggplot() +
+  aes(x = n, y = avg_avg, 
+      ymin = avg_avg - avg_sd,
+      ymax = avg_avg + avg_sd
+      ) +
+  geom_ribbon(alpha = .5) +
+  geom_point() +
+  xlim(0, 128) +
+  labs(x = "Sample size",
+       y = "Average across 100 samples",
+       caption = "The ribbon shows the interval [mean ± se]")
+```
+
+
+# Conclusions
+
+## Small sample may suffice
+
+Under well-defined situations such as the one presented here, small samples are sufficient.
+
+However, it must be stressed that this comfortable conclusions hinges on the assumptions stated above.
+
+## Situations in which small samples will not suffice
+
+The standard errors (for the mean value) increases as a function of variability (standard deviation, ie., sigma) in the population. The well-known formula for SE is valid only in the normal distribution scenario. If we assumed different distributions for the population parameter $\mu$, we would arrive, in most situation, at much larger samples sizes. We might event encounter situations, such as for Cauchy distribution, where there are no mean values at all, and hence we are lost in complete ignorance about the precision of our estimates.
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

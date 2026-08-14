@@ -1,0 +1,467 @@
+---
+title: 'Modelling movie successes: linear regression'
+author: Sebastian Sauer
+date: '2021-02-24'
+slug: modelling-movie-successes-linear-regression
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(broom)  # nice formatting of output
+library(skimr)  # gives overview on descriptives
+library(ggfortify)  # plotting regression diagnostics
+library(ggstatsplot)  # fancy scatter plot
+```
+
+
+# Load data
+
+
+Load this package to access the data set:
+
+```{r}
+library(ggplot2movies)
+data(movies)
+```
+
+
+
+[Here](https://rdrr.io/cran/ggplot2movies/man/movies.html) is some explanation on the data set.
+
+
+Alternatively, load the data from a csv file:
+
+
+```{r}
+movies <- read_csv("https://vincentarelbundock.github.io/Rdatasets/csv/ggplot2movies/movies.csv")
+glimpse(movies)
+```
+
+
+
+# Research question
+
+
+**Which factors are predictive for movie success?**
+
+We'll take the movie rating as the output variable (the y-variable).
+
+
+
+
+# Disclaimer 
+
+
+This course is built on [this earlier case study](https://moodle.hs-ansbach.de/pluginfile.php/59100/mod_resource/content/1/Fallstudie-Regression-ggplot2movies.html) (in German language).
+
+
+
+
+
+
+# Get overview
+
+## Descriptive statistics
+
+```{r}
+skim(movies)
+```
+
+
+## Missing values
+
+
+```{r}
+movies %>% 
+  summarise(budget_na = sum(is.na(budget))) 
+```
+
+
+Or all columns in one go:
+
+```{r}
+movies %>% 
+  summarise(across(everything(), ~ sum(is.na(.))))
+```
+
+
+## Distribution of the output variable
+
+```{r}
+movies %>% 
+  ggplot(aes(x = rating)) +
+  geom_histogram()
+```
+
+## Distribution of the predictors
+
+
+```{r fig.asp = 1}
+movies %>% 
+  mutate(across(where(is.integer), as.numeric)) %>%  # Integervariable als numerisch deklarieren
+  select(where(is.numeric)) %>%  # alle numerischen Variablen auswählen
+  pivot_longer(everything(), names_to = "variable") %>%  # auf langes Format pivotieren
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(~ variable, scales = "free")
+
+```
+
+
+
+## Transform budget (via logarithm)
+
+
+
+```{r}
+movies %>% 
+  mutate(budget_log10 = log10(budget)) -> movies2
+```
+
+
+Remove the original variable:
+
+
+
+```{r}
+movies2 %>% 
+  select(budget_log10, everything()) %>%   # "budget_log10" als erste Spalte
+  select(-budget) -> movies2
+```
+
+
+There were some 0 (zero) values in the data set. Taking the logarithm of zero leads to doom. Let's repair that:
+
+
+
+```{r}
+movies2 %>% 
+  filter(!is.nan(budget_log10)) %>% 
+  filter(!is.infinite(budget_log10)) -> movies2a
+```
+
+
+
+## ggscatterstats
+
+Let's try this
+
+
+```{r}
+movies2a %>% 
+  ggscatterstats(x = budget_log10, y = rating)
+```
+
+
+[Hier](https://indrajeetpatil.github.io/ggstatsplot/articles/web_only/ggscatterstats.html) findet sich weitere Erklärung zu diesem Diagramm.
+
+
+## Pivot data set
+
+
+```{r}
+movies2a %>% 
+  select(budget_log10, rating, Action:Short) %>% 
+  pivot_longer(cols = Action:Short, 
+               names_to = "genre") %>% 
+  filter(value == 1) -> movies2_long
+```
+
+
+And plot it:
+
+```{r}
+movies2_long %>% 
+  ggplot() +
+  aes(x = budget_log10, y = rating) +
+  geom_bin2d() +
+  facet_wrap(~ genre) +
+  geom_smooth() +
+  scale_fill_viridis_c()
+
+```
+
+
+
+## Drop unused variables
+
+
+Let's keep things simple and drop some variables.
+
+```{r}
+movies2a %>% 
+  select(-c(title, r1:r10, mpaa)) -> movies2a
+```
+
+
+## Drop cases with missing values
+
+
+
+
+```{r}
+movies2a %>% 
+  drop_na() -> movies2_nona  # "no NA" soll das heißen
+```
+
+
+How many row remain?
+
+```{r}
+nrow(movies2_nona)  # "no NAs"
+```
+
+
+That's unsatisfying. However, for simplicity, let's stick with that for now.
+
+
+
+# Model 0
+
+
+```{r}
+m0 <- lm(rating ~ 1, data = movies2_nona)
+```
+
+
+```{r}
+summary(m0)
+```
+
+
+Let's make that tidy:
+
+
+```{r}
+tidy(m0)
+```
+
+
+Model fit:
+
+
+```{r}
+glance(m0)
+```
+
+
+
+# Model 1: `budget_log10`
+
+
+```{r error = TRUE}
+movies2_nona %>% 
+  drop_na(budget_log10, rating) %>% 
+  lm(rating ~ budget_log10, data = .)  -> m1
+```
+
+
+
+
+```{r}
+tidy(m1)
+```
+
+Model fit:
+
+
+```{r}
+glance(m1)
+```
+
+
+# Model 2: Adding number of votes
+
+
+
+```{r}
+p1 <- movies2_nona %>% 
+  ggplot(aes(x = votes)) +
+  geom_histogram() +
+  labs(title = "Datensatz: movies2_train")
+
+p1
+```
+
+Log-transform `votes`:  
+
+```{r}
+movies2_nona %>% 
+  mutate(votes_log10 = log10(votes)) %>% 
+  select(-votes) -> movies3_nona
+```
+
+
+
+
+
+
+
+
+```{r}
+movies3_nona %>% 
+   lm(rating ~ votes_log10, data = .) -> m2
+
+m2 %>% 
+  tidy()
+
+glance(m2)
+```
+
+
+# Model 3: Number of votes, quadratic
+
+```{r}
+m3 <- lm(rating ~ I(votes_log10^2) + votes_log10, data = movies3_nona)
+```
+
+
+
+```{r}
+tidy(m3)
+```
+
+```{r}
+glance(m3)
+```
+
+
+```{r}
+movies3_nona %>% 
+  ggplot(aes(x = votes_log10, y = rating)) +
+  geom_point(alpha = .2) +
+  geom_smooth(method = "lm", se = FALSE,
+                formula = y ~ poly(x, 2))
+```
+
+
+
+# Model 4: Number of votes, 3rd degree
+
+
+
+```{r}
+movies3_nona %>% 
+  ggplot(aes(x = votes_log10, y = rating)) +
+  geom_point(alpha = .2) +
+  geom_smooth(method = "lm", se = FALSE,
+                formula = y ~ poly(x, 3))
+```
+
+
+
+
+
+```{r}
+m4 <- lm(rating ~ poly(votes_log10, degree = 3), 
+         data = movies3_nona)
+```
+
+
+
+```{r}
+tidy(m4)
+glance(m4)
+```
+
+
+
+# Model 5: Multiple regression
+
+
+```{r}
+m5 <- lm(rating ~ votes_log10 + budget_log10, data = movies3_nona)
+```
+
+```{r}
+glance(m5)
+```
+
+
+# Model 6: Interaction
+
+
+
+
+```{r}
+m6 <- lm(rating ~ votes_log10 + budget_log10 + votes_log10:budget_log10,
+         data = movies3_nona)
+```
+
+
+
+# Model selection: ANOVA
+
+
+```{r}
+anova(m0,  m2, m3, m4)
+```
+
+
+This test assesses:
+
+
+$$F =\frac{(TSS-RSS)/p}{RSS/(n-p-1)}$$
+
+
+
+
+
+```{r}
+glance(m6)
+```
+
+
+
+# Regression diagnostics: testing the assumptions
+
+Let's pick a model and visualize some diagnostics.
+
+```{r}
+ggplot2::autoplot(m4) + theme_minimal()
+
+```
+
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

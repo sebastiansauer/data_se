@@ -1,0 +1,135 @@
+---
+title: MAD SD und 1.483
+author: Sebastian Sauer
+date: '2021-08-11'
+slug: mad-sd-und-1-483
+categories:
+  - rstats
+tags:
+  - Bayes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+
+<div id="setup" class="section level1">
+<h1>Setup</h1>
+<pre class="r"><code>library(tidyverse)
+library(mosaic)</code></pre>
+</div>
+<div id="sind-wir-nicht-alle-ein-bisschen-mad" class="section level1">
+<h1>Sind wir nicht alle ein bisschen MAD?</h1>
+<p>Der <a href="https://en.wikipedia.org/wiki/Median_absolute_deviation">MAD</a> oder <em>Median Absolute Deviation</em> ist eine robuste Kennzahl der Variabilität (eines quantitativen Merkmals).</p>
+</div>
+<div id="definition-mad" class="section level1">
+<h1>Definition MAD</h1>
+<p>Seien <span class="math inline">\(X_1, X_2, ..., X_n\)</span> die Beobachtungen einer Stichprobe zu einem Merkmal <span class="math inline">\(X\)</span>.</p>
+<p>Dann ist der MAD so definiert:</p>
+<p><span class="math inline">\(\text {MAD} =\operatorname{median} (|X_{i}-{\tilde {X}}|)\)</span>.</p>
+<p>Anders gesagt, der MAD ist der Median der Absolutwerte der Residuen.</p>
+</div>
+<div id="robust" class="section level1">
+<h1>Robust?</h1>
+<p><a href="https://en.wikipedia.org/wiki/Robust_statistics">Robust</a> heißt kurz (und vereinfacht) gesagt, dass der Kennwert nicht (zu sehr) von Extremwerten beeinflusst wird.</p>
+</div>
+<div id="mad-als-schätzwert-für-sd" class="section level1">
+<h1>MAD als Schätzwert für SD</h1>
+<p>Man kann die MAD als Schätzwert für die SD verwenden (unter bestimmten Bedingungen). Das hat den Vorteil, dass man das Beste zweier Welten vereinen kann: Die Robustheit von MAD und die bekannten Quantile der SD, sofern man sich normalverteilte Variablen anschaut (oder sonstige wohlbekannte Verteilungen).</p>
+<p>Dazu gilt folgende Formel:</p>
+<p><span class="math inline">\(\hat{\sigma} = k \cdot \text{MAD}\)</span>,</p>
+<p><span class="math inline">\(k\)</span> ist ein Skalierungsfaktor, der von der zugrundegelegten Verteilung abhängt.</p>
+<p>Bei normalverteilten Daten beträgt <span class="math inline">\(k\)</span> etwa</p>
+<p><span class="math inline">\(k \approx 1.483\)</span>.</p>
+</div>
+<div id="kommentierte-ableitung-des-skalierungsfaktors" class="section level1">
+<h1>Kommentierte Ableitung des Skalierungsfaktors</h1>
+<p>Rufen wir uns zunächst die Definition einer z-transformierten Variablen ins Gedächtnis:</p>
+<p><span class="math inline">\(Z = (X - \mu)/\sigma\)</span>.</p>
+<p>Nach der Definition des Medians gilt, dass (approximativ) 50% der Beobachtungen größer (und daher auch 50% kleiner) als der Median sind.</p>
+<p>Außerdem sind Mittelewert und Median identisch bei <span class="math inline">\(X \sim \mathbb{N}\)</span> (einer normalverteilten Variablen, <span class="math inline">\(X\)</span>).</p>
+<p>MAD ist, wie oben geschrieben, nichts anderes als der Median der Abweichungen<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a> (vom Median und daher in diesem Fall auch vom Mittelwert).</p>
+<p>Die Wahrscheinlichkeit einer Abweichung vom Mittelwert/Medien kleiner oder gleich dem MAD beträgt also 50%:</p>
+<p><span class="math inline">\({\displaystyle {\frac {1}{2}}=P(|X-\mu |\leq \operatorname {MAD} )}\)</span></p>
+<p>Jetzt transformieren wir die Streuung auf 1; intuitiv gesprochen “stauchen” wir die X-Achse. Die Wahrscheinlichkeiten bzw. die Gleichung ändert sich dadurch nicht:</p>
+<p><span class="math inline">\({\displaystyle {\frac {1}{2}}=P(|X-\mu |\leq \operatorname {MAD} )=P\left(\left|{\frac {X-\mu }{\sigma }}\right|\leq {\frac {\operatorname {MAD} }{\sigma }}\right)}\)</span></p>
+<p>Jetzt ersetzen wir <span class="math inline">\(Z = (X - \mu)/\sigma\)</span>:</p>
+<p><span class="math inline">\({\displaystyle {\frac {1}{2}}=P(|X-\mu |\leq \operatorname {MAD} )=P\left(\left|{\frac {X-\mu }{\sigma }}\right|\leq {\frac {\operatorname {MAD} }{\sigma }}\right)=P\left(|Z|\leq {\frac {\operatorname {MAD} }{\sigma }}\right).}\)</span></p>
+<p>Da 50% der Beobachtungen (und damit der Wahrscheinlichkeitsmasse) innerhalb <span class="math inline">\((-MAD,+MAD)\)</span> und aufgrund der Symmetrie der Normalverteilung gilt, dass 25% der Abweichungen größer (kleiner) als der Median (und damit auch der Mittelwert) sind.</p>
+</div>
+<div id="probieren-geht-über-studieren" class="section level1">
+<h1>Probieren geht über studieren</h1>
+<p>Das hört sich alles so theoretisch an? Stimmt. Also probieren wir es aus: Simulieren wir uns mal ein paar Daten.</p>
+<p>Wir ziehen viele (<span class="math inline">\(n=10^4\)</span>) Werte für <span class="math inline">\(X \sim\mathbb{N}(0,1)\)</span>:</p>
+<pre class="r"><code>X &lt;- rnorm(1e04)</code></pre>
+<p>Dann berechnen wir den MAD:</p>
+<pre class="r"><code>mad &lt;- function(vec, ...){
+  resid &lt;- abs(vec - median(vec, ...))
+  mad &lt;- median(resid, ...)
+  return(mad)
+}</code></pre>
+<p>Test der Funktion:</p>
+<pre class="r"><code>v &lt;- c(10,20,30)
+mad(v)</code></pre>
+<pre><code>## [1] 10</code></pre>
+<p>Scheint zu passen.</p>
+<pre class="r"><code>mad_X &lt;- mad(X)
+mad_X</code></pre>
+<pre><code>## [1] 0.676244</code></pre>
+</div>
+<div id="schönes-zwischenergebnis" class="section level1">
+<h1>Schönes Zwischenergebnis</h1>
+<p>Wenn <span class="math inline">\(\mathbb{N}(0,1)\)</span>, dann</p>
+<p><span class="math inline">\(F(X=0.67) \approx 1/2\)</span>.</p>
+<p>Anders gesagt: Sucht man das Quantil, das das obere Quartil abgrenzt, so muss man bei <span class="math inline">\(X=.67\)</span> “abschneiden”.</p>
+</div>
+<div id="visualisierungen" class="section level1">
+<h1>Visualisierungen</h1>
+<p>Das visualisieren wir uns mal:</p>
+<pre class="r"><code>gf_dist(&quot;norm&quot;, fill = ~ abs(x) &lt;= mad_X, geom = &quot;area&quot;) +
+  annotate(&quot;label&quot;, x = mad_X, label = &quot;75%&quot;, y = 0.1) +
+   annotate(&quot;label&quot;, x = -mad_X, label = &quot;25%&quot;, y = 0.1) </code></pre>
+<p><img src="unnamed-chunk-6-1.png" width="480" style="display: block; margin: auto;" /></p>
+<p>Wir behaupten nun also, innerhalb von <span class="math inline">\((-MAD,+MAD)\)</span> liegen 50% der Werte.</p>
+<pre class="r"><code>within_abs_mad &lt;- ifelse(abs(X) &lt; mad_X, TRUE, FALSE)
+sum(within_abs_mad)</code></pre>
+<pre><code>## [1] 5003</code></pre>
+<p>Wie man sieht, liegen ca. 50% unserer simulierten Werte innerhalb des Bereichs <span class="math inline">\((-MAD,+MAD)\)</span>. Unsere Überlegung stimmt also offenbar.</p>
+<p>Aufgrund der Symmetrie muss damit auch gelten, dass 25% der Werte (oder 50% der positiven Werte) größer sind +MAD (und symmetrisch für kleiner als Null).</p>
+<p>Visualisieren wir noch die Verteilungsfunktion (CDF) <span class="math inline">\(\operatorname F(X)\)</span>:</p>
+<pre class="r"><code>gf_dist(&quot;norm&quot;, color =&quot;red&quot;, kind = &quot;cdf&quot;) +
+  geom_hline(yintercept = .75, color = &quot;blue&quot;, linetype = &quot;dashed&quot;) +
+  geom_vline(xintercept = +mad_X, color = &quot;blue&quot;, linetype = &quot;dashed&quot;) +
+  annotate(&quot;label&quot;, x = mad_X, label = &quot;mad&quot;, y = .75, color = &quot;blue&quot;) +
+  geom_hline(yintercept = .25, color = &quot;green&quot;, linetype = &quot;dashed&quot;) +
+  geom_vline(xintercept = -mad_X, color = &quot;green&quot;, linetype = &quot;dashed&quot;) +
+  annotate(&quot;label&quot;, x = -mad_X, label = &quot;mad&quot;, y = .25, color = &quot;green&quot;) +
+  labs(title = &quot;Verteilungsfunktion einer NV(0,1) mit Md±mad eingezeichnet&quot;,
+       caption = &quot;Md: Median, mad: Mean Absolute Deviation. Md=0&quot;)</code></pre>
+<p><img src="unnamed-chunk-8-1.png" width="480" style="display: block; margin: auto;" /></p>
+</div>
+<div id="verteilungsfunktion" class="section level1">
+<h1>Verteilungsfunktion</h1>
+<p>Das heißt also, wenn wir mit <span class="math inline">\(F\)</span> die Verteilungsfunktion (s. Diagramm) bezeichnen, dass, wenn <span class="math inline">\(\mathbb{N}(0,1)\)</span>, gilt</p>
+<p><span class="math inline">\(F(MAD/\sigma) = F(MAD) = .75 = 3/4\)</span></p>
+<p>und</p>
+<p><span class="math inline">\(F(-MAD/\sigma) = F(-MAD) = .25 = 1/4\)</span>.</p>
+<p>Man beachte, dass</p>
+<p><span class="math inline">\(F(-MAD) = 1 - F(MAD)\)</span></p>
+<p>Also gilt</p>
+<p><span class="math inline">\(F(MAD/\sigma) - F(-MAD/\sigma) = 1/2\)</span></p>
+<p>Löst man nun</p>
+<p><span class="math inline">\(F(MAD/\sigma) = = 3/4\)</span></p>
+<p>nach <span class="math inline">\(F(MAD/\sigma)\)</span> auf, so erhält man</p>
+<p><span class="math inline">\(\frac{MAD}{\sigma} = \operatorname F^{-1}(3/4) \approx 0.675\)</span>.</p>
+</div>
+<div id="fazit" class="section level1">
+<h1>Fazit</h1>
+<p>Folglich gilt</p>
+<p><span class="math inline">\(k = 1/\operatorname F^{-1}(3/4) \approx 1.483\)</span>.</p>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>Residuen<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>

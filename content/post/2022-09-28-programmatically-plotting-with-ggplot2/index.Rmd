@@ -1,0 +1,243 @@
+---
+title: Programmatically plotting with ggplot2
+author: Sebastian Sauer
+date: '2022-09-28'
+slug: programmatically-plotting-with-ggplot2
+categories:
+  - rstats
+tags:
+  - visualization
+  - dataviz
+  - tidyverse
+  - ggplot2
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Setup
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(easystats)  # comfort in stats
+```
+
+
+
+```{r}
+data(mtcars)
+```
+
+
+In essence,
+we want to build this kind of plot programmatically:
+
+
+
+```{r}
+mtcars %>% 
+  ggplot(aes(x=hp)) +
+  geom_histogram()
+```
+
+
+
+
+# Let's go
+
+## Way 1
+
+Let's use unquoted variable names.
+
+```{r}
+plot_descriptives0 <- function(data, var) {
+  
+
+  data %>% 
+   ggplot(aes(x = {{var}})) +
+   geom_histogram()
+}
+
+plot_descriptives0(mtcars, hp)
+```
+
+
+
+## Way 2
+
+Somewhat more elaborated, but same idea:
+
+```{r}
+plot_descriptives1 <- function(data, var, group) {
+  
+  var_string <- deparse(substitute(var))
+  
+  data %>% 
+    select({{var}}, {{group}}) %>%
+    drop_na() %>% 
+    group_by({{group}}) %>%
+    mutate({{group}} := as.factor({{group}})) %>%  
+    describe_distribution(iqr = FALSE, range = TRUE, quartiles = TRUE) %>% 
+    select(Variable, Mean, SD, .group) %>% 
+    mutate(group = str_remove(.group, "^.+=")) %>% 
+    select(-.group) %>% 
+    #pivot_longer(-c(Variable, group)) %>% 
+    ggplot(aes(x = group)) +
+    geom_errorbar(aes(ymin = Mean-(2*SD), ymax = Mean+(2*SD)), width = .1) +
+    geom_point2(aes(y = Mean), alpha = .7, size = 3) +
+    facet_wrap(~ Variable) +
+    labs(caption = "Error bars show mean ± 2SD",
+         title = paste0("Variable: ", var_string)) +
+    coord_flip() +
+    theme(legend.position = "bottom")
+}
+```
+
+
+
+
+```{r}
+plot_descriptives1(mtcars, hp, cyl)
+```
+
+
+
+
+This line gives us the variable name as a string:
+```{r}
+deparse(substitute(var))
+```
+
+More specifically:
+
+```{r}
+deparse(substitute(mtcars$hp))
+```
+
+
+
+
+
+## Way 2
+
+
+
+This time, we have variables as *strings*
+
+```{r}
+plot_descriptives2 <- function(data, var) {
+  data %>% 
+    ggplot(aes_string(x = var)) +
+    geom_histogram() +
+    labs(title = paste0("Variable: ", var))
+}
+```
+
+
+However, `aes_string` is deprecated.
+
+```{r}
+plot_descriptives2(mtcars, "hp")
+```
+
+
+
+## Way 3
+
+Here we use `sym`
+
+```{r}
+?sym
+```
+
+
+>   sym() and syms() take strings as input and turn them into symbols.
+
+See:
+
+```{r}
+sym("hp")
+```
+
+
+!! is used to evaluate a symbol, ie., gives back the "real" column, such as `hp`.
+
+
+
+
+>   The !! operator unquotes its argument. It gets evaluated immediately in the surrounding context.
+
+
+```{r}
+plot_descriptives3 <- function(data, var) {
+  
+  var_enquo <- sym(var)
+  
+  data %>% 
+    ggplot(aes(x = !!var_enquo)) +
+    geom_histogram()
+}
+
+plot_descriptives3(mtcars, "hp")
+
+```
+
+
+
+## Way 4
+
+We can swqp the "bang-bang" !! in favor of "curly-curly" :
+
+```{r}
+plot_descriptives4 <- function(data, var) {
+  
+  var_enquo <- sym(var)
+  
+  data %>% 
+    ggplot(aes(x = {{var_enquo}})) +
+    geom_histogram()
+}
+
+plot_descriptives4(mtcars, "hp")
+```
+
+
+# Further reading
+
+There are many sources, here are some:
+
+- https://stackoverflow.com/questions/53381764/what-does-sym-do-regarding-tidyeval
+- https://www.rdocumentation.org/packages/modeltime.gluonts/versions/0.1.0/topics/tidyeval
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

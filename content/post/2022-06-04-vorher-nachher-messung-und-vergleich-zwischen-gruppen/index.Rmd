@@ -1,0 +1,331 @@
+---
+title: Vorher-Nachher-Messung und Vergleich zwischen Gruppen
+author: Sebastian Sauer
+date: '2022-06-04'
+slug: vorher-nachher-messung-und-vergleich-zwischen-gruppen
+categories:
+  - rstats
+tags:
+  - modeling
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(easystats)  # make stasts easy again
+library(rstanarm)  # Bayes
+library(gt)  # schöne Tabellen
+```
+
+
+
+
+# Forschungsfrage
+
+
+Stellen Sie sich vor, Sie haben ein Experiment durchgeführt.
+Im Zuge dessen haben Sie vor einer Intervention und nach einer Intervention die interessierende Variable (AV) gemessen.
+Jetzt sind sie an der Frage interessiert,
+ob die Veränderung in der AV sich zwischen den Experimentalbedingungen unterscheidet.
+
+Ein Beispiel, um es konkreter zu machen.
+Sie sind interessiert am Effekt von Koffein auf die Konzentrationsfähigkeit.
+Dazu messen Sie die Konzentrationsfähigkeit (mit einem geeigneten Verfahren) vor und nach 
+der experimentellen Intervention.
+Die experimentelle Intervention ist in diesem Fall die Gabe von 300mg Koffein in der Kontrollgruppe,
+und ein Placebo (kein Koffein) in der Kontrollgruppe.
+
+Natürlich haben Sie auf möglichst gleiche Bedingungen zwischen den Gruppen und für
+alle Studienteilnehmer:innen geachtet.
+Außerdem haben Sie Störeinflüsse vermieden.
+Sogar die Stichprobengröße war ziemlich groß.
+
+
+Okay. Was jetzt? Wie wertet man diese Daten aus (mit R)?
+
+
+# Simulierte Daten
+
+Basteln wir uns einen Datensatz mit Fake-Daten:
+
+```{r}
+d <-
+  tibble(
+    konz_t1 = rnorm(60),
+    konz_t2 = c(rnorm(30), rnorm(30, mean = 1)),
+    gruppe = c(rep("Placebo", 30), rep("Exp", 30)))
+```
+
+Wir haben uns $n=60$ Daten simuliert, 30 pro Gruppe (Experimental- und Placebogruppe).
+Zu $t1$, vor dem Experiment, haben beide Populationen den gleichen Mittelwert, nämlich 0.
+Wir haben alle Werte aus einer Normalverteilung mit $\mu=0, \sigma=1$ gezogen.
+Bei $t2$ haben wir die Werte so simuliert, 
+dass die Experimentalgruppe jetzt aus einer Normalverteilung mit $\mu=1$ gezogen wird.
+
+
+Das sieht dann so aus (die ersten paar Zeilen):
+
+```{r}
+d %>% 
+  head()
+```
+
+
+Das Simulieren der Daten ist bei einem echten Experiment natürlich nicht nötig.
+Durch das Messen bzw. das Durchführen des Experiments bekommen Sie die Daten "von allein".
+
+Beachten Sie, dass *alle* Daten in *einer* Tabelle stehen, nicht etwa in mehreren Tabellen.
+
+
+# Differenzwert berechnen
+
+Als nächstes berechnen wir die Veränderung in der Konzentrationsfähigkeit für jede Person:
+
+```{r}
+d2 <-
+  d %>% 
+  mutate(differenz = konz_t2 - konz_t1)
+```
+
+
+
+# Visualisieren
+
+Schauen wir uns da mal näher an:
+
+
+```{r}
+d2 %>% 
+  ggplot(aes(x = gruppe, y = differenz)) +
+  geom_violin(alpha = .5) +
+  geom_jitter(alpha = .7, width = .1) +
+  stat_summary(geom = "line", fun = mean, color = "red", group = 1)
+```
+
+Wie man sieht, scheint der Zuwachs zwischen den Gruppen bei der Experimentalgruppe tatsächlich größer zu sein.
+
+
+# Deskriptive Statistik
+
+
+```{r}
+d2 %>% 
+  select(differenz, gruppe) %>% 
+  group_by(gruppe) %>% 
+  describe_distribution()
+```
+
+
+# Deskriptive Statistik als schöne Tabelle
+
+
+```{r}
+d2 %>% 
+  select(differenz, gruppe) %>% 
+  group_by(gruppe) %>% 
+  describe_distribution() %>% 
+  gt() %>% 
+  fmt_number(columns = where(is.numeric))
+```
+
+
+Mehr zum Paket `{gt}` findet sich [hier](https://gt.rstudio.com/).
+
+
+
+
+# Cohens d
+
+```{r}
+cohens_d(differenz ~ gruppe, data = d2)
+```
+
+
+Sie könnten schreiben:
+
+>   Der Unterschied im Mittelwert zwischen den beiden Experimentalbedingungen wird auf 0.95 geschätzt, 95% KI [0.41, 1.48].
+
+
+Äh, war 0.95 ein großer Effekt, laut Cohen?
+
+
+```{r}
+interpret_cohens_d(0.95)
+```
+
+Ja!
+
+
+
+
+# Inferenzstatistik
+
+Aber ist der Unterschied zwischen den Gruppen wirklich "signifikant"?
+
+Bemühen wir etwas Inferenzstatistik.
+
+
+```{r message=FALSE}
+m1 <- stan_glm(differenz ~ gruppe, data = d2, refresh = 0)
+
+m1
+```
+
+
+Ok, der mediane Effekt zwischen den Gruppen wird auf ca. -1.5 geschätzt.
+
+Aber ein Konfidenzintervall wäre schön:
+
+```{r}
+posterior_interval(m1, prob = .95)
+```
+
+Ah, jetzt sehen wir, dass das 95%-PI auf ca. -2.3 bis -0.7 geschätzt wird.
+Es gibt also einen Effekt zwischen den Gruppen: Die Null (der "Null-Effekt") ist nicht im Schätzbereich plausibler Werte enthalten.
+Ob der Effekt groß ist, ist eine andere Frage - keine statistische.
+
+
+So geht es noch ein bisschen einfacher,
+wenn auch die Informationen etwas reichhaltiger sind:
+
+```{r}
+library(easystats)
+parameters(m1)
+```
+
+
+Was ist `pd`:
+
+>   Compute the Probability of Direction (pd, also known as the Maximum Probability of Effect - MPE). It varies between 50% and 100% (i.e., 0.5 and 1) and can be interpreted as the probability (expressed in percentage) that a parameter (described by its posterior distribution) is strictly positive or negative (whichever is the most probable). It is mathematically defined as the proportion of the posterior distribution that is of the median's sign. Although differently expressed, this index is fairly similar (i.e., is strongly correlated) to the frequentist p-value.
+
+[Quelle](https://easystats.github.io/bayestestR/reference/p_direction.html)
+
+`pd` gibt uns die Wahrscheinlichkeitsmasse links von der Null (da der Medianschätzwert negativ ist, sonst würde sich der Wert auf rechts von der Null beziehen).
+
+`Rhat` und `ESS` sagen uns, ob das Stichprobenziehen gut funktioniert hat. Ja, sieht hier alles gut aus.
+
+
+
+
+# Parameter (Koeffizienten des Modells) plotten
+
+Für `parameters()` gibt es auch eine `plot`-Methode:
+
+```{r}
+plot(parameters(m1))
+```
+
+
+Alternativ bietet `rstanarm` auch eine Plot-Methoden:
+
+```{r}
+plot(m1)
+```
+
+
+# Ja, ist der Effekt jetzt groß oder nicht?
+
+Also gut, definieren wir einen "gerade noch relevanten Effekt" auf 0.1 SD-Einheiten der AV (`differenz`).
+Diese Wahl basiert auf Cohen (1988), vgl. Kruschke (2018).
+
+z-Transformieren wir noch unsere AV, `differenz`,
+dann können wir komfortabel schauen, ob der Effekt größer ist als ±0.1:
+
+```{r}
+library(easystats)
+
+d2 <-
+  d2 %>% 
+  mutate(differenz_z = standardise(differenz))
+```
+
+
+```{r}
+m2 <- stan_glm(differenz_z ~ gruppe, data = d2, refresh = 0)
+coef(m2)
+```
+
+
+Ja, der Effekt ist deutlich größer als 0.1! Damit ist der Effekt größer als "vernachlässigbar klein".
+
+
+# ROPE
+
+Wir könnten noch ein ROPE berechnen,
+das sollte uns das gleiche wie oben bestätigen:
+
+
+```{r}
+rope(m2)
+```
+
+0% im Rope! Das Rope kann ausgeschlossen werden.
+
+
+```{r}
+plot(rope(m2))
+```
+
+
+# Was ist mit R-Quadrat?
+
+
+Also gut, hier kommt noch $R^2$:
+
+```{r}
+r2_bayes(m2)
+```
+
+
+
+
+# Fazit
+
+Wir resümieren,
+dass es offenbar einen Effekt gibt, und zwar einen, der größer ist als vernachlässigbar klein.
+Damit ist die "Nullhypothese", die besagt, dass der Effekt Null ist, dass es also keinen Effekt gibt,
+ausgeschlossen.
+Kann man die Nullhypothese ausschließen, nennt man das Ergebnis auch "signifikant".
+Zu beachten ist, dass der Begriff der Signifikanz verschiedene Bedeutungen haben kann.
+Hier definieren wir "signifikant", wenn mind. 95% der Posteriori-Verteilung außerhalb des ROPE liegen (s. [hier](https://easystats.github.io/bayestestR/reference/rope.html)).
+
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

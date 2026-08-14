@@ -1,0 +1,221 @@
+---
+title: "Simulation des wiederholten Stichprobenziehens"
+author: Sebastian Sauer
+date: 2022-03-28
+tags: 
+  - rstats
+categories: 
+  - simulation
+  - tutorial
+
+
+draft: FALSE
+
+output:
+  blogdown::html_page:
+    toc: true
+    keep_md: yes
+    number_sections: true
+---
+
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Vorbereitung
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # Datenjudo
+library(infer)  # Inferenzstatistik
+```
+
+
+# Kann man wirklich von einer Stichprobe auf eine Grundgesamtheit schließen?
+
+
+Alle Welt behauptet, dass man von einer Stichprobe auf eine Grundgesamtheit schließen könne.
+Aber stimmt das wirklich? Welcher von den Profs, 
+die das tagaus, tagein gebetsmühlenartig von sich geben,
+hat das eigentlich bewiesen?
+
+Tja.
+
+Probieren wir es einfach aus.
+
+
+
+
+# Hier ist eine Population
+
+
+Wir definieren uns eine Population bzw. eine Verteilung für eine Variable.
+
+Sagen wir, um es konkret zu machen,
+uns interessiert die Zeit, die mittelfränkisch junge Erwachsene pro Tag am Handy verbringen (im Schnitt).
+Um uns Tipperei zu sparen, 
+geben wir dieser Variablen den Namen $X$.
+
+
+Sagen wir weiter, wir würden die die Handy-Daddel-Zeiten aller Menschen minütiös nachverfolgen und kennen also die wahre Daddelzeit, $X$.
+
+Sagen wir, um die Sache einfach zu halten, $X$ ist normalverteilt mit Mittelwert 120 und Streuung 20 (in Minuten):
+
+$$X \sim \mathcal{N}(\mu = 120,\sigma = 20).$$
+
+
+Auf dieser Basis "erzeugen" wir uns die täglichen mittleren Daddelzeiten. Sagen wir, die Population umfasse $n=10^6$ Personen.
+
+
+```{r}
+set.seed(42)  # Zufallszahlen festlegen
+d <- tibble(
+  x = rnorm(1e6, mean = 120, sd = 20)
+)
+```
+
+
+
+# Wir ziehen eine Stichprobe
+
+Wir ziehen eine Stichprobe (sample, `smple`),
+sagen wir der Größe $n=50$:
+
+```{r}
+set.seed(42)
+smple <- 
+  d %>% 
+  sample_n(size = 50)
+```
+
+
+```{r}
+smple %>% 
+  summarise(x_mean = mean(x),
+            x_sd = sd(x))
+```
+
+Ah! Unsere Stichprobe gibt die Population (synonym: Grundgesamtheit ordentlich wieder).
+
+
+# Moment
+
+Halt, könnten Sie jetzt sagen.
+Das war ja bestimmt nur Zufall. Glück gehabt. Blindes Huhn und so weiter.
+
+# Also gut, ziehen wir viele Stichproben
+
+Um uns zu überzeugen,
+ob es sich um einen Zufallsbefund gehandelt hat oder nicht,
+ziehen wir also viele (sagen wir, $k=1000$) Stichproben (mit Zurücklegen) aus der Population und schauen uns dann deren Mittelwerte und Streuungen an.
+Dann werden wir sehen,
+ob die Stichproben überwiegend die Population gut wiedergeben bzw.
+wie eng die Stichproben-Mittelwerte um den wahren Populationsparameter,
+also dem Mittelwert der Population, herum streuen.
+
+Dazu hilft uns das Paket `infer`:
+
+```{r}
+library(infer)
+```
+
+Mit `rep_sample_n()` können wir viele Stichproben ziehen:
+
+
+```{r}
+set.seed(42)
+viele_stipros <-
+  d %>% 
+  rep_sample_n(size = 50,
+               replace = TRUE,
+               reps = 1000)
+
+head(viele_stipros)
+```
+
+Ach ja, das Schließen von einer Stichprobe auf eine Grundgesamtheit nennt man
+
+~~Interferenzstatistik~~, ~~Inderfernestatistik~~ -- schließende Statistik oder *Inferenzstatistik*.
+
+# Zusammenfassen der Stichproben
+
+
+```{r}
+viele_stipros_zfsg <- 
+  viele_stipros %>%
+  group_by(replicate) %>% 
+  summarise(x_mean = mean(x),
+            x_sd = sd(x))
+
+head(viele_stipros_zfsg)
+```
+
+
+
+Ein paar Statistiken:
+
+```{r}
+viele_stipros_zfsg %>% 
+  summarise(mu_dach = mean(x_mean),
+            sigma_dach = mean(x_sd),
+            q05 = quantile(x_mean, .05),
+            q95 = quantile(x_mean, .90))
+```
+
+
+# Visualisierung
+
+```{r}
+viele_stipros_zfsg %>% 
+  ggplot(aes(x = x_mean)) +
+  geom_histogram() +
+  geom_vline(xintercept = 119.91) +
+   geom_rect(xmin = 115.23, xmax = 123.57, 
+            ymin = 0, ymax = 5,
+            fill = "blue",
+            alpha = .5) +
+  labs(caption = "Die vertikale Linie zeigt den Mittelwert.\nDer horizontale Balken zeigt das 90%-PI.")
+```
+
+
+
+# Fazit
+
+Hey, das Zeug scheint zu klappen!
+
+Das könnte auch der Grund sein,
+warum ein Koch einfach nur einen kleinen Löffel seiner Supper abschmeckt (nachdem er gut umgerüht hat),
+und nicht eine "Vollerhebung" seiner Supper machen muss,
+um sich zu vergewissern, dass sie gut schmeckt.
+
+
+
+
+
+# Reproduzierbarkeit
+
+```{r reproducibility, echo = FALSE}
+
+options(width = 120)
+devtools::session_info()
+
+```
+
+
+

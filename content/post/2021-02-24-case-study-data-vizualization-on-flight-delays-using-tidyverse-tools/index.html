@@ -1,0 +1,289 @@
+---
+title: 'Case study: data vizualization on flight delays using tidyverse tools'
+author: Sebastian Sauer
+date: '2021-02-24'
+slug: case-study-data-vizualization-on-flight-delays-using-tidyverse-tools
+categories:
+  - rstats
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#load-data"><span class="toc-section-number">2</span> Load data</a></li>
+<li><a href="#exercisesquestions"><span class="toc-section-number">3</span> Exercises/questions</a></li>
+<li><a href="#solutions"><span class="toc-section-number">4</span> Solutions</a>
+<ul>
+<li><a href="#plot-the-distribution-of-the-delays.-describe-your-insights."><span class="toc-section-number">4.1</span> Plot the distribution of the delays. Describe your insights.</a></li>
+<li><a href="#plot-the-distribution-of-the-delays-per-origin-airport."><span class="toc-section-number">4.2</span> Plot the distribution of the delays per origin airport.</a></li>
+<li><a href="#visualize-the-assocation-of-delay-and-time-of-the-day.-find-a-way-to-reduce-overplotting."><span class="toc-section-number">4.3</span> Visualize the assocation of delay and time of the day. Find a way to reduce overplotting.</a></li>
+<li><a href="#visualize-the-assocation-of-delay-and-distance-to-destination.-separate-by-origin-and-month."><span class="toc-section-number">4.4</span> Visualize the assocation of delay and distance to destination. Separate by origin and month.</a></li>
+<li><a href="#visualize-the-assocation-of-delay-and-time-of-the-day.-only-include-the-three-airlines-where-the-delay-is-highest."><span class="toc-section-number">4.5</span> Visualize the assocation of delay and time of the day. Only include the three airlines where the delay is highest.</a></li>
+<li><a href="#visualize-the-proportion-of-delayed-flights-per-origin."><span class="toc-section-number">4.6</span> Visualize the proportion of delayed flights per origin.</a></li>
+<li><a href="#visualize-the-proportion-of-delayed-flights-per-time-of-the-day"><span class="toc-section-number">4.7</span> Visualize the proportion of delayed flights per time of the day</a></li>
+<li><a href="#visualize-the-proportion-of-delayed-flights-per-week-day"><span class="toc-section-number">4.8</span> Visualize the proportion of delayed flights per week day</a></li>
+</ul></li>
+<li><a href="#reproducibility"><span class="toc-section-number">5</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling</code></pre>
+</div>
+<div id="load-data" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Load data</h1>
+<pre class="r"><code>library(tidyverse)
+library(nycflights13)
+
+data(&quot;flights&quot;)</code></pre>
+</div>
+<div id="exercisesquestions" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Exercises/questions</h1>
+<p>See <a href="">here</a></p>
+</div>
+<div id="solutions" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Solutions</h1>
+<div id="plot-the-distribution-of-the-delays.-describe-your-insights." class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> Plot the distribution of the delays. Describe your insights.</h2>
+<pre class="r"><code>flights %&gt;% 
+  ggplot() +
+  aes(x = dep_delay) +
+  geom_histogram()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Alternatively:</p>
+<pre class="r"><code>flights %&gt;% 
+  ggplot() +
+  aes(x = dep_delay) +
+  geom_density()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>The distribution is skewed to the right. Some flights are extremely lated compared to the majority.</p>
+</div>
+<div id="plot-the-distribution-of-the-delays-per-origin-airport." class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> Plot the distribution of the delays per origin airport.</h2>
+<pre class="r"><code>flights %&gt;% 
+  ggplot() +
+  aes(x = dep_delay) +
+  geom_density() +
+  facet_wrap(~ origin)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="visualize-the-assocation-of-delay-and-time-of-the-day.-find-a-way-to-reduce-overplotting." class="section level2" number="4.3">
+<h2><span class="header-section-number">4.3</span> Visualize the assocation of delay and time of the day. Find a way to reduce overplotting.</h2>
+<p>Hint: Try out <code>geom_bind2d()</code> or <code>geom_density2d()</code> instead of using a scatter plot.</p>
+<pre class="r"><code>flights %&gt;% 
+  ggplot() +
+  aes(x = dep_time, dep_delay) +
+  geom_density2d()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Adding a “smoother” line:</p>
+<pre class="r"><code>flights %&gt;% 
+  ggplot() +
+  aes(x = dep_time, dep_delay) +
+  geom_density2d() +
+  geom_smooth()  # smoothing line</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-6-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Alternatively:</p>
+<pre class="r"><code>flights %&gt;% 
+  ggplot() +
+  aes(x = dep_time, dep_delay) +
+  geom_bin2d() +
+  geom_smooth(method = &quot;lm&quot;)  # smoothing line</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-7-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="visualize-the-assocation-of-delay-and-distance-to-destination.-separate-by-origin-and-month." class="section level2" number="4.4">
+<h2><span class="header-section-number">4.4</span> Visualize the assocation of delay and distance to destination. Separate by origin and month.</h2>
+<pre class="r"><code>flights %&gt;% 
+  ggplot() +
+  aes(x = distance, dep_delay) +
+  geom_density2d() +
+  facet_grid(origin ~ month)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="visualize-the-assocation-of-delay-and-time-of-the-day.-only-include-the-three-airlines-where-the-delay-is-highest." class="section level2" number="4.5">
+<h2><span class="header-section-number">4.5</span> Visualize the assocation of delay and time of the day. Only include the three airlines where the delay is highest.</h2>
+<p>Reduce overplotting.</p>
+<pre class="r"><code>flights %&gt;% 
+  group_by(carrier) %&gt;% 
+  summarise(dep_delay_carrier = mean(dep_delay, na.rm = TRUE)) %&gt;% 
+  arrange(-dep_delay_carrier) %&gt;% 
+  slice(1:3)
+#&gt; # A tibble: 3 x 2
+#&gt;   carrier dep_delay_carrier
+#&gt;   &lt;chr&gt;               &lt;dbl&gt;
+#&gt; 1 F9                   20.2
+#&gt; 2 EV                   20.0
+#&gt; 3 YV                   19.0</code></pre>
+<pre class="r"><code>flights %&gt;% 
+  filter(carrier %in% c(&quot;F9&quot;, &quot;EV&quot;, &quot;YV&quot;)) %&gt;% 
+  ggplot() +
+  aes(x = dep_time, dep_delay) +
+  geom_density2d()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="visualize-the-proportion-of-delayed-flights-per-origin." class="section level2" number="4.6">
+<h2><span class="header-section-number">4.6</span> Visualize the proportion of delayed flights per origin.</h2>
+<pre class="r"><code>flights %&gt;% 
+  mutate(is_delayed = dep_delay &gt; 0) %&gt;% 
+  group_by(origin) %&gt;% 
+  summarise(delay_n = sum(is_delayed == TRUE, na.rm = TRUE),
+            delay_prop = delay_n / n()) %&gt;% 
+  ggplot() +
+  aes(x = origin, y = delay_prop) +
+  geom_col()
+  </code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Alternatively:</p>
+<pre class="r"><code>flights %&gt;% 
+  mutate(is_delayed = dep_delay &gt; 0) %&gt;% 
+  group_by(origin) %&gt;% 
+  ggplot() +
+  aes(x = origin, fill = is_delayed) +
+  geom_bar()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-12-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Or even this way:</p>
+<pre class="r"><code>flights %&gt;% 
+  mutate(is_delayed = dep_delay &gt; 0) %&gt;% 
+  group_by(origin) %&gt;% 
+  ggplot() +
+  aes(x = origin, fill = is_delayed) +
+  geom_bar(position = &quot;fill&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-13-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="visualize-the-proportion-of-delayed-flights-per-time-of-the-day" class="section level2" number="4.7">
+<h2><span class="header-section-number">4.7</span> Visualize the proportion of delayed flights per time of the day</h2>
+<pre class="r"><code>flights %&gt;% 
+  mutate(is_delayed = dep_delay &gt; 0) %&gt;% 
+  group_by(origin) %&gt;% 
+  drop_na(is_delayed, origin) %&gt;% 
+  ggplot() +
+  aes(x = origin, fill = is_delayed) +
+  geom_bar(position = &quot;fill&quot;) +
+  facet_wrap(~ hour) +
+  scale_fill_viridis_d()  # d as in &quot;discrete&quot;</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-14-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="visualize-the-proportion-of-delayed-flights-per-week-day" class="section level2" number="4.8">
+<h2><span class="header-section-number">4.8</span> Visualize the proportion of delayed flights per week day</h2>
+<p>There’s a package that does the weight lifting for us when it comes to working with times and dates:</p>
+<pre class="r"><code>library(lubridate)</code></pre>
+<pre class="r"><code>flights %&gt;% 
+  mutate(is_delayed = dep_delay &gt; 0) %&gt;% 
+  mutate(day_of_week = wday(time_hour)) %&gt;%   # Wochentag
+  group_by(origin) %&gt;% 
+  drop_na(is_delayed, origin) %&gt;% 
+  ggplot() +
+  aes(x = origin, fill = is_delayed) +
+  geom_bar(position = &quot;fill&quot;) +
+  facet_wrap(~ day_of_week) +
+  scale_fill_viridis_d()  # d wie &quot;discrete&quot;</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-16-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+</div>
+<div id="reproducibility" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.0.2 (2020-06-22)
+#&gt;  os       macOS  10.16                
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2021-02-24                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version     date       lib source                             
+#&gt;  assertthat    0.2.1       2019-03-21 [1] CRAN (R 4.0.0)                     
+#&gt;  backports     1.2.1       2020-12-09 [1] CRAN (R 4.0.2)                     
+#&gt;  blogdown      1.1         2021-01-19 [1] CRAN (R 4.0.2)                     
+#&gt;  bookdown      0.21.6      2021-02-02 [1] Github (rstudio/bookdown@6c7346a)  
+#&gt;  broom         0.7.5       2021-02-19 [1] CRAN (R 4.0.2)                     
+#&gt;  bslib         0.2.4.9000  2021-02-02 [1] Github (rstudio/bslib@b3cd7a9)     
+#&gt;  cachem        1.0.4       2021-02-13 [1] CRAN (R 4.0.2)                     
+#&gt;  callr         3.5.1       2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  cellranger    1.1.0       2016-07-27 [1] CRAN (R 4.0.0)                     
+#&gt;  cli           2.3.1       2021-02-23 [1] CRAN (R 4.0.2)                     
+#&gt;  codetools     0.2-16      2018-12-24 [2] CRAN (R 4.0.2)                     
+#&gt;  colorspace    2.0-0       2020-11-11 [1] CRAN (R 4.0.2)                     
+#&gt;  crayon        1.4.1       2021-02-08 [1] CRAN (R 4.0.2)                     
+#&gt;  DBI           1.1.1       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  dbplyr        2.1.0       2021-02-03 [1] CRAN (R 4.0.2)                     
+#&gt;  debugme       1.1.0       2017-10-22 [1] CRAN (R 4.0.0)                     
+#&gt;  desc          1.2.0       2018-05-01 [1] CRAN (R 4.0.0)                     
+#&gt;  devtools      2.3.2       2020-09-18 [1] CRAN (R 4.0.2)                     
+#&gt;  digest        0.6.27      2020-10-24 [1] CRAN (R 4.0.2)                     
+#&gt;  dplyr       * 1.0.4       2021-02-02 [1] CRAN (R 4.0.2)                     
+#&gt;  ellipsis      0.3.1       2020-05-15 [1] CRAN (R 4.0.0)                     
+#&gt;  evaluate      0.14        2019-05-28 [1] CRAN (R 4.0.0)                     
+#&gt;  fansi         0.4.2       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  fastmap       1.1.0       2021-01-25 [1] CRAN (R 4.0.2)                     
+#&gt;  forcats     * 0.5.1       2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  fs            1.5.0       2020-07-31 [1] CRAN (R 4.0.2)                     
+#&gt;  generics      0.1.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  ggplot2     * 3.3.3       2020-12-30 [1] CRAN (R 4.0.2)                     
+#&gt;  glue          1.4.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  gtable        0.3.0       2019-03-25 [1] CRAN (R 4.0.0)                     
+#&gt;  haven         2.3.1       2020-06-01 [1] CRAN (R 4.0.0)                     
+#&gt;  hms           1.0.0       2021-01-13 [1] CRAN (R 4.0.2)                     
+#&gt;  htmltools     0.5.1.1     2021-01-22 [1] CRAN (R 4.0.2)                     
+#&gt;  httr          1.4.2       2020-07-20 [1] CRAN (R 4.0.2)                     
+#&gt;  jquerylib     0.1.3       2020-12-17 [1] CRAN (R 4.0.2)                     
+#&gt;  jsonlite      1.7.2       2020-12-09 [1] CRAN (R 4.0.2)                     
+#&gt;  knitr         1.31        2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  lifecycle     1.0.0       2021-02-15 [1] CRAN (R 4.0.2)                     
+#&gt;  lubridate     1.7.9.2     2020-11-13 [1] CRAN (R 4.0.2)                     
+#&gt;  magrittr      2.0.1       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  memoise       2.0.0       2021-01-26 [1] CRAN (R 4.0.2)                     
+#&gt;  modelr        0.1.8       2020-05-19 [1] CRAN (R 4.0.0)                     
+#&gt;  munsell       0.5.0       2018-06-12 [1] CRAN (R 4.0.0)                     
+#&gt;  pillar        1.5.0       2021-02-22 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgbuild      1.2.0       2020-12-15 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgconfig     2.0.3       2019-09-22 [1] CRAN (R 4.0.0)                     
+#&gt;  pkgload       1.2.0       2021-02-23 [1] CRAN (R 4.0.2)                     
+#&gt;  prettyunits   1.1.1       2020-01-24 [1] CRAN (R 4.0.0)                     
+#&gt;  processx      3.4.5       2020-11-30 [1] CRAN (R 4.0.2)                     
+#&gt;  ps            1.5.0       2020-12-05 [1] CRAN (R 4.0.2)                     
+#&gt;  purrr       * 0.3.4       2020-04-17 [1] CRAN (R 4.0.0)                     
+#&gt;  R6            2.5.0       2020-10-28 [1] CRAN (R 4.0.2)                     
+#&gt;  Rcpp          1.0.6       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  readr       * 1.4.0       2020-10-05 [1] CRAN (R 4.0.2)                     
+#&gt;  readxl        1.3.1       2019-03-13 [1] CRAN (R 4.0.0)                     
+#&gt;  remotes       2.2.0       2020-07-21 [1] CRAN (R 4.0.2)                     
+#&gt;  reprex        1.0.0       2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  rlang         0.4.10      2020-12-30 [1] CRAN (R 4.0.2)                     
+#&gt;  rmarkdown     2.7         2021-02-19 [1] CRAN (R 4.0.2)                     
+#&gt;  rprojroot     2.0.2       2020-11-15 [1] CRAN (R 4.0.2)                     
+#&gt;  rstudioapi    0.13.0-9000 2021-02-11 [1] Github (rstudio/rstudioapi@9d21f50)
+#&gt;  rvest         0.3.6       2020-07-25 [1] CRAN (R 4.0.2)                     
+#&gt;  sass          0.3.1       2021-01-24 [1] CRAN (R 4.0.2)                     
+#&gt;  scales        1.1.1       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  sessioninfo   1.1.1       2018-11-05 [1] CRAN (R 4.0.0)                     
+#&gt;  stringi       1.5.3       2020-09-09 [1] CRAN (R 4.0.2)                     
+#&gt;  stringr     * 1.4.0       2019-02-10 [1] CRAN (R 4.0.0)                     
+#&gt;  testthat      3.0.2       2021-02-14 [1] CRAN (R 4.0.2)                     
+#&gt;  tibble      * 3.0.6       2021-01-29 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyr       * 1.1.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyselect    1.1.0       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  tidyverse   * 1.3.0       2019-11-21 [1] CRAN (R 4.0.0)                     
+#&gt;  usethis       2.0.1       2021-02-10 [1] CRAN (R 4.0.2)                     
+#&gt;  utf8          1.1.4       2018-05-24 [1] CRAN (R 4.0.0)                     
+#&gt;  vctrs         0.3.6       2020-12-17 [1] CRAN (R 4.0.2)                     
+#&gt;  withr         2.4.1       2021-01-26 [1] CRAN (R 4.0.2)                     
+#&gt;  xfun          0.21        2021-02-10 [1] CRAN (R 4.0.2)                     
+#&gt;  xml2          1.3.2       2020-04-23 [1] CRAN (R 4.0.0)                     
+#&gt;  yaml          2.2.1       2020-02-01 [1] CRAN (R 4.0.0)                     
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Rlibs
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre>
+</div>

@@ -1,0 +1,277 @@
+---
+title: Metadaten von Forschungsartikeln herunterladen
+author: Sebastian Sauer
+date: '2021-07-08'
+slug: metadaten-von-forschungsartikeln-herunterladen
+categories:
+  - rstats
+tags:
+  - metascience
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: true
+    number_sections: true
+---
+
+
+```{r global-knitr-options, include=FALSE}
+knitr::opts_chunk$set(fig.pos = 'H',
+  fig.asp = 0.618,
+  fig.width = 5,
+  fig.cap = "", 
+  fig.path = "",
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  fig.show = "hold")
+```
+
+
+# Vorbereitung
+
+```{r}
+library(tidyverse)
+library(printr)
+library(rcrossref)
+library(gt)
+```
+
+
+# Via Crossref
+
+Von der [Crossref-Webseite](https://www.crossref.org/):
+
+>   Crossref makes research outputs easy to find, cite, link, assess, and reuse. We’re a not-for-profit membership organization that exists to make scholarly communications better.
+
+
+
+
+Mit diesem R-Paket kann man [Crossref](https://www.crossref.org/) abfragen:
+
+```{r}
+library(rcrossref)
+```
+
+
+## Abfragen, einfach
+
+
+```{r}
+mindfulness_query <- 
+  cr_works(query="mindfulness")
+```
+
+
+
+Ein Blick in die Ergebnisse:
+
+
+
+```{r}
+mindfulness_query %>% 
+  map(head)
+```
+
+Welche Daten werden in den Daten `data` zurückgegeben?
+
+
+```{r}
+mindfulness_query$data %>% 
+  names()
+```
+
+
+
+# Filter
+
+
+[Viele Filter sind möglich](https://docs.ropensci.org/rcrossref/reference/filters.html#arguments).
+
+
+Begrenzen wir uns auf Journal-Artikel:
+
+
+
+```{r}
+mindfulness_query2 <- 
+  cr_works(query = "mindfulness",
+           filter = c(type = "journal-article"))
+```
+
+
+```{r}
+mindfulness_query2$data %>% 
+  slice(1:2) %>% 
+  select(-reference) %>%   # zu viel Kram
+  gt()
+```
+
+
+Weitere Infos auf der [Hilfeseite](https://docs.ropensci.org/rcrossref/reference/cr_works.html).
+
+## Anzahl
+
+Von der Hilfeseite:
+
+
+>    **limit**   Number of results to return in the query. Not relavant when searching with specific dois. Default: 20. Max: 1000
+
+# Dois rausziehen
+
+
+
+```{r}
+mindfulness_dois <- 
+  mindfulness_query2$data %>% 
+  pull(doi)
+```
+
+```{r}
+mindfulness_dois %>% head()
+```
+
+
+
+
+# Zitationen herunterladen
+
+Standard-Format ist Bibtex. Viele Zitationsstile sind möglich; Standard ist APA.
+
+```{r}
+cr_cn(mindfulness_dois[1], format = "text")
+```
+
+
+```{r}
+cr_cn(mindfulness_dois[1], format = "bibtex") %>% 
+  cat()
+```
+
+# Abstracts herunterladen
+
+
+Leider haben nicht alle Papers einen Abstract:
+
+```{r error = TRUE}
+rcrossref::cr_abstract('10.1007/s12671-012-0174-6')
+```
+
+Entsprechend:
+
+```{r error = TRUE}
+cr_abstract(doi = mindfulness_dois[1])
+```
+
+
+## "Safely" Abstracts herunterladen
+
+Probieren wir, mehrere Abstracts herunterzuladen:
+
+```{r}
+cr_abstract_safely <- safely(cr_abstract)
+```
+
+
+```{r eval = TRUE}
+mindfulness_abstracts <- 
+  mindfulness_dois %>% 
+    map(cr_abstract_safely)
+```
+
+```{r}
+mindfulness_abstracts %>% 
+  map("error")
+```
+
+## Artikel nur mit Abstracts 
+
+
+
+```{r}
+mindfulness_query3 <- 
+  cr_works(query = "mindfulness",
+           filter = c(type = "journal-article",
+                      has_abstract = TRUE),
+           limit = 3,
+           .progress ="text")
+```
+
+
+
+```{r}
+mindfulness_query3$data %>% 
+  select(-reference) %>% 
+  gt()
+```
+
+```{r}
+mindfulness_query3$data %>% 
+  select(doi, abstract) %>% 
+  slice(1) %>% 
+  pull(abstract)
+```
+
+
+
+## Abstract mit `cr_abstract`
+
+Ziehen wir uns die Dois:
+
+```{r}
+mindfulness_dois3 <- 
+  mindfulness_query3$data %>% 
+  pull(doi)
+```
+
+
+
+```{r eval = TRUE}
+mindfulness_abstracts <- 
+  mindfulness_dois3 %>% 
+    map(cr_abstract)
+```
+
+
+## Check
+
+```{r}
+mindfulness_abstracts[[1]] %>% 
+  cat()
+```
+
+
+```{r}
+mindfulness_abstracts[[2]] %>% 
+  cat()
+```
+
+
+```{r}
+mindfulness_abstracts[[3]] %>% 
+  cat()
+```
+
+
+## Auf einen Haps
+
+
+```{r}
+mindfulness_abstracts
+```
+
+
+# Andere APIs
+
+
+## Google Scholar hat keine API, wie es aussieht
+
+[Nach dieser Quelle](https://www.nature.com/articles/d41586-018-04190-5/) hat Google Scholar keine offizielle API.
+
+Es existieren aber [kommerzielle Versuche](https://www.scraperapi.com/blog/best-google-scholar-apis-proxies/#serpapi) eine API nachzustellen.
+
+
+### Weitere API
+
+[Hier ist ein Überblick](https://libraries.mit.edu/scholarly/publishing/apis-for-scholarly-resources/) über weitere APIs.

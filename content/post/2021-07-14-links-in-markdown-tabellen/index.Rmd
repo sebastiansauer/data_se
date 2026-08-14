@@ -1,0 +1,146 @@
+---
+title: Links in Markdown-Tabellen
+author: Sebastian Sauer
+date: '2021-07-14'
+slug: links-in-markdown-tabellen
+
+tags:
+  - markdown
+  - RMarkdown
+output:
+  blogdown::html_page:
+    toc: true
+    number_sections: true
+---
+
+
+
+```{r global-knitr-options, include=FALSE}
+knitr::opts_chunk$set(fig.pos = 'H',
+  fig.asp = 0.618,
+  fig.width = 5,
+  fig.cap = "", 
+  fig.path = "",
+  echo = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = FALSE,
+  fig.show = "hold")
+```
+
+
+```{r load-libs}
+library(tidyverse)
+library(gt)
+library(here)
+```
+
+
+
+# Hintergrund
+
+Tabellen in Markdown sind mitunter nervig zu erstellen.
+Am einfachsten ist es, wenn die Daten in Form einer CSV- oder Excel-Tabelle vorliegen. 
+
+Tipp: Große Mengen von (nur) Text (keine Zahlen) sind vielleicht besser nicht in Form einer Tabelle, sondern einer Liste anzuführen.
+
+
+
+
+
+# Beispiel-Daten laden
+
+
+```{r}
+daten_pfad <- "/content/post/2021-07-07-zeitungsartikel-per-api-herunterladen/results_covid1.rds"
+```
+
+
+
+```{r}
+d_raw <- read_rds(paste0(here::here(),daten_pfad))
+
+d <- 
+  d_raw[["results_df"]]
+```
+
+
+```{r}
+glimpse(d)
+```
+
+
+# Daten aufbereiten
+
+
+Nur die ersten 50 Zeichen drucken:
+
+
+```{r}
+d2 <-
+  d %>% 
+  mutate(across(
+    .fns = ~ str_sub(.x, end = 50)
+  )) %>% 
+  slice(1:5)
+```
+
+
+# Tabelle 1: `gt()`
+
+
+```{r}
+d2 %>% 
+  gt()
+```
+
+
+
+# Tabelle 2: `kable()` 
+
+
+```{r}
+d2 %>% 
+  knitr::kable()
+```
+
+
+
+# Tabelle 3: `pander` 
+
+
+Hier muss man als Chunk-Option noch setzen:
+
+`{r results = "asis"}`.
+
+
+
+```{r results = "asis"}
+pander::pandoc.table(d2)
+```
+
+
+# Tabelle 4: `datatable()`
+
+
+[Hier](https://rstudio.github.io/DT/options.html) finden sich Hinweise zu den Optionen.
+
+Mit viel Text klappt es nicht so gut aus dem Stegreif:
+
+
+```{r out.width = "100%"}
+DT::datatable(d2,
+              options = list(
+                autoWidth = TRUE,
+                columnDefs = list(list(width = '200px'))))
+```
+
+
+
+# Fazit:
+
+
+Die Tabelle mit `gt()` macht den saubersten Eindruck.
+
+Die Links werden direkt angezeigt :thumbs_up:.
+

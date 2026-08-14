@@ -1,0 +1,128 @@
+---
+title: Rücktransformation logarithmierter y-Werte
+author: Sebastian Sauer
+date: '2021-06-18'
+slug: rücktransformation-logarithmierter-y-werte
+categories:
+  
+tags:
+  - tutorial
+  - German
+  - Math
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+# Kontext
+
+Dieser Post bezieht sich auf [diese Fallstudie](https://moderndive.com/11-thinking-with-data.html#seattle-house-prices).
+
+
+
+# Vorbereitung
+
+
+```{r}
+library(tidyverse)  # Datenjudo
+library(moderndive)  # Daten
+library(modelr)  # für "add_predictions()"
+data("house_prices")
+```
+
+
+# LogY-LogX-Modell
+
+>   Bei einem LogY-LogX-Modell gilt: Steigt X um 1%, so steigt Y um k%.
+
+LogY-X-Modell: Steigt X um 1 Einheit, so steigt Y um k%.
+
+
+
+```{r}
+house_prices <- house_prices %>%
+  mutate(
+    log10_price = log10(price),
+    log10_size = log10(sqft_living)
+    )
+```
+
+
+Hier ist die Basis des Logarithmus 10, so dass gilt $lg(100) = 2, lg(1000) = 3$ etc.
+
+# Modell 1
+
+Wir beziehen uns auf [dieses Modell](https://moderndive.com/11-thinking-with-data.html#house-prices-regression).
+
+
+
+```{r}
+# Fit regression model:
+price_interaction <- lm(log10_price ~ log10_size * condition, 
+                        data = house_prices)
+
+# Get regression table:
+get_regression_table(price_interaction)
+```
+
+# Vorhersage zum Beispiel aus der Fallstudie
+
+```{r}
+preds1 <- predict(price_interaction,
+                  newdata = data.frame(
+                    condition = factor("5"),  #nominal skaliert
+                    log10_size = 3.28))
+preds1  # 5.73
+```
+
+
+100000 -> 1000000
+
+500000
+
+Das ist der Wert des Hauses in der Log-Skala. Für die Rohwerte müssen wir den Logarithmus wieder umkehren, also die Umkehrfunktion anwenden, das ist die *Exponenzialfunktion*, hier zur Basis 10:
+
+```{r}
+10^5.73  # delog
+```
+
+Der Wert der Immobilie liegt also, laut Modell, bei gut 500 Tausend Dollar.
+
+
+# Vorhersagen wie im Prognose-Wettbewerb
+
+```{r}
+house_prices <-
+  house_prices %>% 
+  add_predictions(price_interaction,
+                  var = "pred_log10") %>% 
+  mutate(pred = 10^pred_log10)  # da Log-Basis 10
+```
+
+Wäre die Basis des Log. nicht 10, sondern *e*, dann hieße der Code:
+
+
+```{r}
+house_prices <-
+  house_prices %>% 
+  add_predictions(price_interaction,
+                  var = "pred_log10") %>% 
+  mutate(pred_e = 2.71^pred_log10)  # da Log-Basis 10
+```
+
+# Check
+
+Ein Blick in die Daten:
+
+```{r}
+house_prices %>% 
+  select(price, pred_log10, pred) %>% 
+  slice(1:10)
+```
+
+
+Unser Modell scheint plausible Vorhersagen zu tätigen.
+

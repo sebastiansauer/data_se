@@ -1,0 +1,262 @@
+---
+title: Talent and Looks -- Collider bias
+author: Sebastian Sauer
+date: '2021-06-24'
+draft: false
+slug: talent-and-looks-collider-bias
+categories: [plotting, musing]
+tags:
+  - tutorial
+  - plotting
+---
+
+
+# Background
+
+
+Some musing on the collider bias.
+
+Let's try to reverse engineer this image
+
+
+![](https://brilliant-staff-media.s3-us-west-2.amazonaws.com/tiffany-wang/1Mvt8RPtlU.png){ width=70% }
+
+# Setup
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+```{r}
+library(tidyverse)
+library(ggdag)
+```
+
+# Simulate some data
+
+```{r}
+n <- 1000
+```
+
+
+```{r}
+
+d <- tibble(
+  x = rnorm(n, mean = 0, sd = 1),
+  y = rnorm(n, mean = 0, sd = 1),
+  e = rnorm(n, mean = 0, sd = 0.3),
+  z = abs(x) * abs(y))
+```
+
+
+
+# d: Uncorrelated data
+
+The farer from the centroid the lighter the color.
+
+```{r}
+ggplot(d) +
+  aes(x = x,
+      y = y,
+      color = z) +
+  geom_point() +
+  scale_color_viridis_c()
+```
+
+
+# d2: vertical lines
+
+
+
+```{r}
+d2 <- tibble(
+  x = runif(n),
+  y = runif(n),
+  e = rnorm(n, mean = 0, sd = 0.3),
+  z = abs(x) * abs(y)
+)
+```
+
+
+Here we have the vertical line looked for, but it's not symmetrical.
+
+```{r}
+ggplot(d2) +
+  aes(x = x,
+      y = y,
+      color = z) +
+  geom_point() +
+  scale_color_viridis_c()
+```
+
+
+# Circle line 
+
+
+
+```{r}
+d3 <- tibble(
+  x = rnorm(n),
+  y = rnorm(n)
+)
+```
+
+
+```{r}
+d3 <-
+  d3 %>% 
+  mutate(status = case_when(
+    sqrt(x^2 + y^2) > 1.4 ~ TRUE,
+    TRUE ~ FALSE
+  ))
+```
+
+
+
+```{r}
+d3 %>% 
+  ggplot() +
+  aes(x  = x,
+      y = y,
+      color = status) +
+  geom_point()
+```
+
+
+
+# Put a triangle on random data
+
+
+
+```{r}
+polygon_df <- tibble(
+  x = c(0, 0, 0.75),
+  y = c(0, 0.75, 0)
+)
+polygon_df2 <- tibble(
+  x = c(0.25, 1, 1),
+  y = c(1, 1, .25)
+)
+
+```
+
+
+```{r}
+ggplot(d2) +
+  aes(x = x,
+      y = y) +
+  geom_point() +
+  scale_color_viridis_c() +
+  geom_polygon(data = polygon_df, alpha = .5) +
+  geom_polygon(data = polygon_df2, alpha = .5) +
+  theme_void()
+  
+```
+
+
+
+# Compute a function for the two linear borders 
+
+```{r}
+myf <- function(x) -x+0.75
+
+myf2 <- function(x) -x + 1.25
+```
+
+
+```{r}
+d2 <- tibble(
+  x = runif(n),
+  y = runif(n),
+  status = case_when(
+    y > myf(x) & y < myf2(x) ~ TRUE,
+    TRUE ~ FALSE
+  )
+)
+```
+
+
+
+```{r}
+d2 %>% 
+  ggplot() +
+  aes(x  = x,
+      y = y,
+      color = status) +
+  geom_point() +
+  scale_color_manual(values = c("grey80", "black")) +
+  theme_bw() +
+  labs(x = "Looks",
+       y = "Talent") +
+    theme(legend.position = "bottom",
+          axis.text = element_blank())
+```
+
+
+## Move legend
+
+
+
+
+```{r}
+d2 %>% 
+  ggplot() +
+  aes(x  = x,
+      y = y,
+      color = status) +
+  geom_point() +
+  scale_color_manual(values = c("grey80", "black")) +
+  theme_bw() +
+  labs(x = "Looks",
+       y = "Talent") +
+    theme(legend.position = c(0.10, 0.20),
+          axis.text = element_blank())
+```
+
+## Without filter
+
+Here's how the data look without the "filter" of status:
+
+```{r}
+d2 %>% 
+  ggplot() +
+  aes(x  = x,
+      y = y) +
+  geom_point() +
+ # scale_color_manual(values = c("grey80", "black")) +
+  theme_bw() +
+  labs(x = "Looks",
+       y = "Talent") +
+    theme(legend.position = "bottom",
+          axis.text = element_blank())
+```
+
+
+
+# Collider triangle
+
+
+
+```{r}
+collider_triangle(x = "Looks",
+                  y = "Talent",
+                  m = "get_dated") %>% 
+  ggdag_dseparated(controlling_for = "m",
+                   text = TRUE,
+                   use_labels = "label") +
+  theme_dag()
+```

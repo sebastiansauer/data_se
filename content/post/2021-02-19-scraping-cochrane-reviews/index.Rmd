@@ -1,0 +1,474 @@
+---
+title: Scraping Cochrane Reviews, some trials
+author: Sebastian Sauer
+date: '2021-02-19'
+slug: scraping-cochrane-reviews
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+---
+
+**CAUTION**
+
+This is beta stuff! Use with care.
+
+---
+
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(rvest)  # web scraping
+library(xml2)  # web scraping
+library(stringr)  # string manipulation
+library(printr)  # print dfs as tables
+```
+
+
+
+
+>   The Cochrane Library (ISSN 1465-1858) is a collection of databases that contain different types of high-quality, independent evidence to inform healthcare decision-making. 
+
+[Source: Cochrane](https://www.cochranelibrary.com/about/about-cochrane-library)
+
+
+
+For that reason the site holds a treasure of information for health scientists. Let's try to use some automatic tools to retrieve that information, ie., let's do some web scraping.
+
+
+
+# Parse one review
+
+Let's read one page of the Cochrane Library, a page on which a review is published. For no particular reason, just as a showcase, let's pick[this review](https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD012791.pub2/full):
+
+```{r}
+cochrane_url <- "https://www.cochranelibrary.com/cdsr/doi/10.1002/14651858.CD012791.pub2/full"
+```
+
+
+Let's parse the page:
+
+```{r}
+page_content <- read_html(cochrane_url)  
+```
+
+Let's have a glimpse at the parsed page:
+
+```{r}
+str(page_content)
+```
+
+
+# Parse the title
+
+```{r}
+title_publication <- page_content %>% 
+  html_nodes(".publication-title") %>% 
+  html_text()
+```
+
+*`r title_publication`*
+
+# Parse the abstract
+
+
+```{r}
+abstract <- page_content %>%
+  html_node("body") %>% 
+  xml_find_all("//section[contains(@class, 'abstract')]") %>% 
+  rvest::html_text()
+```
+
+
+`r abstract`
+
+# Segment the abstract 
+
+
+## Background
+
+```{r}
+background_raw <- str_extract(abstract, "Background.+Objectives")
+
+background <- 
+  background_raw %>% str_remove_all("Background|Objectives")
+
+```
+
+
+`r background`
+
+## Objectives 
+
+```{r}
+objectives_raw <- str_extract(abstract, "Objectives.+Search methods")
+
+objectives <- 
+  objectives_raw %>% str_remove_all("Objectives|Search methods")
+objectives
+```
+
+
+`r objectives`
+
+## And so forth
+
+... for the other structured parts of the abstract.
+
+
+
+
+
+
+
+
+
+
+
+# Summary of Findings table
+
+
+It should be noted that there are at times more than one table of findings. Let's be content with the first one.
+
+
+## Parse node of class 'summaryOfFindings'
+
+By looking around in the source code of the web page, I found the class `summaryOfFindings`. Sounds promising.
+
+```{r}
+summaryOfFindings <- 
+  page_content %>% 
+  html_node("body") %>% 
+  xml_find_all("//section[contains(@class, 'summaryOfFindings')]") %>% 
+  html_text()
+
+summaryOfFindings
+```
+
+So we have found the summary of findings, but it's not a table, it's rather a hot mess. Let's try to make sense of it.
+
+
+## Table by ID
+
+Looking further in the source code of the site, I realized that the tables have a unique ID, let's address the table by its ID.
+
+```{r}
+page_content %>% 
+  html_nodes("#CD012791-tbl-0001") %>% 
+  html_text()
+```
+
+
+Not really better.
+
+
+## Looking for tables
+
+Let's search explicitly for tables.
+
+
+```{r}
+page_content %>% 
+  html_nodes("table")
+```
+Looks promising. Let's have a look at the first table.
+
+```{r}
+summaryOfFindingsTable <- 
+page_content %>% 
+  html_nodes("table") %>% 
+  .[[1]] %>% 
+  html_table(fill = TRUE)
+
+summaryOfFindingsTable
+```
+
+
+```{r}
+summaryOfFindingsTable <- 
+  summaryOfFindingsTable %>% 
+  mutate(id = row_number()) %>% 
+  select(id, everything())
+
+head(summaryOfFindingsTable)
+```
+
+
+
+Much better! The first two lines appear to be the table legend. The two lines with `Outcomes` are the read header line (split in two, as we actually have two header lines; compare with the source).
+
+
+# Extract (Primary) Outcomes with the GRADE
+
+Very well then, let's extract the outcomes with their respective GRADE.
+
+
+## Get column with outcomes
+
+Find the column where the outcomes are stored and rename it to `Outcomes`.  
+
+```{r}
+col_Outcomes <- 
+  summaryOfFindingsTable %>% 
+  map(~ str_detect(., pattern = "Outcome")) %>% 
+  map_lgl(~ any(. == TRUE)) %>% 
+  which()
+
+col_Outcomes
+```
+
+
+```{r}
+names(summaryOfFindingsTable)[col_Outcomes] <- "Outcomes"
+
+names(summaryOfFindingsTable)
+```
+
+
+## Delete non-data rows
+
+Also delete all rows that do not contain data.
+
+
+To that end, find the highest row number of a row containing the word "Outcomes".
+
+
+```{r}
+max_row_to_delete <- 
+  summaryOfFindingsTable %>% 
+  filter(Outcomes == "Outcomes") %>% 
+  pull(id) %>% 
+  max()
+
+max_row_to_delete
+```
+
+
+```{r}
+summaryOfFindingsTable2 <-
+  summaryOfFindingsTable %>% 
+  filter(id > max_row_to_delete)
+
+summaryOfFindingsTable2
+```
+
+
+# Delete footer
+
+Maybe more generally, it can be found that cells that have identical values across columns do not contain data and can hence be deleted.
+
+
+```{r}
+identical_cells_across_cols <- 
+  map2_lgl(.x = summaryOfFindingsTable2$Outcomes,
+           .y = summaryOfFindingsTable2$X2,
+           .f = identical)
+  
+identical_cells_across_cols
+```
+
+
+```{r}
+summaryOfFindingsTable3 <-
+  summaryOfFindingsTable2 %>% 
+  filter(!identical_cells_across_cols)
+```
+
+We're advancing!
+
+
+## Get columns with GRADE information
+
+```{r}
+col_GRADES <- 
+  summaryOfFindingsTable3 %>% 
+  map( ~ str_detect(.x, pattern = "⊕|⊝")) %>% 
+  map_lgl( ~ any(. == TRUE)) %>% 
+  keep(.p = . == TRUE) %>% 
+  names()
+
+col_GRADES
+```
+
+
+
+
+```{r}
+summaryOfFindingsTable4 <-
+  summaryOfFindingsTable3 %>% 
+  rename(GRADE := {col_GRADES}) 
+
+summaryOfFindingsTable4
+```
+
+
+## Show the Outcomes and the respective GRADE
+
+
+```{r}
+summaryOfFindingsTable4 %>% 
+  select(id, Outcomes, GRADE)
+
+```
+
+
+
+# Type of Effect (effect statistic)
+
+
+Let's use the summary table to extract the type of effect, that is, the statistic used for reporting the effect size. Out of the front of my brain, I'd see the following statistics here:
+
+- SMD (standardized mean difference)
+- RR (relative risk)
+- OR (odds ratio)
+- MD (mean difference, ie., unstandardized)
+- Mean score
+
+
+
+
+```{r}
+effect_statistic <- "SMD|RR|OR|MD|[M|m]ean.+[S|s]core"
+```
+
+```{r}
+effect_statistic_per_outcome <- 
+  summaryOfFindingsTable4 %>% 
+  map_dfc(~ tibble(col = str_extract(., pattern = effect_statistic))) %>% 
+  pmap_chr(.f = paste) %>% 
+  map_chr(~ str_remove_all(., pattern = "NA | NA"))
+
+```
+
+
+```{r}
+summaryOfFindingsTable5 <-
+  summaryOfFindingsTable4 %>% 
+  mutate(effect_statistic = effect_statistic_per_outcome)
+```
+
+
+
+# Number of trials and participants per outcome
+
+
+Let's look in the header to see in which column we would find something like "№ of participants (studies)" (or some derivates of this string).
+
+
+```{r}
+n_of_trials_string <- "of participants \\(studies\\)"
+```
+
+
+```{r}
+col_participants_studies <- 
+  summaryOfFindingsTable %>% 
+  map( ~ str_detect(., pattern = n_of_trials_string)) %>% 
+  map_lgl( ~ any(. == TRUE)) %>% 
+  keep(isTRUE) %>% 
+  names()
+
+col_participants_studies
+```
+
+
+```{r}
+summaryOfFindingsTable6 <-
+  summaryOfFindingsTable5 %>% 
+  rename(n_participants_studies := {col_participants_studies}) %>% 
+  separate(col = n_participants_studies, sep = "\\(",
+           into = c("n_participants", "n_studies"),
+           remove = FALSE)
+
+
+summaryOfFindingsTable6
+```
+
+# Confidence interval for relative risk per outcome
+
+
+```{r}
+rel_eff_CI_str <- "Relative effect \\(95% CI\\)"
+```
+
+```{r}
+col_rel_eff_CI <- 
+  summaryOfFindingsTable %>% 
+  map( ~ str_detect(., pattern = rel_eff_CI_str)) %>% 
+  map_lgl( ~ any(. == TRUE)) %>% 
+  keep(isTRUE) %>% 
+  names()
+
+col_rel_eff_CI
+```
+
+
+```{r}
+summaryOfFindingsTable7 <- 
+  summaryOfFindingsTable6 %>% 
+  rename(relative_effect_95CI := {col_rel_eff_CI}) %>% 
+  mutate(CI_lower = str_extract(relative_effect_95CI,
+                                "\\(\\d+\\.*\\d+")) %>% 
+  mutate(CI_lower = str_remove(CI_lower, "\\(")) %>% 
+  mutate(CI_upper = str_extract(relative_effect_95CI,
+                                "\\d+\\.*\\d+\\)")) %>% 
+  mutate(CI_upper = str_remove(CI_upper, "\\)"))
+
+summaryOfFindingsTable7
+```
+
+
+
+
+
+# Debrief
+
+
+As of this quick and dirty analysis, it seems that relevant information can be scraped from the Cochrane Library website. However, this hinges on the condition that other reviews, that is, other sites at Cochrane Library are structured in the same way. To be determined.
+
+In addition, it would be much more elegant to use the Cochrane API. However, so far I've found no way how to be granted access.
+
+It might seem that the whole fuss is like shooting sparrows with canons: All the information parsed could have easily been copy-and-pasted. True. However assume you'd like to parse a great number of pages. In that case you'd be glad to have some machine doing the boring stuff for you.
+
+
+To get it running for production, all the stuff here should go into some neat function, so that the scraping can be applies smoothly to more pages.
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

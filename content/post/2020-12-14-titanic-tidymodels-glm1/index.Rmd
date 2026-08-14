@@ -1,0 +1,214 @@
+---
+title: 'titanic-tidymodels: glm1'
+author: Sebastian Sauer
+date: '2020-12-14'
+slug: titanic-tidymodels-glm1
+categories:
+  
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(tidymodels)  # modelling
+library(broom)  # tidy model output
+library(skimr)  # overview on descriptives
+library(testthat)  # unit testing
+```
+
+
+# Objective
+
+Predicting the survival in the Titanic disaster. We'll be using a tidymodels approach.
+
+
+
+# Load and prepare data
+
+
+## Hide details in a function
+
+```{r}
+prepare_data <- function(traindata_url = "https://raw.githubusercontent.com/sebastiansauer/Statistiklehre/main/data/titanic/train.csv",
+                         testdata_url = "https://raw.githubusercontent.com/sebastiansauer/Statistiklehre/main/data/titanic/test.csv") {
+
+
+  # import the data:
+  train <- read_csv(traindata_url)
+  test <- read_csv(testdata_url)
+  
+ 
+  # bind both samples into one:
+  data_raw <-
+    train %>% 
+    bind_rows(test)
+  
+  
+  # drop unused variables:
+  data <-
+    data_raw %>% 
+    select(-c(Name, Cabin, Ticket))
+  
+  
+  # convert string to factors:
+  data2 <- 
+    data %>% 
+    mutate(across(where(is.character), as.factor))
+  
+  # convert numeric outcome to nominal, to indicate classification:
+  data2 <- data2 %>% 
+    mutate(Survived = as.factor(Survived))
+  
+  
+  return(data2)
+}
+```
+
+
+
+
+
+```{r}
+data2 <- prepare_data()
+```
+
+
+
+# Split data into train and test
+
+```{r}
+split_titanic <- initial_time_split(data = data2, prop = 891/1309)
+train <- training(split_titanic)
+test <- testing(split_titanic)
+```
+
+
+# Define recipe
+
+```{r}
+
+titanic_recipe <- 
+  
+  # define model formula:
+  recipe(Survived ~ ., data = train) %>%
+  
+  # Use "ID" etc as ID, not as predictor:
+  update_role(PassengerId, new_role = "ID") %>%   
+
+  # impute missing values:
+  step_knnimpute(all_predictors(), neighbors = 3) %>%  
+  
+  # convert character and factor type variables into dummy variables:
+  step_dummy(all_nominal(), -all_outcomes()) %>%   
+  
+  # exclude near zero variance predictors:
+  step_nzv(all_predictors()) %>%  
+  
+  # exclude highly correlated vars:
+  step_corr(all_predictors()) %>% 
+  
+  # center (set mean to zero):
+  step_center(all_predictors(), -all_outcomes()) %>%  
+  
+  # set sd=1 
+  step_scale(all_predictors(), -all_outcomes())  
+```
+
+
+# Define model
+
+
+```{r}
+lr_mod <- 
+  logistic_reg() %>% 
+  set_engine("glm") %>% 
+  set_mode("classification")
+```
+
+
+
+
+# Define workflow
+
+```{r}
+titanic_wf1 <-
+  workflow() %>% 
+  add_model(lr_mod) %>% 
+  add_recipe(titanic_recipe)
+```
+
+
+# Fit the model
+
+```{r}
+titanic_fit_lr <-
+  titanic_wf1 %>% 
+  fit(data = train)
+```
+
+
+# Predict the test data
+
+
+```{r}
+test_baked <- bake(prep(titanic_recipe), 
+                   new_data = test)
+```
+
+
+```{r}
+test_with_pred <-
+  test_baked %>% 
+  bind_cols(predict(titanic_fit_lr, test)) %>% 
+  rename(pred_glm1 = .pred_class)
+```
+
+
+# Save csv file to disk
+
+
+```{r eval = TRUE}
+test_with_pred %>% 
+  select(PassengerId, Survived = pred_glm1) %>% 
+  write_csv(file = "titanic-glm1.csv")
+```
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

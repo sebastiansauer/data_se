@@ -1,0 +1,239 @@
+---
+title: Simple nomnoml in R examples
+author: Sebastian Sauer
+date: '2022-04-02'
+slug: simple-nomnoml-in-r-examples
+categories:
+  - rstats
+tags:
+  - visualization
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(nomnoml)  # graphs
+library(magick)  # render SVG image
+```
+
+# Motivation
+
+Sketching diagrams such as flow charts is a useful thing.
+There exist a number of well-known (command line) engine for that purpose, such as
+
+- Mermaid
+- GraphViz, aka DOT
+- TikZ
+- nomnoml
+
+# Introducing Nomnoml
+
+Nomnoml is quite new to the show.
+
+I like it, because it is simple, modern, and I find it visually quite appealing.
+
+
+# R API
+
+There's a nice API for nomnoml in R.
+
+Let's define a valid nomnoml spec for a simple graph:
+
+```{r}
+p1 <- "[x]->[y]"
+```
+
+
+And now plot it:
+
+```{r}
+nomnoml(p1)
+```
+
+
+# Adjust the size
+
+
+Adjust the size of the plot
+
+```{r}
+nomnoml(p1, width = 100, size = 100)
+```
+
+
+# Change the direction 
+
+```{r}
+p2 <- 
+"
+#direction: right
+[x]->[Y]
+"
+```
+
+
+```{r}
+nomnoml(p2)
+```
+
+
+```{r}
+p2 <- 
+"
+#direction: down
+[x]->[Y]
+"
+```
+
+```{r}
+nomnoml(p2)
+```
+
+
+# Size of the HTML container
+
+Use the knitr/rmarkdown options to control the size of the output chunk.
+
+`out.width="50%"` or similar options should do the trick.
+
+
+# Save to disk
+
+As png:
+
+```{r eval = FALSE}
+nomnoml(p1, png = "p1.png")
+```
+
+
+As svg:
+
+```{r eval = FALSE}
+nomnoml(p1, png = "p1.svg")
+```
+
+
+
+# Load from SVG
+
+A SVG file can be downloaded from the [nomnoml site]() with the included nicety that the source code is embedded.
+
+
+For that purpose, we need some funcionality to render the SVG,
+for which purpose the R package `magick`  is handy.
+
+```{r}
+library(magick)
+
+image_read(path = "nomnoml.svg")
+```
+
+
+
+# Caveats
+
+Some of the language appears not to be available via the R API.
+
+In addition, the rendering quality of larger graphs detiorates apparently.
+
+
+
+
+```{r tidymodels-workflow, out.width="100%"}
+d <- 
+"
+[Workflow|
+  [preprocessing|
+    [Vorverarbeitung]
+    [Imputation]
+    [Transformation]
+    [Prädiktorwahl]
+    [Feature Engineering]
+    [AV-Wahl]
+    [...]
+  ]
+  [fitting |
+    [Modell berechnen]
+    [...]
+  ]
+  [postprocessing|
+    [Grenzwerte für Klass. festlegen]
+    [...]
+  ]
+]
+"
+nomnoml(d, height = 500)
+```
+
+
+However,
+some more clever reshaping of the graph may mitigate the problem.
+
+
+```{r nomnoml-variant, out.width = "70%"}
+d2 <- 
+"
+Workflow|
+  [preprocessing|
+   Vorverarbeitung;
+   Imputation;
+   Transformation;
+   Prädiktorwahl
+   AV-Wahl
+   ...
+  
+  ]
+  [fitting |
+    Modell berechnen
+    ...
+  ]
+  [postprocessing|
+    Grenzwerte für Klass. festlegen
+    ...
+  ]
+]
+
+"
+nomnoml(d2, height = 500)
+```
+
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

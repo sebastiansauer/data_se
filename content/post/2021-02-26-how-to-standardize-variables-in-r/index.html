@@ -1,0 +1,360 @@
+---
+title: How to standardize variables in R
+author: Sebastian Sauer
+date: '2021-02-26'
+slug: how-to-standardize-variables-in-r
+categories:
+  - rstats
+tags:
+  - tutorial
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#motivation"><span class="toc-section-number">1</span> Motivation</a></li>
+<li><a href="#load-packages"><span class="toc-section-number">2</span> Load packages</a></li>
+<li><a href="#some-data"><span class="toc-section-number">3</span> Some data</a></li>
+<li><a href="#research-question"><span class="toc-section-number">4</span> Research question</a></li>
+<li><a href="#regression-with-unstandardized-input-variables"><span class="toc-section-number">5</span> Regression with <em>un</em>standardized input variables</a></li>
+<li><a href="#standardize-input-variables"><span class="toc-section-number">6</span> Standardize input variables</a></li>
+<li><a href="#regression-with-standardized-input-variables"><span class="toc-section-number">7</span> Regression with standardized input variables</a></li>
+<li><a href="#the-models-lm1-and-lm2-are-identical"><span class="toc-section-number">8</span> The models (<code>lm1</code> and <code>lm2</code>) are identical</a></li>
+<li><a href="#interpretation-of-a-standardized-regression-coefficient"><span class="toc-section-number">9</span> Interpretation of a standardized regression coefficient</a></li>
+<li><a href="#reproducibility"><span class="toc-section-number">10</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="motivation" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Motivation</h1>
+<p>Running a regression in R yields <em>un</em>standardized coefficients, <em>not</em> standardized ones. However, as is spelled out by eg., Gelman and Hill (2007), standardizing values is of advantages in many situations. This post shows how run a regression in R using standardized values as inputs (“standardized regression” for short, as some dup it).</p>
+<p>The advantage of standardizing input variables is the simpler comparison of importance. It can be seen as undesirable that the scaling (SD) of the input variable determines (in part) the regression coefficient. For instance, measuring the “power” of a car in horse power or in kilowatt will strongly influence the value of the regression coefficient. Similarly, measuring the distance walked in kilomweters or in millimeters will have an profound effect on the respective regression coefficient on, say, the amount of fat burned (in grams or in kilo grams…).</p>
+<p>Hence, having all variables on the same scale will facilitate easy comparison of the “importance” of each variable, as now all variables are on the same scale.</p>
+<p>The most common way to standardize the variable <span class="math inline">\(X\)</span> is to use the <span class="math inline">\(z\)</span> transformation:</p>
+<p><span class="math display">\[z_i = \frac{x_i - \mu}{sd_X}\]</span></p>
+</div>
+<div id="load-packages" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(broom)  # tidy regression output
+library(mosaic)  # standardizing variables</code></pre>
+</div>
+<div id="some-data" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Some data</h1>
+<pre class="r"><code>mtcars &lt;- read_csv(&quot;https://vincentarelbundock.github.io/Rdatasets/csv/datasets/mtcars.csv&quot;)</code></pre>
+</div>
+<div id="research-question" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Research question</h1>
+<p>Say, we are interested in the association of horse power (<code>hp</code>) and fuel consumption (<code>mpg</code>; miles per gallon): What’s the difference in the fuel consumption between cars which differ in their horse power?</p>
+</div>
+<div id="regression-with-unstandardized-input-variables" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Regression with <em>un</em>standardized input variables</h1>
+<pre class="r"><code>lm1 &lt;- lm(mpg ~ hp, data = mtcars)
+
+tidy(lm1)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">term</th>
+<th align="right">estimate</th>
+<th align="right">std.error</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">(Intercept)</td>
+<td align="right">30.0988605</td>
+<td align="right">1.6339210</td>
+<td align="right">18.421246</td>
+<td align="right">0e+00</td>
+</tr>
+<tr class="even">
+<td align="left">hp</td>
+<td align="right">-0.0682283</td>
+<td align="right">0.0101193</td>
+<td align="right">-6.742388</td>
+<td align="right">2e-07</td>
+</tr>
+</tbody>
+</table>
+<p>As cen be seen in the output, our model <code>lm1</code> estimates that the cars which differ in 1 hp, differ in -0.07 miles per gallon, on overage (and given the model is true). That is, a car with 1 hp more, goes 0.07 miles <em>less</em> (compared to a car with 1 hp less).</p>
+</div>
+<div id="standardize-input-variables" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Standardize input variables</h1>
+<pre class="r"><code>mtcars_standardized &lt;- 
+  mtcars %&gt;% 
+  mutate(hp_s = scale(hp))</code></pre>
+<p>As we see, <code>scale</code> does the trick, that is the z transformation. For example:</p>
+<pre class="r"><code>x &lt;- c(0,10, 20)
+scale(x)</code></pre>
+<table>
+<tbody>
+<tr class="odd">
+<td align="right">-1</td>
+</tr>
+<tr class="even">
+<td align="right">0</td>
+</tr>
+<tr class="odd">
+<td align="right">1</td>
+</tr>
+</tbody>
+</table>
+<p>Let’s double check:</p>
+<pre class="r"><code>x_mean &lt;- mean(x)
+x_sd &lt;- sd(x)
+
+z &lt;- (x - mean(x)) / sd(x)
+z
+#&gt; [1] -1  0  1</code></pre>
+<p>It’s not so nice that <code>scale()</code> takes a vector as input, but hands back a matrix.</p>
+<p>A similar function, <code>zscore()</code> is provided by the package <code>{mosaic}</code>; this function gives back a vector which is more comfortable:</p>
+<pre class="r"><code>zscore(x)
+#&gt; [1] -1  0  1</code></pre>
+</div>
+<div id="regression-with-standardized-input-variables" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Regression with standardized input variables</h1>
+<pre class="r"><code>lm2 &lt;- lm(mpg ~ hp_s, data = mtcars_standardized)
+
+tidy(lm2)</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th align="left">term</th>
+<th align="right">estimate</th>
+<th align="right">std.error</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">(Intercept)</td>
+<td align="right">20.090625</td>
+<td align="right">0.6828817</td>
+<td align="right">29.420359</td>
+<td align="right">0e+00</td>
+</tr>
+<tr class="even">
+<td align="left">hp_s</td>
+<td align="right">-4.677926</td>
+<td align="right">0.6938085</td>
+<td align="right">-6.742388</td>
+<td align="right">2e-07</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="the-models-lm1-and-lm2-are-identical" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> The models (<code>lm1</code> and <code>lm2</code>) are identical</h1>
+<p>Have a look at the p-values and the model fit values of both models (<code>lm1</code> and <code>lm2</code>) to reassure yourself that both models are indeed equivalant, as it should be:</p>
+<pre class="r"><code>glance(lm1)</code></pre>
+<table>
+<colgroup>
+<col width="9%" />
+<col width="12%" />
+<col width="8%" />
+<col width="9%" />
+<col width="7%" />
+<col width="2%" />
+<col width="9%" />
+<col width="8%" />
+<col width="8%" />
+<col width="8%" />
+<col width="11%" />
+<col width="4%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">r.squared</th>
+<th align="right">adj.r.squared</th>
+<th align="right">sigma</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+<th align="right">df</th>
+<th align="right">logLik</th>
+<th align="right">AIC</th>
+<th align="right">BIC</th>
+<th align="right">deviance</th>
+<th align="right">df.residual</th>
+<th align="right">nobs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0.6024373</td>
+<td align="right">0.5891853</td>
+<td align="right">3.862962</td>
+<td align="right">45.4598</td>
+<td align="right">2e-07</td>
+<td align="right">1</td>
+<td align="right">-87.61931</td>
+<td align="right">181.2386</td>
+<td align="right">185.6358</td>
+<td align="right">447.6743</td>
+<td align="right">30</td>
+<td align="right">32</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>glance(lm2)</code></pre>
+<table>
+<colgroup>
+<col width="9%" />
+<col width="12%" />
+<col width="8%" />
+<col width="9%" />
+<col width="7%" />
+<col width="2%" />
+<col width="9%" />
+<col width="8%" />
+<col width="8%" />
+<col width="8%" />
+<col width="11%" />
+<col width="4%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="right">r.squared</th>
+<th align="right">adj.r.squared</th>
+<th align="right">sigma</th>
+<th align="right">statistic</th>
+<th align="right">p.value</th>
+<th align="right">df</th>
+<th align="right">logLik</th>
+<th align="right">AIC</th>
+<th align="right">BIC</th>
+<th align="right">deviance</th>
+<th align="right">df.residual</th>
+<th align="right">nobs</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="right">0.6024373</td>
+<td align="right">0.5891853</td>
+<td align="right">3.862962</td>
+<td align="right">45.4598</td>
+<td align="right">2e-07</td>
+<td align="right">1</td>
+<td align="right">-87.61931</td>
+<td align="right">181.2386</td>
+<td align="right">185.6358</td>
+<td align="right">447.6743</td>
+<td align="right">30</td>
+<td align="right">32</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="interpretation-of-a-standardized-regression-coefficient" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Interpretation of a standardized regression coefficient</h1>
+<p>“According to our model, <code>lm2</code>, cars differ in their fuel consumption (measured as miles consumed per gallon) such that a cars with 1 SD higher horse power value consume one average approx. 5 gallons less fuel.”</p>
+</div>
+<div id="reproducibility" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.0.2 (2020-06-22)
+#&gt;  os       macOS  10.16                
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2021-02-26                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version     date       lib source                             
+#&gt;  assertthat    0.2.1       2019-03-21 [1] CRAN (R 4.0.0)                     
+#&gt;  backports     1.2.1       2020-12-09 [1] CRAN (R 4.0.2)                     
+#&gt;  blogdown      1.1         2021-01-19 [1] CRAN (R 4.0.2)                     
+#&gt;  bookdown      0.21.6      2021-02-02 [1] Github (rstudio/bookdown@6c7346a)  
+#&gt;  broom       * 0.7.5       2021-02-19 [1] CRAN (R 4.0.2)                     
+#&gt;  bslib         0.2.4.9000  2021-02-02 [1] Github (rstudio/bslib@b3cd7a9)     
+#&gt;  cachem        1.0.4       2021-02-13 [1] CRAN (R 4.0.2)                     
+#&gt;  callr         3.5.1       2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  cellranger    1.1.0       2016-07-27 [1] CRAN (R 4.0.0)                     
+#&gt;  cli           2.3.1       2021-02-23 [1] CRAN (R 4.0.2)                     
+#&gt;  codetools     0.2-16      2018-12-24 [2] CRAN (R 4.0.2)                     
+#&gt;  colorspace    2.0-0       2020-11-11 [1] CRAN (R 4.0.2)                     
+#&gt;  crayon        1.4.1       2021-02-08 [1] CRAN (R 4.0.2)                     
+#&gt;  curl          4.3         2019-12-02 [1] CRAN (R 4.0.0)                     
+#&gt;  DBI           1.1.1       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  dbplyr        2.1.0       2021-02-03 [1] CRAN (R 4.0.2)                     
+#&gt;  debugme       1.1.0       2017-10-22 [1] CRAN (R 4.0.0)                     
+#&gt;  desc          1.2.0       2018-05-01 [1] CRAN (R 4.0.0)                     
+#&gt;  devtools      2.3.2       2020-09-18 [1] CRAN (R 4.0.2)                     
+#&gt;  digest        0.6.27      2020-10-24 [1] CRAN (R 4.0.2)                     
+#&gt;  dplyr       * 1.0.4       2021-02-02 [1] CRAN (R 4.0.2)                     
+#&gt;  ellipsis      0.3.1       2020-05-15 [1] CRAN (R 4.0.0)                     
+#&gt;  evaluate      0.14        2019-05-28 [1] CRAN (R 4.0.0)                     
+#&gt;  fansi         0.4.2       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  fastmap       1.1.0       2021-01-25 [1] CRAN (R 4.0.2)                     
+#&gt;  forcats     * 0.5.1       2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  fs            1.5.0       2020-07-31 [1] CRAN (R 4.0.2)                     
+#&gt;  generics      0.1.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  ggplot2     * 3.3.3       2020-12-30 [1] CRAN (R 4.0.2)                     
+#&gt;  glue          1.4.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  gtable        0.3.0       2019-03-25 [1] CRAN (R 4.0.0)                     
+#&gt;  haven         2.3.1       2020-06-01 [1] CRAN (R 4.0.0)                     
+#&gt;  hms           1.0.0       2021-01-13 [1] CRAN (R 4.0.2)                     
+#&gt;  htmltools     0.5.1.1     2021-01-22 [1] CRAN (R 4.0.2)                     
+#&gt;  httr          1.4.2       2020-07-20 [1] CRAN (R 4.0.2)                     
+#&gt;  jquerylib     0.1.3       2020-12-17 [1] CRAN (R 4.0.2)                     
+#&gt;  jsonlite      1.7.2       2020-12-09 [1] CRAN (R 4.0.2)                     
+#&gt;  knitr         1.31        2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  lifecycle     1.0.0       2021-02-15 [1] CRAN (R 4.0.2)                     
+#&gt;  lubridate     1.7.9.2     2020-11-13 [1] CRAN (R 4.0.2)                     
+#&gt;  magrittr      2.0.1       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  memoise       2.0.0       2021-01-26 [1] CRAN (R 4.0.2)                     
+#&gt;  modelr        0.1.8       2020-05-19 [1] CRAN (R 4.0.0)                     
+#&gt;  munsell       0.5.0       2018-06-12 [1] CRAN (R 4.0.0)                     
+#&gt;  pillar        1.5.0       2021-02-22 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgbuild      1.2.0       2020-12-15 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgconfig     2.0.3       2019-09-22 [1] CRAN (R 4.0.0)                     
+#&gt;  pkgload       1.2.0       2021-02-23 [1] CRAN (R 4.0.2)                     
+#&gt;  prettyunits   1.1.1       2020-01-24 [1] CRAN (R 4.0.0)                     
+#&gt;  processx      3.4.5       2020-11-30 [1] CRAN (R 4.0.2)                     
+#&gt;  ps            1.5.0       2020-12-05 [1] CRAN (R 4.0.2)                     
+#&gt;  purrr       * 0.3.4       2020-04-17 [1] CRAN (R 4.0.0)                     
+#&gt;  R6            2.5.0       2020-10-28 [1] CRAN (R 4.0.2)                     
+#&gt;  Rcpp          1.0.6       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  readr       * 1.4.0       2020-10-05 [1] CRAN (R 4.0.2)                     
+#&gt;  readxl        1.3.1       2019-03-13 [1] CRAN (R 4.0.0)                     
+#&gt;  remotes       2.2.0       2020-07-21 [1] CRAN (R 4.0.2)                     
+#&gt;  reprex        1.0.0       2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  rlang         0.4.10      2020-12-30 [1] CRAN (R 4.0.2)                     
+#&gt;  rmarkdown     2.7         2021-02-19 [1] CRAN (R 4.0.2)                     
+#&gt;  rprojroot     2.0.2       2020-11-15 [1] CRAN (R 4.0.2)                     
+#&gt;  rstudioapi    0.13.0-9000 2021-02-11 [1] Github (rstudio/rstudioapi@9d21f50)
+#&gt;  rvest         0.3.6       2020-07-25 [1] CRAN (R 4.0.2)                     
+#&gt;  sass          0.3.1       2021-01-24 [1] CRAN (R 4.0.2)                     
+#&gt;  scales        1.1.1       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  sessioninfo   1.1.1       2018-11-05 [1] CRAN (R 4.0.0)                     
+#&gt;  stringi       1.5.3       2020-09-09 [1] CRAN (R 4.0.2)                     
+#&gt;  stringr     * 1.4.0       2019-02-10 [1] CRAN (R 4.0.0)                     
+#&gt;  testthat      3.0.2       2021-02-14 [1] CRAN (R 4.0.2)                     
+#&gt;  tibble      * 3.0.6       2021-01-29 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyr       * 1.1.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyselect    1.1.0       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  tidyverse   * 1.3.0       2019-11-21 [1] CRAN (R 4.0.0)                     
+#&gt;  usethis       2.0.1       2021-02-10 [1] CRAN (R 4.0.2)                     
+#&gt;  utf8          1.1.4       2018-05-24 [1] CRAN (R 4.0.0)                     
+#&gt;  vctrs         0.3.6       2020-12-17 [1] CRAN (R 4.0.2)                     
+#&gt;  withr         2.4.1       2021-01-26 [1] CRAN (R 4.0.2)                     
+#&gt;  xfun          0.21        2021-02-10 [1] CRAN (R 4.0.2)                     
+#&gt;  xml2          1.3.2       2020-04-23 [1] CRAN (R 4.0.0)                     
+#&gt;  yaml          2.2.1       2020-02-01 [1] CRAN (R 4.0.0)                     
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Rlibs
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre>
+</div>

@@ -1,0 +1,758 @@
+---
+title: Links in Markdown-Tabellen
+author: Sebastian Sauer
+date: '2021-07-14'
+slug: links-in-markdown-tabellen
+
+tags:
+  - markdown
+  - RMarkdown
+output:
+  blogdown::html_page:
+    toc: true
+    number_sections: true
+---
+
+<script src="{{< blogdown/postref >}}index_files/header-attrs/header-attrs.js"></script>
+<script src="{{< blogdown/postref >}}index_files/htmlwidgets/htmlwidgets.js"></script>
+<script src="{{< blogdown/postref >}}index_files/jquery/jquery.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/datatables-css/datatables-crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/datatables-binding/datatables.js"></script>
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.min.css" rel="stylesheet" />
+<link href="{{< blogdown/postref >}}index_files/dt-core/css/jquery.dataTables.extra.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/dt-core/js/jquery.dataTables.min.js"></script>
+<link href="{{< blogdown/postref >}}index_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/crosstalk/js/crosstalk.min.js"></script>
+
+<div id="TOC">
+<ul>
+<li><a href="#hintergrund"><span class="toc-section-number">1</span> Hintergrund</a></li>
+<li><a href="#beispiel-daten-laden"><span class="toc-section-number">2</span> Beispiel-Daten laden</a></li>
+<li><a href="#daten-aufbereiten"><span class="toc-section-number">3</span> Daten aufbereiten</a></li>
+<li><a href="#tabelle-1-gt"><span class="toc-section-number">4</span> Tabelle 1: <code>gt()</code></a></li>
+<li><a href="#tabelle-2-kable"><span class="toc-section-number">5</span> Tabelle 2: <code>kable()</code></a></li>
+<li><a href="#tabelle-3-pander"><span class="toc-section-number">6</span> Tabelle 3: <code>pander</code></a></li>
+<li><a href="#tabelle-4-datatable"><span class="toc-section-number">7</span> Tabelle 4: <code>datatable()</code></a></li>
+<li><a href="#fazit"><span class="toc-section-number">8</span> Fazit:</a></li>
+</ul>
+</div>
+
+<pre class="r"><code>library(tidyverse)
+library(gt)
+library(here)</code></pre>
+<div id="hintergrund" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Hintergrund</h1>
+<p>Tabellen in Markdown sind mitunter nervig zu erstellen.
+Am einfachsten ist es, wenn die Daten in Form einer CSV- oder Excel-Tabelle vorliegen.</p>
+<p>Tipp: Große Mengen von (nur) Text (keine Zahlen) sind vielleicht besser nicht in Form einer Tabelle, sondern einer Liste anzuführen.</p>
+</div>
+<div id="beispiel-daten-laden" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Beispiel-Daten laden</h1>
+<pre class="r"><code>daten_pfad &lt;- &quot;/content/post/2021-07-07-zeitungsartikel-per-api-herunterladen/results_covid1.rds&quot;</code></pre>
+<pre class="r"><code>d_raw &lt;- read_rds(paste0(here::here(),daten_pfad))
+
+d &lt;- 
+  d_raw[[&quot;results_df&quot;]]</code></pre>
+<pre class="r"><code>glimpse(d)</code></pre>
+<pre><code>## Rows: 100
+## Columns: 9
+## $ author       &lt;chr&gt; &quot;Colm Quinn&quot;, NA, &quot;soyacincau&quot;, &quot;Papa Kuranchie&quot;, &quot;Mia Ja…
+## $ title        &lt;chr&gt; &quot;Saudi Arabia’s Hushed Washington Visit&quot;, &quot;District in ce…
+## $ description  &lt;chr&gt; &quot;The visit of Khalid bin Salman has been met with little …
+## $ url          &lt;chr&gt; &quot;https://foreignpolicy.com/2021/07/07/saudi-arabia-washin…
+## $ url_to_image &lt;chr&gt; &quot;https://foreignpolicy.com/wp-content/uploads/2021/07/sau…
+## $ published_at &lt;dttm&gt; 2021-07-07 09:53:28, 2021-07-07 09:52:57, 2021-07-07 09:…
+## $ content      &lt;chr&gt; &quot;Here is todays Foreign Policy brief: Prince Khalid bin S…
+## $ id           &lt;chr&gt; NA, NA, NA, NA, &quot;business-insider&quot;, NA, &quot;independent&quot;, NA…
+## $ name         &lt;chr&gt; &quot;Foreign Policy&quot;, &quot;Israelnationalnews.com&quot;, &quot;SoyaCincau.c…</code></pre>
+</div>
+<div id="daten-aufbereiten" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Daten aufbereiten</h1>
+<p>Nur die ersten 50 Zeichen drucken:</p>
+<pre class="r"><code>d2 &lt;-
+  d %&gt;% 
+  mutate(across(
+    .fns = ~ str_sub(.x, end = 50)
+  )) %&gt;% 
+  slice(1:5)</code></pre>
+</div>
+<div id="tabelle-1-gt" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Tabelle 1: <code>gt()</code></h1>
+<pre class="r"><code>d2 %&gt;% 
+  gt()</code></pre>
+<div id="plpbdqhwld" style="overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>html {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', 'Fira Sans', 'Droid Sans', Arial, sans-serif;
+}
+
+#plpbdqhwld .gt_table {
+  display: table;
+  border-collapse: collapse;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 16px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: auto;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #A8A8A8;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #A8A8A8;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#plpbdqhwld .gt_heading {
+  background-color: #FFFFFF;
+  text-align: center;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#plpbdqhwld .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#plpbdqhwld .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 0;
+  padding-bottom: 4px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#plpbdqhwld .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#plpbdqhwld .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#plpbdqhwld .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#plpbdqhwld .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#plpbdqhwld .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#plpbdqhwld .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#plpbdqhwld .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#plpbdqhwld .gt_group_heading {
+  padding: 8px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#plpbdqhwld .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#plpbdqhwld .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#plpbdqhwld .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#plpbdqhwld .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#plpbdqhwld .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 12px;
+}
+
+#plpbdqhwld .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#plpbdqhwld .gt_first_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+}
+
+#plpbdqhwld .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#plpbdqhwld .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#plpbdqhwld .gt_striped {
+  background-color: rgba(128, 128, 128, 0.05);
+}
+
+#plpbdqhwld .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#plpbdqhwld .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#plpbdqhwld .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding: 4px;
+}
+
+#plpbdqhwld .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#plpbdqhwld .gt_sourcenote {
+  font-size: 90%;
+  padding: 4px;
+}
+
+#plpbdqhwld .gt_left {
+  text-align: left;
+}
+
+#plpbdqhwld .gt_center {
+  text-align: center;
+}
+
+#plpbdqhwld .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#plpbdqhwld .gt_font_normal {
+  font-weight: normal;
+}
+
+#plpbdqhwld .gt_font_bold {
+  font-weight: bold;
+}
+
+#plpbdqhwld .gt_font_italic {
+  font-style: italic;
+}
+
+#plpbdqhwld .gt_super {
+  font-size: 65%;
+}
+
+#plpbdqhwld .gt_footnote_marks {
+  font-style: italic;
+  font-weight: normal;
+  font-size: 65%;
+}
+</style>
+<table class="gt_table">
+  
+  <thead class="gt_col_headings">
+    <tr>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">author</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">title</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">description</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">url</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">url_to_image</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">published_at</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">content</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">id</th>
+      <th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan="1" colspan="1">name</th>
+    </tr>
+  </thead>
+  <tbody class="gt_table_body">
+    <tr><td class="gt_row gt_left">Colm Quinn</td>
+<td class="gt_row gt_left">Saudi Arabia’s Hushed Washington Visit</td>
+<td class="gt_row gt_left">The visit of Khalid bin Salman has been met with l</td>
+<td class="gt_row gt_left">https://foreignpolicy.com/2021/07/07/saudi-arabia-</td>
+<td class="gt_row gt_left">https://foreignpolicy.com/wp-content/uploads/2021/</td>
+<td class="gt_row gt_left">2021-07-07 09:53:28</td>
+<td class="gt_row gt_left">Here is todays Foreign Policy brief: Prince Khalid</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">Foreign Policy</td></tr>
+    <tr><td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">District in central Israel labeled 'Red' due to hi</td>
+<td class="gt_row gt_left">Israel's Ministry of Health declared the city of K</td>
+<td class="gt_row gt_left">https://www.israelnationalnews.com/News/Flash.aspx</td>
+<td class="gt_row gt_left">http://u.a7.org/pictures/799/799624.jpg</td>
+<td class="gt_row gt_left">2021-07-07 09:52:57</td>
+<td class="gt_row gt_left">Israel's Ministry of Health declared the city of K</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">Israelnationalnews.com</td></tr>
+    <tr><td class="gt_row gt_left">soyacincau</td>
+<td class="gt_row gt_left">1 Utama: WhatsApp message claiming over 50 people </td>
+<td class="gt_row gt_left">The management of 1 Utama Shopping Centre today de</td>
+<td class="gt_row gt_left">https://soyacincau.com/2021/07/07/1-utama-whatsapp</td>
+<td class="gt_row gt_left">https://cdnen.soyacincau.com/2020/10/201015-1utama</td>
+<td class="gt_row gt_left">2021-07-07 09:51:45</td>
+<td class="gt_row gt_left">The management of 1 Utama Shopping Centre today de</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">SoyaCincau.com</td></tr>
+    <tr><td class="gt_row gt_left">Papa Kuranchie</td>
+<td class="gt_row gt_left">Covid 19: Kilkeel seafood factory closes due to ou</td>
+<td class="gt_row gt_left">Kilkeel Seafoods in County Down has temporarily sh</td>
+<td class="gt_row gt_left">https://www.cityam.com/covid-19-kilkeel-seafood-fa</td>
+<td class="gt_row gt_left">https://www.cityam.com/wp-content/uploads/2021/07/</td>
+<td class="gt_row gt_left">2021-07-07 09:51:39</td>
+<td class="gt_row gt_left">Kilkeel Seafoods in County Down has temporarily sh</td>
+<td class="gt_row gt_left">NA</td>
+<td class="gt_row gt_left">City A.M.</td></tr>
+    <tr><td class="gt_row gt_left">Mia Jankowicz</td>
+<td class="gt_row gt_left">Trump wanted to use the COVID-19 pandemic to call </td>
+<td class="gt_row gt_left">Summary List PlacementFormer President Donald Trum</td>
+<td class="gt_row gt_left">https://www.businessinsider.com/trump-wanted-call-</td>
+<td class="gt_row gt_left">https://i.insider.com/60e56cefc03e9c0018ab2274?wid</td>
+<td class="gt_row gt_left">2021-07-07 09:51:24</td>
+<td class="gt_row gt_left">Former President Donald Trump suggested using the </td>
+<td class="gt_row gt_left">business-insider</td>
+<td class="gt_row gt_left">Business Insider</td></tr>
+  </tbody>
+  
+  
+</table>
+</div>
+</div>
+<div id="tabelle-2-kable" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Tabelle 2: <code>kable()</code></h1>
+<pre class="r"><code>d2 %&gt;% 
+  knitr::kable()</code></pre>
+<table style="width:100%;">
+<colgroup>
+<col width="4%" />
+<col width="15%" />
+<col width="15%" />
+<col width="15%" />
+<col width="15%" />
+<col width="6%" />
+<col width="15%" />
+<col width="5%" />
+<col width="6%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="left">author</th>
+<th align="left">title</th>
+<th align="left">description</th>
+<th align="left">url</th>
+<th align="left">url_to_image</th>
+<th align="left">published_at</th>
+<th align="left">content</th>
+<th align="left">id</th>
+<th align="left">name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">Colm Quinn</td>
+<td align="left">Saudi Arabia’s Hushed Washington Visit</td>
+<td align="left">The visit of Khalid bin Salman has been met with l</td>
+<td align="left"><a href="https://foreignpolicy.com/2021/07/07/saudi-arabia-" class="uri">https://foreignpolicy.com/2021/07/07/saudi-arabia-</a></td>
+<td align="left"><a href="https://foreignpolicy.com/wp-content/uploads/2021/" class="uri">https://foreignpolicy.com/wp-content/uploads/2021/</a></td>
+<td align="left">2021-07-07 09:53:28</td>
+<td align="left">Here is todays Foreign Policy brief: Prince Khalid</td>
+<td align="left">NA</td>
+<td align="left">Foreign Policy</td>
+</tr>
+<tr class="even">
+<td align="left">NA</td>
+<td align="left">District in central Israel labeled ‘Red’ due to hi</td>
+<td align="left">Israel’s Ministry of Health declared the city of K</td>
+<td align="left"><a href="https://www.israelnationalnews.com/News/Flash.aspx" class="uri">https://www.israelnationalnews.com/News/Flash.aspx</a></td>
+<td align="left"><a href="http://u.a7.org/pictures/799/799624.jpg" class="uri">http://u.a7.org/pictures/799/799624.jpg</a></td>
+<td align="left">2021-07-07 09:52:57</td>
+<td align="left">Israel’s Ministry of Health declared the city of K</td>
+<td align="left">NA</td>
+<td align="left">Israelnationalnews.com</td>
+</tr>
+<tr class="odd">
+<td align="left">soyacincau</td>
+<td align="left">1 Utama: WhatsApp message claiming over 50 people</td>
+<td align="left">The management of 1 Utama Shopping Centre today de</td>
+<td align="left"><a href="https://soyacincau.com/2021/07/07/1-utama-whatsapp" class="uri">https://soyacincau.com/2021/07/07/1-utama-whatsapp</a></td>
+<td align="left"><a href="https://cdnen.soyacincau.com/2020/10/201015-1utama" class="uri">https://cdnen.soyacincau.com/2020/10/201015-1utama</a></td>
+<td align="left">2021-07-07 09:51:45</td>
+<td align="left">The management of 1 Utama Shopping Centre today de</td>
+<td align="left">NA</td>
+<td align="left">SoyaCincau.com</td>
+</tr>
+<tr class="even">
+<td align="left">Papa Kuranchie</td>
+<td align="left">Covid 19: Kilkeel seafood factory closes due to ou</td>
+<td align="left">Kilkeel Seafoods in County Down has temporarily sh</td>
+<td align="left"><a href="https://www.cityam.com/covid-19-kilkeel-seafood-fa" class="uri">https://www.cityam.com/covid-19-kilkeel-seafood-fa</a></td>
+<td align="left"><a href="https://www.cityam.com/wp-content/uploads/2021/07/" class="uri">https://www.cityam.com/wp-content/uploads/2021/07/</a></td>
+<td align="left">2021-07-07 09:51:39</td>
+<td align="left">Kilkeel Seafoods in County Down has temporarily sh</td>
+<td align="left">NA</td>
+<td align="left">City A.M.</td>
+</tr>
+<tr class="odd">
+<td align="left">Mia Jankowicz</td>
+<td align="left">Trump wanted to use the COVID-19 pandemic to call</td>
+<td align="left">Summary List PlacementFormer President Donald Trum</td>
+<td align="left"><a href="https://www.businessinsider.com/trump-wanted-call-" class="uri">https://www.businessinsider.com/trump-wanted-call-</a></td>
+<td align="left"><a href="https://i.insider.com/60e56cefc03e9c0018ab2274?wid" class="uri">https://i.insider.com/60e56cefc03e9c0018ab2274?wid</a></td>
+<td align="left">2021-07-07 09:51:24</td>
+<td align="left">Former President Donald Trump suggested using the</td>
+<td align="left">business-insider</td>
+<td align="left">Business Insider</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="tabelle-3-pander" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Tabelle 3: <code>pander</code></h1>
+<p>Hier muss man als Chunk-Option noch setzen:</p>
+<p><code>{r results = "asis"}</code>.</p>
+<pre class="r"><code>pander::pandoc.table(d2)</code></pre>
+<table>
+<caption>Table continues below</caption>
+<colgroup>
+<col width="21%" />
+<col width="36%" />
+<col width="41%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="center">author</th>
+<th align="center">title</th>
+<th align="center">description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">Colm Quinn</td>
+<td align="center">Saudi Arabia’s Hushed
+Washington Visit</td>
+<td align="center">The visit of Khalid bin Salman
+has been met with l</td>
+</tr>
+<tr class="even">
+<td align="center">NA</td>
+<td align="center">District in central Israel
+labeled ‘Red’ due to hi</td>
+<td align="center">Israel’s Ministry of Health
+declared the city of K</td>
+</tr>
+<tr class="odd">
+<td align="center">soyacincau</td>
+<td align="center">1 Utama: WhatsApp message
+claiming over 50 people</td>
+<td align="center">The management of 1 Utama
+Shopping Centre today de</td>
+</tr>
+<tr class="even">
+<td align="center">Papa Kuranchie</td>
+<td align="center">Covid 19: Kilkeel seafood
+factory closes due to ou</td>
+<td align="center">Kilkeel Seafoods in County
+Down has temporarily sh</td>
+</tr>
+<tr class="odd">
+<td align="center">Mia Jankowicz</td>
+<td align="center">Trump wanted to use the
+COVID-19 pandemic to call</td>
+<td align="center">Summary List PlacementFormer
+President Donald Trum</td>
+</tr>
+</tbody>
+</table>
+<table style="width:74%;">
+<caption>Table continues below</caption>
+<colgroup>
+<col width="73%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="center">url</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center"><a href="https://foreignpolicy.com/2021/07/07/saudi-arabia-" class="uri">https://foreignpolicy.com/2021/07/07/saudi-arabia-</a></td>
+</tr>
+<tr class="even">
+<td align="center"><a href="https://www.israelnationalnews.com/News/Flash.aspx" class="uri">https://www.israelnationalnews.com/News/Flash.aspx</a></td>
+</tr>
+<tr class="odd">
+<td align="center"><a href="https://soyacincau.com/2021/07/07/1-utama-whatsapp" class="uri">https://soyacincau.com/2021/07/07/1-utama-whatsapp</a></td>
+</tr>
+<tr class="even">
+<td align="center"><a href="https://www.cityam.com/covid-19-kilkeel-seafood-fa" class="uri">https://www.cityam.com/covid-19-kilkeel-seafood-fa</a></td>
+</tr>
+<tr class="odd">
+<td align="center"><a href="https://www.businessinsider.com/trump-wanted-call-" class="uri">https://www.businessinsider.com/trump-wanted-call-</a></td>
+</tr>
+</tbody>
+</table>
+<table>
+<caption>Table continues below</caption>
+<colgroup>
+<col width="70%" />
+<col width="29%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="center">url_to_image</th>
+<th align="center">published_at</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center"><a href="https://foreignpolicy.com/wp-content/uploads/2021/" class="uri">https://foreignpolicy.com/wp-content/uploads/2021/</a></td>
+<td align="center">2021-07-07 09:53:28</td>
+</tr>
+<tr class="even">
+<td align="center"><a href="http://u.a7.org/pictures/799/799624.jpg" class="uri">http://u.a7.org/pictures/799/799624.jpg</a></td>
+<td align="center">2021-07-07 09:52:57</td>
+</tr>
+<tr class="odd">
+<td align="center"><a href="https://cdnen.soyacincau.com/2020/10/201015-1utama" class="uri">https://cdnen.soyacincau.com/2020/10/201015-1utama</a></td>
+<td align="center">2021-07-07 09:51:45</td>
+</tr>
+<tr class="even">
+<td align="center"><a href="https://www.cityam.com/wp-content/uploads/2021/07/" class="uri">https://www.cityam.com/wp-content/uploads/2021/07/</a></td>
+<td align="center">2021-07-07 09:51:39</td>
+</tr>
+<tr class="odd">
+<td align="center"><a href="https://i.insider.com/60e56cefc03e9c0018ab2274?wid" class="uri">https://i.insider.com/60e56cefc03e9c0018ab2274?wid</a></td>
+<td align="center">2021-07-07 09:51:24</td>
+</tr>
+</tbody>
+</table>
+<table>
+<colgroup>
+<col width="42%" />
+<col width="25%" />
+<col width="32%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th align="center">content</th>
+<th align="center">id</th>
+<th align="center">name</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">Here is todays Foreign Policy
+brief: Prince Khalid</td>
+<td align="center">NA</td>
+<td align="center">Foreign Policy</td>
+</tr>
+<tr class="even">
+<td align="center">Israel’s Ministry of Health
+declared the city of K</td>
+<td align="center">NA</td>
+<td align="center">Israelnationalnews.com</td>
+</tr>
+<tr class="odd">
+<td align="center">The management of 1 Utama
+Shopping Centre today de</td>
+<td align="center">NA</td>
+<td align="center">SoyaCincau.com</td>
+</tr>
+<tr class="even">
+<td align="center">Kilkeel Seafoods in County
+Down has temporarily sh</td>
+<td align="center">NA</td>
+<td align="center">City A.M.</td>
+</tr>
+<tr class="odd">
+<td align="center">Former President Donald Trump
+suggested using the</td>
+<td align="center">business-insider</td>
+<td align="center">Business Insider</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="tabelle-4-datatable" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Tabelle 4: <code>datatable()</code></h1>
+<p><a href="https://rstudio.github.io/DT/options.html">Hier</a> finden sich Hinweise zu den Optionen.</p>
+<p>Mit viel Text klappt es nicht so gut aus dem Stegreif:</p>
+<pre class="r"><code>DT::datatable(d2,
+              options = list(
+                autoWidth = TRUE,
+                columnDefs = list(list(width = &#39;200px&#39;))))</code></pre>
+<div id="htmlwidget-1" style="width:100%;height:auto;" class="datatables html-widget"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"filter":"none","data":[["1","2","3","4","5"],["Colm Quinn",null,"soyacincau","Papa Kuranchie","Mia Jankowicz"],["Saudi Arabia’s Hushed Washington Visit","District in central Israel labeled 'Red' due to hi","1 Utama: WhatsApp message claiming over 50 people ","Covid 19: Kilkeel seafood factory closes due to ou","Trump wanted to use the COVID-19 pandemic to call "],["The visit of Khalid bin Salman has been met with l","Israel's Ministry of Health declared the city of K","The management of 1 Utama Shopping Centre today de","Kilkeel Seafoods in County Down has temporarily sh","Summary List PlacementFormer President Donald Trum"],["https://foreignpolicy.com/2021/07/07/saudi-arabia-","https://www.israelnationalnews.com/News/Flash.aspx","https://soyacincau.com/2021/07/07/1-utama-whatsapp","https://www.cityam.com/covid-19-kilkeel-seafood-fa","https://www.businessinsider.com/trump-wanted-call-"],["https://foreignpolicy.com/wp-content/uploads/2021/","http://u.a7.org/pictures/799/799624.jpg","https://cdnen.soyacincau.com/2020/10/201015-1utama","https://www.cityam.com/wp-content/uploads/2021/07/","https://i.insider.com/60e56cefc03e9c0018ab2274?wid"],["2021-07-07 09:53:28","2021-07-07 09:52:57","2021-07-07 09:51:45","2021-07-07 09:51:39","2021-07-07 09:51:24"],["Here is todays Foreign Policy brief: Prince Khalid","Israel's Ministry of Health declared the city of K","The management of 1 Utama Shopping Centre today de","Kilkeel Seafoods in County Down has temporarily sh","Former President Donald Trump suggested using the "],[null,null,null,null,"business-insider"],["Foreign Policy","Israelnationalnews.com","SoyaCincau.com","City A.M.","Business Insider"]],"container":"<table class=\"display\">\n  <thead>\n    <tr>\n      <th> <\/th>\n      <th>author<\/th>\n      <th>title<\/th>\n      <th>description<\/th>\n      <th>url<\/th>\n      <th>url_to_image<\/th>\n      <th>published_at<\/th>\n      <th>content<\/th>\n      <th>id<\/th>\n      <th>name<\/th>\n    <\/tr>\n  <\/thead>\n<\/table>","options":{"autoWidth":true,"columnDefs":[{"width":"200px"},{"orderable":false,"targets":0}],"order":[],"orderClasses":false}},"evals":[],"jsHooks":[]}</script>
+</div>
+<div id="fazit" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Fazit:</h1>
+<p>Die Tabelle mit <code>gt()</code> macht den saubersten Eindruck.</p>
+<p>Die Links werden direkt angezeigt :thumbs_up:.</p>
+</div>

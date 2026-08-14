@@ -1,0 +1,117 @@
+---
+title: Plotting a regression surface (3D)
+author: Sebastian Sauer
+date: '2020-12-08'
+slug: plotting-a-regression-surface-3d
+categories:
+  
+tags:
+  - visualization
+  - regression
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 1,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)
+library(plotly)
+
+```
+
+
+# Data
+
+Some sample data
+
+```{r}
+data(tips, package= "reshape2")
+```
+
+
+# Regression model
+
+```{r}
+lm1 <- lm(tip ~ total_bill + size, data = tips)
+lm1_coef <- coef(lm1)
+
+```
+
+
+# Sequence 
+
+```{r}
+x1_seq <- seq(min(tips$total_bill), max(tips$total_bill), length.out = 25)
+x2_seq <- seq(min(tips$size), max(tips$size), length.out = 6)
+
+```
+
+
+# Compute grid
+
+```{r}
+z2 <- t(outer(x1_seq, x2_seq, 
+              function(x,y) lm1_coef[1]+lm1_coef[2]*x+lm1_coef[3]*y))
+```
+
+
+```{r}
+z2
+```
+
+
+
+
+
+# Draw the plane with "plot_ly" and add points with "add_trace"
+
+```{r}
+plot_ly(x=~x1_seq, y=~x2_seq, z=~z2,type="surface") %>%
+  add_trace(data=tips, 
+            x=~total_bill, y=~size, z=~tip, 
+            mode="markers", 
+            type="scatter3d",
+            marker = list(color="#00998a", 
+                          opacity=0.7, 
+                          symbol=105)) %>%
+  layout(scene = list(
+    aspectmode = "manual", 
+    aspectratio = list(x=1, y=1, z=1),
+    xaxis = list(title = "total_bill"),
+    yaxis = list(title = "size"),
+    zaxis = list(title = "tip")))
+
+```
+
+
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

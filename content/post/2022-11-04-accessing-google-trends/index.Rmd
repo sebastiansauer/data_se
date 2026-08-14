@@ -1,0 +1,161 @@
+---
+title: Accessing Google Trends
+author: Sebastian Sauer
+date: '2022-11-04'
+slug: accessing-google-trends
+categories:
+  - rstats
+tags:
+  - web
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+```
+
+
+# Motivation
+
+[Google Trends](https://trends.google.com/) is, according to [Wikipedia](https://en.wikipedia.org/wiki/Google_Trends):
+
+>   Google Trends is a website by Google that analyzes the popularity of top search queries in Google Search across various regions and languages. The website uses graphs to compare the search volume of different queries over time.On August 5, 2008, Google launched Google Insights for Search, a more sophisticated and advanced service displaying search trends data. On September 27, 2012, Google merged Google Insights for Search into Google Trends.[1]
+
+
+# Restrictions and quotas
+
+You cannot download as much data as you like, there are some restrictions,
+again, from the same source as above:
+
+>   Google has incorporated quota limits for Trends searches. This limits the number of search attempts available per user/IP/device. Details of quota limits have not yet been provided, but it may depend on geographical location or browser privacy settings. It has been reported in some cases that this quota is reached very quickly if one is not logged into a Google account before trying to access the Trends service.[52]
+
+# Access via R
+
+```{r}
+#install.packages("gtrendsR")
+
+```
+
+
+```{r}
+library(gtrendsR)
+library(tidyverse)
+```
+
+
+
+# Options
+
+We can choose some geolocations:
+
+```{r}
+data(countries, package = "gtrendsR")
+head(countries)
+```
+
+
+Let's choose Germany's Bundeslaender:
+
+```{r}
+de <- 
+countries %>% 
+  filter(country_code == "DE") %>% 
+  slice_head(n=17) %>% 
+  drop_na()
+
+de
+```
+
+
+
+There's a largish (but somehow seemingly arbritrary) list of categories:
+
+```{r}
+data("categories")
+head(categories)
+```
+
+Let's search for some keywords in this list:
+
+```{r}
+categories %>% 
+  filter(str_detect(tolower(name), "politics"))
+
+
+categories %>% 
+  filter(str_detect(tolower(name), "energy"))
+```
+
+
+
+
+Let's say we are interested in politics:
+
+```{r}
+cat1_v <- c("News", "Politics", "International Relations")
+```
+
+
+# Get data
+
+I tried different variants, but it seems that the quota limit is quickly reached.
+If you run out of quota, you may want to try later.
+
+```{r}
+g1 <- gtrends(keyword = cat1_v,
+              geo = de$sub_code[1:3],
+              time  ="today 12-m",
+              gprop = "web")
+```
+
+
+# Plot it
+
+There's a convenient plotting method available:
+
+```{r}
+plot(g1)
+```
+
+As we can see, "News" is much more accessed compared to the other categories,
+which may be an artifact.
+However, it shows that we might confine our interest to relative differences.
+
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

@@ -1,0 +1,124 @@
+---
+title: 3D Regression plane with scatter plot
+author: Sebastian Sauer
+date: '2022-04-19'
+slug: 3d-regression-plane-with-scatter-plot
+categories:
+  - rstats
+tags:
+  - tutorial
+  - visualization
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(plotly)  # 3D plot interactive
+```
+
+
+# Define model
+
+Here's the linear model with 2 predictors, giving us a model that can be visualized in 3D:
+
+```{r}
+lm1 <- lm(mpg ~ hp + disp, data = mtcars)
+```
+
+As is standard, we'll predict `mpg`.
+
+# Define grid for regression plane
+
+The regression plane describes one value for each predictor pair, `hp` and `disp`:
+
+```{r}
+hp_disp_grid <- expand_grid(hp = seq(50, 500, by = 10), disp = seq(50, 500, by = 10))
+```
+
+Here, we define all possible pairs of the two variables, spanning a range of each from 50 to 500.
+
+Now, let's add the predicted value for `mpg` according to our modeL
+
+```{r}
+grid2 <- 
+  hp_disp_grid %>% 
+  mutate(mpg_pred_lm1 = predict(lm1, newdata = data.frame(hp, disp)))
+```
+
+
+And now cast wider and in matrix form:
+
+```{r}
+grid_wide <- 
+  grid2 %>% 
+  pivot_wider(names_from = disp, values_from = mpg_pred_lm1) %>% 
+  select(-1) %>%  # kick the name's column out
+  as.matrix()
+```
+
+
+
+# Scatter Plot
+
+
+```{r}
+p1 <- plot_ly(mtcars,
+        x = ~ hp,
+        y = ~ disp,
+        z = ~ mpg,
+        type = "scatter3d")
+p1
+```
+
+
+# Scatter plot with 3D surface
+
+```{r out.width="100%", fig.asp = 1}
+p2 <- add_trace(p = p1,
+                z = grid_wide,
+                x = seq(50, 300, by = 10),
+                y = seq(50, 500, by = 10),
+                type = "surface")
+p2
+
+```
+
+Note that the plot is interactive.
+
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+```
+
+

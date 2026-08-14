@@ -1,0 +1,370 @@
+---
+title: Numerical similarity of some Bayes and Classical models
+author: Sebastian Sauer
+date: '2024-01-29'
+slug: numerical-similarity-of-some-bayes-and-classical-models
+categories:
+  - rstats
+tags:
+  - regression
+  - Bayes
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages" id="toc-load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#motivation" id="toc-motivation"><span class="toc-section-number">2</span> Motivation</a>
+<ul>
+<li><a href="#bayes-and-frequentis" id="toc-bayes-and-frequentis"><span class="toc-section-number">2.1</span> Bayes and Frequentis</a></li>
+<li><a href="#technical-setup-for-bayes-analysis-provides-a-barrier" id="toc-technical-setup-for-bayes-analysis-provides-a-barrier"><span class="toc-section-number">2.2</span> Technical setup for Bayes analysis provides a barrier</a></li>
+</ul></li>
+<li><a href="#numerical-convergence-of-bayes-and-frequentist-approaches" id="toc-numerical-convergence-of-bayes-and-frequentist-approaches"><span class="toc-section-number">3</span> Numerical convergence of Bayes and Frequentist approaches</a></li>
+<li><a href="#example-1-mctcars" id="toc-example-1-mctcars"><span class="toc-section-number">4</span> Example 1: <code>mctcars</code></a>
+<ul>
+<li><a href="#frequentist-model" id="toc-frequentist-model"><span class="toc-section-number">4.1</span> Frequentist model</a></li>
+<li><a href="#bayesian-numerically-equivalent-model" id="toc-bayesian-numerically-equivalent-model"><span class="toc-section-number">4.2</span> Bayesian numerically equivalent model</a></li>
+<li><a href="#conclusion" id="toc-conclusion"><span class="toc-section-number">4.3</span> Conclusion</a></li>
+</ul></li>
+<li><a href="#example-2-penguins" id="toc-example-2-penguins"><span class="toc-section-number">5</span> Example 2: <code>penguins</code></a>
+<ul>
+<li><a href="#frequentist-model-1" id="toc-frequentist-model-1"><span class="toc-section-number">5.1</span> Frequentist model</a></li>
+<li><a href="#bayesian-numerically-equivalent-model-1" id="toc-bayesian-numerically-equivalent-model-1"><span class="toc-section-number">5.2</span> Bayesian numerically equivalent model</a></li>
+<li><a href="#conclusion-1" id="toc-conclusion-1"><span class="toc-section-number">5.3</span> Conclusion</a></li>
+</ul></li>
+<li><a href="#example-3-diamonds" id="toc-example-3-diamonds"><span class="toc-section-number">6</span> Example 3: <code>diamonds</code></a>
+<ul>
+<li><a href="#frequentist-model-2" id="toc-frequentist-model-2"><span class="toc-section-number">6.1</span> Frequentist model</a></li>
+<li><a href="#bayesian-numerically-equivalent-model-2" id="toc-bayesian-numerically-equivalent-model-2"><span class="toc-section-number">6.2</span> Bayesian numerically equivalent model</a></li>
+<li><a href="#conclusion-2" id="toc-conclusion-2"><span class="toc-section-number">6.3</span> Conclusion</a></li>
+</ul></li>
+<li><a href="#caveats" id="toc-caveats"><span class="toc-section-number">7</span> Caveats</a></li>
+<li><a href="#concluding-remarks" id="toc-concluding-remarks"><span class="toc-section-number">8</span> Concluding remarks</a></li>
+<li><a href="#further-reading" id="toc-further-reading"><span class="toc-section-number">9</span> Further reading</a></li>
+<li><a href="#reproducibility" id="toc-reproducibility"><span class="toc-section-number">10</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(rstanarm)  # Bayes modelling
+library(palmerpenguins)  # data
+library(easystats)  # unified API
+library(tictoc)  # measure computation time</code></pre>
+</div>
+<div id="motivation" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Motivation</h1>
+<div id="bayes-and-frequentis" class="section level2" number="2.1">
+<h2><span class="header-section-number">2.1</span> Bayes and Frequentis</h2>
+<p>Bayes inference comforts its user with an interpretation that many practitioners seem to prefer (and to understand more quickly), ie., Bayes posterior distribution provides the probability of the hypothesis given the data at hand, <span class="math inline">\(Pr(H|D)\)</span>. Classical Frequentist inference does not provide this probability, but rather the long-run probability of finding an at least as extreme empirical result, given that the Null hypothesis is true. This is all well-known.</p>
+<p>To be clear, both approaches have their appeal and may be optimal in different sitaution.</p>
+</div>
+<div id="technical-setup-for-bayes-analysis-provides-a-barrier" class="section level2" number="2.2">
+<h2><span class="header-section-number">2.2</span> Technical setup for Bayes analysis provides a barrier</h2>
+<p>However, a disadvantage of Bayes analysis, at least at its current state, is that it has higher technical and computational demands. For beginners in particular, this may present a substantial (entry) burden. Teaching statistics, I have found that students (and many colleagues) have had difficulties installing Stan (particularly the C++ compiler needed in order to run Stan); Stan is the probabilistic programming language which many front-end Bayes engines use such as <code>brms</code> in R.</p>
+<p>Thus, the installation process being not so user-friendly, a burden is placed for beginners which may prevent using Bayes methods.</p>
+<p>In that light, this post explores the numerical simarilities of Bayes regression models and Frequentis models. The idea is to use a Frequentist regression model as a proxi for a full Bayesian analysis. The value added is the quick computation and the simple technical setup.</p>
+</div>
+</div>
+<div id="numerical-convergence-of-bayes-and-frequentist-approaches" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Numerical convergence of Bayes and Frequentist approaches</h1>
+<p>To be clear, the philosophical differences and, consequently, the interpretation of Bayes and Frequentist models are very different.</p>
+<p>However, under <em>some</em> instances, the <em>numerical</em> results (for point estimates) may be very similar comparing Bayesian and Frequentist models, and the Frequentist results may thus be interpreted in a Bayesian way (see for a proof <a href="https://arxiv.org/abs/1411.5018" class="uri">https://arxiv.org/abs/1411.5018</a>; for an example, see <a href="https://nsojournals.onlinelibrary.wiley.com/doi/pdf/10.1111/oik.05985">this paper</a>).</p>
+<p>More precisely, a linear regression model will provide the same <em>numerical</em> results as a Bayesian model (ceteris paribus) given that</p>
+<ul>
+<li>the likelihood is normal</li>
+<li>the priors are flat</li>
+<li>data are informative</li>
+</ul>
+<p>Note: Flat priors are not non-informative in general.</p>
+<p>It is <em>not</em> generally advisable to use flat priors as explained in <a href="https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html">this post</a>.</p>
+<p>In <code>rstanarm</code>, an R package for applied Bayes regression modelling, flat priors (for the regression coefficient) can be specified in this following way:</p>
+<pre class="r"><code>flat_prior_test &lt;- stan_glm(mpg ~ hp, data = mtcars, prior = NULL, refresh = 0)</code></pre>
+<p>Check:</p>
+<pre class="r"><code>prior_summary(flat_prior_test)
+#&gt; Priors for model &#39;flat_prior_test&#39; 
+#&gt; ------
+#&gt; Intercept (after predictors centered)
+#&gt;   Specified prior:
+#&gt;     ~ normal(location = 20, scale = 2.5)
+#&gt;   Adjusted prior:
+#&gt;     ~ normal(location = 20, scale = 15)
+#&gt; 
+#&gt; Coefficients
+#&gt;  ~ flat
+#&gt; 
+#&gt; Auxiliary (sigma)
+#&gt;   Specified prior:
+#&gt;     ~ exponential(rate = 1)
+#&gt;   Adjusted prior:
+#&gt;     ~ exponential(rate = 0.17)
+#&gt; ------
+#&gt; See help(&#39;prior_summary.stanreg&#39;) for more details</code></pre>
+</div>
+<div id="example-1-mctcars" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Example 1: <code>mctcars</code></h1>
+<p>Let’s use <code>mtcars</code> to compute the following linear model: <code>mpg ~ hp</code>.</p>
+<div id="frequentist-model" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> Frequentist model</h2>
+<pre class="r"><code>lm_mtcars_freq &lt;- lm(mpg ~ hp, data = mtcars)
+parameters(lm_mtcars_freq)
+#&gt; Parameter   | Coefficient |   SE |         95% CI | t(30) |      p
+#&gt; ------------------------------------------------------------------
+#&gt; (Intercept) |       30.10 | 1.63 | [26.76, 33.44] | 18.42 | &lt; .001
+#&gt; hp          |       -0.07 | 0.01 | [-0.09, -0.05] | -6.74 | &lt; .001</code></pre>
+</div>
+<div id="bayesian-numerically-equivalent-model" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> Bayesian numerically equivalent model</h2>
+<pre class="r"><code>lm_mtcars_bayes &lt;- stan_glm(mpg ~ hp, data = mtcars, prior = NULL, refresh = 0)
+parameters(lm_mtcars_bayes)
+#&gt; Parameter   | Median |         95% CI |   pd |  Rhat |     ESS |                   Prior
+#&gt; ----------------------------------------------------------------------------------------
+#&gt; (Intercept) |  30.08 | [26.79, 33.40] | 100% | 1.000 | 3460.00 | Normal (20.09 +- 15.07)
+#&gt; hp          |  -0.07 | [-0.09, -0.05] | 100% | 1.000 | 3628.00 |                 Uniform</code></pre>
+</div>
+<div id="conclusion" class="section level2" number="4.3">
+<h2><span class="header-section-number">4.3</span> Conclusion</h2>
+<p>There’s a small difference due to the fact that the Bayes model involves random numbers. Beside that, the numerical results (of the point estimates) are (virtually) identical.</p>
+<p>We have not put flat priors on the intercept and on sigma, hence those parameters may differ from the frequentist ones.</p>
+</div>
+</div>
+<div id="example-2-penguins" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Example 2: <code>penguins</code></h1>
+<pre class="r"><code>data(penguins)</code></pre>
+<div id="frequentist-model-1" class="section level2" number="5.1">
+<h2><span class="header-section-number">5.1</span> Frequentist model</h2>
+<pre class="r"><code>lm_penguins_freq &lt;- lm(body_mass_g ~ bill_length_mm, data = penguins)
+parameters(lm_penguins_freq)
+#&gt; Parameter      | Coefficient |     SE |            95% CI | t(340) |      p
+#&gt; ---------------------------------------------------------------------------
+#&gt; (Intercept)    |      362.31 | 283.35 | [-195.02, 919.64] |   1.28 | 0.202 
+#&gt; bill length mm |       87.42 |   6.40 | [  74.82, 100.01] |  13.65 | &lt; .001</code></pre>
+</div>
+<div id="bayesian-numerically-equivalent-model-1" class="section level2" number="5.2">
+<h2><span class="header-section-number">5.2</span> Bayesian numerically equivalent model</h2>
+<pre class="r"><code>lm_penguins_bayes &lt;- stan_glm(body_mass_g ~ bill_length_mm, data = penguins, prior = NULL, refresh = 0)
+parameters(lm_penguins_bayes)
+#&gt; Parameter      | Median |            95% CI |     pd |  Rhat |     ESS |                       Prior
+#&gt; ----------------------------------------------------------------------------------------------------
+#&gt; (Intercept)    | 357.45 | [-180.90, 905.48] | 90.08% | 0.999 | 4579.00 | Normal (4201.75 +- 2004.89)
+#&gt; bill_length_mm |  87.55 | [  75.17,  99.76] |   100% | 0.999 | 4586.00 |                     Uniform</code></pre>
+</div>
+<div id="conclusion-1" class="section level2" number="5.3">
+<h2><span class="header-section-number">5.3</span> Conclusion</h2>
+<p>Again, the numerical results are very similar.</p>
+</div>
+</div>
+<div id="example-3-diamonds" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Example 3: <code>diamonds</code></h1>
+<pre class="r"><code>data(diamonds)</code></pre>
+<div id="frequentist-model-2" class="section level2" number="6.1">
+<h2><span class="header-section-number">6.1</span> Frequentist model</h2>
+<pre class="r"><code>lm_diamonds_freq &lt;- lm(price ~ carat, data = diamonds)
+parameters(lm_diamonds_freq)
+#&gt; Parameter   | Coefficient |    SE |               95% CI | t(53938) |      p
+#&gt; ----------------------------------------------------------------------------
+#&gt; (Intercept) |    -2256.36 | 13.06 | [-2281.95, -2230.77] |  -172.83 | &lt; .001
+#&gt; carat       |     7756.43 | 14.07 | [ 7728.86,  7784.00] |   551.41 | &lt; .001</code></pre>
+</div>
+<div id="bayesian-numerically-equivalent-model-2" class="section level2" number="6.2">
+<h2><span class="header-section-number">6.2</span> Bayesian numerically equivalent model</h2>
+<pre class="r"><code>tic()
+lm_diamonds_bayes &lt;- stan_glm(price ~ carat, data = diamonds, prior = NULL, refresh = 0)
+toc()
+#&gt; 24.06 sec elapsed
+parameters(lm_diamonds_bayes)
+#&gt; Parameter   |   Median |               95% CI |   pd |  Rhat |     ESS |                       Prior
+#&gt; ----------------------------------------------------------------------------------------------------
+#&gt; (Intercept) | -2255.92 | [-2283.22, -2229.19] | 100% | 1.000 | 2911.00 | Normal (3932.80 +- 9973.60)
+#&gt; carat       |  7756.16 | [ 7728.01,  7784.72] | 100% | 1.000 | 2730.00 |                     Uniform</code></pre>
+</div>
+<div id="conclusion-2" class="section level2" number="6.3">
+<h2><span class="header-section-number">6.3</span> Conclusion</h2>
+<p>Note the prolonged computation time for the Bayes model due to the larger sample size (and possibly due to the unconstrained, ie., flat, prior).</p>
+<p>Again, the regression coefficients are very similar.</p>
+</div>
+</div>
+<div id="caveats" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Caveats</h1>
+<p>The less data you have, the more the Posterior distribution will depend on your priors. In other words, make sure that your sample size is “large enough”. <a href="https://stats.stackexchange.com/questions/200982/do-bayesian-priors-become-irrelevant-with-large-sample-size/201059#201059">This post</a> provides some deeper insights.</p>
+<p>We have not specified the <code>prior_intercept</code> in our Stan models, as we were not interested in that. However, using the same argument as above, we could set the intercept prior to a flat prior, too. Read <a href="https://cran.r-project.org/web/packages/rstanarm/vignettes/priors.html">here</a> more about setting priors in <code>rstanarm</code>.</p>
+</div>
+<div id="concluding-remarks" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Concluding remarks</h1>
+<p>As can be seen (and as it is stated in the literature), the point estimates of Bayesian and Frequentist models converge given that a flat prior is used and that the likelihood is normal. Furthermore, the data must be informative enough to “convince” the posterior distribution.</p>
+<p>Hence, using <code>lm</code> can be seen as second-best option for computing simple Bayesian models.</p>
+<p>Remember that the idea of this post was to provide a simple soluttion practitioners who do not want to install additional softare (such as Stan).
+Of course, using a second-best option is not optimal by definition.</p>
+</div>
+<div id="further-reading" class="section level1" number="9">
+<h1><span class="header-section-number">9</span> Further reading</h1>
+<p><a href="https://stats.stackexchange.com/questions/296220/why-i-should-use-bayesian-inference-with-uninformative-prior">This post</a> comments on the numerical equivalence of flat prior Bayesian models with Frquentis models.</p>
+</div>
+<div id="reproducibility" class="section level1" number="10">
+<h1><span class="header-section-number">10</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value
+#&gt;  version  R version 4.2.1 (2022-06-23)
+#&gt;  os       macOS Big Sur ... 10.16
+#&gt;  system   x86_64, darwin17.0
+#&gt;  ui       X11
+#&gt;  language (EN)
+#&gt;  collate  en_US.UTF-8
+#&gt;  ctype    en_US.UTF-8
+#&gt;  tz       Europe/Berlin
+#&gt;  date     2024-01-29
+#&gt;  pandoc   3.1.1 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/ (via rmarkdown)
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package        * version  date (UTC) lib source
+#&gt;  abind            1.4-5    2016-07-21 [1] CRAN (R 4.2.0)
+#&gt;  backports        1.4.1    2021-12-13 [1] CRAN (R 4.2.0)
+#&gt;  base64enc        0.1-3    2015-07-28 [1] CRAN (R 4.2.0)
+#&gt;  bayesplot        1.10.0   2022-11-16 [1] CRAN (R 4.2.0)
+#&gt;  bayestestR     * 0.13.1   2023-04-07 [1] CRAN (R 4.2.0)
+#&gt;  blogdown         1.18     2023-06-19 [1] CRAN (R 4.2.0)
+#&gt;  bookdown         0.36     2023-10-16 [1] CRAN (R 4.2.0)
+#&gt;  boot             1.3-28.1 2022-11-22 [1] CRAN (R 4.2.0)
+#&gt;  bslib            0.5.1    2023-08-11 [1] CRAN (R 4.2.0)
+#&gt;  cachem           1.0.8    2023-05-01 [1] CRAN (R 4.2.0)
+#&gt;  callr            3.7.3    2022-11-02 [1] CRAN (R 4.2.0)
+#&gt;  checkmate        2.2.0    2023-04-27 [1] CRAN (R 4.2.0)
+#&gt;  cli              3.6.1    2023-03-23 [1] CRAN (R 4.2.0)
+#&gt;  coda             0.19-4   2020-09-30 [1] CRAN (R 4.2.0)
+#&gt;  codetools        0.2-19   2023-02-01 [1] CRAN (R 4.2.0)
+#&gt;  colorout       * 1.3-0    2023-11-08 [1] Github (jalvesaq/colorout@8384882)
+#&gt;  colorspace       2.1-0    2023-01-23 [1] CRAN (R 4.2.0)
+#&gt;  colourpicker     1.3.0    2023-08-21 [1] CRAN (R 4.2.0)
+#&gt;  correlation    * 0.8.4    2023-04-06 [1] CRAN (R 4.2.1)
+#&gt;  crayon           1.5.2    2022-09-29 [1] CRAN (R 4.2.1)
+#&gt;  crosstalk        1.2.1    2023-11-23 [1] CRAN (R 4.2.1)
+#&gt;  curl             5.1.0    2023-10-02 [1] CRAN (R 4.2.0)
+#&gt;  datawizard     * 0.9.0    2023-09-15 [1] CRAN (R 4.2.0)
+#&gt;  devtools         2.4.5    2022-10-11 [1] CRAN (R 4.2.1)
+#&gt;  digest           0.6.33   2023-07-07 [1] CRAN (R 4.2.0)
+#&gt;  distributional   0.3.2    2023-03-22 [1] CRAN (R 4.2.0)
+#&gt;  dplyr          * 1.1.3    2023-09-03 [1] CRAN (R 4.2.0)
+#&gt;  DT               0.30     2023-10-05 [1] CRAN (R 4.2.0)
+#&gt;  dygraphs         1.1.1.6  2018-07-11 [1] CRAN (R 4.2.0)
+#&gt;  easystats      * 0.7.0    2023-11-05 [1] CRAN (R 4.2.1)
+#&gt;  effectsize     * 0.8.6    2023-09-14 [1] CRAN (R 4.2.0)
+#&gt;  ellipsis         0.3.2    2021-04-29 [1] CRAN (R 4.2.0)
+#&gt;  emmeans          1.8.9    2023-10-17 [1] CRAN (R 4.2.0)
+#&gt;  estimability     1.4.1    2022-08-05 [1] CRAN (R 4.2.0)
+#&gt;  evaluate         0.21     2023-05-05 [1] CRAN (R 4.2.0)
+#&gt;  fansi            1.0.5    2023-10-08 [1] CRAN (R 4.2.0)
+#&gt;  farver           2.1.1    2022-07-06 [1] CRAN (R 4.2.0)
+#&gt;  fastmap          1.1.1    2023-02-24 [1] CRAN (R 4.2.0)
+#&gt;  forcats        * 1.0.0    2023-01-29 [1] CRAN (R 4.2.0)
+#&gt;  fs               1.6.3    2023-07-20 [1] CRAN (R 4.2.0)
+#&gt;  generics         0.1.3    2022-07-05 [1] CRAN (R 4.2.0)
+#&gt;  ggplot2        * 3.4.4    2023-10-12 [1] CRAN (R 4.2.0)
+#&gt;  glue             1.6.2    2022-02-24 [1] CRAN (R 4.2.0)
+#&gt;  gridExtra        2.3      2017-09-09 [1] CRAN (R 4.2.0)
+#&gt;  gtable           0.3.4    2023-08-21 [1] CRAN (R 4.2.0)
+#&gt;  gtools           3.9.4    2022-11-27 [1] CRAN (R 4.2.0)
+#&gt;  hms              1.1.3    2023-03-21 [1] CRAN (R 4.2.0)
+#&gt;  htmltools        0.5.6.1  2023-10-06 [1] CRAN (R 4.2.0)
+#&gt;  htmlwidgets      1.6.2    2023-03-17 [1] CRAN (R 4.2.0)
+#&gt;  httpuv           1.6.11   2023-05-11 [1] CRAN (R 4.2.0)
+#&gt;  igraph           1.5.1    2023-08-10 [1] CRAN (R 4.2.0)
+#&gt;  inline           0.3.19   2021-05-31 [1] CRAN (R 4.2.0)
+#&gt;  insight        * 0.19.7   2023-11-26 [1] CRAN (R 4.2.1)
+#&gt;  jquerylib        0.1.4    2021-04-26 [1] CRAN (R 4.2.0)
+#&gt;  jsonlite         1.8.7    2023-06-29 [1] CRAN (R 4.2.0)
+#&gt;  knitr            1.45     2023-10-30 [1] CRAN (R 4.2.1)
+#&gt;  later            1.3.1    2023-05-02 [1] CRAN (R 4.2.0)
+#&gt;  lattice          0.21-8   2023-04-05 [1] CRAN (R 4.2.0)
+#&gt;  lifecycle        1.0.4    2023-11-07 [1] CRAN (R 4.2.1)
+#&gt;  lme4             1.1-34   2023-07-04 [1] CRAN (R 4.2.0)
+#&gt;  loo              2.6.0    2023-03-31 [1] CRAN (R 4.2.0)
+#&gt;  lubridate      * 1.9.3    2023-09-27 [1] CRAN (R 4.2.0)
+#&gt;  magrittr         2.0.3    2022-03-30 [1] CRAN (R 4.2.0)
+#&gt;  markdown         1.11     2023-10-19 [1] CRAN (R 4.2.0)
+#&gt;  MASS             7.3-60   2023-05-04 [1] CRAN (R 4.2.0)
+#&gt;  Matrix           1.5-4.1  2023-05-18 [1] CRAN (R 4.2.0)
+#&gt;  matrixStats      0.63.0   2022-11-18 [1] CRAN (R 4.2.0)
+#&gt;  memoise          2.0.1    2021-11-26 [1] CRAN (R 4.2.0)
+#&gt;  mime             0.12     2021-09-28 [1] CRAN (R 4.2.0)
+#&gt;  miniUI           0.1.1.1  2018-05-18 [1] CRAN (R 4.2.0)
+#&gt;  minqa            1.2.5    2022-10-19 [1] CRAN (R 4.2.1)
+#&gt;  modelbased     * 0.8.6    2023-01-13 [1] CRAN (R 4.2.1)
+#&gt;  multcomp         1.4-25   2023-06-20 [1] CRAN (R 4.2.0)
+#&gt;  munsell          0.5.0    2018-06-12 [1] CRAN (R 4.2.0)
+#&gt;  mvtnorm          1.2-2    2023-06-08 [1] CRAN (R 4.2.0)
+#&gt;  nlme             3.1-162  2023-01-31 [1] CRAN (R 4.2.0)
+#&gt;  nloptr           2.0.3    2022-05-26 [1] CRAN (R 4.2.0)
+#&gt;  palmerpenguins * 0.1.1    2022-08-15 [1] CRAN (R 4.2.0)
+#&gt;  parameters     * 0.21.3   2023-11-02 [1] CRAN (R 4.2.1)
+#&gt;  performance    * 0.10.8   2023-10-30 [1] CRAN (R 4.2.1)
+#&gt;  pillar           1.9.0    2023-03-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgbuild         1.4.0    2022-11-27 [1] CRAN (R 4.2.0)
+#&gt;  pkgconfig        2.0.3    2019-09-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgload          1.3.2.1  2023-07-08 [1] CRAN (R 4.2.0)
+#&gt;  plyr             1.8.8    2022-11-11 [1] CRAN (R 4.2.0)
+#&gt;  posterior        1.5.0    2023-10-31 [1] CRAN (R 4.2.1)
+#&gt;  prettyunits      1.1.1    2020-01-24 [1] CRAN (R 4.2.0)
+#&gt;  processx         3.8.2    2023-06-30 [1] CRAN (R 4.2.0)
+#&gt;  profvis          0.3.8    2023-05-02 [1] CRAN (R 4.2.0)
+#&gt;  promises         1.2.1    2023-08-10 [1] CRAN (R 4.2.0)
+#&gt;  ps               1.7.5    2023-04-18 [1] CRAN (R 4.2.0)
+#&gt;  purrr          * 1.0.2    2023-08-10 [1] CRAN (R 4.2.0)
+#&gt;  QuickJSR         1.0.5    2023-09-03 [1] CRAN (R 4.2.0)
+#&gt;  R6               2.5.1    2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  Rcpp           * 1.0.11   2023-07-06 [1] CRAN (R 4.2.0)
+#&gt;  RcppParallel     5.1.7    2023-02-27 [1] CRAN (R 4.2.0)
+#&gt;  readr          * 2.1.4    2023-02-10 [1] CRAN (R 4.2.0)
+#&gt;  remotes          2.4.2.1  2023-07-18 [1] CRAN (R 4.2.0)
+#&gt;  report         * 0.5.8    2023-12-07 [1] CRAN (R 4.2.1)
+#&gt;  reshape2         1.4.4    2020-04-09 [1] CRAN (R 4.2.0)
+#&gt;  rlang            1.1.1    2023-04-28 [1] CRAN (R 4.2.0)
+#&gt;  rmarkdown        2.25     2023-09-18 [1] CRAN (R 4.2.0)
+#&gt;  rstan            2.32.3   2023-10-15 [1] CRAN (R 4.2.0)
+#&gt;  rstanarm       * 2.26.1   2023-09-13 [1] CRAN (R 4.2.0)
+#&gt;  rstantools       2.3.1.1  2023-07-18 [1] CRAN (R 4.2.0)
+#&gt;  rstudioapi       0.15.0   2023-07-07 [1] CRAN (R 4.2.0)
+#&gt;  sandwich         3.0-2    2022-06-15 [1] CRAN (R 4.2.0)
+#&gt;  sass             0.4.7    2023-07-15 [1] CRAN (R 4.2.0)
+#&gt;  scales           1.2.1    2022-08-20 [1] CRAN (R 4.2.0)
+#&gt;  see            * 0.8.1    2023-11-03 [1] CRAN (R 4.2.1)
+#&gt;  sessioninfo      1.2.2    2021-12-06 [1] CRAN (R 4.2.0)
+#&gt;  shiny            1.8.0    2023-11-17 [1] CRAN (R 4.2.1)
+#&gt;  shinyjs          2.1.0    2021-12-23 [1] CRAN (R 4.2.0)
+#&gt;  shinystan        2.6.0    2022-03-03 [1] CRAN (R 4.2.0)
+#&gt;  shinythemes      1.2.0    2021-01-25 [1] CRAN (R 4.2.0)
+#&gt;  StanHeaders      2.26.28  2023-09-07 [1] CRAN (R 4.2.0)
+#&gt;  stringi          1.7.12   2023-01-11 [1] CRAN (R 4.2.0)
+#&gt;  stringr        * 1.5.1    2023-11-14 [1] CRAN (R 4.2.1)
+#&gt;  survival         3.5-5    2023-03-12 [1] CRAN (R 4.2.0)
+#&gt;  tensorA          0.36.2   2020-11-19 [1] CRAN (R 4.2.0)
+#&gt;  TH.data          1.1-2    2023-04-17 [1] CRAN (R 4.2.0)
+#&gt;  threejs          0.3.3    2020-01-21 [1] CRAN (R 4.2.0)
+#&gt;  tibble         * 3.2.1    2023-03-20 [1] CRAN (R 4.2.0)
+#&gt;  tictoc         * 1.2      2023-04-23 [1] CRAN (R 4.2.0)
+#&gt;  tidyr          * 1.3.0    2023-01-24 [1] CRAN (R 4.2.0)
+#&gt;  tidyselect       1.2.0    2022-10-10 [1] CRAN (R 4.2.0)
+#&gt;  tidyverse      * 2.0.0    2023-02-22 [1] CRAN (R 4.2.0)
+#&gt;  timechange       0.2.0    2023-01-11 [1] CRAN (R 4.2.0)
+#&gt;  tzdb             0.4.0    2023-05-12 [1] CRAN (R 4.2.0)
+#&gt;  urlchecker       1.0.1    2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  usethis          2.2.2    2023-07-06 [1] CRAN (R 4.2.0)
+#&gt;  utf8             1.2.3    2023-01-31 [1] CRAN (R 4.2.0)
+#&gt;  V8               4.4.0    2023-10-09 [1] CRAN (R 4.2.0)
+#&gt;  vctrs            0.6.4    2023-10-12 [1] CRAN (R 4.2.0)
+#&gt;  withr            2.5.2    2023-10-30 [1] CRAN (R 4.2.1)
+#&gt;  xfun             0.40     2023-08-09 [1] CRAN (R 4.2.0)
+#&gt;  xtable           1.8-4    2019-04-21 [1] CRAN (R 4.2.0)
+#&gt;  xts              0.13.1   2023-04-16 [1] CRAN (R 4.2.0)
+#&gt;  yaml             2.3.7    2023-01-23 [1] CRAN (R 4.2.0)
+#&gt;  zoo              1.8-12   2023-04-13 [1] CRAN (R 4.2.0)
+#&gt; 
+#&gt;  [1] /Users/sebastiansaueruser/Rlibs
+#&gt;  [2] /Library/Frameworks/R.framework/Versions/4.2/Resources/library
+#&gt; 
+#&gt; ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>

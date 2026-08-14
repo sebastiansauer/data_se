@@ -1,0 +1,111 @@
+---
+title: 'Trying tidymodels: step_num2factor'
+author: Sebastian Sauer
+date: '2020-12-12'
+slug: trying-tidymodels-step-num2factor
+categories:
+  
+tags:
+  - prediction
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(tidymodels)  # modelling
+```
+
+
+# Understanding recipes and preprocessing
+
+
+Having defined a recipe in [this Kaggle competition](https://www.kaggle.com/ssauer/tidymodels-titanic/report), I was left wondering about some details of the recipe definition. Let's explore that.
+
+
+# Cross-posting note
+
+This issue has been place on [SO here]()
+
+
+
+
+```{r}
+data <- 
+  tibble::tribble(
+  ~Survived, ~Pclass,
+         1L,      1L,
+         1L,      2L,
+         0L,      3L
+  )
+
+```
+
+
+```{r}
+data$Survived <- as.numeric(data$Survived)
+```
+
+
+
+
+# Define recipe
+
+```{r}
+titanic_recipe <- 
+  
+  # define model formula:
+  recipe(Survived ~ Pclass, data = data) %>%
+  
+  # convert numeric outcome to nominal (factor):
+  step_num2factor(Survived,
+                  levels = c("dead", "alive"))   
+  
+```
+
+
+
+
+# Prepare (`prep()`) the recipe
+
+
+```{ error = TRUE}
+prep(titanic_recipe) 
+```
+
+
+What's going on here? Why the error? 
+
+
+# Reproducibility
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+
+

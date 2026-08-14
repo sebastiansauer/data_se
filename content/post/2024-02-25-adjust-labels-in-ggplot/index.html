@@ -1,0 +1,329 @@
+---
+title: Adjust labels in ggplot
+author: Sebastian Sauer
+date: '2024-02-25'
+slug: adjust-labels-in-ggplot
+categories:
+  - rstats
+tags:
+  - ggplot2
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages" id="toc-load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#data" id="toc-data"><span class="toc-section-number">2</span> Data</a></li>
+<li><a href="#unadjusted-labels" id="toc-unadjusted-labels"><span class="toc-section-number">3</span> Unadjusted labels</a></li>
+<li><a href="#adjusted-labels-manually" id="toc-adjusted-labels-manually"><span class="toc-section-number">4</span> Adjusted labels manually</a></li>
+<li><a href="#adjust-labels-automatically" id="toc-adjust-labels-automatically"><span class="toc-section-number">5</span> Adjust labels automatically</a></li>
+<li><a href="#expanding-the-limits" id="toc-expanding-the-limits"><span class="toc-section-number">6</span> Expanding the limits</a></li>
+<li><a href="#duckdive-the-problem-tinyfy-the-label" id="toc-duckdive-the-problem-tinyfy-the-label"><span class="toc-section-number">7</span> Duckdive the problem: tinyfy the label</a></li>
+<li><a href="#reproducibility" id="toc-reproducibility"><span class="toc-section-number">8</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(see)  # okabeito_colors</code></pre>
+</div>
+<div id="data" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Data</h1>
+<pre class="r"><code>data(&quot;mariokart&quot;, package = &quot;openintro&quot;)</code></pre>
+</div>
+<div id="unadjusted-labels" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> Unadjusted labels</h1>
+<pre class="r"><code>mario_quantile &lt;- 
+mariokart %&gt;% 
+  filter(total_pr &lt; 100) %&gt;% 
+  summarise(q25 = quantile(total_pr, .25),
+            q50 = quantile(total_pr, .50),
+            q75 = quantile(total_pr, .75))
+
+mario_quantile &lt;- 
+  mariokart %&gt;% 
+  filter(total_pr &lt; 100) %&gt;% 
+  reframe(qs = quantile(total_pr, c(.25, .5, .75)))
+
+mariokart %&gt;% 
+  filter(total_pr &lt; 100) %&gt;%  
+  ggplot(aes(x = total_pr)) +
+  geom_histogram() +
+  geom_vline(xintercept = mario_quantile$qs) +
+  annotate(&quot;label&quot;, x =  mario_quantile$qs, y = 0, label =  mario_quantile$qs) +
+  annotate(&quot;label&quot;, x =  mario_quantile$qs, y = Inf, label =  c(&quot;Q1&quot;, &quot;Median&quot;, &quot;Q3&quot;)) </code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-2-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="adjusted-labels-manually" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Adjusted labels manually</h1>
+<p><code>vjust = 2</code> does the trick:</p>
+<pre class="r"><code>mario_quantile &lt;- 
+mariokart %&gt;% 
+  filter(total_pr &lt; 100) %&gt;% 
+  summarise(q25 = quantile(total_pr, .25),
+            q50 = quantile(total_pr, .50),
+            q75 = quantile(total_pr, .75))
+
+mario_quantile &lt;- 
+  mariokart %&gt;% 
+  filter(total_pr &lt; 100) %&gt;% 
+  reframe(qs = quantile(total_pr, c(.25, .5, .75)))
+
+mariokart %&gt;% 
+  filter(total_pr &lt; 100) %&gt;%  
+  ggplot(aes(x = total_pr)) +
+  geom_histogram() +
+  geom_vline(xintercept = mario_quantile$qs) +
+  annotate(&quot;label&quot;, x =  mario_quantile$qs, y = 0, label =  mario_quantile$qs) +
+  annotate(&quot;label&quot;, x =  mario_quantile$qs, y = Inf, label =  c(&quot;Q1&quot;, &quot;Median&quot;, &quot;Q3&quot;), vjust = 2) </code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="adjust-labels-automatically" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Adjust labels automatically</h1>
+<p>Using <code>vjust = "top"</code> (or “bottom”) does the trick in an automatic, comfortable way.</p>
+<pre class="r"><code>mariokart %&gt;% 
+  filter(total_pr &lt; 100) %&gt;%  
+  ggplot(aes(x = total_pr)) +
+  geom_histogram() +
+  geom_vline(xintercept = mario_quantile$qs) +
+  annotate(&quot;label&quot;, x =  mario_quantile$qs, y = 0, label =  mario_quantile$qs, vjust = &quot;bottom&quot;) +
+  annotate(&quot;label&quot;, x =  mario_quantile$qs, y = Inf, label =  c(&quot;Q1&quot;, &quot;Median&quot;, &quot;Q3&quot;), vjust = &quot;top&quot;) </code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-4-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Similarly, one case use <code>hjust = "left"</code> for horizontal alignment.</p>
+</div>
+<div id="expanding-the-limits" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Expanding the limits</h1>
+<p>Let’s consider a second example, where it helped to expand the limits of the coordinates.</p>
+<p>In this example, we use Weather data from the German DWD <a href="https://www.dwd.de/DE/Home/home_node.html">i.e., Deutschen Wetterdienst, DWD</a> .</p>
+<p>After some <a href="https://data-se.netlify.app/2022/07/24/preparing-german-weather-data/">data wrangling, which will not discussed here</a>, there’s a nice data set waiting for further scrutiny.</p>
+<pre class="r"><code>wetter_path &lt;- &quot;https://raw.githubusercontent.com/sebastiansauer/Lehre/main/data/wetter-dwd/precip_temp_DWD.csv&quot;
+wetter &lt;- read.csv(wetter_path)</code></pre>
+<p>Some data preparation:</p>
+<pre class="r"><code>wetter &lt;-
+  wetter %&gt;% 
+  mutate(after_1950 = year &gt; 1950) %&gt;% 
+  filter(region != &quot;Deutschland&quot;)  # ohne Daten für Gesamt-Deutschland</code></pre>
+<p>Here’s a linear model for our weather data:</p>
+<pre class="r"><code>lm_wetter_region &lt;- lm(temp ~ region, data = wetter)</code></pre>
+<pre class="r"><code>wetter_summ &lt;- 
+  wetter %&gt;% 
+  group_by(region) %&gt;% 
+  summarise(temp = mean(temp)) %&gt;% 
+  mutate(id = 0:15) %&gt;% 
+  ungroup() %&gt;%
+  mutate(grandmean = mean(temp),
+         delta = temp - grandmean)
+
+wetter_summ %&gt;%  
+  ggplot(aes(y = region, x = temp)) +
+  theme_minimal() +
+  geom_label(aes(label = paste0(&quot;b&quot;, id),
+                 x = grandmean + delta), 
+             vjust = 1,
+             size = 2,
+             color = okabeito_colors()[1]) +
+  geom_vline(xintercept = coef(lm_wetter_region)[1], linetype = &quot;dashed&quot;, color = okabeito_colors()[2]) +
+  
+  #coord_cartesian(xlim = c(7, 10), ylim = c(0, 16))  +
+ 
+  annotate(&quot;label&quot;,
+           y = 1,
+           x = coef(lm_wetter_region)[1],
+           vjust = 1,
+           label = paste0(&quot;b0&quot;),
+           #size = 6,
+           color = okabeito_colors()[2]) +
+  annotate(&quot;point&quot;, 
+           y = 1, 
+           x = coef(lm_wetter_region)[1], 
+           color = okabeito_colors()[2],
+           #vjust = 1,
+           size = 4) +
+  geom_segment(aes(yend = region, xend = temp), 
+               x = coef(lm_wetter_region)[1], 
+               color = okabeito_colors()[1])  +
+    geom_point() +
+  labs(y = &quot;&quot;,
+       x = &quot;Temperatur&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-8-1.png" width="100%" style="display: block; margin: auto;" /></p>
+<p>Behold the label right at the bottom of the diagram, “b0”.
+It is not displayed properly.</p>
+<p>One way to get it back into the picture is bay extending the limits of the y-axis:</p>
+<pre class="r"><code>
+wetter_summ %&gt;%  
+  ggplot(aes(y = region, x = temp)) +
+  theme_minimal() +
+  geom_label(aes(label = paste0(&quot;b&quot;, id),
+                 x = grandmean + delta), 
+             vjust = 1,
+             size = 2,
+             color = okabeito_colors()[1]) +
+  geom_vline(xintercept = coef(lm_wetter_region)[1], linetype = &quot;dashed&quot;, color = okabeito_colors()[2]) +
+  
+ coord_cartesian(xlim = c(7, 10), ylim = c(0, 16))  +  # back in the game!
+ 
+  annotate(&quot;label&quot;,
+           y = 1,
+           x = coef(lm_wetter_region)[1],
+           vjust = 1,
+           label = paste0(&quot;b0&quot;),
+           #size = 6,
+           color = okabeito_colors()[2]) +
+  annotate(&quot;point&quot;, 
+           y = 1, 
+           x = coef(lm_wetter_region)[1], 
+           color = okabeito_colors()[2],
+           #vjust = 1,
+           size = 4) +
+  geom_segment(aes(yend = region, xend = temp), 
+               x = coef(lm_wetter_region)[1], 
+               color = okabeito_colors()[1])  +
+    geom_point() +
+  labs(y = &quot;&quot;,
+       x = &quot;Temperatur&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-9-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="duckdive-the-problem-tinyfy-the-label" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Duckdive the problem: tinyfy the label</h1>
+<p>It may feel like cheating, but, hey, problem solved: just decrease the size of the label.</p>
+<pre class="r"><code>
+wetter_summ %&gt;%  
+  ggplot(aes(y = region, x = temp)) +
+  theme_minimal() +
+  geom_point() +
+  annotate(&quot;point&quot;, 
+           y = 1, 
+           x = coef(lm_wetter_region)[1], 
+           color = okabeito_colors()[2],
+           size = 4,
+           alpha = .5) +
+  geom_label(aes(label = paste0(&quot;b&quot;, id),
+                 x = grandmean + delta), 
+             vjust = 1,
+             size = 2,
+             color = okabeito_colors()[1]) +
+  geom_vline(xintercept = coef(lm_wetter_region)[1], 
+             linetype = &quot;dashed&quot;, color = okabeito_colors()[2]) +
+  
+  #coord_cartesian(xlim = c(7, 10), ylim = c(0, 16))  +
+ 
+  annotate(&quot;label&quot;,
+           y = 1,
+           x = coef(lm_wetter_region)[1],
+           vjust = 1,
+           label = paste0(&quot;b0&quot;),
+           size = 2,
+           color = okabeito_colors()[2]) +
+
+  geom_segment(aes(yend = region, xend = temp), 
+               x = coef(lm_wetter_region)[1], 
+               color = okabeito_colors()[1])  +
+  labs(y = &quot;&quot;,
+       x = &quot;Temperatur&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-10-1.png" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="reproducibility" class="section level1" number="8">
+<h1><span class="header-section-number">8</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value
+#&gt;  version  R version 4.2.1 (2022-06-23)
+#&gt;  os       macOS Big Sur ... 10.16
+#&gt;  system   x86_64, darwin17.0
+#&gt;  ui       X11
+#&gt;  language (EN)
+#&gt;  collate  en_US.UTF-8
+#&gt;  ctype    en_US.UTF-8
+#&gt;  tz       Europe/Berlin
+#&gt;  date     2024-02-25
+#&gt;  pandoc   3.1.12.1 @ /usr/local/bin/ (via rmarkdown)
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version date (UTC) lib source
+#&gt;  blogdown      1.18    2023-06-19 [1] CRAN (R 4.2.0)
+#&gt;  bookdown      0.36    2023-10-16 [1] CRAN (R 4.2.0)
+#&gt;  bslib         0.6.1   2023-11-28 [1] CRAN (R 4.2.0)
+#&gt;  cachem        1.0.8   2023-05-01 [1] CRAN (R 4.2.0)
+#&gt;  callr         3.7.3   2022-11-02 [1] CRAN (R 4.2.0)
+#&gt;  cli           3.6.2   2023-12-11 [1] CRAN (R 4.2.0)
+#&gt;  codetools     0.2-19  2023-02-01 [1] CRAN (R 4.2.0)
+#&gt;  colorspace    2.1-0   2023-01-23 [1] CRAN (R 4.2.0)
+#&gt;  crayon        1.5.2   2022-09-29 [1] CRAN (R 4.2.1)
+#&gt;  devtools      2.4.5   2022-10-11 [1] CRAN (R 4.2.1)
+#&gt;  digest        0.6.33  2023-07-07 [1] CRAN (R 4.2.0)
+#&gt;  dplyr       * 1.1.4   2023-11-17 [1] CRAN (R 4.2.0)
+#&gt;  ellipsis      0.3.2   2021-04-29 [1] CRAN (R 4.2.0)
+#&gt;  evaluate      0.23    2023-11-01 [1] CRAN (R 4.2.0)
+#&gt;  fansi         1.0.6   2023-12-08 [1] CRAN (R 4.2.0)
+#&gt;  farver        2.1.1   2022-07-06 [1] CRAN (R 4.2.0)
+#&gt;  fastmap       1.1.1   2023-02-24 [1] CRAN (R 4.2.0)
+#&gt;  forcats     * 1.0.0   2023-01-29 [1] CRAN (R 4.2.0)
+#&gt;  fs            1.6.3   2023-07-20 [1] CRAN (R 4.2.0)
+#&gt;  generics      0.1.3   2022-07-05 [1] CRAN (R 4.2.0)
+#&gt;  ggplot2     * 3.5.0   2024-02-23 [1] CRAN (R 4.2.1)
+#&gt;  glue          1.6.2   2022-02-24 [1] CRAN (R 4.2.0)
+#&gt;  gtable        0.3.4   2023-08-21 [1] CRAN (R 4.2.0)
+#&gt;  highr         0.10    2022-12-22 [1] CRAN (R 4.2.0)
+#&gt;  hms           1.1.3   2023-03-21 [1] CRAN (R 4.2.0)
+#&gt;  htmltools     0.5.7   2023-11-03 [1] CRAN (R 4.2.0)
+#&gt;  htmlwidgets   1.6.2   2023-03-17 [1] CRAN (R 4.2.0)
+#&gt;  httpuv        1.6.11  2023-05-11 [1] CRAN (R 4.2.0)
+#&gt;  jquerylib     0.1.4   2021-04-26 [1] CRAN (R 4.2.0)
+#&gt;  jsonlite      1.8.8   2023-12-04 [1] CRAN (R 4.2.0)
+#&gt;  knitr         1.45    2023-10-30 [1] CRAN (R 4.2.1)
+#&gt;  labeling      0.4.3   2023-08-29 [1] CRAN (R 4.2.0)
+#&gt;  later         1.3.1   2023-05-02 [1] CRAN (R 4.2.0)
+#&gt;  lifecycle     1.0.4   2023-11-07 [1] CRAN (R 4.2.1)
+#&gt;  lubridate   * 1.9.3   2023-09-27 [1] CRAN (R 4.2.0)
+#&gt;  magrittr      2.0.3   2022-03-30 [1] CRAN (R 4.2.0)
+#&gt;  memoise       2.0.1   2021-11-26 [1] CRAN (R 4.2.0)
+#&gt;  mime          0.12    2021-09-28 [1] CRAN (R 4.2.0)
+#&gt;  miniUI        0.1.1.1 2018-05-18 [1] CRAN (R 4.2.0)
+#&gt;  munsell       0.5.0   2018-06-12 [1] CRAN (R 4.2.0)
+#&gt;  pillar        1.9.0   2023-03-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgbuild      1.4.0   2022-11-27 [1] CRAN (R 4.2.0)
+#&gt;  pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgload       1.3.2.1 2023-07-08 [1] CRAN (R 4.2.0)
+#&gt;  prettyunits   1.1.1   2020-01-24 [1] CRAN (R 4.2.0)
+#&gt;  processx      3.8.2   2023-06-30 [1] CRAN (R 4.2.0)
+#&gt;  profvis       0.3.8   2023-05-02 [1] CRAN (R 4.2.0)
+#&gt;  promises      1.2.1   2023-08-10 [1] CRAN (R 4.2.0)
+#&gt;  ps            1.7.5   2023-04-18 [1] CRAN (R 4.2.0)
+#&gt;  purrr       * 1.0.2   2023-08-10 [1] CRAN (R 4.2.0)
+#&gt;  R6            2.5.1   2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  Rcpp          1.0.11  2023-07-06 [1] CRAN (R 4.2.0)
+#&gt;  readr       * 2.1.4   2023-02-10 [1] CRAN (R 4.2.0)
+#&gt;  remotes       2.4.2.1 2023-07-18 [1] CRAN (R 4.2.0)
+#&gt;  rlang         1.1.2   2023-11-04 [1] CRAN (R 4.2.0)
+#&gt;  rmarkdown     2.25    2023-09-18 [1] CRAN (R 4.2.0)
+#&gt;  rstudioapi    0.15.0  2023-07-07 [1] CRAN (R 4.2.0)
+#&gt;  sass          0.4.8   2023-12-06 [1] CRAN (R 4.2.0)
+#&gt;  scales        1.3.0   2023-11-28 [1] CRAN (R 4.2.0)
+#&gt;  sessioninfo   1.2.2   2021-12-06 [1] CRAN (R 4.2.0)
+#&gt;  shiny         1.8.0   2023-11-17 [1] CRAN (R 4.2.1)
+#&gt;  stringi       1.8.3   2023-12-11 [1] CRAN (R 4.2.0)
+#&gt;  stringr     * 1.5.1   2023-11-14 [1] CRAN (R 4.2.1)
+#&gt;  tibble      * 3.2.1   2023-03-20 [1] CRAN (R 4.2.0)
+#&gt;  tidyr       * 1.3.0   2023-01-24 [1] CRAN (R 4.2.0)
+#&gt;  tidyselect    1.2.0   2022-10-10 [1] CRAN (R 4.2.0)
+#&gt;  tidyverse   * 2.0.0   2023-02-22 [1] CRAN (R 4.2.0)
+#&gt;  timechange    0.2.0   2023-01-11 [1] CRAN (R 4.2.0)
+#&gt;  tzdb          0.4.0   2023-05-12 [1] CRAN (R 4.2.0)
+#&gt;  urlchecker    1.0.1   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  usethis       2.2.2   2023-07-06 [1] CRAN (R 4.2.0)
+#&gt;  utf8          1.2.4   2023-10-22 [1] CRAN (R 4.2.0)
+#&gt;  vctrs         0.6.5   2023-12-01 [1] CRAN (R 4.2.0)
+#&gt;  withr         3.0.0   2024-01-16 [1] CRAN (R 4.2.1)
+#&gt;  xfun          0.41    2023-11-01 [1] CRAN (R 4.2.0)
+#&gt;  xtable        1.8-4   2019-04-21 [1] CRAN (R 4.2.0)
+#&gt;  yaml          2.3.8   2023-12-11 [1] CRAN (R 4.2.0)
+#&gt; 
+#&gt;  [1] /Users/sebastiansaueruser/Rlibs
+#&gt;  [2] /Library/Frameworks/R.framework/Versions/4.2/Resources/library
+#&gt; 
+#&gt; ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>

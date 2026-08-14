@@ -1,0 +1,246 @@
+---
+title: Consistency of set.seed across different systems
+author: Sebastian Sauer
+date: '2022-12-13'
+slug: consistency-of-set-seed-across-different-systems
+categories:
+  - rstats
+tags:
+  - simulation
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = FALSE,
+  out.width = "100%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Load packages
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(tidyverse)  # data wrangling
+library(digest)
+library(rstanarm)
+```
+
+
+# Motivation
+
+Reproducibility of results is a major concern in science and industry alike.
+However, there are numerous pitfalls which may threaten reproducibility.
+This post explores one possible issue - the fixation of start values of random numbers drawn by R.
+
+Reasons that seeds in R across different systems may (possibly) vary (I don't know if they do, but I heard so) may include:
+
+- different OSes
+- different version of OSes
+- different versions of R
+
+
+# User error
+
+Maybe the most straight forward explanation is a user error.
+Don't forget to call `set.seed()` right  before the calculation.
+Be sure to use a pre defined seed value.
+
+
+
+# Your help needed
+
+Please let me know whether (or not) you get the same random numbers,
+once the seed is fixed.
+In order to check the possible influence source,
+please note your OS, and the R version (or paste the session info).
+
+Thanks! 
+
+
+
+
+# Same random numbers 
+
+What `set.seed()` does is the fix the value of `.Random.seed`,
+which is in turn used to initiate the random number generator of R.
+
+```{r}
+.Random.seed %>% head()
+```
+
+
+
+## Without seed
+
+Without seed, the random numbers drawn by R will be transient, ie., subject of change:
+
+```{r}
+rnorm(1)
+```
+
+
+```{r}
+replicate(n = 10, expr = rnorm(1))
+```
+
+
+## With seed
+
+
+```{r rnorm1-with-seed}
+set.seed(42)
+
+rnorm(1)
+```
+
+
+
+
+
+```{r}
+set.seed(42)
+replicate(n = 10, expr = rnorm(1))
+```
+
+
+## Using a hash 
+
+Let's use a hash number to control the output more succinctly:
+
+
+```{r}
+set.seed(42)
+x <- replicate(n = 10, expr = rnorm(1))
+
+digest(x)
+```
+
+
+Let's recompute and compare the hash values:
+
+
+
+```{r}
+set.seed(42)
+x2 <- replicate(n = 10, expr = rnorm(1))
+
+digest(x2)
+```
+
+
+
+```{r}
+identical(x, x2)
+```
+
+Identical, as expected.
+
+
+
+
+# Seeds in regression models
+
+
+## lm
+
+```{r}
+set.seed(42)
+lm1 <- lm(mpg ~ hp, data = mtcars)
+lm1_coef <- coef(lm1)
+lm1_coef
+```
+
+
+Rerun to double check:
+
+```{r}
+set.seed(42)
+lm1 <- lm(mpg ~ hp, data = mtcars)
+lm1_coef <- coef(lm1)
+lm1_coef
+```
+
+## Stan mtcars
+
+
+```{r stan1}
+lm2 <- stan_glm(mpg ~ hp, data = mtcars, seed = 42, refresh = 0)
+lm2_coef <- coef(lm2)
+lm2_coef
+```
+
+
+Rerun:
+
+
+
+```{r stan2}
+lm2 <- stan_glm(mpg ~ hp, data = mtcars, seed = 42, refresh = 0)
+lm2_coef <- coef(lm2)
+lm2_coef
+```
+
+
+## Stan penguins
+
+Import data and run the model:
+
+
+
+
+```{r}
+penguins <- read.csv("https://vincentarelbundock.github.io/Rdatasets/csv/palmerpenguins/penguins.csv")
+
+library(rstanarm)
+lm3 <- stan_glm(body_mass_g ~ bill_length_mm, 
+                seed = 42,
+                refresh = 0,
+                data = penguins)
+coef(lm3)
+```
+
+
+By the way: 
+
+Copy-paste the chunk above (which is self-containing in terms of data and R packages) and then type `reprex::reprex()` in the console (you need to have the package  `reprex` installed). You'll get a reproducible example on your clipboard.
+
+
+Rerun:
+
+
+```{r}
+lm3 <- stan_glm(body_mass_g ~ bill_length_mm, 
+                seed = 42,
+                refresh = 0,
+                data = penguins)
+coef(lm3)
+```
+
+
+# Session info
+
+```{r reproducibility, echo = FALSE}
+## Reproducibility info
+options(width = 120)
+devtools::session_info()
+```
+
+
+
+
