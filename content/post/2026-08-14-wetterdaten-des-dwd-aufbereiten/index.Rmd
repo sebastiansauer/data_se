@@ -302,17 +302,14 @@ cat("Kenntage:", nrow(kenntage_lang), "Zeilen,",
 
 # Monatsdaten Temperatur & Niederschlag zusammenfuehren
 
-"Deutschland" ist in den DWD-Rohdaten eine zusaetzliche Gesamtspalte
-neben den 16 Regionen und wird hier herausgefiltert, damit pro
-Jahr-Monat-Kombination genau 16 Zeilen (eine je Region) uebrig bleiben.
+Neben den 16 Regionen enthalten die DWD-Rohdaten zusaetzlich
+"Deutschland" als Gesamtwert; die Zeile bleibt hier erhalten, sodass
+pro Jahr-Monat-Kombination 17 Zeilen (16 Regionen + Deutschland)
+entstehen.
 
 ```{r wetterdaten_monat}
 wetterdaten_monat <- temperatur_lang |>
-  filter(Bundesland != "Deutschland") |>
-  inner_join(
-    niederschlag_lang |> filter(Bundesland != "Deutschland"),
-    by = c("Jahr", "Monat", "Bundesland")
-  ) |>
+  inner_join(niederschlag_lang, by = c("Jahr", "Monat", "Bundesland")) |>
   transmute(
     year   = Jahr,
     month  = Monat,
