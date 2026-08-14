@@ -1,0 +1,196 @@
+---
+title: Wetterdaten des DWD analysieren - 2026
+author: ''
+date: '2026-08-14'
+slug: wetterdaten-des-dwd-analysieren-2026
+categories: []
+tags:
+ - datawrangling
+---
+
+
+
+<p>Dieses Skript wurde mit Hilfe von KI erstellt.</p>
+<div id="load-packages" class="section level1">
+<h1>Load packages</h1>
+<pre class="r"><code>library(tidyverse)</code></pre>
+</div>
+<div id="load-data" class="section level1">
+<h1>Load data</h1>
+<p>Data Source: Deutscher Wetterdienst (DWD), Climate Data Center, opendata.dwd.de, License: CC BY 4.0</p>
+<pre class="r"><code>klimakenntage_url &lt;- &quot;https://raw.githubusercontent.com/sebastiansauer/data_se/refs/heads/master/content/post/2026-08-14-wetterdaten-des-dwd-aufbereiten/klimakenntage_bundesland_jahr.csv&quot;</code></pre>
+</div>
+<div id="klimakenntage" class="section level1">
+<h1>Klimakenntage</h1>
+<pre class="r"><code>klimakenntage &lt;- read_csv(klimakenntage_url)</code></pre>
+<div id="data-dictionary-dwd-jahreswerte-klimakenntage" class="section level2">
+<h2>Data Dictionary: DWD Jahreswerte – Klimakenntage</h2>
+<p>Quelle: <code>klimakenntage_bundesland_jahr.csv</code></p>
+<table>
+<colgroup>
+<col width="13%" />
+<col width="10%" />
+<col width="76%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Spalte</th>
+<th>Typ</th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>Jahr</code></td>
+<td>integer</td>
+<td>Kalenderjahr der Beobachtung</td>
+</tr>
+<tr class="even">
+<td><code>Bundesland</code></td>
+<td>character</td>
+<td>Deutsches Bundesland (regionaler Mittelwert)</td>
+</tr>
+<tr class="odd">
+<td><code>Wert</code></td>
+<td>double</td>
+<td>Anzahl der Tage im jeweiligen Jahr, die das Kriterium des Indikators erfüllen</td>
+</tr>
+<tr class="even">
+<td><code>Indikator</code></td>
+<td>character</td>
+<td>Kenntag-Typ, siehe Codebuch unten</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="codebuch-indikator" class="section level2">
+<h2>Codebuch <code>Indikator</code></h2>
+<table>
+<colgroup>
+<col width="22%" />
+<col width="10%" />
+<col width="22%" />
+<col width="44%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th>Wert in <code>Indikator</code></th>
+<th align="center">DWD-Kürzel</th>
+<th>Deutsche Bezeichnung</th>
+<th>Definition</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>frost_days</code></td>
+<td align="center">FD</td>
+<td>Frosttage</td>
+<td>Tmin &lt; 0 °C</td>
+</tr>
+<tr class="even">
+<td><code>ice_days</code></td>
+<td align="center">ID</td>
+<td>Eistage</td>
+<td>Tmax &lt; 0 °C</td>
+</tr>
+<tr class="odd">
+<td><code>summer_days</code></td>
+<td align="center">SU</td>
+<td>Sommertage</td>
+<td>Tmax ≥ 25 °C</td>
+</tr>
+<tr class="even">
+<td><code>hot_days</code></td>
+<td align="center">—</td>
+<td>Heiße Tage</td>
+<td>Tmax ≥ 30 °C</td>
+</tr>
+<tr class="odd">
+<td><code>tropical_nights</code></td>
+<td align="center">TR</td>
+<td>Tropennächte</td>
+<td>Tmin ≥ 20 °C</td>
+</tr>
+<tr class="even">
+<td><code>precipGE10mm_days</code></td>
+<td align="center">—</td>
+<td>Starkregentage (≥10 mm)</td>
+<td>Tagesniederschlag ≥ 10 mm</td>
+</tr>
+<tr class="odd">
+<td><code>precipGE20mm_days</code></td>
+<td align="center">—</td>
+<td>Starkregentage (≥20 mm)</td>
+<td>Tagesniederschlag ≥ 20 mm</td>
+</tr>
+<tr class="even">
+<td><code>trocken_monate</code></td>
+<td align="center">—</td>
+<td>Trockenmonate</td>
+<td>Anzahl Monate/Jahr mit Niederschlag unter dem 20%-Quantil des Bundeslands</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Hinweis:</strong> Tmin/Tmax beziehen sich auf die Tagesminimum-/Tagesmaximumtemperatur der Lufttemperatur in 2 m Höhe. Die Werte sind regionale Jahresmittel je Bundesland, wie vom DWD (Climate Data Center, regional_averages_DE) bereitgestellt.</p>
+</div>
+<div id="auswertung-frosttage" class="section level2">
+<h2>Auswertung Frosttage</h2>
+<pre class="r"><code>klimakenntage |&gt; 
+  group_by(Indikator, Jahr) |&gt; 
+  summarise(Wert_avg = mean(Wert, na.rm = TRUE)) |&gt; 
+  ungroup() |&gt; 
+  filter(Indikator == &quot;frost_days&quot;) |&gt; 
+  ggplot(aes(x = Jahr, y = Wert_avg)) +
+  geom_line() +
+  geom_smooth()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/frost-1.png" alt="" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="auswertung-tropennächte" class="section level2">
+<h2>Auswertung Tropennächte</h2>
+<pre class="r"><code>klimakenntage |&gt; 
+  group_by(Indikator, Jahr) |&gt; 
+  summarise(Wert_avg = mean(Wert)) |&gt; 
+  ungroup() |&gt; 
+  filter(Indikator == &quot;tropical_nights&quot;) |&gt;
+  ggplot(aes(x = Jahr, y = Wert_avg)) +
+  geom_line() +
+  geom_smooth()</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/tropennacht-1.png" alt="" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="auswertung-alle-indikatoren" class="section level2">
+<h2>Auswertung alle Indikatoren</h2>
+<pre class="r"><code>klimakenntage |&gt;
+  group_by(Indikator, Jahr) |&gt;
+  summarise(Wert_avg = mean(Wert, na.rm = TRUE)) |&gt;
+  ungroup() |&gt;
+  ggplot(aes(x = Jahr, y = Wert_avg, color = Indikator)) +
+  geom_line() +
+  geom_smooth() +
+  facet_wrap(~ Indikator, scales = &quot;free_y&quot;) +
+  labs(x = &quot;Jahr&quot;, y = &quot;Mittlere Anzahl Tage&quot;) +
+  theme(legend.position = &quot;none&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/alleindiaktoren-1.png" alt="" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="auswertung-pro-bundesland-und-indikator" class="section level2">
+<h2>Auswertung pro Bundesland und Indikator</h2>
+<pre class="r"><code>klimakenntage |&gt;
+  ggplot(aes(x = Jahr, y = Wert, color = Bundesland)) +
+  geom_line() +
+  facet_wrap(~ Indikator, scales = &quot;free_y&quot;) +
+  labs(x = &quot;Jahr&quot;, y = &quot;Anzahl Tage&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/bundeslandindikator-1.png" alt="" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="auswertung-für-deutschland-insgesamt" class="section level2">
+<h2>Auswertung für Deutschland insgesamt</h2>
+<pre class="r"><code>klimakenntage |&gt;
+  group_by(Indikator, Jahr) |&gt;
+  summarise(Wert_avg = mean(Wert, na.rm = TRUE)) |&gt;
+  ungroup() |&gt;
+  ggplot(aes(x = Jahr, y = Wert_avg)) +
+  geom_line() +
+  geom_smooth() +
+  facet_wrap(~ Indikator, scales = &quot;free_y&quot;) +
+  labs(x = &quot;Jahr&quot;, y = &quot;Mittlere Anzahl Tage (Deutschland)&quot;)</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/deutschland-1.png" alt="" width="70%" style="display: block; margin: auto;" /></p>
+</div>
+</div>

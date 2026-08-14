@@ -4,10 +4,11 @@ author: ''
 date: '2026-08-14'
 slug: wetterdaten-des-dwd-analysieren-2026
 categories: []
-tags: []
+tags:
+ - datawrangling
 ---
 
-
+Dieses Skript wurde mit Hilfe von KI erstellt.
 
 ```{r knitr-setup, echo = FALSE}
 knitr::opts_chunk$set(
@@ -35,4 +36,123 @@ library(tidyverse)
 
 
 
+# Load data
+
+ Data Source: Deutscher Wetterdienst (DWD), Climate Data Center, opendata.dwd.de, License: CC BY 4.0
+
+```{r data-url}
+klimakenntage_url <- "https://raw.githubusercontent.com/sebastiansauer/data_se/refs/heads/master/content/post/2026-08-14-wetterdaten-des-dwd-aufbereiten/klimakenntage_bundesland_jahr.csv"
+```
+
+
+# Klimakenntage
+
+
+```{r data-read}
+klimakenntage <- read_csv(klimakenntage_url)
+```
+
+
+## Data Dictionary: DWD Jahreswerte – Klimakenntage
+
+Quelle: `klimakenntage_bundesland_jahr.csv`
+
+| Spalte      | Typ      | Beschreibung                                                              |
+|-------------|----------|----------------------------------------------------------------------------|
+| `Jahr`      | integer  | Kalenderjahr der Beobachtung                                              |
+| `Bundesland`| character| Deutsches Bundesland (regionaler Mittelwert)                              |
+| `Wert`      | double   | Anzahl der Tage im jeweiligen Jahr, die das Kriterium des Indikators erfüllen |
+| `Indikator` | character| Kenntag-Typ, siehe Codebuch unten                                        |
+
+## Codebuch `Indikator`
+
+| Wert in `Indikator`    | DWD-Kürzel | Deutsche Bezeichnung   | Definition                                      |
+|-------------------------|:----------:|-------------------------|--------------------------------------------------|
+| `frost_days`             | FD         | Frosttage               | Tmin < 0 °C                                       |
+| `ice_days`                | ID         | Eistage                 | Tmax < 0 °C                                       |
+| `summer_days`             | SU         | Sommertage              | Tmax ≥ 25 °C                                      |
+| `hot_days`                | —          | Heiße Tage              | Tmax ≥ 30 °C                                      |
+| `tropical_nights`         | TR         | Tropennächte            | Tmin ≥ 20 °C                                      |
+| `precipGE10mm_days`       | —          | Starkregentage (≥10 mm) | Tagesniederschlag ≥ 10 mm                         |
+| `precipGE20mm_days`       | —          | Starkregentage (≥20 mm) | Tagesniederschlag ≥ 20 mm                         |
+| `trocken_monate`          | —          | Trockenmonate           | Anzahl Monate/Jahr mit Niederschlag unter dem 20%-Quantil des Bundeslands |
+
+**Hinweis:** Tmin/Tmax beziehen sich auf die Tagesminimum-/Tagesmaximumtemperatur der Lufttemperatur in 2 m Höhe. Die Werte sind regionale Jahresmittel je Bundesland, wie vom DWD (Climate Data Center, regional_averages_DE) bereitgestellt.
+
+
+
+
+## Auswertung Frosttage
+
+
+```{r frost}
+klimakenntage |> 
+  group_by(Indikator, Jahr) |> 
+  summarise(Wert_avg = mean(Wert, na.rm = TRUE)) |> 
+  ungroup() |> 
+  filter(Indikator == "frost_days") |> 
+  ggplot(aes(x = Jahr, y = Wert_avg)) +
+  geom_line() +
+  geom_smooth()
+```
+
+
+## Auswertung Tropennächte
+
+
+```{r tropennacht}
+klimakenntage |> 
+  group_by(Indikator, Jahr) |> 
+  summarise(Wert_avg = mean(Wert)) |> 
+  ungroup() |> 
+  filter(Indikator == "tropical_nights") |>
+  ggplot(aes(x = Jahr, y = Wert_avg)) +
+  geom_line() +
+  geom_smooth()
+```
+
+
+## Auswertung alle Indikatoren
+
+
+```{r alleindiaktoren}
+klimakenntage |>
+  group_by(Indikator, Jahr) |>
+  summarise(Wert_avg = mean(Wert, na.rm = TRUE)) |>
+  ungroup() |>
+  ggplot(aes(x = Jahr, y = Wert_avg, color = Indikator)) +
+  geom_line() +
+  geom_smooth() +
+  facet_wrap(~ Indikator, scales = "free_y") +
+  labs(x = "Jahr", y = "Mittlere Anzahl Tage") +
+  theme(legend.position = "none")
+```
+
+
+## Auswertung pro Bundesland und Indikator
+
+
+```{r bundeslandindikator}
+klimakenntage |>
+  ggplot(aes(x = Jahr, y = Wert, color = Bundesland)) +
+  geom_line() +
+  facet_wrap(~ Indikator, scales = "free_y") +
+  labs(x = "Jahr", y = "Anzahl Tage")
+```
+
+
+## Auswertung für Deutschland insgesamt
+
+
+```{r deutschland}
+klimakenntage |>
+  group_by(Indikator, Jahr) |>
+  summarise(Wert_avg = mean(Wert, na.rm = TRUE)) |>
+  ungroup() |>
+  ggplot(aes(x = Jahr, y = Wert_avg)) +
+  geom_line() +
+  geom_smooth() +
+  facet_wrap(~ Indikator, scales = "free_y") +
+  labs(x = "Jahr", y = "Mittlere Anzahl Tage (Deutschland)")
+```
 

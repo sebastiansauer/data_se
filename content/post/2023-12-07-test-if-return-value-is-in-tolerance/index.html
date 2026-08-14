@@ -1,0 +1,472 @@
+---
+title: Test if return value is in tolerance
+author: Sebastian Sauer
+date: '2023-12-13'
+slug: test-if-return-value-is-in-tolerance2
+categories:
+  - rstats
+tags:
+  - simulation
+  - Bayes
+output:
+  blogdown::html_page:
+    toc: yes
+    number_sections: yes
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#load-packages" id="toc-load-packages"><span class="toc-section-number">1</span> Load packages</a></li>
+<li><a href="#motivation" id="toc-motivation"><span class="toc-section-number">2</span> Motivation</a></li>
+<li><a href="#but-in-practice-how-large-is-the-difference" id="toc-but-in-practice-how-large-is-the-difference"><span class="toc-section-number">3</span> But in practice, how large is the difference?</a></li>
+<li><a href="#check-if-in-tolerance-region" id="toc-check-if-in-tolerance-region"><span class="toc-section-number">4</span> Check if in tolerance region</a>
+<ul>
+<li><a href="#b0" id="toc-b0"><span class="toc-section-number">4.1</span> b0</a></li>
+<li><a href="#b1" id="toc-b1"><span class="toc-section-number">4.2</span> b1</a></li>
+<li><a href="#r2" id="toc-r2"><span class="toc-section-number">4.3</span> R2</a></li>
+<li><a href="#count" id="toc-count"><span class="toc-section-number">4.4</span> Count</a></li>
+</ul></li>
+<li><a href="#check-variability" id="toc-check-variability"><span class="toc-section-number">5</span> Check variability</a></li>
+<li><a href="#conclusions" id="toc-conclusions"><span class="toc-section-number">6</span> Conclusions</a></li>
+<li><a href="#reproducibility" id="toc-reproducibility"><span class="toc-section-number">7</span> Reproducibility</a></li>
+</ul>
+</div>
+
+<div id="load-packages" class="section level1" number="1">
+<h1><span class="header-section-number">1</span> Load packages</h1>
+<pre class="r"><code>library(tidyverse)  # data wrangling
+library(prada)  # function &quot;is_in_tolerance`
+library(rstanarm)  # Bayes regression
+library(easystats)  # R2 etc
+library(DataExplorer)  # data vis
+library(tictoc)</code></pre>
+</div>
+<div id="motivation" class="section level1" number="2">
+<h1><span class="header-section-number">2</span> Motivation</h1>
+<p>Bayes models (using MCMC) build on drawing random numbers.
+By their very nature, random numbers are random.
+Unless they are not.
+As you may know, the random number fuctions in computers are purely deterministic.</p>
+<p>However, in practice, some inpredictable behavior may still show up.
+The reason being simply that two computational environment must - in theory - being exactly identical in order to reproduce the same results.
+At least identical in every bit that influence random number generation.</p>
+<p>In fact, <a href="https://mc-stan.org/docs/reference-manual/reproducibility.html">the manual of STAN appears to advise us not to place too much believe in the reproducibility of the random numbers</a>:</p>
+<hr />
+<p>Stan results will only be exactly reproducible if all of the following components are identical:</p>
+<ul>
+<li>Stan version</li>
+<li>tan interface (RStan, PyStan, CmdStan) and version, plus version of interface language (R, Python, shell)</li>
+<li>versions of included libraries (Boost and Eigen)</li>
+<li>operating system version</li>
+<li>computer hardware including CPU, motherboard and memory</li>
+<li>C++ compiler, including version, compiler flags, and linked libraries
+same configuration of call to Stan, including random seed, chain ID, initialization and data</li>
+</ul>
+<hr />
+</div>
+<div id="but-in-practice-how-large-is-the-difference" class="section level1" number="3">
+<h1><span class="header-section-number">3</span> But in practice, how large is the difference?</h1>
+<p>Okay, let’s try to find out the degree of difference to be expected in the process of drawing random numbers.</p>
+<p>As a first step, let’s run many regressions and analyze the variance of the results.</p>
+<p>Here’s a simple regression with the seed fixed.
+Please see below for the spec of my machine.</p>
+<pre class="r"><code>reference_model &lt;- rstanarm::stan_glm(mpg ~ hp, 
+                         data = mtcars, 
+                         seed = 42,
+                         refresh = 0)
+coef(reference_model)
+#&gt; (Intercept)          hp 
+#&gt; 30.11668130 -0.06820988</code></pre>
+<p>And now the same model but without fixing the seed.</p>
+<pre class="r"><code>out &lt;-
+  tibble(id = integer(),
+         b0 = numeric(),
+         b1 = numeric(),
+         r2 = numeric()
+  )
+
+n &lt;- 10^2</code></pre>
+<pre class="r"><code>tic()
+for (i in 1:n) {
+  stan_mod &lt;- rstanarm::stan_glm(mpg ~ hp, 
+                         data = mtcars,
+                         refresh = 0)
+  mod_results &lt;- 
+    tibble(id = i,
+           b0 = coef(stan_mod)[1],
+           b1 = coef(stan_mod)[2],
+           r2 = performance::r2(stan_mod)$R2_Bayes
+    )
+  out &lt;- rbind(out, mod_results)
+  
+  print(glue::glue(&quot;i: {i}, b0: {round(coef(stan_mod)[1], 3)}, b1: {round(coef(stan_mod)[2], 3)}, r2: {round(mod_results$r2\n, 3)}&quot;))
+}
+#&gt; i: 1, b0: 30.06, b1: -0.068, r2: 0.587
+#&gt; i: 2, b0: 30.065, b1: -0.068, r2: 0.586
+#&gt; i: 3, b0: 30.088, b1: -0.068, r2: 0.586
+#&gt; i: 4, b0: 30.091, b1: -0.068, r2: 0.585
+#&gt; i: 5, b0: 30.03, b1: -0.068, r2: 0.583
+#&gt; i: 6, b0: 30.111, b1: -0.068, r2: 0.587
+#&gt; i: 7, b0: 30.016, b1: -0.068, r2: 0.586
+#&gt; i: 8, b0: 30.072, b1: -0.068, r2: 0.581
+#&gt; i: 9, b0: 30.112, b1: -0.068, r2: 0.587
+#&gt; i: 10, b0: 30.051, b1: -0.068, r2: 0.585
+#&gt; i: 11, b0: 30.088, b1: -0.068, r2: 0.591
+#&gt; i: 12, b0: 30.098, b1: -0.068, r2: 0.587
+#&gt; i: 13, b0: 30.047, b1: -0.068, r2: 0.585
+#&gt; i: 14, b0: 30.099, b1: -0.068, r2: 0.589
+#&gt; i: 15, b0: 30.102, b1: -0.069, r2: 0.592
+#&gt; i: 16, b0: 30.029, b1: -0.068, r2: 0.582
+#&gt; i: 17, b0: 30.109, b1: -0.068, r2: 0.587
+#&gt; i: 18, b0: 30.105, b1: -0.068, r2: 0.585
+#&gt; i: 19, b0: 30.106, b1: -0.068, r2: 0.587
+#&gt; i: 20, b0: 30.112, b1: -0.068, r2: 0.588
+#&gt; i: 21, b0: 30.068, b1: -0.068, r2: 0.586
+#&gt; i: 22, b0: 30.132, b1: -0.068, r2: 0.585
+#&gt; i: 23, b0: 30.089, b1: -0.068, r2: 0.586
+#&gt; i: 24, b0: 30.077, b1: -0.068, r2: 0.585
+#&gt; i: 25, b0: 30.061, b1: -0.068, r2: 0.586
+#&gt; i: 26, b0: 30.034, b1: -0.068, r2: 0.585
+#&gt; i: 27, b0: 30.091, b1: -0.068, r2: 0.588
+#&gt; i: 28, b0: 30.087, b1: -0.068, r2: 0.585
+#&gt; i: 29, b0: 30.103, b1: -0.068, r2: 0.591
+#&gt; i: 30, b0: 30.016, b1: -0.068, r2: 0.582
+#&gt; i: 31, b0: 30.039, b1: -0.068, r2: 0.585
+#&gt; i: 32, b0: 30.097, b1: -0.068, r2: 0.588
+#&gt; i: 33, b0: 30.074, b1: -0.068, r2: 0.588
+#&gt; i: 34, b0: 30.142, b1: -0.068, r2: 0.589
+#&gt; i: 35, b0: 30.073, b1: -0.068, r2: 0.588
+#&gt; i: 36, b0: 30.089, b1: -0.068, r2: 0.585
+#&gt; i: 37, b0: 30.093, b1: -0.068, r2: 0.584
+#&gt; i: 38, b0: 30.108, b1: -0.068, r2: 0.585
+#&gt; i: 39, b0: 30.047, b1: -0.068, r2: 0.587
+#&gt; i: 40, b0: 30.095, b1: -0.068, r2: 0.588
+#&gt; i: 41, b0: 30.079, b1: -0.068, r2: 0.585
+#&gt; i: 42, b0: 30.007, b1: -0.068, r2: 0.584
+#&gt; i: 43, b0: 30.024, b1: -0.068, r2: 0.586
+#&gt; i: 44, b0: 30.104, b1: -0.068, r2: 0.587
+#&gt; i: 45, b0: 30.111, b1: -0.068, r2: 0.589
+#&gt; i: 46, b0: 30.063, b1: -0.068, r2: 0.583
+#&gt; i: 47, b0: 30.075, b1: -0.068, r2: 0.586
+#&gt; i: 48, b0: 30.106, b1: -0.068, r2: 0.585
+#&gt; i: 49, b0: 30.116, b1: -0.068, r2: 0.589
+#&gt; i: 50, b0: 30.049, b1: -0.068, r2: 0.584
+#&gt; i: 51, b0: 30.125, b1: -0.068, r2: 0.587
+#&gt; i: 52, b0: 30.063, b1: -0.068, r2: 0.584
+#&gt; i: 53, b0: 30.023, b1: -0.068, r2: 0.583
+#&gt; i: 54, b0: 30.071, b1: -0.068, r2: 0.584
+#&gt; i: 55, b0: 30.09, b1: -0.068, r2: 0.586
+#&gt; i: 56, b0: 30.081, b1: -0.068, r2: 0.583
+#&gt; i: 57, b0: 30.034, b1: -0.068, r2: 0.587
+#&gt; i: 58, b0: 30.079, b1: -0.068, r2: 0.586
+#&gt; i: 59, b0: 30.082, b1: -0.068, r2: 0.588
+#&gt; i: 60, b0: 30.029, b1: -0.068, r2: 0.583
+#&gt; i: 61, b0: 30.033, b1: -0.068, r2: 0.584
+#&gt; i: 62, b0: 30.113, b1: -0.068, r2: 0.588
+#&gt; i: 63, b0: 30.119, b1: -0.068, r2: 0.583
+#&gt; i: 64, b0: 30.118, b1: -0.068, r2: 0.59
+#&gt; i: 65, b0: 30.031, b1: -0.068, r2: 0.585
+#&gt; i: 66, b0: 30.08, b1: -0.068, r2: 0.583
+#&gt; i: 67, b0: 30.13, b1: -0.068, r2: 0.587
+#&gt; i: 68, b0: 30.058, b1: -0.068, r2: 0.587
+#&gt; i: 69, b0: 30.049, b1: -0.068, r2: 0.584
+#&gt; i: 70, b0: 30.115, b1: -0.068, r2: 0.586
+#&gt; i: 71, b0: 30.087, b1: -0.068, r2: 0.586
+#&gt; i: 72, b0: 30.059, b1: -0.068, r2: 0.587
+#&gt; i: 73, b0: 30.001, b1: -0.068, r2: 0.582
+#&gt; i: 74, b0: 30.056, b1: -0.068, r2: 0.584
+#&gt; i: 75, b0: 30.054, b1: -0.068, r2: 0.587
+#&gt; i: 76, b0: 30.092, b1: -0.068, r2: 0.584
+#&gt; i: 77, b0: 30.054, b1: -0.068, r2: 0.587
+#&gt; i: 78, b0: 30.102, b1: -0.068, r2: 0.587
+#&gt; i: 79, b0: 30.102, b1: -0.068, r2: 0.59
+#&gt; i: 80, b0: 30.105, b1: -0.069, r2: 0.585
+#&gt; i: 81, b0: 30.075, b1: -0.068, r2: 0.585
+#&gt; i: 82, b0: 30.009, b1: -0.068, r2: 0.583
+#&gt; i: 83, b0: 30.081, b1: -0.068, r2: 0.584
+#&gt; i: 84, b0: 30.112, b1: -0.068, r2: 0.588
+#&gt; i: 85, b0: 30.11, b1: -0.068, r2: 0.585
+#&gt; i: 86, b0: 30.139, b1: -0.068, r2: 0.588
+#&gt; i: 87, b0: 30.085, b1: -0.068, r2: 0.586
+#&gt; i: 88, b0: 30.093, b1: -0.068, r2: 0.588
+#&gt; i: 89, b0: 30.054, b1: -0.068, r2: 0.583
+#&gt; i: 90, b0: 30.031, b1: -0.068, r2: 0.587
+#&gt; i: 91, b0: 30.013, b1: -0.068, r2: 0.583
+#&gt; i: 92, b0: 30.057, b1: -0.068, r2: 0.585
+#&gt; i: 93, b0: 30.045, b1: -0.068, r2: 0.586
+#&gt; i: 94, b0: 30.045, b1: -0.068, r2: 0.585
+#&gt; i: 95, b0: 30.013, b1: -0.068, r2: 0.585
+#&gt; i: 96, b0: 30.112, b1: -0.068, r2: 0.589
+#&gt; i: 97, b0: 30.12, b1: -0.068, r2: 0.587
+#&gt; i: 98, b0: 30.061, b1: -0.068, r2: 0.586
+#&gt; i: 99, b0: 30.097, b1: -0.068, r2: 0.587
+#&gt; i: 100, b0: 30.132, b1: -0.068, r2: 0.59
+toc()
+#&gt; 19.383 sec elapsed</code></pre>
+</div>
+<div id="check-if-in-tolerance-region" class="section level1" number="4">
+<h1><span class="header-section-number">4</span> Check if in tolerance region</h1>
+<p>Let’s define the region of tolerance such that:</p>
+<pre class="r"><code>tol_rel &lt;- .05
+tol_abs &lt;- tol_rel</code></pre>
+<p>Check for first value manually:</p>
+<pre class="r"><code>is_in_tolerance(asis = out$b0[1],
+                tobe = coef(reference_model)[1],
+                tol_rel = .05,
+                tol_abs = .05 * sd(mtcars$mpg))
+#&gt; [1] TRUE</code></pre>
+<p>Okay, now check in a loop all values.</p>
+<div id="b0" class="section level2" number="4.1">
+<h2><span class="header-section-number">4.1</span> b0</h2>
+<pre class="r"><code>out &lt;- 
+out |&gt; 
+  mutate(b0_in_tolerance = map_lgl(b0, ~ is_in_tolerance(asis = .x,
+                                               tobe = coef(reference_model)[1],
+                                               tol_rel = tol_rel,
+                                               tol_abs = tol_rel * sd(mtcars$mpg))),
+         b0_diff_abs = coef(reference_model)[1] - b0,
+         b0_diff_rel = b0_diff_abs / coef(reference_model)[1])</code></pre>
+</div>
+<div id="b1" class="section level2" number="4.2">
+<h2><span class="header-section-number">4.2</span> b1</h2>
+<pre class="r"><code>out &lt;- 
+out |&gt; 
+  mutate(b1_in_tolerance = map_lgl(b1, ~ is_in_tolerance(asis = .x,
+                                               tobe = coef(reference_model)[2],
+                                               tol_rel = tol_rel,
+                                               tol_abs = tol_rel * sd(mtcars$mpg))),
+         b1_diff_abs = coef(reference_model)[2] - b1,
+         b1_diff_rel = b1_diff_abs / coef(reference_model)[2])</code></pre>
+</div>
+<div id="r2" class="section level2" number="4.3">
+<h2><span class="header-section-number">4.3</span> R2</h2>
+<pre class="r"><code>out &lt;- 
+out |&gt; 
+  mutate(r2_in_tolerance = map_lgl(r2, ~ is_in_tolerance(asis = .x,
+                                               tobe = r2(reference_model)$R2_Bayes,
+                                               tol_rel = tol_rel,
+                                               tol_abs = tol_rel)),
+         r2_diff_abs = r2(reference_model)$R2_Bayes - r2,
+         r2_diff_rel = r2_diff_abs / coef(reference_model)[2])</code></pre>
+</div>
+<div id="count" class="section level2" number="4.4">
+<h2><span class="header-section-number">4.4</span> Count</h2>
+<pre class="r"><code>count(out, b0_in_tolerance)
+#&gt; # A tibble: 1 × 2
+#&gt;   b0_in_tolerance     n
+#&gt;   &lt;lgl&gt;           &lt;int&gt;
+#&gt; 1 TRUE              100
+count(out, b1_in_tolerance)
+#&gt; # A tibble: 1 × 2
+#&gt;   b1_in_tolerance     n
+#&gt;   &lt;lgl&gt;           &lt;int&gt;
+#&gt; 1 TRUE              100
+count(out, r2_in_tolerance)
+#&gt; # A tibble: 1 × 2
+#&gt;   r2_in_tolerance     n
+#&gt;   &lt;lgl&gt;           &lt;int&gt;
+#&gt; 1 TRUE              100</code></pre>
+</div>
+</div>
+<div id="check-variability" class="section level1" number="5">
+<h1><span class="header-section-number">5</span> Check variability</h1>
+<pre class="r"><code>out |&gt; 
+  select(-id) |&gt; 
+  describe_distribution(range = TRUE) 
+#&gt; Variable    |      Mean |       SD |      IQR |                 Range
+#&gt; ---------------------------------------------------------------------
+#&gt; b0          |     30.08 |     0.03 |     0.05 |        [30.00, 30.14]
+#&gt; b1          |     -0.07 | 2.14e-04 | 3.04e-04 |        [-0.07, -0.07]
+#&gt; r2          |      0.59 | 2.15e-03 | 2.55e-03 |          [0.58, 0.59]
+#&gt; b0_diff_abs |      0.04 |     0.03 |     0.05 |         [-0.03, 0.12]
+#&gt; b0_diff_rel |  1.33e-03 | 1.13e-03 | 1.75e-03 | [-8.40e-04, 3.83e-03]
+#&gt; b1_diff_abs | -1.37e-04 | 2.14e-04 | 3.04e-04 | [-6.01e-04, 3.31e-04]
+#&gt; b1_diff_rel |  2.01e-03 | 3.13e-03 | 4.45e-03 | [-4.85e-03, 8.81e-03]
+#&gt; r2_diff_abs | -1.92e-04 | 2.15e-03 | 2.55e-03 | [-6.15e-03, 4.94e-03]
+#&gt; r2_diff_rel |  2.82e-03 |     0.03 |     0.04 |         [-0.07, 0.09]
+#&gt; 
+#&gt; Variable    | Skewness | Kurtosis |   n | n_Missing
+#&gt; ---------------------------------------------------
+#&gt; b0          |    -0.32 |    -0.76 | 100 |         0
+#&gt; b1          |    -0.04 |    -0.37 | 100 |         0
+#&gt; r2          |     0.17 |    -0.04 | 100 |         0
+#&gt; b0_diff_abs |     0.32 |    -0.76 | 100 |         0
+#&gt; b0_diff_rel |     0.32 |    -0.76 | 100 |         0
+#&gt; b1_diff_abs |     0.04 |    -0.37 | 100 |         0
+#&gt; b1_diff_rel |    -0.04 |    -0.37 | 100 |         0
+#&gt; r2_diff_abs |    -0.17 |    -0.04 | 100 |         0
+#&gt; r2_diff_rel |     0.17 |    -0.04 | 100 |         0</code></pre>
+<p>In comparison, the SD of the y-variable (<code>mpg</code>) is:</p>
+<pre class="r"><code>describe_distribution(mtcars |&gt; select(mpg))
+#&gt; Variable |  Mean |   SD |  IQR |          Range | Skewness | Kurtosis |  n | n_Missing
+#&gt; --------------------------------------------------------------------------------------
+#&gt; mpg      | 20.09 | 6.03 | 7.53 | [10.40, 33.90] |     0.67 |    -0.02 | 32 |         0</code></pre>
+<pre class="r"><code>plot_density(out |&gt; select(-id))</code></pre>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/unnamed-chunk-11-1.png" alt="" width="100%" style="display: block; margin: auto;" /></p>
+</div>
+<div id="conclusions" class="section level1" number="6">
+<h1><span class="header-section-number">6</span> Conclusions</h1>
+<p>The <em>relative</em> deviations of the coefficients from the reference model are in the domaine of <span class="math inline">\(10^{-3}\)</span>.
+Hence, setting the maximum deviation to <span class="math inline">\(10-^{2}\)</span> should be save.</p>
+</div>
+<div id="reproducibility" class="section level1" number="7">
+<h1><span class="header-section-number">7</span> Reproducibility</h1>
+<pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value
+#&gt;  version  R version 4.5.2 (2025-10-31)
+#&gt;  os       Ubuntu 26.04 LTS
+#&gt;  system   x86_64, linux-gnu
+#&gt;  ui       X11
+#&gt;  language (EN)
+#&gt;  collate  de_DE.UTF-8
+#&gt;  ctype    de_DE.UTF-8
+#&gt;  tz       Europe/Berlin
+#&gt;  date     2026-08-14
+#&gt;  pandoc   3.10 @ /usr/share/positron/resources/app/quarto/bin/tools/x86_64/ (via rmarkdown)
+#&gt;  quarto   1.9.37 @ /usr/local/bin/quarto
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package        * version  date (UTC) lib source
+#&gt;  abind            1.4-8    2024-09-12 [1] CRAN (R 4.5.2)
+#&gt;  backports        1.5.1    2026-04-03 [1] CRAN (R 4.5.2)
+#&gt;  base64enc        0.1-6    2026-02-02 [1] CRAN (R 4.5.2)
+#&gt;  bayesplot        1.15.0   2025-12-12 [1] RSPM
+#&gt;  bayestestR     * 0.18.1   2026-05-24 [1] RSPM (R 4.5.0)
+#&gt;  blogdown         1.24     2026-06-19 [1] CRAN (R 4.5.2)
+#&gt;  bookdown         0.47     2026-06-16 [1] CRAN (R 4.5.2)
+#&gt;  boot             1.3-32   2025-08-29 [4] CRAN (R 4.5.1)
+#&gt;  bslib            0.12.0   2026-08-04 [1] CRAN (R 4.5.2)
+#&gt;  cachem           1.1.0    2024-05-16 [1] CRAN (R 4.5.2)
+#&gt;  checkmate        2.3.4    2026-02-03 [1] RSPM
+#&gt;  cli              3.6.6    2026-04-09 [1] CRAN (R 4.5.2)
+#&gt;  codetools        0.2-20   2024-03-31 [4] CRAN (R 4.5.2)
+#&gt;  colourpicker     1.3.0    2023-08-21 [1] RSPM
+#&gt;  correlation    * 0.8.8    2025-07-08 [1] CRAN (R 4.5.2)
+#&gt;  crayon           1.5.3    2024-06-20 [1] CRAN (R 4.5.2)
+#&gt;  crosstalk        1.2.2    2025-08-26 [1] CRAN (R 4.5.2)
+#&gt;  curl             7.1.0    2026-04-22 [1] CRAN (R 4.5.2)
+#&gt;  data.table       1.18.4   2026-05-06 [1] CRAN (R 4.5.2)
+#&gt;  data.tree        1.2.0    2025-08-25 [1] CRAN (R 4.5.2)
+#&gt;  DataExplorer   * 0.9.0    2026-03-08 [1] CRAN (R 4.5.2)
+#&gt;  datawizard     * 1.3.1    2026-04-26 [1] CRAN (R 4.5.2)
+#&gt;  devtools         2.5.2    2026-04-30 [1] RSPM
+#&gt;  digest           0.6.39   2025-11-19 [1] CRAN (R 4.5.2)
+#&gt;  distributional   0.7.1    2026-06-11 [1] RSPM
+#&gt;  dplyr          * 1.2.1    2026-04-03 [1] CRAN (R 4.5.2)
+#&gt;  DT               0.34.0   2025-09-02 [1] RSPM
+#&gt;  dygraphs         1.1.1.6  2018-07-11 [1] RSPM
+#&gt;  easystats      * 0.7.6    2026-05-24 [1] RSPM
+#&gt;  effectsize     * 1.0.2    2026-03-11 [1] CRAN (R 4.5.2)
+#&gt;  ellipsis         0.3.3    2026-04-04 [1] RSPM
+#&gt;  evaluate         1.0.5    2025-08-27 [1] CRAN (R 4.5.2)
+#&gt;  farver           2.1.2    2024-05-13 [1] CRAN (R 4.5.2)
+#&gt;  fastmap          1.2.0    2024-05-15 [1] CRAN (R 4.5.2)
+#&gt;  forcats        * 1.0.1    2025-09-25 [1] CRAN (R 4.5.2)
+#&gt;  fs               2.1.0    2026-04-18 [1] CRAN (R 4.5.2)
+#&gt;  generics         0.1.4    2025-05-09 [1] CRAN (R 4.5.2)
+#&gt;  ggplot2        * 4.0.3    2026-04-22 [1] CRAN (R 4.5.2)
+#&gt;  glue             1.8.1    2026-04-17 [1] CRAN (R 4.5.2)
+#&gt;  gridExtra        2.3.1    2026-06-25 [1] CRAN (R 4.5.2)
+#&gt;  gtable           0.3.6    2024-10-25 [1] CRAN (R 4.5.2)
+#&gt;  gtools           3.9.5    2023-11-20 [1] RSPM
+#&gt;  hms              1.1.4    2025-10-17 [1] CRAN (R 4.5.2)
+#&gt;  htmltools        0.5.9    2025-12-04 [1] CRAN (R 4.5.2)
+#&gt;  htmlwidgets      1.6.4    2023-12-06 [1] CRAN (R 4.5.2)
+#&gt;  httpuv           1.6.17   2026-03-18 [1] RSPM
+#&gt;  igraph           2.3.1    2026-05-04 [1] CRAN (R 4.5.2)
+#&gt;  inline           0.3.21   2025-01-09 [1] RSPM
+#&gt;  insight        * 1.5.1    2026-05-21 [1] RSPM (R 4.5.0)
+#&gt;  jquerylib        0.1.4    2021-04-26 [1] CRAN (R 4.5.2)
+#&gt;  jsonlite         2.0.0    2025-03-27 [1] CRAN (R 4.5.2)
+#&gt;  knitr            1.51     2025-12-20 [1] CRAN (R 4.5.2)
+#&gt;  labeling         0.4.3    2023-08-29 [1] CRAN (R 4.5.2)
+#&gt;  later            1.4.8    2026-03-05 [1] CRAN (R 4.5.2)
+#&gt;  lattice          0.22-9   2026-02-09 [4] CRAN (R 4.5.2)
+#&gt;  lifecycle        1.0.5    2026-01-08 [1] CRAN (R 4.5.2)
+#&gt;  lme4             2.0-1    2026-03-05 [1] CRAN (R 4.5.2)
+#&gt;  loo              2.9.0    2025-12-23 [1] RSPM
+#&gt;  lubridate      * 1.9.5    2026-02-04 [1] CRAN (R 4.5.2)
+#&gt;  magrittr         2.0.5    2026-04-04 [1] CRAN (R 4.5.2)
+#&gt;  markdown         2.0      2025-03-23 [1] CRAN (R 4.5.2)
+#&gt;  MASS             7.3-65   2025-02-28 [4] CRAN (R 4.4.3)
+#&gt;  Matrix           1.7-4    2025-08-28 [4] CRAN (R 4.5.1)
+#&gt;  matrixStats      1.5.0    2025-01-07 [1] RSPM
+#&gt;  memoise          2.0.1    2021-11-26 [1] CRAN (R 4.5.2)
+#&gt;  mime             0.13     2025-03-17 [1] CRAN (R 4.5.2)
+#&gt;  miniUI           0.1.2    2025-04-17 [1] RSPM
+#&gt;  minqa            1.2.8    2024-08-17 [1] CRAN (R 4.5.2)
+#&gt;  modelbased     * 0.15.0   2026-05-10 [1] CRAN (R 4.5.2)
+#&gt;  networkD3        0.4.1    2025-04-14 [1] CRAN (R 4.5.2)
+#&gt;  nlme             3.1-168  2025-03-31 [4] CRAN (R 4.5.2)
+#&gt;  nloptr           2.2.1    2025-03-17 [1] CRAN (R 4.5.2)
+#&gt;  otel             0.2.0    2025-08-29 [1] CRAN (R 4.5.2)
+#&gt;  parameters     * 0.29.1   2026-05-24 [1] RSPM (R 4.5.0)
+#&gt;  performance    * 0.17.0   2026-05-21 [1] RSPM (R 4.5.0)
+#&gt;  pillar           1.11.1   2025-09-17 [1] CRAN (R 4.5.2)
+#&gt;  pkgbuild         1.4.8    2025-05-26 [1] CRAN (R 4.5.2)
+#&gt;  pkgconfig        2.0.3    2019-09-22 [1] CRAN (R 4.5.2)
+#&gt;  pkgload          1.5.2    2026-04-22 [1] CRAN (R 4.5.2)
+#&gt;  plyr             1.8.9    2023-10-02 [1] CRAN (R 4.5.2)
+#&gt;  png              0.1-9    2026-03-15 [1] CRAN (R 4.5.2)
+#&gt;  posterior        1.7.0    2026-04-01 [1] RSPM
+#&gt;  prada          * 0.3.3    2026-06-17 [1] Github (sebastiansauer/prada@fd5f405)
+#&gt;  promises         1.5.0    2025-11-01 [1] CRAN (R 4.5.2)
+#&gt;  purrr          * 1.2.2    2026-04-10 [1] CRAN (R 4.5.2)
+#&gt;  QuickJSR         1.10.0   2026-05-17 [1] RSPM
+#&gt;  R6               2.6.1    2025-02-15 [1] CRAN (R 4.5.2)
+#&gt;  rbibutils        2.4.1    2026-01-21 [1] CRAN (R 4.5.2)
+#&gt;  RColorBrewer     1.1-3    2022-04-03 [1] CRAN (R 4.5.2)
+#&gt;  Rcpp           * 1.1.2    2026-07-05 [1] CRAN (R 4.5.2)
+#&gt;  RcppParallel     5.1.11-2 2026-03-05 [1] CRAN (R 4.5.2)
+#&gt;  Rdpack           2.6.6    2026-02-08 [1] CRAN (R 4.5.2)
+#&gt;  readr          * 2.2.0    2026-02-19 [1] CRAN (R 4.5.2)
+#&gt;  reformulas       0.4.4    2026-02-02 [1] CRAN (R 4.5.2)
+#&gt;  report         * 0.6.4    2026-05-04 [1] CRAN (R 4.5.2)
+#&gt;  reshape2         1.4.5    2025-11-12 [1] CRAN (R 4.5.2)
+#&gt;  rlang            1.3.0    2026-07-05 [1] CRAN (R 4.5.2)
+#&gt;  rmarkdown        2.31     2026-03-26 [1] CRAN (R 4.5.2)
+#&gt;  rstan            2.32.7   2025-03-10 [1] RSPM
+#&gt;  rstanarm       * 2.32.2   2025-09-30 [1] RSPM
+#&gt;  rstantools       2.6.0    2026-01-10 [1] CRAN (R 4.5.2)
+#&gt;  rstudioapi       0.18.0   2026-01-16 [1] CRAN (R 4.5.2)
+#&gt;  S7               0.2.2    2026-04-22 [1] CRAN (R 4.5.2)
+#&gt;  sass             0.4.10   2025-04-11 [1] CRAN (R 4.5.2)
+#&gt;  scales           1.4.0    2025-04-24 [1] CRAN (R 4.5.2)
+#&gt;  see            * 0.14.0   2026-05-24 [1] RSPM (R 4.5.0)
+#&gt;  sessioninfo      1.2.4    2026-06-04 [1] RSPM
+#&gt;  shiny            1.13.0   2026-02-20 [1] RSPM
+#&gt;  shinyjs          2.1.1    2026-01-15 [1] RSPM
+#&gt;  shinystan        2.7.0    2025-12-12 [1] RSPM
+#&gt;  shinythemes      1.2.0    2021-01-25 [1] RSPM
+#&gt;  StanHeaders      2.32.10  2024-07-15 [1] RSPM
+#&gt;  stringi          1.8.9    2026-08-04 [1] CRAN (R 4.5.2)
+#&gt;  stringr        * 1.6.0    2025-11-04 [1] CRAN (R 4.5.2)
+#&gt;  survival         3.8-6    2026-01-16 [4] CRAN (R 4.5.2)
+#&gt;  tensorA          0.36.2.1 2023-12-13 [1] RSPM
+#&gt;  threejs          0.3.4    2025-04-21 [1] RSPM
+#&gt;  tibble         * 3.3.1    2026-01-11 [1] CRAN (R 4.5.2)
+#&gt;  tictoc         * 1.2.1    2024-03-18 [1] RSPM
+#&gt;  tidyr          * 1.3.2    2025-12-19 [1] CRAN (R 4.5.2)
+#&gt;  tidyselect       1.2.1    2024-03-11 [1] CRAN (R 4.5.2)
+#&gt;  tidyverse      * 2.0.0    2023-02-22 [1] CRAN (R 4.5.2)
+#&gt;  timechange       0.4.0    2026-01-29 [1] CRAN (R 4.5.2)
+#&gt;  tzdb             0.5.0    2025-03-15 [1] CRAN (R 4.5.2)
+#&gt;  usethis          3.2.1    2025-09-06 [1] RSPM
+#&gt;  V8               8.2.0    2026-04-21 [1] CRAN (R 4.5.2)
+#&gt;  vctrs            0.7.3    2026-04-11 [1] CRAN (R 4.5.2)
+#&gt;  withr            3.0.3    2026-06-19 [1] CRAN (R 4.5.2)
+#&gt;  xfun             0.60     2026-07-09 [1] CRAN (R 4.5.2)
+#&gt;  xtable           1.8-8    2026-02-22 [1] RSPM
+#&gt;  xts              0.14.2   2026-02-28 [1] RSPM
+#&gt;  yaml             2.3.12   2025-12-10 [1] CRAN (R 4.5.2)
+#&gt;  zoo              1.8-15   2025-12-15 [1] CRAN (R 4.5.2)
+#&gt; 
+#&gt;  [1] /home/sebastian-sauer/R/x86_64-pc-linux-gnu-library/4.5
+#&gt;  [2] /usr/local/lib/R/site-library
+#&gt;  [3] /usr/lib/R/site-library
+#&gt;  [4] /usr/lib/R/library
+#&gt;  * ── Packages attached to the search path.
+#&gt; 
+#&gt; ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre>
+</div>
