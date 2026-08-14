@@ -531,3 +531,25 @@ cat(&quot;Kenntage:&quot;, nrow(kenntage_lang), &quot;Zeilen,&quot;,
     n_distinct(kenntage_lang$Indikator), &quot;Indikatoren\n&quot;)
 #&gt; Kenntage: 8925 Zeilen, 7 Indikatoren</code></pre>
 </div>
+<div id="monatsdaten-temperatur-niederschlag-zusammenfuehren" class="section level1">
+<h1>Monatsdaten Temperatur &amp; Niederschlag zusammenfuehren</h1>
+<p>“Deutschland” ist in den DWD-Rohdaten eine zusaetzliche Gesamtspalte
+neben den 16 Regionen und wird hier herausgefiltert, damit pro
+Jahr-Monat-Kombination genau 16 Zeilen (eine je Region) uebrig bleiben.</p>
+<pre class="r"><code>wetterdaten_monat &lt;- temperatur_lang |&gt;
+  filter(Bundesland != &quot;Deutschland&quot;) |&gt;
+  inner_join(
+    niederschlag_lang |&gt; filter(Bundesland != &quot;Deutschland&quot;),
+    by = c(&quot;Jahr&quot;, &quot;Monat&quot;, &quot;Bundesland&quot;)
+  ) |&gt;
+  transmute(
+    year   = Jahr,
+    month  = Monat,
+    region = Bundesland,
+    precip = Niederschlag_mm,
+    temp   = Temp_Mittel_C
+  ) |&gt;
+  arrange(year, month, region)
+
+write_csv(wetterdaten_monat, &quot;wetterdaten_monat.csv&quot;)</code></pre>
+</div>
