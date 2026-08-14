@@ -1,0 +1,94 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Wetterdaten des DWD aufbereiten - Data Se</title>
+<meta property="og:title" content="Wetterdaten des DWD aufbereiten - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>2 min read</span><h1 class=article-title>Wetterdaten des DWD aufbereiten</h1><span class=article-date>2026/08/14</span><div class=article-content><div id=load-packages class="section level1"><h1>Load packages</h1><pre class=r><code>library(tidyverse)
+library(rvest)
+library(tinytable)</code></pre></div><div id=daten class="section level1"><h1>Daten</h1><pre class=r><code>base_url &lt;- &quot;https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE&quot;
+</code></pre></div><div id=hilfsfunktion-alle-.txt-dateilinks-eines-verzeichnisses-auslesen class="section level1"><h1>Hilfsfunktion: alle .txt-Dateilinks eines Verzeichnisses auslesen</h1><pre class=r><code>list_txt_files &lt;- function(dir_url) {
+  page &lt;- read_html(dir_url)
+  hrefs &lt;- page |&gt; html_elements(&quot;a&quot;) |&gt; html_attr(&quot;href&quot;)
+  hrefs[str_ends(hrefs, &quot;.txt&quot;)]
+}</code></pre></div><div id=hilfsfunktion-eine-dwd-bundesland-zeitreihendatei-einlesen class="section level1"><h1>Hilfsfunktion: eine DWD-Bundesland-Zeitreihendatei einlesen</h1><pre class=r><code>read_regional_file &lt;- function(url) {
+
+  # Header steht in Zeile 2 der Datei (Zeile 1 ist ein Titel/Kommentar).
+  header &lt;- read_lines(url, skip = 1, n_max = 1) |&gt;
+    str_split(&quot;;&quot;) |&gt;
+    unlist() |&gt;
+    str_trim()
+  header &lt;- header[header != &quot;&quot;]  # trailing Semikolon entfernt leere Spalte
+
+
+  # Jahresdateien haben den Header &quot;Jahr;Jahr;Bundesland1;...&quot;: die zweite
+  # Spalte ist nur ein Textlabel (&quot;year&quot;), keine echte zweite Jahresangabe.
+  # Bei doppelten Namen die zweite Vorkommnis auf &quot;Periode&quot; umbenennen,
+  # sonst kollidieren beide zu &quot;Jahr...1&quot;/&quot;Jahr...2&quot; und &quot;Jahr&quot; existiert
+  # danach nicht mehr als eigenstaendige Spalte.
+  dupe &lt;- duplicated(header)
+  header[dupe] &lt;- &quot;Periode&quot;
+
+  spez &lt;- ifelse(header == &quot;Jahr&quot;, &quot;i&quot;,
+           ifelse(header %in% c(&quot;Monat&quot;, &quot;Periode&quot;), &quot;c&quot;, &quot;d&quot;))
+  spez &lt;- setNames(spez, header)
+
+  df &lt;- read_delim(
+    url, delim = &quot;;&quot;, skip = 2, trim_ws = TRUE,
+    na = c(&quot;&quot;, &quot;NA&quot;), show_col_types = FALSE,
+    col_names = header, col_types = paste(spez, collapse = &quot;&quot;)
+  )
+
+  if (&quot;Monat&quot; %in% names(df)) df &lt;- df |&gt; mutate(Monat = as.integer(Monat))
+  if (&quot;Periode&quot; %in% names(df)) df &lt;- df |&gt; select(-Periode)
+
+  df |&gt; select(where(~ !all(is.na(.))))
+}</code></pre></div><div id=monatswerte-temperatur class="section level1"><h1>1. Monatswerte: Temperatur</h1><pre class=r><code>tm_dir   &lt;- file.path(base_url, &quot;monthly/air_temperature_mean&quot;)
+tm_files &lt;- list_txt_files(tm_dir)
+
+temperatur_monat &lt;- map_dfr(tm_files, ~ read_regional_file(file.path(tm_dir, .x)))
+
+temperatur_lang &lt;- temperatur_monat |&gt;
+  pivot_longer(
+    cols = -c(Jahr, Monat),
+    names_to = &quot;Bundesland&quot;,
+    values_to = &quot;Temp_Mittel_C&quot;
+  ) |&gt;
+  filter(!is.na(Temp_Mittel_C)) |&gt;
+  arrange(Bundesland, Jahr, Monat)
+
+#write_csv(temperatur_lang, &quot;temperatur_bundesland_monat.csv&quot;)
+</code></pre></div><div id=monatswerte-niederschlag-optional-fuer-cddcwd-kontext-prcptot class="section level1"><h1>2. Monatswerte: Niederschlag (optional, fuer CDD/CWD-Kontext PRCPTOT)</h1><pre class=r><code>rr_dir   &lt;- file.path(base_url, &quot;monthly/precipitation&quot;)
+rr_files &lt;- list_txt_files(rr_dir)
+
+niederschlag_lang &lt;- map_dfr(rr_files, ~ read_regional_file(file.path(rr_dir, .x))) |&gt;
+  pivot_longer(cols = -c(Jahr, Monat), names_to = &quot;Bundesland&quot;, values_to = &quot;Niederschlag_mm&quot;) |&gt;
+  filter(!is.na(Niederschlag_mm)) |&gt;
+  arrange(Bundesland, Jahr, Monat)
+
+#write_csv(niederschlag_lang, &quot;niederschlag_bundesland_monat.csv&quot;)</code></pre></div><div id=jahreswerte-kenntage-fd-su-tr-hot_days-ice_days-starkregentage class="section level1"><h1>3. Jahreswerte: Kenntage (FD, SU, TR, hot_days, ice_days, Starkregentage)</h1><pre class=r><code>kenntage_ordner &lt;- c(
+  frost_days        = &quot;annual/frost_days&quot;,         # FD
+  summer_days       = &quot;annual/summer_days&quot;,        # SU
+  tropical_nights   = &quot;annual/tropical_nights_tminGE20&quot;,  # TR
+  hot_days          = &quot;annual/hot_days&quot;,
+  ice_days          = &quot;annual/ice_days&quot;,
+  precipGE10mm_days = &quot;annual/precipGE10mm_days&quot;,
+  precipGE20mm_days = &quot;annual/precipGE20mm_days&quot;
+)
+
+kenntage_liste &lt;- imap(kenntage_ordner, function(pfad, label) {
+  dir_url &lt;- file.path(base_url, pfad)
+  files   &lt;- list_txt_files(dir_url)
+  if (length(files) == 0) return(NULL)
+  df &lt;- read_regional_file(file.path(dir_url, files[1]))
+  df |&gt;
+    pivot_longer(cols = -any_of(c(&quot;Jahr&quot;, &quot;Monat&quot;)), names_to = &quot;Bundesland&quot;, values_to = &quot;Wert&quot;) |&gt;
+    filter(!is.na(Wert)) |&gt;
+    mutate(Indikator = label)
+})
+
+kenntage_lang &lt;- bind_rows(kenntage_liste) |&gt;
+  arrange(Indikator, Bundesland, Jahr)
+
+# write_csv(kenntage_lang, &quot;klimakenntage_bundesland_jahr.csv&quot;)</code></pre></div><div id=überblick-über-die-aggregierten-daten class="section level1"><h1>Überblick über die aggregierten Daten</h1><pre class=r><code>cat(&quot;Temperatur:&quot;, nrow(temperatur_lang), &quot;Zeilen,&quot;,
+    n_distinct(temperatur_lang$Bundesland), &quot;Bundeslaender,&quot;,
+    &quot;Zeitraum&quot;, min(temperatur_lang$Jahr), &quot;-&quot;, max(temperatur_lang$Jahr), &quot;\n&quot;)
+#&gt; Temperatur: 29699 Zeilen, 17 Bundeslaender, Zeitraum 1881 - 2026
+cat(&quot;Kenntage:&quot;, nrow(kenntage_lang), &quot;Zeilen,&quot;,
+    n_distinct(kenntage_lang$Indikator), &quot;Indikatoren\n&quot;)
+#&gt; Kenntage: 8925 Zeilen, 7 Indikatoren</code></pre></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>

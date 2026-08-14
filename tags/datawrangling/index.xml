@@ -1,4 +1,127 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Datawrangling on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/datawrangling/</link><description>Recent content in Datawrangling on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Sat, 17 Feb 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/datawrangling/index.xml" rel="self" type="application/rss+xml"/><item><title>Dictionaries in R</title><link>https://sebastiansauer.github.io/data_se/2024/02/17/dictionaries-in-r/</link><pubDate>Sat, 17 Feb 2024 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2024/02/17/dictionaries-in-r/</guid><description>&lt;div id="TOC">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Datawrangling on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/datawrangling/</link><description>Recent content in Datawrangling on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Fri, 14 Aug 2026 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/datawrangling/index.xml" rel="self" type="application/rss+xml"/><item><title>Wetterdaten des DWD aufbereiten</title><link>https://sebastiansauer.github.io/data_se/2026/08/14/wetterdaten-des-dwd-aufbereiten/</link><pubDate>Fri, 14 Aug 2026 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2026/08/14/wetterdaten-des-dwd-aufbereiten/</guid><description>&lt;div id="load-packages" class="section level1">
+&lt;h1>Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(rvest)
+library(tinytable)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="daten" class="section level1">
+&lt;h1>Daten&lt;/h1>
+&lt;pre class="r">&lt;code>base_url &amp;lt;- &amp;quot;https://opendata.dwd.de/climate_environment/CDC/regional_averages_DE&amp;quot;
+&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="hilfsfunktion-alle-.txt-dateilinks-eines-verzeichnisses-auslesen" class="section level1">
+&lt;h1>Hilfsfunktion: alle .txt-Dateilinks eines Verzeichnisses auslesen&lt;/h1>
+&lt;pre class="r">&lt;code>list_txt_files &amp;lt;- function(dir_url) {
+ page &amp;lt;- read_html(dir_url)
+ hrefs &amp;lt;- page |&amp;gt; html_elements(&amp;quot;a&amp;quot;) |&amp;gt; html_attr(&amp;quot;href&amp;quot;)
+ hrefs[str_ends(hrefs, &amp;quot;.txt&amp;quot;)]
+}&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="hilfsfunktion-eine-dwd-bundesland-zeitreihendatei-einlesen" class="section level1">
+&lt;h1>Hilfsfunktion: eine DWD-Bundesland-Zeitreihendatei einlesen&lt;/h1>
+&lt;pre class="r">&lt;code>read_regional_file &amp;lt;- function(url) {
+
+ # Header steht in Zeile 2 der Datei (Zeile 1 ist ein Titel/Kommentar).
+ header &amp;lt;- read_lines(url, skip = 1, n_max = 1) |&amp;gt;
+ str_split(&amp;quot;;&amp;quot;) |&amp;gt;
+ unlist() |&amp;gt;
+ str_trim()
+ header &amp;lt;- header[header != &amp;quot;&amp;quot;] # trailing Semikolon entfernt leere Spalte
+
+
+ # Jahresdateien haben den Header &amp;quot;Jahr;Jahr;Bundesland1;...&amp;quot;: die zweite
+ # Spalte ist nur ein Textlabel (&amp;quot;year&amp;quot;), keine echte zweite Jahresangabe.
+ # Bei doppelten Namen die zweite Vorkommnis auf &amp;quot;Periode&amp;quot; umbenennen,
+ # sonst kollidieren beide zu &amp;quot;Jahr...1&amp;quot;/&amp;quot;Jahr...2&amp;quot; und &amp;quot;Jahr&amp;quot; existiert
+ # danach nicht mehr als eigenstaendige Spalte.
+ dupe &amp;lt;- duplicated(header)
+ header[dupe] &amp;lt;- &amp;quot;Periode&amp;quot;
+
+ spez &amp;lt;- ifelse(header == &amp;quot;Jahr&amp;quot;, &amp;quot;i&amp;quot;,
+ ifelse(header %in% c(&amp;quot;Monat&amp;quot;, &amp;quot;Periode&amp;quot;), &amp;quot;c&amp;quot;, &amp;quot;d&amp;quot;))
+ spez &amp;lt;- setNames(spez, header)
+
+ df &amp;lt;- read_delim(
+ url, delim = &amp;quot;;&amp;quot;, skip = 2, trim_ws = TRUE,
+ na = c(&amp;quot;&amp;quot;, &amp;quot;NA&amp;quot;), show_col_types = FALSE,
+ col_names = header, col_types = paste(spez, collapse = &amp;quot;&amp;quot;)
+ )
+
+ if (&amp;quot;Monat&amp;quot; %in% names(df)) df &amp;lt;- df |&amp;gt; mutate(Monat = as.integer(Monat))
+ if (&amp;quot;Periode&amp;quot; %in% names(df)) df &amp;lt;- df |&amp;gt; select(-Periode)
+
+ df |&amp;gt; select(where(~ !all(is.na(.))))
+}&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="monatswerte-temperatur" class="section level1">
+&lt;h1>1. Monatswerte: Temperatur&lt;/h1>
+&lt;pre class="r">&lt;code>tm_dir &amp;lt;- file.path(base_url, &amp;quot;monthly/air_temperature_mean&amp;quot;)
+tm_files &amp;lt;- list_txt_files(tm_dir)
+
+temperatur_monat &amp;lt;- map_dfr(tm_files, ~ read_regional_file(file.path(tm_dir, .x)))
+
+temperatur_lang &amp;lt;- temperatur_monat |&amp;gt;
+ pivot_longer(
+ cols = -c(Jahr, Monat),
+ names_to = &amp;quot;Bundesland&amp;quot;,
+ values_to = &amp;quot;Temp_Mittel_C&amp;quot;
+ ) |&amp;gt;
+ filter(!is.na(Temp_Mittel_C)) |&amp;gt;
+ arrange(Bundesland, Jahr, Monat)
+
+#write_csv(temperatur_lang, &amp;quot;temperatur_bundesland_monat.csv&amp;quot;)
+&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="monatswerte-niederschlag-optional-fuer-cddcwd-kontext-prcptot" class="section level1">
+&lt;h1>2. Monatswerte: Niederschlag (optional, fuer CDD/CWD-Kontext PRCPTOT)&lt;/h1>
+&lt;pre class="r">&lt;code>rr_dir &amp;lt;- file.path(base_url, &amp;quot;monthly/precipitation&amp;quot;)
+rr_files &amp;lt;- list_txt_files(rr_dir)
+
+niederschlag_lang &amp;lt;- map_dfr(rr_files, ~ read_regional_file(file.path(rr_dir, .x))) |&amp;gt;
+ pivot_longer(cols = -c(Jahr, Monat), names_to = &amp;quot;Bundesland&amp;quot;, values_to = &amp;quot;Niederschlag_mm&amp;quot;) |&amp;gt;
+ filter(!is.na(Niederschlag_mm)) |&amp;gt;
+ arrange(Bundesland, Jahr, Monat)
+
+#write_csv(niederschlag_lang, &amp;quot;niederschlag_bundesland_monat.csv&amp;quot;)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="jahreswerte-kenntage-fd-su-tr-hot_days-ice_days-starkregentage" class="section level1">
+&lt;h1>3. Jahreswerte: Kenntage (FD, SU, TR, hot_days, ice_days, Starkregentage)&lt;/h1>
+&lt;pre class="r">&lt;code>kenntage_ordner &amp;lt;- c(
+ frost_days = &amp;quot;annual/frost_days&amp;quot;, # FD
+ summer_days = &amp;quot;annual/summer_days&amp;quot;, # SU
+ tropical_nights = &amp;quot;annual/tropical_nights_tminGE20&amp;quot;, # TR
+ hot_days = &amp;quot;annual/hot_days&amp;quot;,
+ ice_days = &amp;quot;annual/ice_days&amp;quot;,
+ precipGE10mm_days = &amp;quot;annual/precipGE10mm_days&amp;quot;,
+ precipGE20mm_days = &amp;quot;annual/precipGE20mm_days&amp;quot;
+)
+
+kenntage_liste &amp;lt;- imap(kenntage_ordner, function(pfad, label) {
+ dir_url &amp;lt;- file.path(base_url, pfad)
+ files &amp;lt;- list_txt_files(dir_url)
+ if (length(files) == 0) return(NULL)
+ df &amp;lt;- read_regional_file(file.path(dir_url, files[1]))
+ df |&amp;gt;
+ pivot_longer(cols = -any_of(c(&amp;quot;Jahr&amp;quot;, &amp;quot;Monat&amp;quot;)), names_to = &amp;quot;Bundesland&amp;quot;, values_to = &amp;quot;Wert&amp;quot;) |&amp;gt;
+ filter(!is.na(Wert)) |&amp;gt;
+ mutate(Indikator = label)
+})
+
+kenntage_lang &amp;lt;- bind_rows(kenntage_liste) |&amp;gt;
+ arrange(Indikator, Bundesland, Jahr)
+
+# write_csv(kenntage_lang, &amp;quot;klimakenntage_bundesland_jahr.csv&amp;quot;)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="überblick-über-die-aggregierten-daten" class="section level1">
+&lt;h1>Überblick über die aggregierten Daten&lt;/h1>
+&lt;pre class="r">&lt;code>cat(&amp;quot;Temperatur:&amp;quot;, nrow(temperatur_lang), &amp;quot;Zeilen,&amp;quot;,
+ n_distinct(temperatur_lang$Bundesland), &amp;quot;Bundeslaender,&amp;quot;,
+ &amp;quot;Zeitraum&amp;quot;, min(temperatur_lang$Jahr), &amp;quot;-&amp;quot;, max(temperatur_lang$Jahr), &amp;quot;\n&amp;quot;)
+#&amp;gt; Temperatur: 29699 Zeilen, 17 Bundeslaender, Zeitraum 1881 - 2026
+cat(&amp;quot;Kenntage:&amp;quot;, nrow(kenntage_lang), &amp;quot;Zeilen,&amp;quot;,
+ n_distinct(kenntage_lang$Indikator), &amp;quot;Indikatoren\n&amp;quot;)
+#&amp;gt; Kenntage: 8925 Zeilen, 7 Indikatoren&lt;/code>&lt;/pre>
+&lt;/div></description></item><item><title>Dictionaries in R</title><link>https://sebastiansauer.github.io/data_se/2024/02/17/dictionaries-in-r/</link><pubDate>Sat, 17 Feb 2024 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2024/02/17/dictionaries-in-r/</guid><description>&lt;div id="TOC">
 &lt;ul>
 &lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
 &lt;li>&lt;a href="#are-there-dictionaries-in-r" id="toc-are-there-dictionaries-in-r">&lt;span class="toc-section-number">2&lt;/span> Are there Dictionaries in R?&lt;/a>&lt;/li>
@@ -236,8 +359,7 @@ library(glue)&lt;/code>&lt;/pre>
 &lt;/div>
 &lt;div id="motivation" class="section level1" number="2">
 &lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
-&lt;p>In this post, we’ll prepare official German weather data. All data are accessed from &lt;a href="https://www.dwd.de/DE/Home/home_node.html">DWD&lt;/a>.&lt;/p></description></item><item><title>Beispiel für pivot_longer()</title><link>https://sebastiansauer.github.io/data_se/2021/05/27/beispiel-f%C3%BCr-pivot-longer/</link><pubDate>Thu, 27 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/27/beispiel-f%C3%BCr-pivot-longer/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/05/27/beispiel-f%C3%BCr-pivot-longer/
-index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;p>In this post, we’ll prepare official German weather data. All data are accessed from &lt;a href="https://www.dwd.de/DE/Home/home_node.html">DWD&lt;/a>.&lt;/p></description></item><item><title>Beispiel für pivot_longer()</title><link>https://sebastiansauer.github.io/data_se/2021/05/27/beispiel-f%C3%BCr-pivot-longer/</link><pubDate>Thu, 27 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/27/beispiel-f%C3%BCr-pivot-longer/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/2021/05/27/beispiel-f%C3%BCr-pivot-longer/index_files/header-attrs/header-attrs.js">&lt;/script>
 
 &lt;div id="TOC">
 &lt;ul>
@@ -284,9 +406,7 @@ index_files/header-attrs/header-attrs.js">&lt;/script>
  facet_wrap(~ name) +
  geom_point() +
  geom_smooth(method = &amp;quot;lm&amp;quot;)&lt;/code>&lt;/pre>
-&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/data_se/2021/05/27/beispiel-f%C3%BCr-pivot-longer/
-index_files/figure-html/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" />&lt;/p></description></item><item><title>Datensatz flights: Finde den Tag mit den meisten Abflügen</title><link>https://sebastiansauer.github.io/data_se/2021/05/27/datensatz-flights-finde-den-tag-mit-den-meisten-abfl%C3%BCgen/</link><pubDate>Thu, 27 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/27/datensatz-flights-finde-den-tag-mit-den-meisten-abfl%C3%BCgen/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/05/27/datensatz-flights-finde-den-tag-mit-den-meisten-abfl%C3%BCgen/
-index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/2021/05/27/beispiel-f%C3%BCr-pivot-longer/index_files/figure-html/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" />&lt;/p></description></item><item><title>Datensatz flights: Finde den Tag mit den meisten Abflügen</title><link>https://sebastiansauer.github.io/data_se/2021/05/27/datensatz-flights-finde-den-tag-mit-den-meisten-abfl%C3%BCgen/</link><pubDate>Thu, 27 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/27/datensatz-flights-finde-den-tag-mit-den-meisten-abfl%C3%BCgen/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/2021/05/27/datensatz-flights-finde-den-tag-mit-den-meisten-abfl%C3%BCgen/index_files/header-attrs/header-attrs.js">&lt;/script>
 
 &lt;div id="TOC">
 &lt;ul>
@@ -325,8 +445,7 @@ library(lubridate) # Datumsangaben&lt;/code>&lt;/pre>
  flights %&amp;gt;% 
  group_by(date) %&amp;gt;% 
  summarise(n = n())&lt;/code>&lt;/pre>
-&lt;p>Synonym:&lt;/p></description></item><item><title>Zeilenweise Operationen (tidyverse-Stil)</title><link>https://sebastiansauer.github.io/data_se/2021/05/27/zeilenweise-operationen-tidyverse-stil/</link><pubDate>Thu, 27 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/27/zeilenweise-operationen-tidyverse-stil/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/05/27/zeilenweise-operationen-tidyverse-stil/
-index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;p>Synonym:&lt;/p></description></item><item><title>Zeilenweise Operationen (tidyverse-Stil)</title><link>https://sebastiansauer.github.io/data_se/2021/05/27/zeilenweise-operationen-tidyverse-stil/</link><pubDate>Thu, 27 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/27/zeilenweise-operationen-tidyverse-stil/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/2021/05/27/zeilenweise-operationen-tidyverse-stil/index_files/header-attrs/header-attrs.js">&lt;/script>
 
 &lt;div id="TOC">
 &lt;ul>
