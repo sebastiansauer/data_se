@@ -1,0 +1,260 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Kontigenztabellen in R - Data Se</title>
+<meta property="og:title" content="Kontigenztabellen in R - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>10 min read</span><h1 class=article-title>Kontigenztabellen in R</h1><span class=article-date>2022/05/02</span><div class=article-content><script src="/data_se/2022/05/02/kontigenztabellen-in-r/
+index_files/header-attrs/header-attrs.js"></script><div id=TOC><ul><li><a href=#pakete-und-daten id=toc-pakete-und-daten><span class=toc-section-number>1</span> Pakete und Daten</a></li><li><a href=#häufigkeiten-berechnen id=toc-häufigkeiten-berechnen><span class=toc-section-number>2</span> Häufigkeiten berechnen</a><ul><li><a href=#tidyverse id=toc-tidyverse><span class=toc-section-number>2.1</span> Tidyverse</a><ul><li><a href=#univariat id=toc-univariat><span class=toc-section-number>2.1.1</span> Univariat</a></li><li><a href=#bivariat id=toc-bivariat><span class=toc-section-number>2.1.2</span> Bivariat</a></li><li><a href=#bezogen-auf-was id=toc-bezogen-auf-was><span class=toc-section-number>2.1.3</span> Bezogen auf was?</a></li><li><a href=#kontingenztabelle-durch-pivotieren id=toc-kontingenztabelle-durch-pivotieren><span class=toc-section-number>2.1.4</span> Kontingenztabelle durch Pivotieren</a></li></ul></li><li><a href=#easystats id=toc-easystats><span class=toc-section-number>2.2</span> Easystats</a></li><li><a href=#sjmisc id=toc-sjmisc><span class=toc-section-number>2.3</span> sjmisc</a><ul><li><a href=#kontingenztabelle id=toc-kontingenztabelle><span class=toc-section-number>2.3.1</span> Kontingenztabelle</a></li><li><a href=#anteile id=toc-anteile><span class=toc-section-number>2.3.2</span> Anteile</a></li><li><a href=#kontingenztabelle-gruppiert id=toc-kontingenztabelle-gruppiert><span class=toc-section-number>2.3.3</span> Kontingenztabelle gruppiert</a></li></ul></li><li><a href=#base-r id=toc-base-r><span class=toc-section-number>2.4</span> Base R</a><ul><li><a href=#kontingenztabelle-1 id=toc-kontingenztabelle-1><span class=toc-section-number>2.4.1</span> Kontingenztabelle</a></li><li><a href=#ftable id=toc-ftable><span class=toc-section-number>2.4.2</span> ftable</a></li><li><a href=#anteile-1 id=toc-anteile-1><span class=toc-section-number>2.4.3</span> Anteile</a></li></ul></li></ul></li><li><a href=#schöne-tabellen-in-html id=toc-schöne-tabellen-in-html><span class=toc-section-number>3</span> Schöne Tabellen in html</a><ul><li><a href=#gt id=toc-gt><span class=toc-section-number>3.1</span> gt</a><ul><li><a href=#flat_table id=toc-flat_table><span class=toc-section-number>3.1.1</span> flat_table</a></li><li><a href=#pivot_wider id=toc-pivot_wider><span class=toc-section-number>3.1.2</span> pivot_wider</a></li></ul></li></ul></li><li><a href=#exportieren id=toc-exportieren><span class=toc-section-number>4</span> Exportieren</a><ul><li><a href=#export-als-csv--oder-xlsx-datei id=toc-export-als-csv--oder-xlsx-datei><span class=toc-section-number>4.1</span> Export als CSV- oder XLSX-Datei</a><ul><li><a href=#csv-für-excel id=toc-csv-für-excel><span class=toc-section-number>4.1.1</span> CSV für Excel</a></li><li><a href=#deutsch-formatierte-excel-csv id=toc-deutsch-formatierte-excel-csv><span class=toc-section-number>4.1.2</span> Deutsch formatierte Excel-CSV</a></li><li><a href=#xlsx-datei id=toc-xlsx-datei><span class=toc-section-number>4.1.3</span> XLSX-Datei</a></li></ul></li><li><a href=#export-nach-word id=toc-export-nach-word><span class=toc-section-number>4.2</span> Export nach Word</a><ul><li><a href=#tabelle-in-word-auf-basis-von-textdaten-erstellen id=toc-tabelle-in-word-auf-basis-von-textdaten-erstellen><span class=toc-section-number>4.2.1</span> Tabelle in Word auf Basis von Textdaten erstellen</a></li><li><a href=#copy-paste-aus-rstudio id=toc-copy-paste-aus-rstudio><span class=toc-section-number>4.2.2</span> Copy-Paste aus RStudio</a></li><li><a href=#flextable id=toc-flextable><span class=toc-section-number>4.2.3</span> Flextable</a></li><li><a href=#lets-go id=toc-lets-go><span class=toc-section-number>4.2.4</span> Let’s go</a></li><li><a href=#export id=toc-export><span class=toc-section-number>4.2.5</span> Export</a></li></ul></li></ul></li><li><a href=#reproducibility id=toc-reproducibility><span class=toc-section-number>5</span> Reproducibility</a></li></ul></div><div id=pakete-und-daten class="section level1" number=1><h1><span class=header-section-number>1</span> Pakete und Daten</h1><pre class=r><code>library(tidyverse)  # data wrangling
+
+data(&quot;mtcars&quot;)</code></pre></div><div id=häufigkeiten-berechnen class="section level1" number=2><h1><span class=header-section-number>2</span> Häufigkeiten berechnen</h1><div id=tidyverse class="section level2" number=2.1><h2><span class=header-section-number>2.1</span> Tidyverse</h2><div id=univariat class="section level3" number=2.1.1><h3><span class=header-section-number>2.1.1</span> Univariat</h3><p>Wie viele Autos gibt es mit Automatik- bzw. mit manueller Schaltung?
+Anders gesagt: Was ist die Häufigkeitverteilung von <code>am</code>?</p><pre class=r><code>mtcars %&gt;% 
+  count(am)
+#&gt;   am  n
+#&gt; 1  0 19
+#&gt; 2  1 13</code></pre><p>Anteile dazu:</p><pre class=r><code>mtcars %&gt;% 
+  count(am) %&gt;% 
+  mutate(prop = n / sum(n))
+#&gt;   am  n    prop
+#&gt; 1  0 19 0.59375
+#&gt; 2  1 13 0.40625</code></pre></div><div id=bivariat class="section level3" number=2.1.2><h3><span class=header-section-number>2.1.2</span> Bivariat</h3><p>Wie viele Autos mit mehr als 100 PS gibt es in den Stufen von <code>am</code>?</p><pre class=r><code>mtcars %&gt;%  
+  count(am, hp &gt; 200) %&gt;% 
+  mutate(prop = n / sum(n))
+#&gt;   am hp &gt; 200  n    prop
+#&gt; 1  0    FALSE 14 0.43750
+#&gt; 2  0     TRUE  5 0.15625
+#&gt; 3  1    FALSE 11 0.34375
+#&gt; 4  1     TRUE  2 0.06250</code></pre><p>Die Anteile sind hier auf <em>alle</em> Autos bezogen.</p></div><div id=bezogen-auf-was class="section level3" number=2.1.3><h3><span class=header-section-number>2.1.3</span> Bezogen auf was?</h3><p>Vielleicht möchten wir die Anteile lieber pro Stufe von <code>am</code>?</p><pre class=r><code>mtcars %&gt;%  
+  count(am, hp &gt; 200) %&gt;% 
+  group_by(am) %&gt;% 
+  mutate(prop = n / sum(n))
+#&gt; # A tibble: 4 × 4
+#&gt; # Groups:   am [2]
+#&gt;      am `hp &gt; 200`     n  prop
+#&gt;   &lt;dbl&gt; &lt;lgl&gt;      &lt;int&gt; &lt;dbl&gt;
+#&gt; 1     0 FALSE         14 0.737
+#&gt; 2     0 TRUE           5 0.263
+#&gt; 3     1 FALSE         11 0.846
+#&gt; 4     1 TRUE           2 0.154</code></pre></div><div id=kontingenztabelle-durch-pivotieren class="section level3" number=2.1.4><h3><span class=header-section-number>2.1.4</span> Kontingenztabelle durch Pivotieren</h3><p>Nicht wirklich praktisch im Tidyverse:</p><pre class=r><code>mtcars %&gt;%  
+  count(am, hp &gt; 200) %&gt;% 
+  group_by(am) %&gt;% 
+  mutate(prop = n / sum(n)) %&gt;% 
+  select(-n) %&gt;% 
+  pivot_wider(names_from = am, values_from = prop)
+#&gt; # A tibble: 2 × 3
+#&gt;   `hp &gt; 200`   `0`   `1`
+#&gt;   &lt;lgl&gt;      &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1 FALSE      0.737 0.846
+#&gt; 2 TRUE       0.263 0.154</code></pre></div></div><div id=easystats class="section level2" number=2.2><h2><span class=header-section-number>2.2</span> Easystats</h2><pre class=r><code>library(easystats)</code></pre><p>Mit <code>data_tabulate()</code> bekommt man Häufigkeitstabellen,
+aber keine “richtigen” Kontingenztabellen, scheint’s:</p><pre class=r><code>data_tabulate(mtcars, select = c(&quot;am&quot;, &quot;vs&quot;))
+#&gt; am (am) &lt;numeric&gt;
+#&gt; # total N=32 valid N=32
+#&gt; 
+#&gt; Value |  N | Raw % | Valid % | Cumulative %
+#&gt; ------+----+-------+---------+-------------
+#&gt; 0     | 19 | 59.38 |   59.38 |        59.38
+#&gt; 1     | 13 | 40.62 |   40.62 |       100.00
+#&gt; &lt;NA&gt;  |  0 |  0.00 |    &lt;NA&gt; |         &lt;NA&gt;
+#&gt; 
+#&gt; vs (vs) &lt;numeric&gt;
+#&gt; # total N=32 valid N=32
+#&gt; 
+#&gt; Value |  N | Raw % | Valid % | Cumulative %
+#&gt; ------+----+-------+---------+-------------
+#&gt; 0     | 18 | 56.25 |   56.25 |        56.25
+#&gt; 1     | 14 | 43.75 |   43.75 |       100.00
+#&gt; &lt;NA&gt;  |  0 |  0.00 |    &lt;NA&gt; |         &lt;NA&gt;</code></pre><p><code>data_tabulate</code> gibt’s wohl erst ab 0.4.0.17 in <code>{{datawizard}}</code>.</p><pre class=r><code>mtcars %&gt;% 
+  group_by(am) %&gt;% 
+  data_tabulate(&quot;vs&quot;)
+#&gt; vs (vs) &lt;numeric&gt;
+#&gt; Grouped by am (0)
+#&gt; # total N=19 valid N=19
+#&gt; 
+#&gt; Value |  N | Raw % | Valid % | Cumulative %
+#&gt; ------+----+-------+---------+-------------
+#&gt; 0     | 12 | 63.16 |   63.16 |        63.16
+#&gt; 1     |  7 | 36.84 |   36.84 |       100.00
+#&gt; &lt;NA&gt;  |  0 |  0.00 |    &lt;NA&gt; |         &lt;NA&gt;
+#&gt; 
+#&gt; vs (vs) &lt;numeric&gt;
+#&gt; Grouped by am (1)
+#&gt; # total N=13 valid N=13
+#&gt; 
+#&gt; Value | N | Raw % | Valid % | Cumulative %
+#&gt; ------+---+-------+---------+-------------
+#&gt; 0     | 6 | 46.15 |   46.15 |        46.15
+#&gt; 1     | 7 | 53.85 |   53.85 |       100.00
+#&gt; &lt;NA&gt;  | 0 |  0.00 |    &lt;NA&gt; |         &lt;NA&gt;</code></pre></div><div id=sjmisc class="section level2" number=2.3><h2><span class=header-section-number>2.3</span> sjmisc</h2><pre class=r><code>library(sjmisc)</code></pre><div id=kontingenztabelle class="section level3" number=2.3.1><h3><span class=header-section-number>2.3.1</span> Kontingenztabelle</h3><pre class=r><code>mtcars %&gt;% 
+  flat_table(am, vs)
+#&gt;    vs  0  1
+#&gt; am         
+#&gt; 0     12  7
+#&gt; 1      6  7</code></pre></div><div id=anteile class="section level3" number=2.3.2><h3><span class=header-section-number>2.3.2</span> Anteile</h3><p>Aufsummiert pro Zeile:</p><pre class=r><code>mtcars %&gt;% 
+  flat_table(am, vs, margin = &quot;row&quot;)
+#&gt;    vs     0     1
+#&gt; am               
+#&gt; 0     63.16 36.84
+#&gt; 1     46.15 53.85</code></pre><p>Aufsummiert pro Spalte:</p><pre class=r><code>mtcars %&gt;% 
+  flat_table(am, vs, margin = &quot;col&quot;)
+#&gt;    vs     0     1
+#&gt; am               
+#&gt; 0     66.67 50.00
+#&gt; 1     33.33 50.00</code></pre><p>Aufsummiert auf die ganze Tabelle:</p><pre class=r><code>mtcars %&gt;% 
+  flat_table(am, vs, margin = &quot;cell&quot;)
+#&gt;    vs     0     1
+#&gt; am               
+#&gt; 0     37.50 21.88
+#&gt; 1     18.75 21.88</code></pre></div><div id=kontingenztabelle-gruppiert class="section level3" number=2.3.3><h3><span class=header-section-number>2.3.3</span> Kontingenztabelle gruppiert</h3><pre class=r><code>mtcars %&gt;% 
+  group_by(hp &gt; 100) %&gt;% 
+  flat_table(am, vs)
+#&gt;                              vs  0  1
+#&gt; hp &gt; 100...1 am hp &gt; 100...3         
+#&gt; FALSE        0  FALSE            0  3
+#&gt;                 TRUE             0  0
+#&gt;              1  FALSE            1  5
+#&gt;                 TRUE             0  0
+#&gt; TRUE         0  FALSE            0  0
+#&gt;                 TRUE            12  4
+#&gt;              1  FALSE            0  0
+#&gt;                 TRUE             5  2</code></pre></div></div><div id=base-r class="section level2" number=2.4><h2><span class=header-section-number>2.4</span> Base R</h2><div id=kontingenztabelle-1 class="section level3" number=2.4.1><h3><span class=header-section-number>2.4.1</span> Kontingenztabelle</h3><pre class=r><code>table(mtcars$am, mtcars$vs)
+#&gt;    
+#&gt;      0  1
+#&gt;   0 12  7
+#&gt;   1  6  7</code></pre><p>Oder, komfortabler:</p><pre class=r><code>with(mtcars, table(am, vs))
+#&gt;    vs
+#&gt; am   0  1
+#&gt;   0 12  7
+#&gt;   1  6  7</code></pre></div><div id=ftable class="section level3" number=2.4.2><h3><span class=header-section-number>2.4.2</span> ftable</h3><p>Auch nett:</p><pre class=r><code>mtcars %&gt;% 
+  select(am, vs) %&gt;% 
+  ftable()
+#&gt;    vs  0  1
+#&gt; am         
+#&gt; 0     12  7
+#&gt; 1      6  7</code></pre></div><div id=anteile-1 class="section level3" number=2.4.3><h3><span class=header-section-number>2.4.3</span> Anteile</h3><pre class=r><code>table(mtcars$am, mtcars$vs) %&gt;% prop.table()
+#&gt;    
+#&gt;           0       1
+#&gt;   0 0.37500 0.21875
+#&gt;   1 0.18750 0.21875</code></pre><p>Bzw.:</p><pre class=r><code>with(mtcars, table(am, vs)) %&gt;% prop.table()
+#&gt;    vs
+#&gt; am        0       1
+#&gt;   0 0.37500 0.21875
+#&gt;   1 0.18750 0.21875</code></pre><p>Mit <code>margin</code> kann man die Dimension (Spalten vs. Zeilenin 2D) wählen,
+über die summiert wird.</p><p>Summiere pro Spalte:</p><pre class=r><code>with(mtcars, table(am, vs)) %&gt;% prop.table(margin = 1)
+#&gt;    vs
+#&gt; am          0         1
+#&gt;   0 0.6315789 0.3684211
+#&gt;   1 0.4615385 0.5384615</code></pre><p>Summiere pro Zeile:</p><pre class=r><code>with(mtcars, table(am, vs)) %&gt;% prop.table(margin = 2)
+#&gt;    vs
+#&gt; am          0         1
+#&gt;   0 0.6666667 0.5000000
+#&gt;   1 0.3333333 0.5000000</code></pre></div></div></div><div id=schöne-tabellen-in-html class="section level1" number=3><h1><span class=header-section-number>3</span> Schöne Tabellen in html</h1><div id=gt class="section level2" number=3.1><h2><span class=header-section-number>3.1</span> gt</h2><pre class=r><code>library(gt)</code></pre><p>Naja, geht so:</p><div id=flat_table class="section level3" number=3.1.1><h3><span class=header-section-number>3.1.1</span> flat_table</h3><pre class=r><code>mtcars %&gt;%
+  flat_table(am, vs, margin = &quot;cell&quot;) %&gt;% 
+  as_tibble() %&gt;% 
+  gt()</code></pre><div id=dldseztlui style=overflow-x:auto;overflow-y:auto;width:auto;height:auto><style>html{font-family:-apple-system,BlinkMacSystemFont,segoe ui,Roboto,Oxygen,Ubuntu,Cantarell,helvetica neue,fira sans,droid sans,Arial,sans-serif}#dldseztlui .gt_table{display:table;border-collapse:collapse;margin-left:auto;margin-right:auto;color:#333;font-size:16px;font-weight:400;font-style:normal;background-color:#fff;width:auto;border-top-style:solid;border-top-width:2px;border-top-color:#a8a8a8;border-right-style:none;border-right-width:2px;border-right-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#a8a8a8;border-left-style:none;border-left-width:2px;border-left-color:#d3d3d3}#dldseztlui .gt_heading{background-color:#fff;text-align:center;border-bottom-color:#fff;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3}#dldseztlui .gt_title{color:#333;font-size:125%;font-weight:initial;padding-top:4px;padding-bottom:4px;border-bottom-color:#fff;border-bottom-width:0}#dldseztlui .gt_subtitle{color:#333;font-size:85%;font-weight:initial;padding-top:0;padding-bottom:6px;border-top-color:#fff;border-top-width:0}#dldseztlui .gt_bottom_border{border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3}#dldseztlui .gt_col_headings{border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3}#dldseztlui .gt_col_heading{color:#333;background-color:#fff;font-size:100%;font-weight:400;text-transform:inherit;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3;vertical-align:bottom;padding-top:5px;padding-bottom:6px;padding-left:5px;padding-right:5px;overflow-x:hidden}#dldseztlui .gt_column_spanner_outer{color:#333;background-color:#fff;font-size:100%;font-weight:400;text-transform:inherit;padding-top:0;padding-bottom:0;padding-left:4px;padding-right:4px}#dldseztlui .gt_column_spanner_outer:first-child{padding-left:0}#dldseztlui .gt_column_spanner_outer:last-child{padding-right:0}#dldseztlui .gt_column_spanner{border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3;vertical-align:bottom;padding-top:5px;padding-bottom:5px;overflow-x:hidden;display:inline-block;width:100%}#dldseztlui .gt_group_heading{padding:8px;color:#333;background-color:#fff;font-size:100%;font-weight:initial;text-transform:inherit;border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3;vertical-align:middle}#dldseztlui .gt_empty_group_heading{padding:.5px;color:#333;background-color:#fff;font-size:100%;font-weight:initial;border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3;vertical-align:middle}#dldseztlui .gt_from_md>:first-child{margin-top:0}#dldseztlui .gt_from_md>:last-child{margin-bottom:0}#dldseztlui .gt_row{padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px;margin:10px;border-top-style:solid;border-top-width:1px;border-top-color:#d3d3d3;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3;vertical-align:middle;overflow-x:hidden}#dldseztlui .gt_stub{color:#333;background-color:#fff;font-size:100%;font-weight:initial;text-transform:inherit;border-right-style:solid;border-right-width:2px;border-right-color:#d3d3d3;padding-left:12px}#dldseztlui .gt_summary_row{color:#333;background-color:#fff;text-transform:inherit;padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px}#dldseztlui .gt_first_summary_row{padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px;border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3}#dldseztlui .gt_grand_summary_row{color:#333;background-color:#fff;text-transform:inherit;padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px}#dldseztlui .gt_first_grand_summary_row{padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px;border-top-style:double;border-top-width:6px;border-top-color:#d3d3d3}#dldseztlui .gt_striped{background-color:rgba(128,128,128,5%)}#dldseztlui .gt_table_body{border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3}#dldseztlui .gt_footnotes{color:#333;background-color:#fff;border-bottom-style:none;border-bottom-width:2px;border-bottom-color:#d3d3d3;border-left-style:none;border-left-width:2px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:2px;border-right-color:#d3d3d3}#dldseztlui .gt_footnote{margin:0;font-size:90%;padding:4px}#dldseztlui .gt_sourcenotes{color:#333;background-color:#fff;border-bottom-style:none;border-bottom-width:2px;border-bottom-color:#d3d3d3;border-left-style:none;border-left-width:2px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:2px;border-right-color:#d3d3d3}#dldseztlui .gt_sourcenote{font-size:90%;padding:4px}#dldseztlui .gt_left{text-align:left}#dldseztlui .gt_center{text-align:center}#dldseztlui .gt_right{text-align:right;font-variant-numeric:tabular-nums}#dldseztlui .gt_font_normal{font-weight:400}#dldseztlui .gt_font_bold{font-weight:700}#dldseztlui .gt_font_italic{font-style:italic}#dldseztlui .gt_super{font-size:65%}#dldseztlui .gt_footnote_marks{font-style:italic;font-weight:400;font-size:65%}</style><table class=gt_table><thead class=gt_col_headings><tr><th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan=1 colspan=1>am</th><th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan=1 colspan=1>vs</th><th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan=1 colspan=1>Freq</th></tr></thead><tbody class=gt_table_body><tr><td class="gt_row gt_center">0</td><td class="gt_row gt_center">0</td><td class="gt_row gt_right">37.50</td></tr><tr><td class="gt_row gt_center">1</td><td class="gt_row gt_center">0</td><td class="gt_row gt_right">18.75</td></tr><tr><td class="gt_row gt_center">0</td><td class="gt_row gt_center">1</td><td class="gt_row gt_right">21.88</td></tr><tr><td class="gt_row gt_center">1</td><td class="gt_row gt_center">1</td><td class="gt_row gt_right">21.88</td></tr></tbody></table></div></div><div id=pivot_wider class="section level3" number=3.1.2><h3><span class=header-section-number>3.1.2</span> pivot_wider</h3><pre class=r><code>mtcars %&gt;%  
+  count(am, hp &gt; 200) %&gt;% 
+  group_by(am) %&gt;% 
+  mutate(prop = n / sum(n)) %&gt;% 
+  select(-n) %&gt;% 
+  pivot_wider(names_from = am, values_from = prop) %&gt;% 
+  gt()</code></pre><div id=eakrwwosbz style=overflow-x:auto;overflow-y:auto;width:auto;height:auto><style>html{font-family:-apple-system,BlinkMacSystemFont,segoe ui,Roboto,Oxygen,Ubuntu,Cantarell,helvetica neue,fira sans,droid sans,Arial,sans-serif}#eakrwwosbz .gt_table{display:table;border-collapse:collapse;margin-left:auto;margin-right:auto;color:#333;font-size:16px;font-weight:400;font-style:normal;background-color:#fff;width:auto;border-top-style:solid;border-top-width:2px;border-top-color:#a8a8a8;border-right-style:none;border-right-width:2px;border-right-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#a8a8a8;border-left-style:none;border-left-width:2px;border-left-color:#d3d3d3}#eakrwwosbz .gt_heading{background-color:#fff;text-align:center;border-bottom-color:#fff;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3}#eakrwwosbz .gt_title{color:#333;font-size:125%;font-weight:initial;padding-top:4px;padding-bottom:4px;border-bottom-color:#fff;border-bottom-width:0}#eakrwwosbz .gt_subtitle{color:#333;font-size:85%;font-weight:initial;padding-top:0;padding-bottom:6px;border-top-color:#fff;border-top-width:0}#eakrwwosbz .gt_bottom_border{border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3}#eakrwwosbz .gt_col_headings{border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3}#eakrwwosbz .gt_col_heading{color:#333;background-color:#fff;font-size:100%;font-weight:400;text-transform:inherit;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3;vertical-align:bottom;padding-top:5px;padding-bottom:6px;padding-left:5px;padding-right:5px;overflow-x:hidden}#eakrwwosbz .gt_column_spanner_outer{color:#333;background-color:#fff;font-size:100%;font-weight:400;text-transform:inherit;padding-top:0;padding-bottom:0;padding-left:4px;padding-right:4px}#eakrwwosbz .gt_column_spanner_outer:first-child{padding-left:0}#eakrwwosbz .gt_column_spanner_outer:last-child{padding-right:0}#eakrwwosbz .gt_column_spanner{border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3;vertical-align:bottom;padding-top:5px;padding-bottom:5px;overflow-x:hidden;display:inline-block;width:100%}#eakrwwosbz .gt_group_heading{padding:8px;color:#333;background-color:#fff;font-size:100%;font-weight:initial;text-transform:inherit;border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3;vertical-align:middle}#eakrwwosbz .gt_empty_group_heading{padding:.5px;color:#333;background-color:#fff;font-size:100%;font-weight:initial;border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3;vertical-align:middle}#eakrwwosbz .gt_from_md>:first-child{margin-top:0}#eakrwwosbz .gt_from_md>:last-child{margin-bottom:0}#eakrwwosbz .gt_row{padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px;margin:10px;border-top-style:solid;border-top-width:1px;border-top-color:#d3d3d3;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3;vertical-align:middle;overflow-x:hidden}#eakrwwosbz .gt_stub{color:#333;background-color:#fff;font-size:100%;font-weight:initial;text-transform:inherit;border-right-style:solid;border-right-width:2px;border-right-color:#d3d3d3;padding-left:12px}#eakrwwosbz .gt_summary_row{color:#333;background-color:#fff;text-transform:inherit;padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px}#eakrwwosbz .gt_first_summary_row{padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px;border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3}#eakrwwosbz .gt_grand_summary_row{color:#333;background-color:#fff;text-transform:inherit;padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px}#eakrwwosbz .gt_first_grand_summary_row{padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px;border-top-style:double;border-top-width:6px;border-top-color:#d3d3d3}#eakrwwosbz .gt_striped{background-color:rgba(128,128,128,5%)}#eakrwwosbz .gt_table_body{border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3}#eakrwwosbz .gt_footnotes{color:#333;background-color:#fff;border-bottom-style:none;border-bottom-width:2px;border-bottom-color:#d3d3d3;border-left-style:none;border-left-width:2px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:2px;border-right-color:#d3d3d3}#eakrwwosbz .gt_footnote{margin:0;font-size:90%;padding:4px}#eakrwwosbz .gt_sourcenotes{color:#333;background-color:#fff;border-bottom-style:none;border-bottom-width:2px;border-bottom-color:#d3d3d3;border-left-style:none;border-left-width:2px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:2px;border-right-color:#d3d3d3}#eakrwwosbz .gt_sourcenote{font-size:90%;padding:4px}#eakrwwosbz .gt_left{text-align:left}#eakrwwosbz .gt_center{text-align:center}#eakrwwosbz .gt_right{text-align:right;font-variant-numeric:tabular-nums}#eakrwwosbz .gt_font_normal{font-weight:400}#eakrwwosbz .gt_font_bold{font-weight:700}#eakrwwosbz .gt_font_italic{font-style:italic}#eakrwwosbz .gt_super{font-size:65%}#eakrwwosbz .gt_footnote_marks{font-style:italic;font-weight:400;font-size:65%}</style><table class=gt_table><thead class=gt_col_headings><tr><th class="gt_col_heading gt_columns_bottom_border gt_center" rowspan=1 colspan=1>hp > 200</th><th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan=1 colspan=1>0</th><th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan=1 colspan=1>1</th></tr></thead><tbody class=gt_table_body><tr><td class="gt_row gt_center">FALSE</td><td class="gt_row gt_right">0.7368421</td><td class="gt_row gt_right">0.8461538</td></tr><tr><td class="gt_row gt_center">TRUE</td><td class="gt_row gt_right">0.2631579</td><td class="gt_row gt_right">0.1538462</td></tr></tbody></table></div></div></div></div><div id=exportieren class="section level1" number=4><h1><span class=header-section-number>4</span> Exportieren</h1><div id=export-als-csv--oder-xlsx-datei class="section level2" number=4.1><h2><span class=header-section-number>4.1</span> Export als CSV- oder XLSX-Datei</h2><p>Tidyverse gibt stets Tabellen (Tibbles) zurück,
+das macht es einfach,
+da Tibbles direkt als CSV- oder Excel-Tabellen abgespeichert werden können:</p><pre class=r><code>meine_tab &lt;- 
+  mtcars %&gt;%  
+  count(am, hp &gt; 200) %&gt;% 
+  group_by(am) %&gt;% 
+  mutate(prop = n / sum(n))</code></pre><p>Und raus mit euch:</p><pre class=r><code>write_csv(meine_tab, &quot;meine_tab.csv&quot;)</code></pre><div id=csv-für-excel class="section level3" number=4.1.1><h3><span class=header-section-number>4.1.1</span> CSV für Excel</h3><p>Achtung: Excel will liebe eine besondere CSV-Datei, aus der Hilfeseite:</p><blockquote><p>All columns are encoded as UTF-8. write_excel_csv() and write_excel_csv2() also include a UTF-8 Byte order mark which indicates to Excel the csv is UTF-8 encoded.</p></blockquote><pre class=r><code>write_excel_csv(meine_tab, &quot;meine_tab_excel.csv&quot;)</code></pre></div><div id=deutsch-formatierte-excel-csv class="section level3" number=4.1.2><h3><span class=header-section-number>4.1.2</span> Deutsch formatierte Excel-CSV</h3><pre class=r><code>write_excel_csv2(meine_tab, &quot;meine_tab_excel2.csv&quot;)</code></pre></div><div id=xlsx-datei class="section level3" number=4.1.3><h3><span class=header-section-number>4.1.3</span> XLSX-Datei</h3><p>Das Paket <code>{{rio}}</code> stellt eine praktische Import und Exportfunktion bereit,
+die nutzen wir:</p><pre class=r><code>library(rio)</code></pre><pre class=r><code>export(meine_tab, file = &quot;meine_tab.xlsx&quot;)</code></pre></div></div><div id=export-nach-word class="section level2" number=4.2><h2><span class=header-section-number>4.2</span> Export nach Word</h2><div id=tabelle-in-word-auf-basis-von-textdaten-erstellen class="section level3" number=4.2.1><h3><span class=header-section-number>4.2.1</span> Tabelle in Word auf Basis von Textdaten erstellen</h3><p><a href=https://www.rforecology.com/post/exporting-tables-from-r-to-microsoft-word/>Hier</a> ist eine Anleitung, wie man eine CSV-Datei in Word als Tabelle einfügt.</p></div><div id=copy-paste-aus-rstudio class="section level3" number=4.2.2><h3><span class=header-section-number>4.2.2</span> Copy-Paste aus RStudio</h3><ol style=list-style-type:decimal><li>html-Ausgabe, z.B. von <code>gt()</code> suchen</li><li>Alles markieren (z.B. rechte Maustaste “select all”)</li><li>Copy</li><li>Nach Word gehen</li><li>Paste</li></ol><p>Hat auf diesem Rechner hier gut funktioniert.</p><p>Ein Nutzer auf <a href=https://stackoverflow.com/questions/60815583/how-to-save-table1-package-output-table-to-doc-format-r>StackOverflow</a> hat noch eine andere Idee:</p><blockquote><p>Another possible solution: The above strategy did not work for me when I had a similar issue, but it was resolved once I knitted the table1 object and opened the html in browser to copy the html table and successfully paste into word. Doing it within RStudio viewer would not work for me for some reason.</p></blockquote></div><div id=flextable class="section level3" number=4.2.3><h3><span class=header-section-number>4.2.3</span> Flextable</h3></div><div id=lets-go class="section level3" number=4.2.4><h3><span class=header-section-number>4.2.4</span> Let’s go</h3><p><a href=https://davidgohel.github.io/flextable/>flextable</a> hat eine nette Webseite.</p><pre class=r><code>library(flextable)</code></pre><pre class=r><code>flextable(meine_tab)</code></pre><template id=2d416719-4077-4c86-ac2e-255dbb4c5420><style>.tabwid table{border-spacing:0!important;border-collapse:collapse;line-height:1;margin-left:auto;margin-right:auto;border-width:0;display:table;margin-top:1.275em;margin-bottom:1.275em;border-color:transparent}.tabwid_left table{margin-left:0}.tabwid_right table{margin-right:0}.tabwid td{padding:0}.tabwid a{text-decoration:none}.tabwid thead{background-color:transparent}.tabwid tfoot{background-color:transparent}.tabwid table tr{background-color:transparent}</style><div class=tabwid><style>.cl-3ddb5056{}.cl-3dd6278e{font-family:helvetica;font-size:11pt;font-weight:400;font-style:normal;text-decoration:none;color:#000;background-color:transparent}.cl-3dd63f3a{margin:0;text-align:right;border-bottom:0 solid #000;border-top:0 solid #000;border-left:0 solid #000;border-right:0 solid #000;padding-bottom:5pt;padding-top:5pt;padding-left:5pt;padding-right:5pt;line-height:1;background-color:transparent}.cl-3dd66bd6{width:54pt;background-color:transparent;vertical-align:middle;border-bottom:0 solid #000;border-top:0 solid #000;border-left:0 solid #000;border-right:0 solid #000;margin-bottom:0;margin-top:0;margin-left:0;margin-right:0}.cl-3dd66be0{width:54pt;background-color:transparent;vertical-align:middle;border-bottom:2pt solid #666;border-top:0 solid #000;border-left:0 solid #000;border-right:0 solid #000;margin-bottom:0;margin-top:0;margin-left:0;margin-right:0}.cl-3dd66be1{width:54pt;background-color:transparent;vertical-align:middle;border-bottom:2pt solid #666;border-top:2pt solid #666;border-left:0 solid #000;border-right:0 solid #000;margin-bottom:0;margin-top:0;margin-left:0;margin-right:0}</style><table class=cl-3ddb5056><thead><tr style=overflow-wrap:break-word><td class=cl-3dd66be1><p class=cl-3dd63f3a><span class=cl-3dd6278e>am</span></p></td><td class=cl-3dd66be1><p class=cl-3dd63f3a><span class=cl-3dd6278e>hp > 200</span></p></td><td class=cl-3dd66be1><p class=cl-3dd63f3a><span class=cl-3dd6278e>n</span></p></td><td class=cl-3dd66be1><p class=cl-3dd63f3a><span class=cl-3dd6278e>prop</span></p></td></tr></thead><tbody><tr style=overflow-wrap:break-word><td class=cl-3dd66bd6><p class=cl-3dd63f3a><span class=cl-3dd6278e>0</span></p></td><td class=cl-3dd66bd6><p class=cl-3dd63f3a><span class=cl-3dd6278e>FALSE</span></p></td><td class=cl-3dd66bd6><p class=cl-3dd63f3a><span class=cl-3dd6278e>14</span></p></td><td class=cl-3dd66bd6><p class=cl-3dd63f3a><span class=cl-3dd6278e>0.7368421</span></p></td></tr><tr style=overflow-wrap:break-word><td class=cl-3dd66bd6><p class=cl-3dd63f3a><span class=cl-3dd6278e>0</span></p></td><td class=cl-3dd66bd6><p class=cl-3dd63f3a><span class=cl-3dd6278e>TRUE</span></p></td><td class=cl-3dd66bd6><p class=cl-3dd63f3a><span class=cl-3dd6278e>5</span></p></td><td class=cl-3dd66bd6><p class=cl-3dd63f3a><span class=cl-3dd6278e>0.2631579</span></p></td></tr><tr style=overflow-wrap:break-word><td class=cl-3dd66bd6><p class=cl-3dd63f3a><span class=cl-3dd6278e>1</span></p></td><td class=cl-3dd66bd6><p class=cl-3dd63f3a><span class=cl-3dd6278e>FALSE</span></p></td><td class=cl-3dd66bd6><p class=cl-3dd63f3a><span class=cl-3dd6278e>11</span></p></td><td class=cl-3dd66bd6><p class=cl-3dd63f3a><span class=cl-3dd6278e>0.8461538</span></p></td></tr><tr style=overflow-wrap:break-word><td class=cl-3dd66be0><p class=cl-3dd63f3a><span class=cl-3dd6278e>1</span></p></td><td class=cl-3dd66be0><p class=cl-3dd63f3a><span class=cl-3dd6278e>TRUE</span></p></td><td class=cl-3dd66be0><p class=cl-3dd63f3a><span class=cl-3dd6278e>2</span></p></td><td class=cl-3dd66be0><p class=cl-3dd63f3a><span class=cl-3dd6278e>0.1538462</span></p></td></tr></tbody></table></div></template><div class=flextable-shadow-host id=bad4d4ff-ec2d-472a-8280-2bb7162fa431></div><script>var newcapt,fantome,templateContent,dest=document.getElementById("bad4d4ff-ec2d-472a-8280-2bb7162fa431"),template=document.getElementById("2d416719-4077-4c86-ac2e-255dbb4c5420"),caption=template.content.querySelector("caption");caption&&(caption.style.cssText="display:block;text-align:center;",newcapt=document.createElement("p"),newcapt.appendChild(caption),dest.parentNode.insertBefore(newcapt,dest.previousSibling)),fantome=dest.attachShadow({mode:"open"}),templateContent=template.content,fantome.appendChild(templateContent)</script><p>Es gibt viele Funktionen bzw. Einstellungsmöglichkeiten für Flextable, die Sie auf der zugehörigen Webseite nachlesen können.</p><p>Die <a href=https://ardata-fr.github.io/flextable-gallery/gallery/>Gallerie</a> sieht recht beeindruckend aus.</p></div><div id=export class="section level3" number=4.2.5><h3><span class=header-section-number>4.2.5</span> Export</h3><p>Zuerst erzeugen wir ein Objekt vom Typ <code>flextable</code>:</p><pre class=r><code>meine_tab_flex &lt;- flextable(meine_tab)</code></pre><p>Und dann exporiteren wir:</p><pre class=r><code>save_as_docx(&quot;Tabelle 1 &quot; = meine_tab_flex, path = &quot;meine_tab.docx&quot;)
+
+save_as_pptx(&quot;Tabelle 1 &quot; = meine_tab_flex, path = &quot;meine_tab.pptx&quot;)</code></pre></div></div></div><div id=reproducibility class="section level1" number=5><h1><span class=header-section-number>5</span> Reproducibility</h1><pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.1.3 (2022-03-10)
+#&gt;  os       macOS Big Sur/Monterey 10.16
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2022-05-02                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version date       lib source                            
+#&gt;  assertthat    0.2.1   2019-03-21 [1] CRAN (R 4.1.0)                    
+#&gt;  backports     1.4.1   2021-12-13 [1] CRAN (R 4.1.0)                    
+#&gt;  blogdown      1.8     2022-02-16 [2] CRAN (R 4.1.2)                    
+#&gt;  bookdown      0.24.2  2021-10-15 [1] Github (rstudio/bookdown@ba51c26) 
+#&gt;  brio          1.1.3   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  broom         0.7.12  2022-01-28 [1] CRAN (R 4.1.2)                    
+#&gt;  bslib         0.3.1   2021-10-06 [1] CRAN (R 4.1.0)                    
+#&gt;  cachem        1.0.6   2021-08-19 [1] CRAN (R 4.1.0)                    
+#&gt;  callr         3.7.0   2021-04-20 [1] CRAN (R 4.1.0)                    
+#&gt;  cellranger    1.1.0   2016-07-27 [1] CRAN (R 4.1.0)                    
+#&gt;  cli           3.2.0   2022-02-14 [1] CRAN (R 4.1.2)                    
+#&gt;  codetools     0.2-18  2020-11-04 [2] CRAN (R 4.1.3)                    
+#&gt;  colorout    * 1.2-2   2022-01-04 [1] Github (jalvesaq/colorout@79931fd)
+#&gt;  colorspace    2.0-3   2022-02-21 [1] CRAN (R 4.1.2)                    
+#&gt;  crayon        1.5.1   2022-03-26 [1] CRAN (R 4.1.2)                    
+#&gt;  DBI           1.1.2   2021-12-20 [1] CRAN (R 4.1.0)                    
+#&gt;  dbplyr        2.1.1   2021-04-06 [1] CRAN (R 4.1.0)                    
+#&gt;  desc          1.4.0   2021-09-28 [1] CRAN (R 4.1.0)                    
+#&gt;  devtools      2.4.3   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  digest        0.6.29  2021-12-01 [1] CRAN (R 4.1.0)                    
+#&gt;  dplyr       * 1.0.8   2022-02-08 [1] CRAN (R 4.1.2)                    
+#&gt;  ellipsis      0.3.2   2021-04-29 [1] CRAN (R 4.1.0)                    
+#&gt;  evaluate      0.14    2019-05-28 [1] CRAN (R 4.1.0)                    
+#&gt;  fansi         1.0.3   2022-03-24 [1] CRAN (R 4.1.2)                    
+#&gt;  fastmap       1.1.0   2021-01-25 [2] CRAN (R 4.1.0)                    
+#&gt;  forcats     * 0.5.1   2021-01-27 [1] CRAN (R 4.1.0)                    
+#&gt;  fs            1.5.2   2021-12-08 [1] CRAN (R 4.1.0)                    
+#&gt;  generics      0.1.2   2022-01-31 [1] CRAN (R 4.1.2)                    
+#&gt;  ggplot2     * 3.3.5   2021-06-25 [2] CRAN (R 4.1.0)                    
+#&gt;  glue          1.6.2   2022-02-24 [1] CRAN (R 4.1.2)                    
+#&gt;  gtable        0.3.0   2019-03-25 [1] CRAN (R 4.1.0)                    
+#&gt;  haven         2.4.3   2021-08-04 [1] CRAN (R 4.1.0)                    
+#&gt;  hms           1.1.1   2021-09-26 [1] CRAN (R 4.1.0)                    
+#&gt;  htmltools     0.5.2   2021-08-25 [1] CRAN (R 4.1.0)                    
+#&gt;  httr          1.4.2   2020-07-20 [1] CRAN (R 4.1.0)                    
+#&gt;  jquerylib     0.1.4   2021-04-26 [1] CRAN (R 4.1.0)                    
+#&gt;  jsonlite      1.7.3   2022-01-17 [1] CRAN (R 4.1.2)                    
+#&gt;  knitr         1.37    2021-12-16 [1] CRAN (R 4.1.0)                    
+#&gt;  lifecycle     1.0.1   2021-09-24 [1] CRAN (R 4.1.0)                    
+#&gt;  lubridate     1.8.0   2021-10-07 [1] CRAN (R 4.1.0)                    
+#&gt;  magrittr      2.0.3   2022-03-30 [1] CRAN (R 4.1.2)                    
+#&gt;  memoise       2.0.0   2021-01-26 [2] CRAN (R 4.1.0)                    
+#&gt;  modelr        0.1.8   2020-05-19 [1] CRAN (R 4.1.0)                    
+#&gt;  munsell       0.5.0   2018-06-12 [1] CRAN (R 4.1.0)                    
+#&gt;  pillar        1.7.0   2022-02-01 [1] CRAN (R 4.1.2)                    
+#&gt;  pkgbuild      1.2.0   2020-12-15 [2] CRAN (R 4.1.0)                    
+#&gt;  pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.1.0)                    
+#&gt;  pkgload       1.2.4   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  prettyunits   1.1.1   2020-01-24 [1] CRAN (R 4.1.0)                    
+#&gt;  processx      3.5.2   2021-04-30 [1] CRAN (R 4.1.0)                    
+#&gt;  ps            1.6.0   2021-02-28 [1] CRAN (R 4.1.0)                    
+#&gt;  purrr       * 0.3.4   2020-04-17 [1] CRAN (R 4.1.0)                    
+#&gt;  R6            2.5.1   2021-08-19 [1] CRAN (R 4.1.0)                    
+#&gt;  Rcpp          1.0.8.3 2022-03-17 [1] CRAN (R 4.1.2)                    
+#&gt;  readr       * 2.1.2   2022-01-30 [1] CRAN (R 4.1.2)                    
+#&gt;  readxl        1.3.1   2019-03-13 [1] CRAN (R 4.1.0)                    
+#&gt;  remotes       2.4.0   2021-06-02 [2] CRAN (R 4.1.0)                    
+#&gt;  reprex        2.0.1   2021-08-05 [1] CRAN (R 4.1.0)                    
+#&gt;  rlang         1.0.2   2022-03-04 [1] CRAN (R 4.1.2)                    
+#&gt;  rmarkdown     2.11    2021-09-14 [1] CRAN (R 4.1.0)                    
+#&gt;  rprojroot     2.0.2   2020-11-15 [2] CRAN (R 4.1.0)                    
+#&gt;  rstudioapi    0.13    2020-11-12 [1] CRAN (R 4.1.0)                    
+#&gt;  rvest         1.0.2   2021-10-16 [1] CRAN (R 4.1.0)                    
+#&gt;  sass          0.4.0   2021-05-12 [1] CRAN (R 4.1.0)                    
+#&gt;  scales        1.2.0   2022-04-13 [1] CRAN (R 4.1.3)                    
+#&gt;  sessioninfo   1.1.1   2018-11-05 [2] CRAN (R 4.1.0)                    
+#&gt;  stringi       1.7.6   2021-11-29 [1] CRAN (R 4.1.0)                    
+#&gt;  stringr     * 1.4.0   2019-02-10 [1] CRAN (R 4.1.0)                    
+#&gt;  testthat      3.1.2   2022-01-20 [1] CRAN (R 4.1.2)                    
+#&gt;  tibble      * 3.1.6   2021-11-07 [1] CRAN (R 4.1.0)                    
+#&gt;  tidyr       * 1.2.0   2022-02-01 [1] CRAN (R 4.1.2)                    
+#&gt;  tidyselect    1.1.2   2022-02-21 [1] CRAN (R 4.1.2)                    
+#&gt;  tidyverse   * 1.3.1   2021-04-15 [1] CRAN (R 4.1.0)                    
+#&gt;  tzdb          0.1.2   2021-07-20 [2] CRAN (R 4.1.0)                    
+#&gt;  usethis       2.0.1   2021-02-10 [2] CRAN (R 4.1.0)                    
+#&gt;  utf8          1.2.2   2021-07-24 [1] CRAN (R 4.1.0)                    
+#&gt;  vctrs         0.4.0   2022-03-30 [1] CRAN (R 4.1.2)                    
+#&gt;  withr         2.5.0   2022-03-03 [1] CRAN (R 4.1.2)                    
+#&gt;  xfun          0.29    2021-12-14 [1] CRAN (R 4.1.0)                    
+#&gt;  xml2          1.3.3   2021-11-30 [1] CRAN (R 4.1.0)                    
+#&gt;  yaml          2.2.2   2022-01-25 [1] CRAN (R 4.1.2)                    
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Library/R/x86_64/4.1/library
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.1/Resources/library</code></pre></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>

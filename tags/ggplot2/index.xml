@@ -1,4 +1,206 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Ggplot2 on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/ggplot2/</link><description>Recent content in Ggplot2 on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Fri, 26 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/ggplot2/index.xml" rel="self" type="application/rss+xml"/><item><title>How to sort the labels of the legend in a ggplot-diagram</title><link>https://sebastiansauer.github.io/data_se/2020/06/26/how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram/</link><pubDate>Fri, 26 Jun 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/06/26/how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/header-attrs/header-attrs.js">&lt;/script>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Ggplot2 on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/ggplot2/</link><description>Recent content in Ggplot2 on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Sun, 25 Feb 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/ggplot2/index.xml" rel="self" type="application/rss+xml"/><item><title>Adjust labels in ggplot</title><link>https://sebastiansauer.github.io/data_se/2024/02/25/adjust-labels-in-ggplot/</link><pubDate>Sun, 25 Feb 2024 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2024/02/25/adjust-labels-in-ggplot/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#data" id="toc-data">&lt;span class="toc-section-number">2&lt;/span> Data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#unadjusted-labels" id="toc-unadjusted-labels">&lt;span class="toc-section-number">3&lt;/span> Unadjusted labels&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#adjusted-labels-manually" id="toc-adjusted-labels-manually">&lt;span class="toc-section-number">4&lt;/span> Adjusted labels manually&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#adjust-labels-automatically" id="toc-adjust-labels-automatically">&lt;span class="toc-section-number">5&lt;/span> Adjust labels automatically&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#expanding-the-limits" id="toc-expanding-the-limits">&lt;span class="toc-section-number">6&lt;/span> Expanding the limits&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#duckdive-the-problem-tinyfy-the-label" id="toc-duckdive-the-problem-tinyfy-the-label">&lt;span class="toc-section-number">7&lt;/span> Duckdive the problem: tinyfy the label&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">8&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(see) # okabeito_colors&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="data" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Data&lt;/h1>
+&lt;pre class="r">&lt;code>data(&amp;quot;mariokart&amp;quot;, package = &amp;quot;openintro&amp;quot;)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="unadjusted-labels" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Unadjusted labels&lt;/h1>
+&lt;pre class="r">&lt;code>mario_quantile &amp;lt;- 
+mariokart %&amp;gt;% 
+ filter(total_pr &amp;lt; 100) %&amp;gt;% 
+ summarise(q25 = quantile(total_pr, .25),
+ q50 = quantile(total_pr, .50),
+ q75 = quantile(total_pr, .75))
+
+mario_quantile &amp;lt;- 
+ mariokart %&amp;gt;% 
+ filter(total_pr &amp;lt; 100) %&amp;gt;% 
+ reframe(qs = quantile(total_pr, c(.25, .5, .75)))
+
+mariokart %&amp;gt;% 
+ filter(total_pr &amp;lt; 100) %&amp;gt;% 
+ ggplot(aes(x = total_pr)) +
+ geom_histogram() +
+ geom_vline(xintercept = mario_quantile$qs) +
+ annotate(&amp;quot;label&amp;quot;, x = mario_quantile$qs, y = 0, label = mario_quantile$qs) +
+ annotate(&amp;quot;label&amp;quot;, x = mario_quantile$qs, y = Inf, label = c(&amp;quot;Q1&amp;quot;, &amp;quot;Median&amp;quot;, &amp;quot;Q3&amp;quot;)) &lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/data_se/2024/02/25/adjust-labels-in-ggplot/
+index_files/figure-html/unnamed-chunk-2-1.png" width="100%" style="display: block; margin: auto;" />&lt;/p></description></item><item><title>Using dynamic variables in ggplot2 for facetting and more</title><link>https://sebastiansauer.github.io/data_se/2024/02/04/using-dynamic-variables-in-ggplot2-for-facetting-and-more/</link><pubDate>Sun, 04 Feb 2024 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2024/02/04/using-dynamic-variables-in-ggplot2-for-facetting-and-more/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div></description></item><item><title>normal distribution animated</title><link>https://sebastiansauer.github.io/data_se/2023/11/04/normal-distribution-animated/</link><pubDate>Sat, 04 Nov 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/11/04/normal-distribution-animated/</guid><description>&lt;div id="background" class="section level1">
+&lt;h1>Background&lt;/h1>
+&lt;p>Let’s visualize the quantiles of a normal distribution.&lt;/p>
+&lt;/div>
+&lt;div id="setup" class="section level1">
+&lt;h1>Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr 1.1.3 ✔ readr 2.1.4
+## ✔ forcats 1.0.0 ✔ stringr 1.5.0
+## ✔ ggplot2 3.4.4 ✔ tibble 3.2.1
+## ✔ lubridate 1.9.3 ✔ tidyr 1.3.0
+## ✔ purrr 1.0.2 
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag() masks stats::lag()
+## ℹ Use the conflicted package (&amp;lt;http://conflicted.r-lib.org/&amp;gt;) to force all conflicts to become errors&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>library(gganimate)
+set.seed(123)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="simulate-normal-data" class="section level1">
+&lt;h1>Simulate normal data&lt;/h1>
+&lt;pre class="r">&lt;code>n &amp;lt;- 1000
+data &amp;lt;- data.frame(x = rnorm(n))
+data$decile &amp;lt;- cut(data$x, breaks = quantile(data$x, probs = seq(0, 1, 0.1)), include.lowest = TRUE)
+data$decile2 &amp;lt;- cut(data$x, breaks = quantile(data$x, probs = seq(0, 1, 0.1)), include.lowest = TRUE, labels = 1:10)&lt;/code>&lt;/pre>
+&lt;p>Using &lt;code>decile&lt;/code> and &lt;code>decile2&lt;/code> we have marked for each data point to which decile it belongs.&lt;/p></description></item><item><title>Farbpaletten für nominale Variablen</title><link>https://sebastiansauer.github.io/data_se/2023/06/30/farbpaletten/</link><pubDate>Fri, 30 Jun 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/06/30/farbpaletten/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#setup" id="toc-setup">&lt;span class="toc-section-number">1&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#tldr" id="toc-tldr">&lt;span class="toc-section-number">2&lt;/span> tl;dr&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#beispiel-für-farbwahl-bei-einer-nominaler-variablen" id="toc-beispiel-für-farbwahl-bei-einer-nominaler-variablen">&lt;span class="toc-section-number">3&lt;/span> Beispiel für Farbwahl bei einer nominaler Variablen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#anforderungen-an-eine-farbpalette-für-nominale-variablen" id="toc-anforderungen-an-eine-farbpalette-für-nominale-variablen">&lt;span class="toc-section-number">4&lt;/span> Anforderungen an eine Farbpalette (für nominale Variablen)&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#auswahl" id="toc-auswahl">&lt;span class="toc-section-number">5&lt;/span> Auswahl&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hilfsfunktion" id="toc-hilfsfunktion">&lt;span class="toc-section-number">6&lt;/span> Hilfsfunktion&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#awtools" id="toc-awtools">&lt;span class="toc-section-number">7&lt;/span> AWTools&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#ggthemes" id="toc-ggthemes">&lt;span class="toc-section-number">8&lt;/span> ggthemes&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#weitere-paletten" id="toc-weitere-paletten">&lt;span class="toc-section-number">9&lt;/span> Weitere Paletten&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#rtist" id="toc-rtist">&lt;span class="toc-section-number">10&lt;/span> rtist&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#ggsci" id="toc-ggsci">&lt;span class="toc-section-number">11&lt;/span> ggsci&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#jcolors" id="toc-jcolors">&lt;span class="toc-section-number">12&lt;/span> jcolors&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#viridis" id="toc-viridis">&lt;span class="toc-section-number">13&lt;/span> Viridis&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#magma" id="toc-magma">&lt;span class="toc-section-number">14&lt;/span> Magma&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#color-lisa" id="toc-color-lisa">&lt;span class="toc-section-number">15&lt;/span> Color Lisa&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#okabe-ito" id="toc-okabe-ito">&lt;span class="toc-section-number">16&lt;/span> Okabe-Ito&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#tableau-10" id="toc-tableau-10">&lt;span class="toc-section-number">17&lt;/span> Tableau 10&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#farbnamen" id="toc-farbnamen">&lt;span class="toc-section-number">18&lt;/span> Farbnamen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#show-color-2" id="toc-show-color-2">&lt;span class="toc-section-number">19&lt;/span> Show color 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#farbenblindheit" id="toc-farbenblindheit">&lt;span class="toc-section-number">20&lt;/span> Farbenblindheit&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#okabe-ito-1" id="toc-okabe-ito-1">&lt;span class="toc-section-number">20.1&lt;/span> Okabe Ito&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#gene-davis" id="toc-gene-davis">&lt;span class="toc-section-number">20.2&lt;/span> Gene Davis&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#x18" id="toc-x18">&lt;span class="toc-section-number">20.3&lt;/span> X18&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#tableau-10-1" id="toc-tableau-10-1">&lt;span class="toc-section-number">20.4&lt;/span> Tableau 10&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#viridis-1" id="toc-viridis-1">&lt;span class="toc-section-number">20.5&lt;/span> Viridis&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#fazit" id="toc-fazit">&lt;span class="toc-section-number">21&lt;/span> Fazit&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">22&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="setup" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(paletteer)
+library(scales) # show_col()
+library(colorblindr) # from github
+library(ggthemes)&lt;/code>&lt;/pre>
+&lt;p>Das Paket &lt;a href="https://emilhvitfeldt.github.io/paletteer/">&lt;code>paletteer&lt;/code>&lt;/a> trägt eine große Auswahl an Farbpaletten zusammen und erleichtert die Handhabung in R.&lt;/p></description></item><item><title>Tables, plotted as ggplot objects</title><link>https://sebastiansauer.github.io/data_se/2023/02/03/tables-plotted-as-ggplot-objects/</link><pubDate>Fri, 03 Feb 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/02/03/tables-plotted-as-ggplot-objects/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#show-case-1-grid.table" id="toc-show-case-1-grid.table">&lt;span class="toc-section-number">2&lt;/span> Show case 1: grid.table&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#show-case-2-tablegrob" id="toc-show-case-2-tablegrob">&lt;span class="toc-section-number">3&lt;/span> Show case 2: tableGrob&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#show-case-3-reduce-whitespace" id="toc-show-case-3-reduce-whitespace">&lt;span class="toc-section-number">4&lt;/span> Show case 3: Reduce whitespace&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#show-case-4-ggpubr" id="toc-show-case-4-ggpubr">&lt;span class="toc-section-number">5&lt;/span> Show case 4: ggpubr&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">6&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(gridExtra)
+library(grid)
+library(gt)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="show-case-1-grid.table" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Show case 1: grid.table&lt;/h1>
+&lt;pre class="r">&lt;code>d &amp;lt;- head(iris[,1:3])
+grid.table(d)&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/data_se/2023/02/03/tables-plotted-as-ggplot-objects/
+index_files/figure-html/unnamed-chunk-1-1.png" width="100%" style="display: block; margin: auto;" />&lt;/p>
+&lt;p>&lt;code>grid.table&lt;/code> does the job nicely.&lt;/p>
+&lt;p>Just plotting give a somewhat too raw object:&lt;/p>
+&lt;pre class="r">&lt;code>plot(tableGrob(d))&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/data_se/2023/02/03/tables-plotted-as-ggplot-objects/
+index_files/figure-html/unnamed-chunk-2-1.png" width="100%" style="display: block; margin: auto;" />&lt;/p></description></item><item><title>Programmatically plotting with ggplot2</title><link>https://sebastiansauer.github.io/data_se/2022/09/28/programmatically-plotting-with-ggplot2/</link><pubDate>Wed, 28 Sep 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/09/28/programmatically-plotting-with-ggplot2/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#setup" id="toc-setup">&lt;span class="toc-section-number">1&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lets-go" id="toc-lets-go">&lt;span class="toc-section-number">2&lt;/span> Let’s go&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#way-1" id="toc-way-1">&lt;span class="toc-section-number">2.1&lt;/span> Way 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-2" id="toc-way-2">&lt;span class="toc-section-number">2.2&lt;/span> Way 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-2-1" id="toc-way-2-1">&lt;span class="toc-section-number">2.3&lt;/span> Way 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-3" id="toc-way-3">&lt;span class="toc-section-number">2.4&lt;/span> Way 3&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-4" id="toc-way-4">&lt;span class="toc-section-number">2.5&lt;/span> Way 4&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#further-reading" id="toc-further-reading">&lt;span class="toc-section-number">3&lt;/span> Further reading&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">4&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="setup" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(easystats) # comfort in stats&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>data(mtcars)&lt;/code>&lt;/pre>
+&lt;p>In essence,
+we want to build this kind of plot programmatically:&lt;/p>
+&lt;pre class="r">&lt;code>mtcars %&amp;gt;% 
+ ggplot(aes(x=hp)) +
+ geom_histogram()&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/data_se/2022/09/28/programmatically-plotting-with-ggplot2/
+index_files/figure-html/unnamed-chunk-2-1.png" width="100%" style="display: block; margin: auto;" />&lt;/p>
+&lt;/div>
+&lt;div id="lets-go" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Let’s go&lt;/h1>
+&lt;div id="way-1" class="section level2" number="2.1">
+&lt;h2>&lt;span class="header-section-number">2.1&lt;/span> Way 1&lt;/h2>
+&lt;p>Let’s use unquoted variable names.&lt;/p></description></item><item><title>Some ways to plot the distribution of each variable of a data frame</title><link>https://sebastiansauer.github.io/data_se/2022/09/26/some-ways-to-plot-the-distribution-of-each-variable-of-a-data-frame/</link><pubDate>Mon, 26 Sep 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/09/26/some-ways-to-plot-the-distribution-of-each-variable-of-a-data-frame/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">1&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">2&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-data" id="toc-load-data">&lt;span class="toc-section-number">3&lt;/span> Load data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lets-plot" id="toc-lets-plot">&lt;span class="toc-section-number">4&lt;/span> Let’s plot&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#way-1" id="toc-way-1">&lt;span class="toc-section-number">4.1&lt;/span> Way 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-2" id="toc-way-2">&lt;span class="toc-section-number">4.2&lt;/span> Way 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-3" id="toc-way-3">&lt;span class="toc-section-number">4.3&lt;/span> Way 3&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-4" id="toc-way-4">&lt;span class="toc-section-number">4.4&lt;/span> Way 4&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">5&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="motivation" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Motivation&lt;/h1>
+&lt;p>Often times, in explorative data analysis, one would like to plot the distribution of the relevant variables.
+Whereas ggplot provides handy tools to plot &lt;em>one&lt;/em> variable after each other,
+it would come handy to plot ’em all in one go.&lt;/p>
+&lt;p>Of course, there are many ways to achieve this comfort. This posts presents some of them in brevity.&lt;/p></description></item><item><title>How to sort the labels of the legend in a ggplot-diagram</title><link>https://sebastiansauer.github.io/data_se/2020/06/26/how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram/</link><pubDate>Fri, 26 Jun 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/06/26/how-to-sort-the-labels-of-the-legend-in-a-ggplot-diagram/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/header-attrs/header-attrs.js">&lt;/script>
 
 
 &lt;div id="load-packages" class="section level1">

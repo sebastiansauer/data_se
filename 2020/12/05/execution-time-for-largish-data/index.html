@@ -1,0 +1,187 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Execution time for largish data - Data Se</title>
+<meta property="og:title" content="Execution time for largish data - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>7 min read</span><h1 class=article-title>Execution time for largish data</h1><span class=article-date>2020/12/05</span><div class=article-content><script src=index_files/header-attrs/header-attrs.js></script><link href=index_files/anchor-sections/anchor-sections.css rel=stylesheet><script src=index_files/anchor-sections/anchor-sections.js></script><div id=TOC><ul><li><a href=#motivation><span class=toc-section-number>1</span> Motivation</a></li><li><a href=#setup><span class=toc-section-number>2</span> Setup</a></li><li><a href=#data-set-1><span class=toc-section-number>3</span> Data set 1</a><ul><li><a href=#import-data><span class=toc-section-number>3.1</span> Import data</a><ul><li><a href=#download-from-website><span class=toc-section-number>3.1.1</span> Download from website</a></li><li><a href=#import-from-local-disk><span class=toc-section-number>3.1.2</span> Import from local disk</a></li><li><a href=#using-read_csv><span class=toc-section-number>3.1.3</span> using <code>read_csv()</code></a></li><li><a href=#using-fread><span class=toc-section-number>3.1.4</span> Using <code>fread()</code></a></li></ul></li><li><a href=#data-set-size><span class=toc-section-number>3.2</span> Data set size</a></li><li><a href=#typical-data-wrangling><span class=toc-section-number>3.3</span> Typical data wrangling</a></li></ul></li><li><a href=#data-set-2><span class=toc-section-number>4</span> Data Set 2</a><ul><li><a href=#import-data-1><span class=toc-section-number>4.1</span> Import data</a><ul><li><a href=#using-read_csv-1><span class=toc-section-number>4.1.1</span> using <code>read_csv()</code></a></li><li><a href=#using-fread-1><span class=toc-section-number>4.1.2</span> Using <code>fread()</code></a></li></ul></li><li><a href=#data-set-size-1><span class=toc-section-number>4.2</span> Data set size</a></li><li><a href=#typical-data-wrangling-1><span class=toc-section-number>4.3</span> Typical data wrangling</a></li><li><a href=#data-viz><span class=toc-section-number>4.4</span> Data viz</a></li></ul></li><li><a href=#reproducibility><span class=toc-section-number>5</span> Reproducibility</a></li></ul></div><div id=motivation class="section level1" number=1><h1><span class=header-section-number>1</span> Motivation</h1><p>In this post, we play around with some largish data set, approx. 1 GB, ~1.5 mio. rows. Primarily, we’ll have a look at execution times.</p></div><div id=setup class="section level1" number=2><h1><span class=header-section-number>2</span> Setup</h1><pre class=r><code>library(tidyverse)  # data wrangling
+library(data.table)  # fast data wrangling
+library(lubridate)  # time/data wrangling
+library(forcats)  # factor type variable wrangling
+library(conflicted)  # name clashes</code></pre></div><div id=data-set-1 class="section level1" number=3><h1><span class=header-section-number>3</span> Data set 1</h1><p>We’ll use the official NYC taxi commission data set(s), access from <a href=https://www1.nyc.gov/site/tlc/about/tlc-trip-record-data.page>here</a>. Let’s take the most recent month available for Yellow cabs, that is the <a href=https://s3.amazonaws.com/nyc-tlc/trip+data/yellow_tripdata_2020-06.csv>June 2020 data set</a>.</p><p>For the sake of disk space usage, I’ll access my own copy. Please download yours on your own.</p><div id=import-data class="section level2" number=3.1><h2><span class=header-section-number>3.1</span> Import data</h2><div id=download-from-website class="section level3" number=3.1.1><h3><span class=header-section-number>3.1.1</span> Download from website</h3><pre class=r><code>t1 &lt;- Sys.time()
+taxi1 &lt;- read_csv(&quot;https://s3.amazonaws.com/nyc-tlc/trip+data/yellow_tripdata_2020-06.csv&quot;)
+t2 &lt;- Sys.time()
+t2-t1
+#&gt; Time difference of 8.448832 secs</code></pre><p>This will depend on the speed of your internet connection.</p></div><div id=import-from-local-disk class="section level3" number=3.1.2><h3><span class=header-section-number>3.1.2</span> Import from local disk</h3><pre class=r><code>d1_path &lt;- &quot;/Users/sebastiansaueruser/datasets/NYC-taxi/yellow_tripdata_2020-06.csv&quot;</code></pre></div><div id=using-read_csv class="section level3" number=3.1.3><h3><span class=header-section-number>3.1.3</span> using <code>read_csv()</code></h3><pre class=r><code>t1 &lt;- Sys.time()
+taxi1 &lt;- read_csv(d1_path)
+t2 &lt;- Sys.time()
+t2 - t1
+#&gt; Time difference of 1.736037 secs</code></pre></div><div id=using-fread class="section level3" number=3.1.4><h3><span class=header-section-number>3.1.4</span> Using <code>fread()</code></h3><pre class=r><code>t1 &lt;- Sys.time()
+taxi1 &lt;- fread(d1_path)
+t2 &lt;- Sys.time()
+
+t2-t1
+#&gt; Time difference of 0.8700159 secs</code></pre></div></div><div id=data-set-size class="section level2" number=3.2><h2><span class=header-section-number>3.2</span> Data set size</h2><pre class=r><code>dim(taxi1)
+#&gt; [1] 549760     18</code></pre><p>Object size in MB:</p><pre class=r><code>object.size(taxi1) / 1024 / 1024
+#&gt; 133.3 bytes</code></pre></div><div id=typical-data-wrangling class="section level2" number=3.3><h2><span class=header-section-number>3.3</span> Typical data wrangling</h2><pre class=r><code>t1 &lt;- Sys.time()
+
+taxi1 %&gt;% 
+  select(VendorID, tpep_pickup_datetime,payment_type, tip_amount, total_amount) %&gt;%
+  drop_na() %&gt;% 
+  mutate(tip_proportion = tip_amount / total_amount,
+         hour = lubridate::hour(tpep_pickup_datetime)) %&gt;% 
+  group_by(payment_type, hour) %&gt;% 
+  summarise(tip_prop_max = max(tip_proportion)) %&gt;% 
+  arrange(-tip_prop_max) -&gt; taxi1_summary1
+
+t2 &lt;- Sys.time()
+time_taken &lt;- t2 - t1</code></pre><p>Time taken:</p><pre class=r><code>time_taken
+#&gt; Time difference of 5.754155 secs</code></pre><p>Output:</p><pre class=r><code>taxi1_summary1
+#&gt; # A tibble: 99 x 3
+#&gt; # Groups:   payment_type [5]
+#&gt;    payment_type  hour tip_prop_max
+#&gt;           &lt;int&gt; &lt;int&gt;        &lt;dbl&gt;
+#&gt;  1            1    22        0.978
+#&gt;  2            1     2        0.971
+#&gt;  3            1     5        0.968
+#&gt;  4            1     1        0.958
+#&gt;  5            1    21        0.949
+#&gt;  6            1     0        0.885
+#&gt;  7            1     7        0.874
+#&gt;  8            1    20        0.820
+#&gt;  9            1     4        0.811
+#&gt; 10            1    23        0.774
+#&gt; # … with 89 more rows</code></pre></div></div><div id=data-set-2 class="section level1" number=4><h1><span class=header-section-number>4</span> Data Set 2</h1><p>Yellow taxi cab rides of 2020-01, some 500 MB. <a href=https://s3.amazonaws.com/nyc-tlc/trip+data/yellow_tripdata_2020-01.csv>Here’s</a> the download link to the csv file.</p><pre class=r><code>d2_path &lt;- &quot;/Users/sebastiansaueruser/datasets/NYC-taxi/yellow_tripdata_2020-01.csv&quot;</code></pre><div id=import-data-1 class="section level2" number=4.1><h2><span class=header-section-number>4.1</span> Import data</h2><div id=using-read_csv-1 class="section level3" number=4.1.1><h3><span class=header-section-number>4.1.1</span> using <code>read_csv()</code></h3><pre class=r><code>t1 &lt;- Sys.time()
+taxi2 &lt;- read_csv(d2_path)
+t2 &lt;- Sys.time()
+t2 - t1
+#&gt; Time difference of 19.12124 secs</code></pre></div><div id=using-fread-1 class="section level3" number=4.1.2><h3><span class=header-section-number>4.1.2</span> Using <code>fread()</code></h3><pre class=r><code>t1 &lt;- Sys.time()
+taxi2 &lt;- fread(d2_path)
+t2 &lt;- Sys.time()
+
+t2-t1
+#&gt; Time difference of 7.067965 secs</code></pre></div></div><div id=data-set-size-1 class="section level2" number=4.2><h2><span class=header-section-number>4.2</span> Data set size</h2><pre class=r><code>dim(taxi2)
+#&gt; [1] 6405008      18</code></pre><p>Object size in MB:</p><pre class=r><code>object.size(taxi2) / 1024 / 1024
+#&gt; 1058.9 bytes</code></pre></div><div id=typical-data-wrangling-1 class="section level2" number=4.3><h2><span class=header-section-number>4.3</span> Typical data wrangling</h2><pre class=r><code>t1 &lt;- Sys.time()
+
+taxi2 %&gt;% 
+  select(VendorID, tpep_pickup_datetime,payment_type, tip_amount, total_amount) %&gt;%
+  drop_na() %&gt;% 
+  mutate(tip_proportion = tip_amount / total_amount,
+         hour = lubridate::hour(tpep_pickup_datetime)) %&gt;% 
+  group_by(payment_type, hour) %&gt;% 
+  summarise(tip_prop_max = max(tip_proportion)) %&gt;% 
+  arrange(-tip_prop_max) -&gt; taxi2_summary1
+
+t2 &lt;- Sys.time()
+time_taken &lt;- t2 - t1</code></pre><p>Time taken:</p><pre class=r><code>time_taken
+#&gt; Time difference of 1.124933 mins</code></pre><p>Output:</p><pre class=r><code>taxi2_summary1
+#&gt; # A tibble: 97 x 3
+#&gt; # Groups:   payment_type [5]
+#&gt;    payment_type  hour tip_prop_max
+#&gt;           &lt;int&gt; &lt;int&gt;        &lt;dbl&gt;
+#&gt;  1            4    21        0.641
+#&gt;  2            4     2        0.167
+#&gt;  3            4    22        0.167
+#&gt;  4            4     1        0.143
+#&gt;  5            4     0        0    
+#&gt;  6            4     3        0    
+#&gt;  7            4     5        0    
+#&gt;  8            4     6        0    
+#&gt;  9            1     0      NaN    
+#&gt; 10            1     1      NaN    
+#&gt; # … with 87 more rows</code></pre></div><div id=data-viz class="section level2" number=4.4><h2><span class=header-section-number>4.4</span> Data viz</h2><p>This will be fast, as we work with the summarized data set.</p><pre class=r><code>taxi2_summary1 %&gt;% 
+  dplyr::filter(payment_type == 4) %&gt;% 
+  mutate(hour = factor(hour)) %&gt;% 
+  mutate(hour = fct_reorder(hour, tip_prop_max, max)) %&gt;%
+  ggplot(aes(x = hour, y = tip_prop_max)) +
+  geom_point(color = &quot;red&quot;, alpha = .7, size = 5) </code></pre><p><img src=index_files/figure-html/unnamed-chunk-19-1.png width=100% style=display:block;margin:auto></p></div></div><div id=reproducibility class="section level1" number=5><h1><span class=header-section-number>5</span> Reproducibility</h1><pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.0.2 (2020-06-22)
+#&gt;  os       macOS Catalina 10.15.7      
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2020-12-05                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version date       lib source        
+#&gt;  assertthat    0.2.1   2019-03-21 [1] CRAN (R 4.0.0)
+#&gt;  backports     1.2.0   2020-11-02 [1] CRAN (R 4.0.2)
+#&gt;  blogdown      0.21    2020-10-11 [1] CRAN (R 4.0.2)
+#&gt;  bookdown      0.21    2020-10-13 [1] CRAN (R 4.0.2)
+#&gt;  broom         0.7.2   2020-10-20 [1] CRAN (R 4.0.2)
+#&gt;  callr         3.5.1   2020-10-13 [1] CRAN (R 4.0.2)
+#&gt;  cellranger    1.1.0   2016-07-27 [1] CRAN (R 4.0.0)
+#&gt;  cli           2.2.0   2020-11-20 [1] CRAN (R 4.0.2)
+#&gt;  codetools     0.2-16  2018-12-24 [2] CRAN (R 4.0.2)
+#&gt;  colorspace    2.0-0   2020-11-11 [1] CRAN (R 4.0.2)
+#&gt;  conflicted  * 1.0.4   2019-06-21 [1] CRAN (R 4.0.0)
+#&gt;  crayon        1.3.4   2017-09-16 [1] CRAN (R 4.0.0)
+#&gt;  curl          4.3     2019-12-02 [1] CRAN (R 4.0.0)
+#&gt;  data.table  * 1.13.2  2020-10-19 [1] CRAN (R 4.0.2)
+#&gt;  DBI           1.1.0   2019-12-15 [1] CRAN (R 4.0.0)
+#&gt;  dbplyr        2.0.0   2020-11-03 [1] CRAN (R 4.0.2)
+#&gt;  desc          1.2.0   2018-05-01 [1] CRAN (R 4.0.0)
+#&gt;  devtools      2.3.2   2020-09-18 [1] CRAN (R 4.0.2)
+#&gt;  digest        0.6.27  2020-10-24 [1] CRAN (R 4.0.2)
+#&gt;  dplyr       * 1.0.2   2020-08-18 [1] CRAN (R 4.0.2)
+#&gt;  ellipsis      0.3.1   2020-05-15 [1] CRAN (R 4.0.0)
+#&gt;  evaluate      0.14    2019-05-28 [1] CRAN (R 4.0.0)
+#&gt;  fansi         0.4.1   2020-01-08 [1] CRAN (R 4.0.0)
+#&gt;  farver        2.0.3   2020-01-16 [1] CRAN (R 4.0.0)
+#&gt;  forcats     * 0.5.0   2020-03-01 [1] CRAN (R 4.0.0)
+#&gt;  fs            1.5.0   2020-07-31 [1] CRAN (R 4.0.2)
+#&gt;  generics      0.1.0   2020-10-31 [1] CRAN (R 4.0.2)
+#&gt;  ggplot2     * 3.3.2   2020-06-19 [1] CRAN (R 4.0.0)
+#&gt;  glue          1.4.2   2020-08-27 [1] CRAN (R 4.0.2)
+#&gt;  gtable        0.3.0   2019-03-25 [1] CRAN (R 4.0.0)
+#&gt;  haven         2.3.1   2020-06-01 [1] CRAN (R 4.0.0)
+#&gt;  hms           0.5.3   2020-01-08 [1] CRAN (R 4.0.0)
+#&gt;  htmltools     0.5.0   2020-06-16 [1] CRAN (R 4.0.0)
+#&gt;  httr          1.4.2   2020-07-20 [1] CRAN (R 4.0.2)
+#&gt;  jsonlite      1.7.1   2020-09-07 [1] CRAN (R 4.0.2)
+#&gt;  knitr         1.30    2020-09-22 [1] CRAN (R 4.0.2)
+#&gt;  labeling      0.4.2   2020-10-20 [1] CRAN (R 4.0.2)
+#&gt;  lifecycle     0.2.0   2020-03-06 [1] CRAN (R 4.0.0)
+#&gt;  lubridate   * 1.7.9.2 2020-11-13 [1] CRAN (R 4.0.2)
+#&gt;  magrittr      2.0.1   2020-11-17 [1] CRAN (R 4.0.2)
+#&gt;  memoise       1.1.0   2017-04-21 [1] CRAN (R 4.0.0)
+#&gt;  modelr        0.1.8   2020-05-19 [1] CRAN (R 4.0.0)
+#&gt;  munsell       0.5.0   2018-06-12 [1] CRAN (R 4.0.0)
+#&gt;  pillar        1.4.7   2020-11-20 [1] CRAN (R 4.0.2)
+#&gt;  pkgbuild      1.1.0   2020-07-13 [1] CRAN (R 4.0.2)
+#&gt;  pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.0.0)
+#&gt;  pkgload       1.1.0   2020-05-29 [1] CRAN (R 4.0.0)
+#&gt;  prettyunits   1.1.1   2020-01-24 [1] CRAN (R 4.0.0)
+#&gt;  processx      3.4.5   2020-11-30 [1] CRAN (R 4.0.2)
+#&gt;  ps            1.4.0   2020-10-07 [1] CRAN (R 4.0.2)
+#&gt;  purrr       * 0.3.4   2020-04-17 [1] CRAN (R 4.0.0)
+#&gt;  R6            2.5.0   2020-10-28 [1] CRAN (R 4.0.2)
+#&gt;  Rcpp          1.0.5   2020-07-06 [1] CRAN (R 4.0.2)
+#&gt;  readr       * 1.4.0   2020-10-05 [1] CRAN (R 4.0.2)
+#&gt;  readxl        1.3.1   2019-03-13 [1] CRAN (R 4.0.0)
+#&gt;  remotes       2.2.0   2020-07-21 [1] CRAN (R 4.0.2)
+#&gt;  reprex        0.3.0   2019-05-16 [1] CRAN (R 4.0.0)
+#&gt;  rlang         0.4.9   2020-11-26 [1] CRAN (R 4.0.2)
+#&gt;  rmarkdown     2.5     2020-10-21 [1] CRAN (R 4.0.2)
+#&gt;  rprojroot     2.0.2   2020-11-15 [1] CRAN (R 4.0.2)
+#&gt;  rstudioapi    0.13    2020-11-12 [1] CRAN (R 4.0.2)
+#&gt;  rvest         0.3.6   2020-07-25 [1] CRAN (R 4.0.2)
+#&gt;  scales        1.1.1   2020-05-11 [1] CRAN (R 4.0.0)
+#&gt;  sessioninfo   1.1.1   2018-11-05 [1] CRAN (R 4.0.0)
+#&gt;  stringi       1.5.3   2020-09-09 [1] CRAN (R 4.0.2)
+#&gt;  stringr     * 1.4.0   2019-02-10 [1] CRAN (R 4.0.0)
+#&gt;  testthat      3.0.0   2020-10-31 [1] CRAN (R 4.0.2)
+#&gt;  tibble      * 3.0.4   2020-10-12 [1] CRAN (R 4.0.2)
+#&gt;  tidyr       * 1.1.2   2020-08-27 [1] CRAN (R 4.0.2)
+#&gt;  tidyselect    1.1.0   2020-05-11 [1] CRAN (R 4.0.0)
+#&gt;  tidyverse   * 1.3.0   2019-11-21 [1] CRAN (R 4.0.0)
+#&gt;  usethis       1.6.3   2020-09-17 [1] CRAN (R 4.0.2)
+#&gt;  utf8          1.1.4   2018-05-24 [1] CRAN (R 4.0.0)
+#&gt;  vctrs         0.3.5   2020-11-17 [1] CRAN (R 4.0.2)
+#&gt;  withr         2.3.0   2020-09-22 [1] CRAN (R 4.0.2)
+#&gt;  xfun          0.19    2020-10-30 [1] CRAN (R 4.0.2)
+#&gt;  xml2          1.3.2   2020-04-23 [1] CRAN (R 4.0.0)
+#&gt;  yaml          2.2.1   2020-02-01 [1] CRAN (R 4.0.0)
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Rlibs
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script></body></html>

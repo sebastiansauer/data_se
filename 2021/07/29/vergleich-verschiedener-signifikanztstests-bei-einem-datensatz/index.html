@@ -1,0 +1,332 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Vergleich verschiedener Signifikanztstests bei einem Datensatz - Data Se</title>
+<meta property="og:title" content="Vergleich verschiedener Signifikanztstests bei einem Datensatz - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>13 min read</span><h1 class=article-title>Vergleich verschiedener Signifikanztstests bei einem Datensatz</h1><span class=article-date>2021/07/29</span><div class=article-content><script src="/data_se/2021/07/29/vergleich-verschiedener-signifikanztstests-bei-einem-datensatz/
+index_files/header-attrs/header-attrs.js"></script><div id=TOC><ul><li><a href=#setup><span class=toc-section-number>1</span> Setup</a></li><li><a href=#fallbeispiel><span class=toc-section-number>2</span> Fallbeispiel</a></li><li><a href=#datensatz><span class=toc-section-number>3</span> Datensatz</a><ul><li><a href=#funktion-um-daten-zu-simulieren><span class=toc-section-number>3.1</span> Funktion, um Daten zu simulieren</a><ul><li><a href=#kleine-stichprobe><span class=toc-section-number>3.1.1</span> Kleine Stichprobe</a></li><li><a href=#große-stichprobe><span class=toc-section-number>3.1.2</span> Große Stichprobe</a></li></ul></li><li><a href=#unit-testing><span class=toc-section-number>3.2</span> Unit Testing</a></li></ul></li><li><a href=#signifikanz-tests><span class=toc-section-number>4</span> Signifikanz-Tests</a><ul><li><a href=#simulationsbasierte-inferenz-sbi><span class=toc-section-number>4.1</span> Simulationsbasierte Inferenz (SBI)</a><ul><li><a href=#kleine-stichprobe-1><span class=toc-section-number>4.1.1</span> Kleine Stichprobe</a></li><li><a href=#große-stichprobe-1><span class=toc-section-number>4.1.2</span> Große Stichprobe</a></li></ul></li><li><a href=#chi2-test><span class=toc-section-number>4.2</span> <span class="math inline">\(\chi^2\)</span>-Test</a><ul><li><a href=#kleine-stichprobe-2><span class=toc-section-number>4.2.1</span> Kleine Stichprobe</a></li><li><a href=#große-stichprobe-2><span class=toc-section-number>4.2.2</span> Große Stichprobe</a></li></ul></li><li><a href=#binomialtest><span class=toc-section-number>4.3</span> Binomialtest</a><ul><li><a href=#kleine-stichprobe-3><span class=toc-section-number>4.3.1</span> kleine Stichprobe</a></li><li><a href=#große-stichprobe-3><span class=toc-section-number>4.3.2</span> Große Stichprobe</a></li></ul></li><li><a href=#logistische-regression><span class=toc-section-number>4.4</span> Logistische Regression</a></li></ul></li><li><a href=#bayes-test-mit-gleichverteilter-priorverteilung-und-mcmc-sampler><span class=toc-section-number>5</span> Bayes-Test mit gleichverteilter Priorverteilung und MCMC-Sampler</a><ul><li><a href=#zwischen-fazit><span class=toc-section-number>5.1</span> Zwischen-Fazit</a></li></ul></li><li><a href=#konfidenz-intervall><span class=toc-section-number>6</span> Konfidenz-Intervall</a><ul><li><a href=#simulationsbasierte-inferenz-sbi-1><span class=toc-section-number>6.1</span> Simulationsbasierte Inferenz (SBI)</a></li><li><a href=#chi2-test-1><span class=toc-section-number>6.2</span> <span class="math inline">\(\chi^2\)</span>-Test</a><ul><li><a href=#chi-square-bootstrap><span class=toc-section-number>6.2.1</span> Chi Square Bootstrap</a></li><li><a href=#chi-p-value-bootstrap><span class=toc-section-number>6.2.2</span> Chi p-value Bootstrap</a></li></ul></li><li><a href=#binomial-test-näherung-über-normalverteilung><span class=toc-section-number>6.3</span> Binomial-Test, Näherung über Normalverteilung</a></li><li><a href=#logistische-regression-1><span class=toc-section-number>6.4</span> Logistische Regression</a></li><li><a href=#zwischen-fazit-1><span class=toc-section-number>6.5</span> Zwischen-Fazit</a></li></ul></li><li><a href=#fazit><span class=toc-section-number>7</span> Fazit</a></li><li><a href=#reproducibility><span class=toc-section-number>8</span> Reproducibility</a></li></ul></div><div id=setup class="section level1" number=1><h1><span class=header-section-number>1</span> Setup</h1><pre class=r><code>library(tidyverse)
+library(mosaic)
+library(testthat)
+library(magrittr)
+library(sessioninfo)
+library(rstanarm)</code></pre></div><div id=fallbeispiel class="section level1" number=2><h1><span class=header-section-number>2</span> Fallbeispiel</h1><p>Im Statistikskript der <a href=https://www.fom.de/>FOM-Hochschule</a> (entwickelt vom <a href=https://www.fom.de/forschung/institute/ifes.html>ifes</a>) wird folgendes Beispiel zur Einführung von simulationsbasierter Inferenz verwendet:</p><blockquote><p>Im Rahmen einer Sonderveranstaltung der FOM Dortmund (6.10.2016) 102 und Münster (9.11.2017) tippten von n = 34 Teilnehmer*innen x = 12 im Rahmen eines Dreieckstest auf die richtige Probe, d. h. das andere Bier.</p></blockquote><p>Wandeln wir die Daten leicht ab (dann geht es schöner auf).</p><p>Also sagen wir:</p><pre class=r><code>n &lt;- 36
+x &lt;- 14
+prob_null &lt;- 1/3</code></pre><p>Aus Gründen der Konvergenz vergrößern wir die Stichprobe noch einmal:</p><pre class=r><code>n2 &lt;- n * 10
+x2 &lt;- x * 10</code></pre></div><div id=datensatz class="section level1" number=3><h1><span class=header-section-number>3</span> Datensatz</h1><p>Erstellen wir eine Funktion, die einen Datensatz, in Abhängigkeit gewählter Parameter <span class="math inline">\(n\)</span> und <span class="math inline">\(x\)</span> erstellt.</p><div id=funktion-um-daten-zu-simulieren class="section level2" number=3.1><h2><span class=header-section-number>3.1</span> Funktion, um Daten zu simulieren</h2><pre class=r><code>bier_data &lt;- function(n, x) {
+  # n: sample size
+  # x: successes
+  # This function generates data for Bernoulli chain data
+    out &lt;-
+    tibble(id = 1:n,
+           success = c(rep.int(1, x), rep.int(0, n-x)))
+
+  return(out)
+}</code></pre><p>Probieren wir’s aus.</p><div id=kleine-stichprobe class="section level3" number=3.1.1><h3><span class=header-section-number>3.1.1</span> Kleine Stichprobe</h3><pre class=r><code>d &lt;- bier_data(n = n, x = x)
+
+glimpse(d)
+#&gt; Rows: 36
+#&gt; Columns: 2
+#&gt; $ id      &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,…
+#&gt; $ success &lt;dbl&gt; 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0,…</code></pre></div><div id=große-stichprobe class="section level3" number=3.1.2><h3><span class=header-section-number>3.1.2</span> Große Stichprobe</h3><pre class=r><code>d2 &lt;- bier_data(n = n2, x = x2)</code></pre></div></div><div id=unit-testing class="section level2" number=3.2><h2><span class=header-section-number>3.2</span> Unit Testing</h2><p>Im Sinne des <a href=https://en.wikipedia.org/wiki/Test-driven_development>Test-Driven-Designs</a>: Schreiben wir zuerst einen Unit Test (oder mehrere) für die geplante (noch nicht geschriebene!) Funktion zur Erstellung der (simulierten) Daten.</p><pre class=r><code>test_that(&quot;Datensatz in Abhängigkeit von n und x erstellt&quot;,
+          {
+            expect_equivalent(nrow(bier_data(34, 12)), 34)
+            expect_equivalent(sum(bier_data(34,12)$success), 12)
+          })
+#&gt; Test passed 🥇</code></pre></div></div><div id=signifikanz-tests class="section level1" number=4><h1><span class=header-section-number>4</span> Signifikanz-Tests</h1><p><span class="math display">\[H_0: \pi = 1/3\]</span>
+<span class="math display">\[H_A: \pi \ne 1/3\]</span></p><p>Wir testen also ungerichtet.</p><p><span class="math inline">\(\pi=1/3\)</span> rührt daher, dass es drei Optionen gibt und nur eine davon ist ein Treffer.</p><div id=simulationsbasierte-inferenz-sbi class="section level2" number=4.1><h2><span class=header-section-number>4.1</span> Simulationsbasierte Inferenz (SBI)</h2><div id=kleine-stichprobe-1 class="section level3" number=4.1.1><h3><span class=header-section-number>4.1.1</span> Kleine Stichprobe</h3><pre class=r><code>set.seed(1896) 
+Nullvtlg &lt;- do(10000) * rflip(n = n, prob = prob_null)
+
+glimpse(Nullvtlg)
+#&gt; Rows: 10,000
+#&gt; Columns: 4
+#&gt; $ n     &lt;dbl&gt; 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, 36, …
+#&gt; $ heads &lt;dbl&gt; 10, 11, 9, 14, 10, 8, 13, 15, 8, 19, 11, 13, 10, 15, 15, 15, 14,…
+#&gt; $ tails &lt;dbl&gt; 26, 25, 27, 22, 26, 28, 23, 21, 28, 17, 25, 23, 26, 21, 21, 21, …
+#&gt; $ prop  &lt;dbl&gt; 0.2777778, 0.3055556, 0.2500000, 0.3888889, 0.2777778, 0.2222222…</code></pre><p>Berechnen wir <span class="math inline">\(\bar{\pi}\)</span>:</p><pre class=r><code>propdach &lt;- sum(d$success) / nrow(d)
+propdach
+#&gt; [1] 0.3888889</code></pre><p>Mit Methoden des <code>tidyverse</code> ist es umständlicher, <code>propdach</code> zu berechnen; das <code>tidyverse</code> ist für die Arbeit mit Tabellen ausgelegt, nicht für einzelne Werte (oder Vektoren).</p><p>Die Abweichung von <code>prob_null</code> in der Stichprobe beträgt:</p><pre class=r><code>abw_stipro &lt;- abs(propdach - prob_null)
+abw_stipro
+#&gt; [1] 0.05555556</code></pre><p>Diese Abweichung fügen wir bei jeder simulierten Stichprobe hinzu:</p><pre class=r><code>Nullvtlg &lt;-
+  Nullvtlg %&gt;% mutate(abw = abs(prop - prob_null))</code></pre><pre class=r><code>pvalue_simu1 &lt;- prop( ~ (abw &gt;= abw_stipro),
+                 data = Nullvtlg)
+pvalue_simu1
+#&gt; prop_TRUE 
+#&gt;    0.4872</code></pre></div><div id=große-stichprobe-1 class="section level3" number=4.1.2><h3><span class=header-section-number>4.1.2</span> Große Stichprobe</h3><p>Für die große Stichprobe analog:</p><pre class=r><code>set.seed(1896) 
+Nullvtlg2 &lt;- do(10000) * rflip(n = n2, prob = prob_null)
+
+Nullvtlg2 &lt;-
+  Nullvtlg2 %&gt;% mutate(abw = abs(prop - prob_null))
+
+pvalue_simu2 &lt;- prop( ~ (abw &gt;= abw_stipro),
+                 data = Nullvtlg2)
+pvalue_simu2
+#&gt; prop_TRUE 
+#&gt;    0.0261</code></pre></div></div><div id=chi2-test class="section level2" number=4.2><h2><span class=header-section-number>4.2</span> <span class="math inline">\(\chi^2\)</span>-Test</h2><p>Man beachte, dass der <span class="math inline">\(\chi^2\)</span>-Test nur zweiseitig testet.</p><div id=kleine-stichprobe-2 class="section level3" number=4.2.1><h3><span class=header-section-number>4.2.1</span> Kleine Stichprobe</h3><pre class=r><code>success_freq &lt;- table(d$success)
+success_freq
+#&gt; 
+#&gt;  0  1 
+#&gt; 22 14</code></pre><pre class=r><code>success_prob &lt;- c(1 - prob_null, prob_null)</code></pre><pre class=r><code>pvalue_chi1 &lt;- chisq.test(x = success_freq,
+           p = success_prob
+           )$p.value 
+
+pvalue_chi1
+#&gt; [1] 0.4795001</code></pre></div><div id=große-stichprobe-2 class="section level3" number=4.2.2><h3><span class=header-section-number>4.2.2</span> Große Stichprobe</h3><pre class=r><code>pvalue_chi2 &lt;- 
+  chisq.test(x = table(d2$success),
+             p = success_prob)$p.value
+
+pvalue_chi2
+#&gt; [1] 0.02534732</code></pre></div></div><div id=binomialtest class="section level2" number=4.3><h2><span class=header-section-number>4.3</span> Binomialtest</h2><div id=kleine-stichprobe-3 class="section level3" number=4.3.1><h3><span class=header-section-number>4.3.1</span> kleine Stichprobe</h3><pre class=r><code>pvalue_binom1 &lt;- binom.test(x = x,
+                            n = n,
+                            p = prob_null)$p.value
+pvalue_binom1
+#&gt; [1] 0.4829805</code></pre><p>Von Hand:</p><p>Der <a href=https://de.wikipedia.org/wiki/Binomialverteilung#Erwartungswert>Erwartungswert</a> <span class="math inline">\(\mathbb{E}\)</span> einer binomialverteilten Zufallsvariablen ist so definiert:</p><p><span class="math inline">\(\mathbb{E} = np\)</span>, mit <span class="math inline">\(n\)</span> der Anzahl der Versuche und <span class="math inline">\(p\)</span> der Trefferwahrscheinlichkeit.</p><p><span class="math inline">\(E(X) = n * 1/3\)</span></p><pre class=r><code>E_X &lt;- n * 1/3
+E_X
+#&gt; [1] 12</code></pre><p>Der <a href=https://de.wikipedia.org/wiki/Binomialverteilung#Varianz>Varianz</a> <span class="math inline">\(\mathbb{V}\)</span> einer binomialverteilten Zufallsvariablen ist so definiert:</p><p><span class="math inline">\(\mathbb{V} = npq\)</span>, mit <span class="math inline">\(q=p-1\)</span>.</p><pre class=r><code>Var_X = n * 1/3 * 2/3
+Var_X
+#&gt; [1] 8</code></pre><p>Bei genügend großen Stichproben ist <span class="math inline">\(X\)</span> normalverteilt, daher lässt sich ein z-Wert berechnen:</p><pre class=r><code>z &lt;- (x - E_X) / sqrt(Var_X)
+z
+#&gt; [1] 0.6666667</code></pre><p>Also beträgt der p-Wert:</p><pre class=r><code>1 - pnorm(q = z)
+#&gt; [1] 0.2524925</code></pre></div><div id=große-stichprobe-3 class="section level3" number=4.3.2><h3><span class=header-section-number>4.3.2</span> Große Stichprobe</h3><pre class=r><code>pvalue_binom2 &lt;- binom.test(x = x2,
+                            n = n2,
+                            p = prob_null)$p.value
+pvalue_binom2
+#&gt; [1] 0.0290804</code></pre></div></div><div id=logistische-regression class="section level2" number=4.4><h2><span class=header-section-number>4.4</span> Logistische Regression</h2><pre class=r><code>glm1 &lt;- glm(success ~ 1, 
+            data = d,
+            family = &quot;binomial&quot;)
+glm1 %&gt;% summary()
+#&gt; 
+#&gt; Call:
+#&gt; glm(formula = success ~ 1, family = &quot;binomial&quot;, data = d)
+#&gt; 
+#&gt; Deviance Residuals: 
+#&gt;     Min       1Q   Median       3Q      Max  
+#&gt; -0.9925  -0.9925  -0.9925   1.3744   1.3744  
+#&gt; 
+#&gt; Coefficients:
+#&gt;             Estimate Std. Error z value Pr(&gt;|z|)
+#&gt; (Intercept)  -0.4520     0.3419  -1.322    0.186
+#&gt; 
+#&gt; (Dispersion parameter for binomial family taken to be 1)
+#&gt; 
+#&gt;     Null deviance: 48.114  on 35  degrees of freedom
+#&gt; Residual deviance: 48.114  on 35  degrees of freedom
+#&gt; AIC: 50.114
+#&gt; 
+#&gt; Number of Fisher Scoring iterations: 4</code></pre><p>Zu beachten ist, dass Logitwerte zurückgegeben werden; diese müssen ggf. noch in Wahrscheinlichkeiten rückgerechnet werden.</p><pre class=r><code>exp(coef(glm1))
+#&gt; (Intercept) 
+#&gt;   0.6363636</code></pre><pre class=r><code>logit2prob &lt;- function(logit){
+  odds &lt;- exp(logit)
+  prob &lt;- odds / (1 + odds)
+  return(prob)
+}</code></pre><pre class=r><code>logit2prob(coef(glm1))
+#&gt; (Intercept) 
+#&gt;   0.3888889</code></pre><p>Etwas komfortabler vielleicht geht es mit <code>predict</code>:</p><pre class=r><code>predict(glm1, type = &quot;response&quot;, 
+        newdata = NULL)
+#&gt;         1         2         3         4         5         6         7         8 
+#&gt; 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 
+#&gt;         9        10        11        12        13        14        15        16 
+#&gt; 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 
+#&gt;        17        18        19        20        21        22        23        24 
+#&gt; 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 
+#&gt;        25        26        27        28        29        30        31        32 
+#&gt; 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 
+#&gt;        33        34        35        36 
+#&gt; 0.3888889 0.3888889 0.3888889 0.3888889</code></pre><p>Allerdings bezieht sich der p-Wert hier auf eine Referenz-Wahrscheinlchkeit von <span class="math inline">\(p_0 = 1/2\)</span>, so dass der p-Wert nicht vergleichbar ist mit den obigen Analysen.</p></div></div><div id=bayes-test-mit-gleichverteilter-priorverteilung-und-mcmc-sampler class="section level1" number=5><h1><span class=header-section-number>5</span> Bayes-Test mit gleichverteilter Priorverteilung und MCMC-Sampler</h1><pre class=r><code>glm2 &lt;- stan_glm(success ~ 1, 
+            data = d,
+            prior = NULL,
+            refresh = 0,
+            family = &quot;binomial&quot;)
+glm2 %&gt;% print()
+#&gt; stan_glm
+#&gt;  family:       binomial [logit]
+#&gt;  formula:      success ~ 1
+#&gt;  observations: 36
+#&gt;  predictors:   1
+#&gt; ------
+#&gt;             Median MAD_SD
+#&gt; (Intercept) -0.4    0.4  
+#&gt; 
+#&gt; ------
+#&gt; * For help interpreting the printed output see ?print.stanreg
+#&gt; * For info on the priors used see ?prior_summary.stanreg</code></pre><p>Auch hier bekommen wir einen Logit zurück, den wir ggf. in eine Wahrscheinlichkeit umrechnen wollen:</p><pre class=r><code>coef(glm2)
+#&gt; (Intercept) 
+#&gt;  -0.4339619</code></pre><pre class=r><code>logit2prob(coef(glm2))
+#&gt; (Intercept) 
+#&gt;   0.3931807</code></pre><div id=zwischen-fazit class="section level2" number=5.1><h2><span class=header-section-number>5.1</span> Zwischen-Fazit</h2><p>Da finden sich doch ein paar Abweichungen im p-Wert; die Tests testen nicht (ganz) das Gleiche. Möglich, dass die Voraussetzungen jeweils nicht (ausreichend) erfüllt sind. Bei simulationsbasierten Verfahren kommt natürlich noch die Stichproben-Varianz hinzu, die für Ungewissheit im Schätzer sorgt.</p></div></div><div id=konfidenz-intervall class="section level1" number=6><h1><span class=header-section-number>6</span> Konfidenz-Intervall</h1><div id=simulationsbasierte-inferenz-sbi-1 class="section level2" number=6.1><h2><span class=header-section-number>6.1</span> Simulationsbasierte Inferenz (SBI)</h2><pre class=r><code>set.seed(1896)
+Bootvtlg &lt;- do(1e4) * prop( ~success, 
+                            data = resample(d), 
+                            success = 1)
+glimpse(Bootvtlg)
+#&gt; Rows: 10,000
+#&gt; Columns: 1
+#&gt; $ prop_1 &lt;dbl&gt; 0.4166667, 0.3333333, 0.5277778, 0.3611111, 0.4444444, 0.388888…</code></pre><p>Die SD der Bootverteilung beträgt:</p><pre class=r><code>sd_boot &lt;- sd(Bootvtlg$prop_1)
+sd_boot
+#&gt; [1] 0.08153576</code></pre><pre class=r><code>ggplot(Bootvtlg) +
+  aes(x = prop_1) +
+  geom_bar()</code></pre><p><img src="/data_se/2021/07/29/vergleich-verschiedener-signifikanztstests-bei-einem-datensatz/
+index_files/figure-html/unnamed-chunk-33-1.png" width=100% style=display:block;margin:auto></p><p>Wie man sieht, ist die Verteilung (annähernd) normalverteilt. D.h. man kann die Das Konfidenzintervall über die Näherung der Normalverteilungsquantile berechnen (s.u.).</p><p>KI-Grenzen:</p><pre class=r><code>ci95 &lt;- quantile( ~ prop_1, data = Bootvtlg, probs = c(0.025, 0.975))
+
+ci95
+#&gt;      2.5%     97.5% 
+#&gt; 0.2222222 0.5555556</code></pre><p>Multipliziert man diese Anteilswerte mit <span class="math inline">\(n\)</span>, so bekommt man:</p><pre class=r><code>ci95[1]*n
+#&gt; 2.5% 
+#&gt;    8
+ci95[2]*n
+#&gt; 97.5% 
+#&gt;    20</code></pre><p>Anders gesagt liegen die Intervallgrenzen bei 8 und 20.</p></div><div id=chi2-test-1 class="section level2" number=6.2><h2><span class=header-section-number>6.2</span> <span class="math inline">\(\chi^2\)</span>-Test</h2><p>Mit dem <span class="math inline">\(chi^2\)</span>-Test kann man kein Konfidenzintervall für den Anteil bekommen, da die Prüfgröße nicht der Anteil ist.</p><div id=chi-square-bootstrap class="section level3" number=6.2.1><h3><span class=header-section-number>6.2.1</span> Chi Square Bootstrap</h3><p>Man könnte höchstens, wenn man unbedingt will, Die <span class="math inline">\(\chi^2\)</span>-Prüfgröße bootstrappen…</p><p>Also los:</p><pre class=r><code>chi_boot &lt;- do(10000) * {chisq.test(x = table(resample(d$success)),
+                                  p = success_prob
+) %&gt;% extract2(&quot;statistic&quot;)}</code></pre><pre class=r><code>glimpse(chi_boot)
+#&gt; Rows: 10,000
+#&gt; Columns: 1
+#&gt; $ X.squared &lt;dbl&gt; 1.250000e-01, 1.250000e-01, 1.125000e+00, 5.000000e-01, 1.25…</code></pre><pre class=r><code>ggplot(chi_boot, aes(x = X.squared)) +
+  geom_histogram(bins = 20)</code></pre><p><img src="/data_se/2021/07/29/vergleich-verschiedener-signifikanztstests-bei-einem-datensatz/
+index_files/figure-html/unnamed-chunk-38-1.png" width=100% style=display:block;margin:auto></p></div><div id=chi-p-value-bootstrap class="section level3" number=6.2.2><h3><span class=header-section-number>6.2.2</span> Chi p-value Bootstrap</h3><p>In gleicher Manier kann man den p-Wert als Zufallsvariable auffassen und bootstrappen:</p><pre class=r><code>chi_p_boot &lt;- do(10000) * {chisq.test(x = table(resample(d$success)),
+                                  p = success_prob
+) %&gt;% extract2(&quot;p.value&quot;)}</code></pre><pre class=r><code>glimpse(chi_p_boot)
+#&gt; Rows: 10,000
+#&gt; Columns: 1
+#&gt; $ result &lt;dbl&gt; 1.00000000, 0.15729921, 0.72367361, 0.47950012, 0.28884437, 0.4…</code></pre><pre class=r><code>ggplot(chi_p_boot, aes(x = result)) +
+  geom_histogram()</code></pre><p><img src="/data_se/2021/07/29/vergleich-verschiedener-signifikanztstests-bei-einem-datensatz/
+index_files/figure-html/unnamed-chunk-41-1.png" width=100% style=display:block;margin:auto></p></div></div><div id=binomial-test-näherung-über-normalverteilung class="section level2" number=6.3><h2><span class=header-section-number>6.3</span> Binomial-Test, Näherung über Normalverteilung</h2><p>Wie in der SBI gesehen, ist die Stichprobenverteilung bzw. die Bootstrapverteilung annähernd normalverteilt und zwar mit folgenden Parametern:</p><pre class=r><code>mue_boot &lt;- x
+sigma_boot &lt;- sqrt(Var_X)</code></pre><p>Dieser theoretische Wert entspricht gut dem durch die Simulation gefundenen Wert:</p><pre class=r><code>sd_boot*n
+#&gt; [1] 2.935288</code></pre></div><div id=logistische-regression-1 class="section level2" number=6.4><h2><span class=header-section-number>6.4</span> Logistische Regression</h2><p>Das kann man so machen (<a href=https://stackoverflow.com/questions/14423325/confidence-intervals-for-predictions-from-logistic-regression>Quelle</a>):</p><pre class=r><code>ci_glm1 &lt;- predict(glm1, type = &quot;response&quot;, se.fit = TRUE)
+ci_glm1
+#&gt; $fit
+#&gt;         1         2         3         4         5         6         7         8 
+#&gt; 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 
+#&gt;         9        10        11        12        13        14        15        16 
+#&gt; 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 
+#&gt;        17        18        19        20        21        22        23        24 
+#&gt; 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 
+#&gt;        25        26        27        28        29        30        31        32 
+#&gt; 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 0.3888889 
+#&gt;        33        34        35        36 
+#&gt; 0.3888889 0.3888889 0.3888889 0.3888889 
+#&gt; 
+#&gt; $se.fit
+#&gt;          1          2          3          4          5          6          7 
+#&gt; 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 
+#&gt;          8          9         10         11         12         13         14 
+#&gt; 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 
+#&gt;         15         16         17         18         19         20         21 
+#&gt; 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 
+#&gt;         22         23         24         25         26         27         28 
+#&gt; 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 
+#&gt;         29         30         31         32         33         34         35 
+#&gt; 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 0.08124967 
+#&gt;         36 
+#&gt; 0.08124967 
+#&gt; 
+#&gt; $residual.scale
+#&gt; [1] 1</code></pre><p>Da wir keinen Prädiktor haben, wird für alle Fälle der gleiche Wert vorhergesagt.</p><p>Nun “bauen” wir das KI basierend auf der Annahme einer Normalverteilung:</p><pre class=r><code>critval &lt;- 1.96 ## approx 95% CI
+upr &lt;- ci_glm1$fit + (critval * ci_glm1$se.fit)
+lwr &lt;- ci_glm1$fit - (critval * ci_glm1$se.fit)
+
+lwr[1]
+#&gt;         1 
+#&gt; 0.2296395
+upr[1]
+#&gt;         1 
+#&gt; 0.5481382</code></pre><p>Das sind die Anteilswerte; multiplizieren wir diese mit <span class="math inline">\(n\)</span>:</p><pre class=r><code>lwr[1]*n
+#&gt;        1 
+#&gt; 8.267023
+upr[1]*n
+#&gt;        1 
+#&gt; 19.73298</code></pre><p>Also liegen die Intervallgrenzen etwa bei 8 (unten) bzw. 19.7329767 (oben).</p></div><div id=zwischen-fazit-1 class="section level2" number=6.5><h2><span class=header-section-number>6.5</span> Zwischen-Fazit</h2><p>Die Werte der Konfidenzintervall-Grenzen sind ziemlich ähnlich; das überrascht nicht, denn die Bootverteilung ist schön normalverteilt; die Binomialmethode basiert ebenfalls auf einer Approximation der Normalverteilung. Daher resultieren hier ähnliche Werte.</p></div></div><div id=fazit class="section level1" number=7><h1><span class=header-section-number>7</span> Fazit</h1><p>Die Bootstrap-Methode funktioniert hier gut; natürlich hat sie auch hier <a href=https://arxiv.org/abs/1411.5279>Fallstricke</a>.</p><p>Der p-Wert unterscheidet sich je Methode, weil die Signifikanztests unterschiedliche Prüfgrößen berechnen, sprich verschiedene Dinge berechnen.</p></div><div id=reproducibility class="section level1" number=8><h1><span class=header-section-number>8</span> Reproducibility</h1><pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.1.0 (2021-05-18)
+#&gt;  os       macOS Big Sur 10.16         
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2021-07-29                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version  date       lib source                        
+#&gt;  assertthat    0.2.1    2019-03-21 [1] CRAN (R 4.1.0)                
+#&gt;  backports     1.2.1    2020-12-09 [1] CRAN (R 4.1.0)                
+#&gt;  blogdown      1.4      2021-07-23 [2] CRAN (R 4.1.0)                
+#&gt;  bookdown      0.22     2021-04-22 [2] CRAN (R 4.1.0)                
+#&gt;  broom         0.7.6    2021-04-05 [1] CRAN (R 4.1.0)                
+#&gt;  bslib         0.2.5.1  2021-05-18 [1] CRAN (R 4.1.0)                
+#&gt;  cellranger    1.1.0    2016-07-27 [1] CRAN (R 4.1.0)                
+#&gt;  cli           3.0.1    2021-07-17 [1] CRAN (R 4.1.0)                
+#&gt;  codetools     0.2-18   2020-11-04 [2] CRAN (R 4.1.0)                
+#&gt;  colorspace    2.0-2    2021-06-24 [1] CRAN (R 4.1.0)                
+#&gt;  crayon        1.4.1    2021-02-08 [1] CRAN (R 4.1.0)                
+#&gt;  crosstalk     1.1.1    2021-01-12 [2] CRAN (R 4.1.0)                
+#&gt;  DBI           1.1.1    2021-01-15 [1] CRAN (R 4.1.0)                
+#&gt;  dbplyr        2.1.1    2021-04-06 [1] CRAN (R 4.1.0)                
+#&gt;  digest        0.6.27   2020-10-24 [1] CRAN (R 4.1.0)                
+#&gt;  dplyr       * 1.0.7    2021-06-18 [1] CRAN (R 4.1.0)                
+#&gt;  ellipsis      0.3.2    2021-04-29 [1] CRAN (R 4.1.0)                
+#&gt;  evaluate      0.14     2019-05-28 [1] CRAN (R 4.1.0)                
+#&gt;  fansi         0.5.0    2021-05-25 [1] CRAN (R 4.1.0)                
+#&gt;  farver        2.1.0    2021-02-28 [1] CRAN (R 4.1.0)                
+#&gt;  forcats     * 0.5.1    2021-01-27 [1] CRAN (R 4.1.0)                
+#&gt;  fs            1.5.0    2020-07-31 [1] CRAN (R 4.1.0)                
+#&gt;  generics      0.1.0    2020-10-31 [1] CRAN (R 4.1.0)                
+#&gt;  ggdendro      0.1.22   2020-09-13 [1] CRAN (R 4.1.0)                
+#&gt;  ggforce       0.3.3    2021-03-05 [1] CRAN (R 4.1.0)                
+#&gt;  ggformula   * 0.10.1   2021-01-13 [1] CRAN (R 4.1.0)                
+#&gt;  ggplot2     * 3.3.5    2021-06-25 [1] CRAN (R 4.1.0)                
+#&gt;  ggrepel       0.9.1    2021-01-15 [2] CRAN (R 4.1.0)                
+#&gt;  ggridges    * 0.5.3    2021-01-08 [1] CRAN (R 4.1.0)                
+#&gt;  ggstance    * 0.3.5    2020-12-17 [1] CRAN (R 4.1.0)                
+#&gt;  glue          1.4.2    2020-08-27 [1] CRAN (R 4.1.0)                
+#&gt;  gridExtra     2.3      2017-09-09 [2] CRAN (R 4.1.0)                
+#&gt;  gtable        0.3.0    2019-03-25 [1] CRAN (R 4.1.0)                
+#&gt;  haven         2.4.1    2021-04-23 [1] CRAN (R 4.1.0)                
+#&gt;  hms           1.1.0    2021-05-17 [1] CRAN (R 4.1.0)                
+#&gt;  htmltools     0.5.1.1  2021-01-22 [1] CRAN (R 4.1.0)                
+#&gt;  htmlwidgets   1.5.3    2020-12-10 [2] CRAN (R 4.1.0)                
+#&gt;  httr          1.4.2    2020-07-20 [1] CRAN (R 4.1.0)                
+#&gt;  jquerylib     0.1.4    2021-04-26 [1] CRAN (R 4.1.0)                
+#&gt;  jsonlite      1.7.2    2020-12-09 [1] CRAN (R 4.1.0)                
+#&gt;  knitr         1.33     2021-04-24 [1] CRAN (R 4.1.0)                
+#&gt;  labelled      2.8.0    2021-03-08 [2] CRAN (R 4.1.0)                
+#&gt;  lattice     * 0.20-44  2021-05-02 [2] CRAN (R 4.1.0)                
+#&gt;  leaflet       2.0.4.1  2021-01-07 [1] CRAN (R 4.1.0)                
+#&gt;  lifecycle     1.0.0    2021-02-15 [1] CRAN (R 4.1.0)                
+#&gt;  lubridate     1.7.10   2021-02-26 [1] CRAN (R 4.1.0)                
+#&gt;  magrittr    * 2.0.1    2020-11-17 [1] CRAN (R 4.1.0)                
+#&gt;  MASS          7.3-54   2021-05-03 [2] CRAN (R 4.1.0)                
+#&gt;  Matrix      * 1.3-4    2021-06-01 [2] CRAN (R 4.1.0)                
+#&gt;  modelr        0.1.8    2020-05-19 [1] CRAN (R 4.1.0)                
+#&gt;  mosaic      * 1.8.3    2021-01-18 [1] CRAN (R 4.1.0)                
+#&gt;  mosaicCore    0.9.0    2021-01-16 [1] CRAN (R 4.1.0)                
+#&gt;  mosaicData  * 0.20.2   2021-01-16 [1] CRAN (R 4.1.0)                
+#&gt;  munsell       0.5.0    2018-06-12 [1] CRAN (R 4.1.0)                
+#&gt;  pillar        1.6.1    2021-05-16 [1] CRAN (R 4.1.0)                
+#&gt;  pkgconfig     2.0.3    2019-09-22 [1] CRAN (R 4.1.0)                
+#&gt;  plyr          1.8.6    2020-03-03 [1] CRAN (R 4.1.0)                
+#&gt;  polyclip      1.10-0   2019-03-14 [1] CRAN (R 4.1.0)                
+#&gt;  purrr       * 0.3.4    2020-04-17 [1] CRAN (R 4.1.0)                
+#&gt;  R6            2.5.0    2020-10-28 [1] CRAN (R 4.1.0)                
+#&gt;  Rcpp          1.0.7    2021-07-07 [1] CRAN (R 4.1.0)                
+#&gt;  readr       * 1.4.0    2020-10-05 [1] CRAN (R 4.1.0)                
+#&gt;  readxl        1.3.1    2019-03-13 [1] CRAN (R 4.1.0)                
+#&gt;  reprex        2.0.0    2021-04-02 [1] CRAN (R 4.1.0)                
+#&gt;  rlang         0.4.11   2021-04-30 [1] CRAN (R 4.1.0)                
+#&gt;  rmarkdown     2.9      2021-06-15 [1] CRAN (R 4.1.0)                
+#&gt;  rstudioapi    0.13     2020-11-12 [1] CRAN (R 4.1.0)                
+#&gt;  rvest         1.0.0    2021-03-09 [1] CRAN (R 4.1.0)                
+#&gt;  sass          0.4.0    2021-05-12 [1] CRAN (R 4.1.0)                
+#&gt;  scales      * 1.1.1    2020-05-11 [1] CRAN (R 4.1.0)                
+#&gt;  sessioninfo * 1.1.1    2018-11-05 [2] CRAN (R 4.1.0)                
+#&gt;  stringi       1.7.3    2021-07-16 [1] CRAN (R 4.1.0)                
+#&gt;  stringr     * 1.4.0    2019-02-10 [1] CRAN (R 4.1.0)                
+#&gt;  testthat    * 3.0.4    2021-07-01 [2] CRAN (R 4.1.0)                
+#&gt;  tibble      * 3.1.2    2021-05-16 [1] CRAN (R 4.1.0)                
+#&gt;  tidyr       * 1.1.3    2021-03-03 [1] CRAN (R 4.1.0)                
+#&gt;  tidyselect    1.1.1    2021-04-30 [1] CRAN (R 4.1.0)                
+#&gt;  tidyverse   * 1.3.1    2021-04-15 [1] CRAN (R 4.1.0)                
+#&gt;  tweenr        1.0.2    2021-03-23 [1] CRAN (R 4.1.0)                
+#&gt;  utf8          1.2.1    2021-03-12 [1] CRAN (R 4.1.0)                
+#&gt;  vctrs         0.3.8    2021-04-29 [1] CRAN (R 4.1.0)                
+#&gt;  withr         2.4.2    2021-04-18 [1] CRAN (R 4.1.0)                
+#&gt;  xfun          0.24     2021-06-15 [1] CRAN (R 4.1.0)                
+#&gt;  xml2          1.3.2    2020-04-23 [1] CRAN (R 4.1.0)                
+#&gt;  yaml          2.2.1.99 2021-06-18 [1] Github (viking/r-yaml@4788abe)
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Library/R/x86_64/4.1/library
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.1/Resources/library</code></pre></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>

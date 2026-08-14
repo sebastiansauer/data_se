@@ -1,0 +1,142 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Plotting a regression surface (3D) - Data Se</title>
+<meta property="og:title" content="Plotting a regression surface (3D) - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>5 min read</span><h1 class=article-title>Plotting a regression surface (3D)</h1><span class=article-date>2020/12/08</span><div class=article-content><script src=index_files/header-attrs/header-attrs.js></script><link href=index_files/anchor-sections/anchor-sections.css rel=stylesheet><script src=index_files/anchor-sections/anchor-sections.js></script><script src=index_files/htmlwidgets/htmlwidgets.js></script><script src=index_files/plotly-binding/plotly.js></script><script src=index_files/typedarray/typedarray.min.js></script><script src=index_files/jquery/jquery.min.js></script><link href=index_files/crosstalk/css/crosstalk.css rel=stylesheet><script src=index_files/crosstalk/js/crosstalk.min.js></script><link href=index_files/plotly-htmlwidgets-css/plotly-htmlwidgets.css rel=stylesheet><script src=index_files/plotly-main/plotly-latest.min.js></script><div id=load-packages class="section level1"><h1>Load packages</h1><pre class=r><code>library(tidyverse)
+library(plotly)</code></pre></div><div id=data class="section level1"><h1>Data</h1><p>Some sample data</p><pre class=r><code>data(tips, package= &quot;reshape2&quot;)</code></pre></div><div id=regression-model class="section level1"><h1>Regression model</h1><pre class=r><code>lm1 &lt;- lm(tip ~ total_bill + size, data = tips)
+lm1_coef &lt;- coef(lm1)</code></pre></div><div id=sequence class="section level1"><h1>Sequence</h1><pre class=r><code>x1_seq &lt;- seq(min(tips$total_bill), max(tips$total_bill), length.out = 25)
+x2_seq &lt;- seq(min(tips$size), max(tips$size), length.out = 6)</code></pre></div><div id=compute-grid class="section level1"><h1>Compute grid</h1><pre class=r><code>z2 &lt;- t(outer(x1_seq, x2_seq, 
+              function(x,y) lm1_coef[1]+lm1_coef[2]*x+lm1_coef[3]*y))</code></pre><pre class=r><code>z2
+#&gt;          [,1]     [,2]     [,3]     [,4]     [,5]     [,6]     [,7]     [,8]
+#&gt; [1,] 1.146172 1.330595 1.515017 1.699439 1.883862 2.068284 2.252706 2.437128
+#&gt; [2,] 1.338770 1.523193 1.707615 1.892037 2.076459 2.260882 2.445304 2.629726
+#&gt; [3,] 1.531368 1.715790 1.900213 2.084635 2.269057 2.453479 2.637902 2.822324
+#&gt; [4,] 1.723966 1.908388 2.092810 2.277233 2.461655 2.646077 2.830500 3.014922
+#&gt; [5,] 1.916564 2.100986 2.285408 2.469830 2.654253 2.838675 3.023097 3.207520
+#&gt; [6,] 2.109161 2.293584 2.478006 2.662428 2.846851 3.031273 3.215695 3.400117
+#&gt;          [,9]    [,10]    [,11]    [,12]    [,13]    [,14]    [,15]    [,16]
+#&gt; [1,] 2.621551 2.805973 2.990395 3.174818 3.359240 3.543662 3.728084 3.912507
+#&gt; [2,] 2.814149 2.998571 3.182993 3.367415 3.551838 3.736260 3.920682 4.105104
+#&gt; [3,] 3.006746 3.191169 3.375591 3.560013 3.744435 3.928858 4.113280 4.297702
+#&gt; [4,] 3.199344 3.383766 3.568189 3.752611 3.937033 4.121455 4.305878 4.490300
+#&gt; [5,] 3.391942 3.576364 3.760786 3.945209 4.129631 4.314053 4.498476 4.682898
+#&gt; [6,] 3.584540 3.768962 3.953384 4.137807 4.322229 4.506651 4.691073 4.875496
+#&gt;         [,17]    [,18]    [,19]    [,20]    [,21]    [,22]    [,23]    [,24]
+#&gt; [1,] 4.096929 4.281351 4.465774 4.650196 4.834618 5.019040 5.203463 5.387885
+#&gt; [2,] 4.289527 4.473949 4.658371 4.842794 5.027216 5.211638 5.396060 5.580483
+#&gt; [3,] 4.482125 4.666547 4.850969 5.035391 5.219814 5.404236 5.588658 5.773080
+#&gt; [4,] 4.674722 4.859145 5.043567 5.227989 5.412411 5.596834 5.781256 5.965678
+#&gt; [5,] 4.867320 5.051742 5.236165 5.420587 5.605009 5.789432 5.973854 6.158276
+#&gt; [6,] 5.059918 5.244340 5.428762 5.613185 5.797607 5.982029 6.166452 6.350874
+#&gt;         [,25]
+#&gt; [1,] 5.572307
+#&gt; [2,] 5.764905
+#&gt; [3,] 5.957503
+#&gt; [4,] 6.150101
+#&gt; [5,] 6.342698
+#&gt; [6,] 6.535296</code></pre></div><div id=draw-the-plane-with-plot_ly-and-add-points-with-add_trace class="section level1"><h1>Draw the plane with “plot_ly” and add points with “add_trace”</h1><pre class=r><code>plot_ly(x=~x1_seq, y=~x2_seq, z=~z2,type=&quot;surface&quot;) %&gt;%
+  add_trace(data=tips, 
+            x=~total_bill, y=~size, z=~tip, 
+            mode=&quot;markers&quot;, 
+            type=&quot;scatter3d&quot;,
+            marker = list(color=&quot;#00998a&quot;, 
+                          opacity=0.7, 
+                          symbol=105)) %&gt;%
+  layout(scene = list(
+    aspectmode = &quot;manual&quot;, 
+    aspectratio = list(x=1, y=1, z=1),
+    xaxis = list(title = &quot;total_bill&quot;),
+    yaxis = list(title = &quot;size&quot;),
+    zaxis = list(title = &quot;tip&quot;)))</code></pre><div id=htmlwidget-1 style=width:100%;height:576px class="plotly html-widget"></div><script type=application/json data-for=htmlwidget-1>{"x":{"visdat":{"4ce63d000068":["function () ","plotlyVisDat"],"4ce64b1acb21":["function () ","data"]},"cur_data":"4ce64b1acb21","attrs":{"4ce63d000068":{"x":{},"y":{},"z":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"surface"},"4ce64b1acb21":{"x":{},"y":{},"z":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"scatter3d","mode":"markers","marker":{"color":"#00998a","opacity":0.7,"symbol":105},"inherit":true}},"layout":{"margin":{"b":40,"l":60,"t":25,"r":10},"scene":{"aspectmode":"manual","aspectratio":{"x":1,"y":1,"z":1},"xaxis":{"title":"total_bill"},"yaxis":{"title":"size"},"zaxis":{"title":"tip"}},"hovermode":"closest","showlegend":false,"legend":{"yanchor":"top","y":0.5}},"source":"A","config":{"showSendToCloud":false},"data":[{"colorbar":{"title":"z2<br />tip","ticklen":2,"len":0.5,"lenmode":"fraction","y":1,"yanchor":"top"},"colorscale":[["0","rgba(68,1,84,1)"],["0.0416666666666667","rgba(70,19,97,1)"],["0.0833333333333333","rgba(72,32,111,1)"],["0.125","rgba(71,45,122,1)"],["0.166666666666667","rgba(68,58,128,1)"],["0.208333333333333","rgba(64,70,135,1)"],["0.25","rgba(60,82,138,1)"],["0.291666666666667","rgba(56,93,140,1)"],["0.333333333333333","rgba(49,104,142,1)"],["0.375","rgba(46,114,142,1)"],["0.416666666666667","rgba(42,123,142,1)"],["0.458333333333333","rgba(38,133,141,1)"],["0.5","rgba(37,144,140,1)"],["0.541666666666667","rgba(33,154,138,1)"],["0.583333333333333","rgba(39,164,133,1)"],["0.625","rgba(47,174,127,1)"],["0.666666666666667","rgba(53,183,121,1)"],["0.708333333333333","rgba(79,191,110,1)"],["0.75","rgba(98,199,98,1)"],["0.791666666666667","rgba(119,207,85,1)"],["0.833333333333333","rgba(147,214,70,1)"],["0.875","rgba(172,220,52,1)"],["0.916666666666667","rgba(199,225,42,1)"],["0.958333333333333","rgba(226,228,40,1)"],["1","rgba(253,231,37,1)"]],"showscale":true,"x":[3.07,5.05916666666667,7.04833333333333,9.0375,11.0266666666667,13.0158333333333,15.005,16.9941666666667,18.9833333333333,20.9725,22.9616666666667,24.9508333333333,26.94,28.9291666666667,30.9183333333333,32.9075,34.8966666666667,36.8858333333333,38.875,40.8641666666667,42.8533333333333,44.8425,46.8316666666667,48.8208333333333,50.81],"y":[1,2,3,4,5,6],"z":[[1.14617247927836,1.33059475846055,1.51501703764274,1.69943931682492,1.88386159600711,2.0682838751893,2.25270615437149,2.43712843355368,2.62155071273587,2.80597299191806,2.99039527110025,3.17481755028244,3.35923982946463,3.54366210864682,3.72808438782901,3.9125066670112,4.09692894619339,4.28135122537558,4.46577350455777,4.65019578373996,4.83461806292214,5.01904034210433,5.20346262128652,5.38788490046871,5.5723071796509],[1.33877027366914,1.52319255285133,1.70761483203352,1.89203711121571,2.0764593903979,2.26088166958009,2.44530394876228,2.62972622794447,2.81414850712666,2.99857078630885,3.18299306549104,3.36741534467323,3.55183762385542,3.73625990303761,3.9206821822198,4.10510446140198,4.28952674058417,4.47394901976637,4.65837129894855,4.84279357813074,5.02721585731293,5.21163813649512,5.39606041567731,5.5804826948595,5.76490497404169],[1.53136806805993,1.71579034724212,1.90021262642431,2.0846349056065,2.26905718478869,2.45347946397088,2.63790174315307,2.82232402233526,3.00674630151745,3.19116858069964,3.37559085988183,3.56001313906402,3.7444354182462,3.92885769742839,4.11327997661058,4.29770225579277,4.48212453497496,4.66654681415715,4.85096909333934,5.03539137252153,5.21981365170372,5.40423593088591,5.5886582100681,5.77308048925029,5.95750276843248],[1.72396586245072,1.90838814163291,2.0928104208151,2.27723269999729,2.46165497917948,2.64607725836167,2.83049953754386,3.01492181672605,3.19934409590824,3.38376637509042,3.56818865427261,3.7526109334548,3.93703321263699,4.12145549181918,4.30587777100137,4.49030005018356,4.67472232936575,4.85914460854794,5.04356688773013,5.22798916691232,5.41241144609451,5.5968337252767,5.78125600445889,5.96567828364108,6.15010056282327],[1.91656365684151,2.1009859360237,2.28540821520589,2.46983049438808,2.65425277357027,2.83867505275246,3.02309733193464,3.20751961111683,3.39194189029902,3.57636416948121,3.7607864486634,3.94520872784559,4.12963100702778,4.31405328620997,4.49847556539216,4.68289784457435,4.86732012375654,5.05174240293873,5.23616468212092,5.42058696130311,5.6050092404853,5.78943151966749,5.97385379884968,6.15827607803187,6.34269835721405],[2.1091614512323,2.29358373041449,2.47800600959667,2.66242828877886,2.84685056796105,3.03127284714324,3.21569512632543,3.40011740550762,3.58453968468981,3.768961963872,3.95338424305419,4.13780652223638,4.32222880141857,4.50665108060076,4.69107335978295,4.87549563896514,5.05991791814733,5.24434019732952,5.42876247651171,5.6131847556939,5.79760703487608,5.98202931405827,6.16645159324046,6.35087387242265,6.53529615160484]],"type":"surface","frame":null},{"x":[16.99,10.34,21.01,23.68,24.59,25.29,8.77,26.88,15.04,14.78,10.27,35.26,15.42,18.43,14.83,21.58,10.33,16.29,16.97,20.65,17.92,20.29,15.77,39.42,19.82,17.81,13.37,12.69,21.7,19.65,9.55,18.35,15.06,20.69,17.78,24.06,16.31,16.93,18.69,31.27,16.04,17.46,13.94,9.68,30.4,18.29,22.23,32.4,28.55,18.04,12.54,10.29,34.81,9.94,25.56,19.49,38.01,26.41,11.24,48.27,20.29,13.81,11.02,18.29,17.59,20.08,16.45,3.07,20.23,15.01,12.02,17.07,26.86,25.28,14.73,10.51,17.92,27.2,22.76,17.29,19.44,16.66,10.07,32.68,15.98,34.83,13.03,18.28,24.71,21.16,28.97,22.49,5.75,16.32,22.75,40.17,27.28,12.03,21.01,12.46,11.35,15.38,44.3,22.42,20.92,15.36,20.49,25.21,18.24,14.31,14,7.25,38.07,23.95,25.71,17.31,29.93,10.65,12.43,24.08,11.69,13.42,14.26,15.95,12.48,29.8,8.52,14.52,11.38,22.82,19.08,20.27,11.17,12.26,18.26,8.51,10.33,14.15,16,13.16,17.47,34.3,41.19,27.05,16.43,8.35,18.64,11.87,9.78,7.51,14.07,13.13,17.26,24.55,19.77,29.85,48.17,25,13.39,16.49,21.5,12.66,16.21,13.81,17.51,24.52,20.76,31.71,10.59,10.63,50.81,15.81,7.25,31.85,16.82,32.9,17.89,14.48,9.6,34.63,34.65,23.33,45.35,23.17,40.55,20.69,20.9,30.46,18.15,23.1,15.69,19.81,28.44,15.48,16.58,7.56,10.34,43.11,13,13.51,18.71,12.74,13,16.4,20.53,16.47,26.59,38.73,24.27,12.76,30.06,25.89,48.33,13.27,28.17,12.9,28.15,11.59,7.74,30.14,12.16,13.42,8.58,15.98,13.42,16.27,10.09,20.45,13.28,22.12,24.01,15.69,11.61,10.77,15.53,10.07,12.6,32.83,35.83,29.03,27.18,22.67,17.82,18.78],"y":[2,3,3,2,4,4,2,4,2,2,2,4,2,4,2,2,3,3,3,3,2,2,2,4,2,4,2,2,2,2,2,4,2,4,2,3,3,3,3,3,3,2,2,2,4,2,2,4,3,2,2,2,4,2,4,2,4,2,2,4,2,2,2,4,3,3,2,1,2,2,2,3,2,2,2,2,2,4,2,2,2,2,1,2,2,4,2,2,2,2,2,2,2,2,2,4,2,2,2,2,2,2,3,2,2,2,2,2,2,2,2,1,3,2,3,2,4,2,2,4,2,2,2,2,2,6,2,2,2,3,2,2,2,2,2,2,2,2,2,2,2,6,5,6,2,2,3,2,2,2,2,2,3,4,4,5,6,4,2,4,4,2,3,2,2,3,2,4,2,2,3,2,2,2,2,2,2,2,2,2,4,2,3,4,2,5,3,5,3,3,2,2,2,2,2,2,2,4,2,2,3,2,2,2,4,3,3,4,2,2,3,4,4,2,3,2,5,2,2,4,2,2,1,3,2,2,2,4,2,2,4,3,2,2,2,2,2,2,3,3,2,2,2,2],"z":[1.01,1.66,3.5,3.31,3.61,4.71,2,3.12,1.96,3.23,1.71,5,1.57,3,3.02,3.92,1.67,3.71,3.5,3.35,4.08,2.75,2.23,7.58,3.18,2.34,2,2,4.3,3,1.45,2.5,3,2.45,3.27,3.6,2,3.07,2.31,5,2.24,2.54,3.06,1.32,5.6,3,5,6,2.05,3,2.5,2.6,5.2,1.56,4.34,3.51,3,1.5,1.76,6.73,3.21,2,1.98,3.76,2.64,3.15,2.47,1,2.01,2.09,1.97,3,3.14,5,2.2,1.25,3.08,4,3,2.71,3,3.4,1.83,5,2.03,5.17,2,4,5.85,3,3,3.5,1,4.3,3.25,4.73,4,1.5,3,1.5,2.5,3,2.5,3.48,4.08,1.64,4.06,4.29,3.76,4,3,1,4,2.55,4,3.5,5.07,1.5,1.8,2.92,2.31,1.68,2.5,2,2.52,4.2,1.48,2,2,2.18,1.5,2.83,1.5,2,3.25,1.25,2,2,2,2.75,3.5,6.7,5,5,2.3,1.5,1.36,1.63,1.73,2,2.5,2,2.74,2,2,5.14,5,3.75,2.61,2,3.5,2.5,2,2,3,3.48,2.24,4.5,1.61,2,10,3.16,5.15,3.18,4,3.11,2,2,4,3.55,3.68,5.65,3.5,6.5,3,5,3.5,2,3.5,4,1.5,4.19,2.56,2.02,4,1.44,2,5,2,2,4,2.01,2,2.5,4,3.23,3.41,3,2.03,2.23,2,5.16,9,2.5,6.5,1.1,3,1.5,1.44,3.09,2.2,3.48,1.92,3,1.58,2.5,2,3,2.72,2.88,2,3,3.39,1.47,3,1.25,1,1.17,4.67,5.92,2,2,1.75,3],"type":"scatter3d","mode":"markers","marker":{"color":"#00998a","opacity":0.7,"symbol":105,"line":{"color":"rgba(255,127,14,1)"}},"error_y":{"color":"rgba(255,127,14,1)"},"error_x":{"color":"rgba(255,127,14,1)"},"line":{"color":"rgba(255,127,14,1)"},"frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}</script></div><div id=reproducibility class="section level1"><h1>Reproducibility</h1><pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.0.2 (2020-06-22)
+#&gt;  os       macOS Catalina 10.15.7      
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2020-12-08                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version date       lib source        
+#&gt;  assertthat    0.2.1   2019-03-21 [1] CRAN (R 4.0.0)
+#&gt;  backports     1.2.0   2020-11-02 [1] CRAN (R 4.0.2)
+#&gt;  blogdown      0.21    2020-10-11 [1] CRAN (R 4.0.2)
+#&gt;  bookdown      0.21    2020-10-13 [1] CRAN (R 4.0.2)
+#&gt;  broom         0.7.2   2020-10-20 [1] CRAN (R 4.0.2)
+#&gt;  callr         3.5.1   2020-10-13 [1] CRAN (R 4.0.2)
+#&gt;  cellranger    1.1.0   2016-07-27 [1] CRAN (R 4.0.0)
+#&gt;  cli           2.2.0   2020-11-20 [1] CRAN (R 4.0.2)
+#&gt;  codetools     0.2-16  2018-12-24 [2] CRAN (R 4.0.2)
+#&gt;  colorspace    2.0-0   2020-11-11 [1] CRAN (R 4.0.2)
+#&gt;  crayon        1.3.4   2017-09-16 [1] CRAN (R 4.0.0)
+#&gt;  crosstalk     1.1.0.1 2020-03-13 [1] CRAN (R 4.0.0)
+#&gt;  data.table    1.13.2  2020-10-19 [1] CRAN (R 4.0.2)
+#&gt;  DBI           1.1.0   2019-12-15 [1] CRAN (R 4.0.0)
+#&gt;  dbplyr        2.0.0   2020-11-03 [1] CRAN (R 4.0.2)
+#&gt;  desc          1.2.0   2018-05-01 [1] CRAN (R 4.0.0)
+#&gt;  devtools      2.3.2   2020-09-18 [1] CRAN (R 4.0.2)
+#&gt;  digest        0.6.27  2020-10-24 [1] CRAN (R 4.0.2)
+#&gt;  dplyr       * 1.0.2   2020-08-18 [1] CRAN (R 4.0.2)
+#&gt;  ellipsis      0.3.1   2020-05-15 [1] CRAN (R 4.0.0)
+#&gt;  evaluate      0.14    2019-05-28 [1] CRAN (R 4.0.0)
+#&gt;  fansi         0.4.1   2020-01-08 [1] CRAN (R 4.0.0)
+#&gt;  farver        2.0.3   2020-01-16 [1] CRAN (R 4.0.0)
+#&gt;  forcats     * 0.5.0   2020-03-01 [1] CRAN (R 4.0.0)
+#&gt;  fs            1.5.0   2020-07-31 [1] CRAN (R 4.0.2)
+#&gt;  generics      0.1.0   2020-10-31 [1] CRAN (R 4.0.2)
+#&gt;  ggplot2     * 3.3.2   2020-06-19 [1] CRAN (R 4.0.0)
+#&gt;  glue          1.4.2   2020-08-27 [1] CRAN (R 4.0.2)
+#&gt;  gtable        0.3.0   2019-03-25 [1] CRAN (R 4.0.0)
+#&gt;  haven         2.3.1   2020-06-01 [1] CRAN (R 4.0.0)
+#&gt;  hms           0.5.3   2020-01-08 [1] CRAN (R 4.0.0)
+#&gt;  htmltools     0.5.0   2020-06-16 [1] CRAN (R 4.0.0)
+#&gt;  htmlwidgets   1.5.2   2020-10-03 [1] CRAN (R 4.0.2)
+#&gt;  httr          1.4.2   2020-07-20 [1] CRAN (R 4.0.2)
+#&gt;  jsonlite      1.7.1   2020-09-07 [1] CRAN (R 4.0.2)
+#&gt;  knitr         1.30    2020-09-22 [1] CRAN (R 4.0.2)
+#&gt;  lazyeval      0.2.2   2019-03-15 [1] CRAN (R 4.0.0)
+#&gt;  lifecycle     0.2.0   2020-03-06 [1] CRAN (R 4.0.0)
+#&gt;  lubridate     1.7.9.2 2020-11-13 [1] CRAN (R 4.0.2)
+#&gt;  magrittr      2.0.1   2020-11-17 [1] CRAN (R 4.0.2)
+#&gt;  memoise       1.1.0   2017-04-21 [1] CRAN (R 4.0.0)
+#&gt;  modelr        0.1.8   2020-05-19 [1] CRAN (R 4.0.0)
+#&gt;  munsell       0.5.0   2018-06-12 [1] CRAN (R 4.0.0)
+#&gt;  pillar        1.4.7   2020-11-20 [1] CRAN (R 4.0.2)
+#&gt;  pkgbuild      1.1.0   2020-07-13 [1] CRAN (R 4.0.2)
+#&gt;  pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.0.0)
+#&gt;  pkgload       1.1.0   2020-05-29 [1] CRAN (R 4.0.0)
+#&gt;  plotly      * 4.9.2.1 2020-04-04 [1] CRAN (R 4.0.0)
+#&gt;  prettyunits   1.1.1   2020-01-24 [1] CRAN (R 4.0.0)
+#&gt;  processx      3.4.5   2020-11-30 [1] CRAN (R 4.0.2)
+#&gt;  ps            1.4.0   2020-10-07 [1] CRAN (R 4.0.2)
+#&gt;  purrr       * 0.3.4   2020-04-17 [1] CRAN (R 4.0.0)
+#&gt;  R6            2.5.0   2020-10-28 [1] CRAN (R 4.0.2)
+#&gt;  Rcpp          1.0.5   2020-07-06 [1] CRAN (R 4.0.2)
+#&gt;  readr       * 1.4.0   2020-10-05 [1] CRAN (R 4.0.2)
+#&gt;  readxl        1.3.1   2019-03-13 [1] CRAN (R 4.0.0)
+#&gt;  remotes       2.2.0   2020-07-21 [1] CRAN (R 4.0.2)
+#&gt;  reprex        0.3.0   2019-05-16 [1] CRAN (R 4.0.0)
+#&gt;  rlang         0.4.9   2020-11-26 [1] CRAN (R 4.0.2)
+#&gt;  rmarkdown     2.5     2020-10-21 [1] CRAN (R 4.0.2)
+#&gt;  rprojroot     2.0.2   2020-11-15 [1] CRAN (R 4.0.2)
+#&gt;  rstudioapi    0.13    2020-11-12 [1] CRAN (R 4.0.2)
+#&gt;  rvest         0.3.6   2020-07-25 [1] CRAN (R 4.0.2)
+#&gt;  scales        1.1.1   2020-05-11 [1] CRAN (R 4.0.0)
+#&gt;  sessioninfo   1.1.1   2018-11-05 [1] CRAN (R 4.0.0)
+#&gt;  stringi       1.5.3   2020-09-09 [1] CRAN (R 4.0.2)
+#&gt;  stringr     * 1.4.0   2019-02-10 [1] CRAN (R 4.0.0)
+#&gt;  testthat      3.0.0   2020-10-31 [1] CRAN (R 4.0.2)
+#&gt;  tibble      * 3.0.4   2020-10-12 [1] CRAN (R 4.0.2)
+#&gt;  tidyr       * 1.1.2   2020-08-27 [1] CRAN (R 4.0.2)
+#&gt;  tidyselect    1.1.0   2020-05-11 [1] CRAN (R 4.0.0)
+#&gt;  tidyverse   * 1.3.0   2019-11-21 [1] CRAN (R 4.0.0)
+#&gt;  usethis       1.6.3   2020-09-17 [1] CRAN (R 4.0.2)
+#&gt;  vctrs         0.3.5   2020-11-17 [1] CRAN (R 4.0.2)
+#&gt;  viridisLite   0.3.0   2018-02-01 [1] CRAN (R 4.0.0)
+#&gt;  withr         2.3.0   2020-09-22 [1] CRAN (R 4.0.2)
+#&gt;  xfun          0.19    2020-10-30 [1] CRAN (R 4.0.2)
+#&gt;  xml2          1.3.2   2020-04-23 [1] CRAN (R 4.0.0)
+#&gt;  yaml          2.2.1   2020-02-01 [1] CRAN (R 4.0.0)
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Rlibs
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>

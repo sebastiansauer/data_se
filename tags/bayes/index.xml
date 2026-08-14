@@ -1,2 +1,219 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Bayes on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/bayes/</link><description>Recent content in Bayes on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Sat, 25 Aug 2018 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/bayes/index.xml" rel="self" type="application/rss+xml"/><item><title>Bayesian modeling of populist party success in German federal elections - A notebook from the lab</title><link>https://sebastiansauer.github.io/data_se/2018/08/25/bayesian-modeling-of-populist-party-success-in-german-federal-elections/</link><pubDate>Sat, 25 Aug 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/08/25/bayesian-modeling-of-populist-party-success-in-german-federal-elections/</guid><description>&lt;p>Following up on an &lt;a href="https://data-se.netlify.com/2017/10/10/afd-map/">earlier post&lt;/a>, we will model the voting success of the (most prominent) populist party, AfD, in the recent federal elections. This time, Bayesian modeling techniques will be used, drawing on the &lt;a href="https://xcelab.net/rm/statistical-rethinking/">excellent textbook&lt;/a> my McElreath.&lt;/p>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Bayes on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/bayes/</link><description>Recent content in Bayes on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Mon, 29 Jan 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/bayes/index.xml" rel="self" type="application/rss+xml"/><item><title>Numerical similarity of some Bayes and Classical models</title><link>https://sebastiansauer.github.io/data_se/2024/01/29/numerical-similarity-of-some-bayes-and-classical-models/</link><pubDate>Mon, 29 Jan 2024 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2024/01/29/numerical-similarity-of-some-bayes-and-classical-models/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#bayes-and-frequentis" id="toc-bayes-and-frequentis">&lt;span class="toc-section-number">2.1&lt;/span> Bayes and Frequentis&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#technical-setup-for-bayes-analysis-provides-a-barrier" id="toc-technical-setup-for-bayes-analysis-provides-a-barrier">&lt;span class="toc-section-number">2.2&lt;/span> Technical setup for Bayes analysis provides a barrier&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#numerical-convergence-of-bayes-and-frequentist-approaches" id="toc-numerical-convergence-of-bayes-and-frequentist-approaches">&lt;span class="toc-section-number">3&lt;/span> Numerical convergence of Bayes and Frequentist approaches&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#example-1-mctcars" id="toc-example-1-mctcars">&lt;span class="toc-section-number">4&lt;/span> Example 1: &lt;code>mctcars&lt;/code>&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#frequentist-model" id="toc-frequentist-model">&lt;span class="toc-section-number">4.1&lt;/span> Frequentist model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#bayesian-numerically-equivalent-model" id="toc-bayesian-numerically-equivalent-model">&lt;span class="toc-section-number">4.2&lt;/span> Bayesian numerically equivalent model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusion" id="toc-conclusion">&lt;span class="toc-section-number">4.3&lt;/span> Conclusion&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#example-2-penguins" id="toc-example-2-penguins">&lt;span class="toc-section-number">5&lt;/span> Example 2: &lt;code>penguins&lt;/code>&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#frequentist-model-1" id="toc-frequentist-model-1">&lt;span class="toc-section-number">5.1&lt;/span> Frequentist model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#bayesian-numerically-equivalent-model-1" id="toc-bayesian-numerically-equivalent-model-1">&lt;span class="toc-section-number">5.2&lt;/span> Bayesian numerically equivalent model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusion-1" id="toc-conclusion-1">&lt;span class="toc-section-number">5.3&lt;/span> Conclusion&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#example-3-diamonds" id="toc-example-3-diamonds">&lt;span class="toc-section-number">6&lt;/span> Example 3: &lt;code>diamonds&lt;/code>&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#frequentist-model-2" id="toc-frequentist-model-2">&lt;span class="toc-section-number">6.1&lt;/span> Frequentist model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#bayesian-numerically-equivalent-model-2" id="toc-bayesian-numerically-equivalent-model-2">&lt;span class="toc-section-number">6.2&lt;/span> Bayesian numerically equivalent model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusion-2" id="toc-conclusion-2">&lt;span class="toc-section-number">6.3&lt;/span> Conclusion&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#caveats" id="toc-caveats">&lt;span class="toc-section-number">7&lt;/span> Caveats&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#concluding-remarks" id="toc-concluding-remarks">&lt;span class="toc-section-number">8&lt;/span> Concluding remarks&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#further-reading" id="toc-further-reading">&lt;span class="toc-section-number">9&lt;/span> Further reading&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">10&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(rstanarm) # Bayes modelling
+library(palmerpenguins) # data
+library(easystats) # unified API
+library(tictoc) # measure computation time&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;div id="bayes-and-frequentis" class="section level2" number="2.1">
+&lt;h2>&lt;span class="header-section-number">2.1&lt;/span> Bayes and Frequentis&lt;/h2>
+&lt;p>Bayes inference comforts its user with an interpretation that many practitioners seem to prefer (and to understand more quickly), ie., Bayes posterior distribution provides the probability of the hypothesis given the data at hand, &lt;span class="math inline">\(Pr(H|D)\)&lt;/span>. Classical Frequentist inference does not provide this probability, but rather the long-run probability of finding an at least as extreme empirical result, given that the Null hypothesis is true. This is all well-known.&lt;/p></description></item><item><title>Testing if return value is in tolerance</title><link>https://sebastiansauer.github.io/data_se/2023/12/13/test-if-return-value-is-in-tolerance2/</link><pubDate>Wed, 13 Dec 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/12/13/test-if-return-value-is-in-tolerance2/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#but-in-practice-how-large-is-the-difference" id="toc-but-in-practice-how-large-is-the-difference">&lt;span class="toc-section-number">3&lt;/span> But in practice, how large is the difference?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#check-if-in-tolerance-region" id="toc-check-if-in-tolerance-region">&lt;span class="toc-section-number">4&lt;/span> Check if in tolerance region&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#b0" id="toc-b0">&lt;span class="toc-section-number">4.1&lt;/span> b0&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#b1" id="toc-b1">&lt;span class="toc-section-number">4.2&lt;/span> b1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#r2" id="toc-r2">&lt;span class="toc-section-number">4.3&lt;/span> R2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#count" id="toc-count">&lt;span class="toc-section-number">4.4&lt;/span> Count&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#check-variability" id="toc-check-variability">&lt;span class="toc-section-number">5&lt;/span> Check variability&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusions" id="toc-conclusions">&lt;span class="toc-section-number">6&lt;/span> Conclusions&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">7&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(prada) # function &amp;quot;is_in_tolerance`
+library(rstanarm) # Bayes regression
+library(easystats) # R2 etc
+library(DataExplorer) # data vis
+library(tictoc)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>Bayes models (using MCMC) build on drawing random numbers.
+By their very nature, random numbers are random.
+Unless they are not.
+As you may know, the random number fuctions in computers are purely deterministic.&lt;/p></description></item><item><title>Estimating simulation variance in Stan models</title><link>https://sebastiansauer.github.io/data_se/2023/03/17/estimating-simulation-variance-in-stan-models/</link><pubDate>Fri, 17 Mar 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/03/17/estimating-simulation-variance-in-stan-models/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model" id="toc-model">&lt;span class="toc-section-number">3&lt;/span> Model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#workhorse-function" id="toc-workhorse-function">&lt;span class="toc-section-number">4&lt;/span> Workhorse function&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#function-for-summarizing-the-simulation-results" id="toc-function-for-summarizing-the-simulation-results">&lt;span class="toc-section-number">5&lt;/span> Function for summarizing the simulation results&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-mtcars" id="toc-dataset-mtcars">&lt;span class="toc-section-number">6&lt;/span> Dataset &lt;code>mtcars&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-msleep" id="toc-dataset-msleep">&lt;span class="toc-section-number">7&lt;/span> Dataset &lt;code>msleep&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-penguins" id="toc-dataset-penguins">&lt;span class="toc-section-number">8&lt;/span> Dataset &lt;code>penguins&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-tips" id="toc-dataset-tips">&lt;span class="toc-section-number">9&lt;/span> Dataset &lt;code>tips&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-gtcars" id="toc-dataset-gtcars">&lt;span class="toc-section-number">10&lt;/span> Dataset &lt;code>gtcars&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-boston" id="toc-dataset-boston">&lt;span class="toc-section-number">11&lt;/span> Dataset &lt;code>Boston&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-teachingratings" id="toc-dataset-teachingratings">&lt;span class="toc-section-number">12&lt;/span> Dataset &lt;code>TeachingRatings&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#results-overview" id="toc-results-overview">&lt;span class="toc-section-number">13&lt;/span> Results overview&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusion" id="toc-conclusion">&lt;span class="toc-section-number">14&lt;/span> Conclusion&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">15&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(rstanarm)
+library(gt)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>&lt;code>stan_glm()&lt;/code> allows for setting a seed value thereby eliminating the variance induced by random numbers.
+However, in case a seed is not used, how much variance is to be expected?
+This is the research question of this analysis.&lt;/p></description></item><item><title>Comparing Jamovi and rstanarm</title><link>https://sebastiansauer.github.io/data_se/2022/05/09/comparing-jamovi-and-rstanarm/</link><pubDate>Mon, 09 May 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/05/09/comparing-jamovi-and-rstanarm/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#data" id="toc-data">&lt;span class="toc-section-number">3&lt;/span> data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-1" id="toc-model-1">&lt;span class="toc-section-number">4&lt;/span> Model 1&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#rstanarm" id="toc-rstanarm">&lt;span class="toc-section-number">4.1&lt;/span> rstanarm&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#jamovi" id="toc-jamovi">&lt;span class="toc-section-number">4.2&lt;/span> Jamovi&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#model-2" id="toc-model-2">&lt;span class="toc-section-number">5&lt;/span> Model 2&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#rstanarm-1" id="toc-rstanarm-1">&lt;span class="toc-section-number">5.1&lt;/span> rstanarm&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#jamovi-1" id="toc-jamovi-1">&lt;span class="toc-section-number">5.2&lt;/span> Jamovi&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#interim-conclusion" id="toc-interim-conclusion">&lt;span class="toc-section-number">5.3&lt;/span> Interim conclusion&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">6&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>Let’s try to see how much the results of Jamovi (2.2.5) and rstanarm (2.21.1) converge.
+It’s probably difficult to say because the defaults are different,
+and it may not be straight forward to translate back and forth.&lt;/p></description></item><item><title>Bayes in fünf Minuten, für Fortgeschrittene</title><link>https://sebastiansauer.github.io/data_se/2022/01/28/bayes-in-f%C3%BCnf-minuten-f%C3%BCr-fortgeschrittene/</link><pubDate>Fri, 28 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/28/bayes-in-f%C3%BCnf-minuten-f%C3%BCr-fortgeschrittene/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/28/bayes-in-f%C3%BCnf-minuten-f%C3%BCr-fortgeschrittene/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="das-ist-wieder-ein-fünf-minuten-bayes-kurs" class="section level1">
+&lt;h1>Das ist wieder ein Fünf-Minuten-Bayes-Kurs&lt;/h1>
+&lt;p>Sie würden gerne Bayes lernen und dafür zwischen 1-3 Wochen Zeit investieren?
+Dann sind Sie hier falsch.
+Dieser Post zeigt einen Kurzüberblick in &lt;em>leicht fortgechrittenen&lt;/em> Bayes-Statistik in fünf Minuten.
+Naja, ich probiere es jedenfalls.&lt;/p>
+&lt;/div>
+&lt;div id="forschungsfrage" class="section level1">
+&lt;h1>Forschungsfrage&lt;/h1>
+&lt;p>Sagen wir, uns interessiert folgende Forschungsfrage, die mit Methoden der Inferenz-Statistik untersucht werden soll.
+In diesem Fall Bayes-Inferenz (nicht Frequentistische Statistik).&lt;/p>
+&lt;blockquote>
+&lt;p>Verbrauchen Autos mit Automatik-Getriebe im Durchschnitt mehr Sprit als Autos mit manuellem Getriebe?&lt;/p></description></item><item><title>Kurs "Bayes:Start"</title><link>https://sebastiansauer.github.io/data_se/2022/01/28/kurs-bayes-start/</link><pubDate>Fri, 28 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/28/kurs-bayes-start/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/28/kurs-bayes-start/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="bayes-lernen" class="section level1">
+&lt;h1>Bayes lernen&lt;/h1>
+&lt;p>Sie möchten (oder müssen) Bayes lernen?
+&lt;a href="https://sebastiansauer.github.io/bayes-start/">Hier&lt;/a> ist ein Kurs dazu.&lt;/p>
+&lt;p>Alle Materialien des Kurses sind frei verfügbar, können kostenfrei genutzt werden und sind quelloffen.&lt;/p>
+&lt;/div></description></item><item><title>Bayes in fünf Minuten</title><link>https://sebastiansauer.github.io/data_se/2022/01/27/bayes-in-f%C3%BCnf-minuten/</link><pubDate>Thu, 27 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/27/bayes-in-f%C3%BCnf-minuten/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/27/bayes-in-f%C3%BCnf-minuten/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="das-ist-ein-fünf-minuten-bayes-kurs" class="section level1">
+&lt;h1>Das ist ein Fünf-Minuten-Bayes-Kurs&lt;/h1>
+&lt;p>Sie würden gerne Bayes lernen und dafür zwischen 1-3 Wochen Zeit investieren?
+Dann sind Sie hier falsch.
+Dieser Post zeigt einen Kurzüberblick in Bayes-Statistik in fünf Minuten.
+Naja, ich probiere es jedenfalls.&lt;/p>
+&lt;/div>
+&lt;div id="forschungsfrage" class="section level1">
+&lt;h1>Forschungsfrage&lt;/h1>
+&lt;p>Sagen wir, uns interessiert folgende Forschungsfrage, die mit Methoden der Inferenz-Statistik untersucht werden soll.
+In diesem Fall Bayes-Inferenz (nicht Frequentistische Statistik).&lt;/p>
+&lt;blockquote>
+&lt;p>Verbrauchen Autos mit Automatik-Getriebe im Durchschnitt mehr Sprit als Autos mit manuellem Getriebe?&lt;/p></description></item><item><title>Warum Bayes anstelle von Frequentismus?</title><link>https://sebastiansauer.github.io/data_se/2022/01/27/warum-bayes/</link><pubDate>Thu, 27 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/27/warum-bayes/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/27/warum-bayes/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="plädoyer-pro-bayes" class="section level1">
+&lt;h1>Plädoyer pro Bayes&lt;/h1>
+&lt;p>Dieser Post ist ein Plädoyer, Bayes-Statistik in der Statistikausbildung und in der praktischen Forschung zu nutzen.
+Keines der hier vorgetragenen Argumente ist neu.
+Die Thematik ist schon 1000 Mal diskutiert worden und oft umfangreicher und systematischer,
+ja besser, als in diesem Post.
+Ich schreibe hier kurz meine Sichtweise zusammen und verweise auf weitere Liteatur.&lt;/p>
+&lt;/div>
+&lt;div id="bayes-inferenz-kenn-ich-nicht" class="section level1">
+&lt;h1>Bayes-Inferenz kenn ich nicht!&lt;/h1>
+&lt;p>Die klassische Statistikausbildung in den Sozialwissenschaften beinhaltet meist kein oder kaum Bayes.
+Das hat vermutlich zwei Gründe: Zum ersten haben es die Dozentis selber nicht gelernt.
+Zum zweiten gibt es erst seit wenigen Jahren komfortable Software (und genug Rechenpower).
+Kein Wunder also, dass Bayes weniger bekannt ist als die “klassische”,
+die sog. “Frequentistische” Statistik.&lt;/p></description></item><item><title>MAD SD und 1.483</title><link>https://sebastiansauer.github.io/data_se/2021/08/11/mad-sd-und-1-483/</link><pubDate>Wed, 11 Aug 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/08/11/mad-sd-und-1-483/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/08/11/mad-sd-und-1-483/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="setup" class="section level1">
+&lt;h1>Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(mosaic)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="sind-wir-nicht-alle-ein-bisschen-mad" class="section level1">
+&lt;h1>Sind wir nicht alle ein bisschen MAD?&lt;/h1>
+&lt;p>Der &lt;a href="https://en.wikipedia.org/wiki/Median_absolute_deviation">MAD&lt;/a> oder &lt;em>Median Absolute Deviation&lt;/em> ist eine robuste Kennzahl der Variabilität (eines quantitativen Merkmals).&lt;/p>
+&lt;/div>
+&lt;div id="definition-mad" class="section level1">
+&lt;h1>Definition MAD&lt;/h1>
+&lt;p>Seien &lt;span class="math inline">\(X_1, X_2, ..., X_n\)&lt;/span> die Beobachtungen einer Stichprobe zu einem Merkmal &lt;span class="math inline">\(X\)&lt;/span>.&lt;/p>
+&lt;p>Dann ist der MAD so definiert:&lt;/p>
+&lt;p>&lt;span class="math inline">\(\text {MAD} =\operatorname{median} (|X_{i}-{\tilde {X}}|)\)&lt;/span>.&lt;/p>
+&lt;p>Anders gesagt, der MAD ist der Median der Absolutwerte der Residuen.&lt;/p>
+&lt;/div>
+&lt;div id="robust" class="section level1">
+&lt;h1>Robust?&lt;/h1>
+&lt;p>&lt;a href="https://en.wikipedia.org/wiki/Robust_statistics">Robust&lt;/a> heißt kurz (und vereinfacht) gesagt, dass der Kennwert nicht (zu sehr) von Extremwerten beeinflusst wird.&lt;/p></description></item><item><title>Bayesian modeling of populist party success in German federal elections - A notebook from the lab</title><link>https://sebastiansauer.github.io/data_se/2018/08/25/bayesian-modeling-of-populist-party-success-in-german-federal-elections/</link><pubDate>Sat, 25 Aug 2018 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2018/08/25/bayesian-modeling-of-populist-party-success-in-german-federal-elections/</guid><description>&lt;p>Following up on an &lt;a href="https://data-se.netlify.com/2017/10/10/afd-map/">earlier post&lt;/a>, we will model the voting success of the (most prominent) populist party, AfD, in the recent federal elections. This time, Bayesian modeling techniques will be used, drawing on the &lt;a href="https://xcelab.net/rm/statistical-rethinking/">excellent textbook&lt;/a> my McElreath.&lt;/p>
 &lt;p>Note that this post is rather a notebook of my thinking, doing, and erring. I’ve made no efforts to hide scaffolding. I think it will be confusing to the uniniate and the initiate as well …&lt;/p></description></item></channel></rss>

@@ -1,4 +1,209 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Simulation on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/simulation/</link><description>Recent content in Simulation on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Wed, 22 Jul 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/simulation/index.xml" rel="self" type="application/rss+xml"/><item><title>Mean of the upper half of a Gaussian</title><link>https://sebastiansauer.github.io/data_se/2020/07/22/mean-of-the-upper-half-of-a-gaussian/</link><pubDate>Wed, 22 Jul 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/07/22/mean-of-the-upper-half-of-a-gaussian/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/header-attrs/header-attrs.js">&lt;/script>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Simulation on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/simulation/</link><description>Recent content in Simulation on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Mon, 29 Jan 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/simulation/index.xml" rel="self" type="application/rss+xml"/><item><title>Simulating multiple event collision</title><link>https://sebastiansauer.github.io/data_se/2024/01/29/simulating-multiple-event-collision/</link><pubDate>Mon, 29 Jan 2024 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2024/01/29/simulating-multiple-event-collision/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">1&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#setup" id="toc-setup">&lt;span class="toc-section-number">2&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#constantsparameters" id="toc-constantsparameters">&lt;span class="toc-section-number">3&lt;/span> Constants/Parameters&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model" id="toc-model">&lt;span class="toc-section-number">4&lt;/span> Model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#some-assumptions" id="toc-some-assumptions">&lt;span class="toc-section-number">5&lt;/span> Some Assumptions&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#example" id="toc-example">&lt;span class="toc-section-number">6&lt;/span> Example&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#analytical-approach" id="toc-analytical-approach">&lt;span class="toc-section-number">7&lt;/span> Analytical approach&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#limiting-to-picking-1-option" id="toc-limiting-to-picking-1-option">&lt;span class="toc-section-number">7.1&lt;/span> Limiting to picking 1 option&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#generalizing-to-picking-p-options" id="toc-generalizing-to-picking-p-options">&lt;span class="toc-section-number">7.2&lt;/span> Generalizing to picking &lt;span class="math inline">\(p\)&lt;/span> options&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#monte-carlo-as-an-alternative" id="toc-monte-carlo-as-an-alternative">&lt;span class="toc-section-number">8&lt;/span> Monte Carlo as an alternative&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#setup-1" id="toc-setup-1">&lt;span class="toc-section-number">8.1&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#test" id="toc-test">&lt;span class="toc-section-number">8.2&lt;/span> Test&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#modelling-without-dependency" id="toc-modelling-without-dependency">&lt;span class="toc-section-number">9&lt;/span> Modelling without dependency&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#examples" id="toc-examples">&lt;span class="toc-section-number">9.1&lt;/span> Examples&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#sampling-distribution" id="toc-sampling-distribution">&lt;span class="toc-section-number">9.2&lt;/span> Sampling distribution&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#o10-make-a-matching-more-probable" id="toc-o10-make-a-matching-more-probable">&lt;span class="toc-section-number">9.3&lt;/span> o=10; Make a matching more probable&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#o5-make-a-matching-highly-probable" id="toc-o5-make-a-matching-highly-probable">&lt;span class="toc-section-number">9.4&lt;/span> o=5; Make a matching highly probable&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#grid-of-different-parameter-values" id="toc-grid-of-different-parameter-values">&lt;span class="toc-section-number">9.5&lt;/span> Grid of different parameter values&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#populate-grid" id="toc-populate-grid">&lt;span class="toc-section-number">9.6&lt;/span> Populate grid&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualize-grid-1" id="toc-visualize-grid-1">&lt;span class="toc-section-number">9.7&lt;/span> Visualize grid 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualize-grid-2" id="toc-visualize-grid-2">&lt;span class="toc-section-number">9.8&lt;/span> Visualize grid 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#caveats" id="toc-caveats">&lt;span class="toc-section-number">9.9&lt;/span> Caveats&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusion" id="toc-conclusion">&lt;span class="toc-section-number">9.10&lt;/span> Conclusion&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#introducing-dependency-between-colleagues" id="toc-introducing-dependency-between-colleagues">&lt;span class="toc-section-number">10&lt;/span> Introducing dependency between colleagues&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#some-notation" id="toc-some-notation">&lt;span class="toc-section-number">10.1&lt;/span> Some notation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reallocating-probability" id="toc-reallocating-probability">&lt;span class="toc-section-number">10.2&lt;/span> Reallocating probability&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#function-for-reallocating-probability" id="toc-function-for-reallocating-probability">&lt;span class="toc-section-number">10.3&lt;/span> Function for reallocating probability&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#examples-with-dependency" id="toc-examples-with-dependency">&lt;span class="toc-section-number">10.4&lt;/span> Examples with dependency&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#grid-of-different-parameter-values-1" id="toc-grid-of-different-parameter-values-1">&lt;span class="toc-section-number">10.5&lt;/span> Grid of different parameter values&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#populate-grid-with-depedency" id="toc-populate-grid-with-depedency">&lt;span class="toc-section-number">10.6&lt;/span> Populate grid with depedency&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vis-grid" id="toc-vis-grid">&lt;span class="toc-section-number">10.7&lt;/span> Vis grid&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">11&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="motivation" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Motivation&lt;/h1>
+&lt;p>Have you ever tried to find a time slot for a meeting using a tool such as “&lt;a href="https://doodle.com/en/">Doodle&lt;/a>”?&lt;/p></description></item><item><title>Testing if return value is in tolerance</title><link>https://sebastiansauer.github.io/data_se/2023/12/13/test-if-return-value-is-in-tolerance2/</link><pubDate>Wed, 13 Dec 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/12/13/test-if-return-value-is-in-tolerance2/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#but-in-practice-how-large-is-the-difference" id="toc-but-in-practice-how-large-is-the-difference">&lt;span class="toc-section-number">3&lt;/span> But in practice, how large is the difference?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#check-if-in-tolerance-region" id="toc-check-if-in-tolerance-region">&lt;span class="toc-section-number">4&lt;/span> Check if in tolerance region&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#b0" id="toc-b0">&lt;span class="toc-section-number">4.1&lt;/span> b0&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#b1" id="toc-b1">&lt;span class="toc-section-number">4.2&lt;/span> b1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#r2" id="toc-r2">&lt;span class="toc-section-number">4.3&lt;/span> R2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#count" id="toc-count">&lt;span class="toc-section-number">4.4&lt;/span> Count&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#check-variability" id="toc-check-variability">&lt;span class="toc-section-number">5&lt;/span> Check variability&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusions" id="toc-conclusions">&lt;span class="toc-section-number">6&lt;/span> Conclusions&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">7&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(prada) # function &amp;quot;is_in_tolerance`
+library(rstanarm) # Bayes regression
+library(easystats) # R2 etc
+library(DataExplorer) # data vis
+library(tictoc)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>Bayes models (using MCMC) build on drawing random numbers.
+By their very nature, random numbers are random.
+Unless they are not.
+As you may know, the random number fuctions in computers are purely deterministic.&lt;/p></description></item><item><title>Estimating simulation variance in Stan models</title><link>https://sebastiansauer.github.io/data_se/2023/03/17/estimating-simulation-variance-in-stan-models/</link><pubDate>Fri, 17 Mar 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/03/17/estimating-simulation-variance-in-stan-models/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model" id="toc-model">&lt;span class="toc-section-number">3&lt;/span> Model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#workhorse-function" id="toc-workhorse-function">&lt;span class="toc-section-number">4&lt;/span> Workhorse function&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#function-for-summarizing-the-simulation-results" id="toc-function-for-summarizing-the-simulation-results">&lt;span class="toc-section-number">5&lt;/span> Function for summarizing the simulation results&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-mtcars" id="toc-dataset-mtcars">&lt;span class="toc-section-number">6&lt;/span> Dataset &lt;code>mtcars&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-msleep" id="toc-dataset-msleep">&lt;span class="toc-section-number">7&lt;/span> Dataset &lt;code>msleep&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-penguins" id="toc-dataset-penguins">&lt;span class="toc-section-number">8&lt;/span> Dataset &lt;code>penguins&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-tips" id="toc-dataset-tips">&lt;span class="toc-section-number">9&lt;/span> Dataset &lt;code>tips&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-gtcars" id="toc-dataset-gtcars">&lt;span class="toc-section-number">10&lt;/span> Dataset &lt;code>gtcars&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-boston" id="toc-dataset-boston">&lt;span class="toc-section-number">11&lt;/span> Dataset &lt;code>Boston&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#dataset-teachingratings" id="toc-dataset-teachingratings">&lt;span class="toc-section-number">12&lt;/span> Dataset &lt;code>TeachingRatings&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#results-overview" id="toc-results-overview">&lt;span class="toc-section-number">13&lt;/span> Results overview&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusion" id="toc-conclusion">&lt;span class="toc-section-number">14&lt;/span> Conclusion&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">15&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(rstanarm)
+library(gt)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>&lt;code>stan_glm()&lt;/code> allows for setting a seed value thereby eliminating the variance induced by random numbers.
+However, in case a seed is not used, how much variance is to be expected?
+This is the research question of this analysis.&lt;/p></description></item><item><title>Consistency of set.seed across different systems</title><link>https://sebastiansauer.github.io/data_se/2022/12/13/consistency-of-set-seed-across-different-systems/</link><pubDate>Tue, 13 Dec 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/12/13/consistency-of-set-seed-across-different-systems/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#user-error" id="toc-user-error">&lt;span class="toc-section-number">3&lt;/span> User error&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#your-help-needed" id="toc-your-help-needed">&lt;span class="toc-section-number">4&lt;/span> Your help needed&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#same-random-numbers" id="toc-same-random-numbers">&lt;span class="toc-section-number">5&lt;/span> Same random numbers&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#without-seed" id="toc-without-seed">&lt;span class="toc-section-number">5.1&lt;/span> Without seed&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#with-seed" id="toc-with-seed">&lt;span class="toc-section-number">5.2&lt;/span> With seed&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#using-a-hash" id="toc-using-a-hash">&lt;span class="toc-section-number">5.3&lt;/span> Using a hash&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#seeds-in-regression-models" id="toc-seeds-in-regression-models">&lt;span class="toc-section-number">6&lt;/span> Seeds in regression models&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#lm" id="toc-lm">&lt;span class="toc-section-number">6.1&lt;/span> lm&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#stan-mtcars" id="toc-stan-mtcars">&lt;span class="toc-section-number">6.2&lt;/span> Stan mtcars&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#stan-penguins" id="toc-stan-penguins">&lt;span class="toc-section-number">6.3&lt;/span> Stan penguins&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#session-info" id="toc-session-info">&lt;span class="toc-section-number">7&lt;/span> Session info&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(digest)
+library(rstanarm)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>Reproducibility of results is a major concern in science and industry alike.
+However, there are numerous pitfalls which may threaten reproducibility.
+This post explores one possible issue - the fixation of start values of random numbers drawn by R.&lt;/p></description></item><item><title>Simulation sample and interval sizes for proportions</title><link>https://sebastiansauer.github.io/data_se/2021/09/16/simulation-sample-and-interval-sizes-for-proportions/</link><pubDate>Thu, 16 Sep 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/09/16/simulation-sample-and-interval-sizes-for-proportions/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/09/16/simulation-sample-and-interval-sizes-for-proportions/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#exemplary-research-question">&lt;span class="toc-section-number">1&lt;/span> Exemplary Research question&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#task-definition">&lt;span class="toc-section-number">2&lt;/span> Task definition&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#technical-setup">&lt;span class="toc-section-number">3&lt;/span> Technical setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-constants">&lt;span class="toc-section-number">4&lt;/span> Define constants&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#prepare-data-frame-for-the-simulation">&lt;span class="toc-section-number">5&lt;/span> Prepare data frame for the simulation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#simulation">&lt;span class="toc-section-number">6&lt;/span> Simulation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#check-some-distributions">&lt;span class="toc-section-number">7&lt;/span> Check some distributions&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#minimum-sample-size">&lt;span class="toc-section-number">8&lt;/span> Minimum sample size&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#plot-results">&lt;span class="toc-section-number">9&lt;/span> Plot results&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#summary">&lt;span class="toc-section-number">10&lt;/span> Summary&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#discussion">&lt;span class="toc-section-number">11&lt;/span> Discussion&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#suggested-reading">&lt;span class="toc-section-number">12&lt;/span> Suggested reading&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#bibliography">Bibliography&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="exemplary-research-question" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Exemplary Research question&lt;/h1>
+&lt;p>What is the sample size needed to estimate the proportion of the event “high quality study” with an error margin of ±5%, and a confidence level of 99%? Let’s assume the probability of the event is 50%, and we draw the studies independently?&lt;/p></description></item><item><title>Estimating population effect size, some thoughts</title><link>https://sebastiansauer.github.io/data_se/2021/03/04/estimating-population-effect-size-some-thoughts/</link><pubDate>Thu, 04 Mar 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/03/04/estimating-population-effect-size-some-thoughts/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/03/04/estimating-population-effect-size-some-thoughts/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#true-value-of-the-parameter">&lt;span class="toc-section-number">3&lt;/span> True value of the parameter&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#drawing-samples">&lt;span class="toc-section-number">4&lt;/span> Drawing samples&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-some-constants">&lt;span class="toc-section-number">5&lt;/span> Define some constants&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#simulating-samples">&lt;span class="toc-section-number">6&lt;/span> Simulating samples&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#summayfunction-to-compute-sample-statistics">&lt;span class="toc-section-number">6.1&lt;/span> SummayFunction to compute sample statistics&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#run-the-function-multiple-k-times">&lt;span class="toc-section-number">6.2&lt;/span> Run the function multiple (&lt;span class="math inline">\(k\)&lt;/span>) times&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#run-the-summary-function-k-times-for-all-sample-sizes">&lt;span class="toc-section-number">6.3&lt;/span> Run the summary function &lt;span class="math inline">\(k\)&lt;/span> times for all sample sizes&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#plot-the-results">&lt;span class="toc-section-number">7&lt;/span> Plot the results&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#estimated-population-mean">&lt;span class="toc-section-number">7.1&lt;/span> Estimated population mean&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#width-of-the-ci">&lt;span class="toc-section-number">7.2&lt;/span> Width of the CI&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#summarise-the-results">&lt;span class="toc-section-number">8&lt;/span> Summarise the results&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#compute-summaries-per-sample-size">&lt;span class="toc-section-number">8.1&lt;/span> Compute summaries per sample size&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#plot-the-summarized-results">&lt;span class="toc-section-number">8.2&lt;/span> Plot the (summarized) results&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#conclusions">&lt;span class="toc-section-number">9&lt;/span> Conclusions&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#small-sample-may-suffice">&lt;span class="toc-section-number">9.1&lt;/span> Small sample may suffice&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#situations-in-which-small-samples-will-not-suffice">&lt;span class="toc-section-number">9.2&lt;/span> Situations in which small samples will not suffice&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">10&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>In some sense, science is about estimating the effect sizes in a population, such as &lt;span class="math inline">\(\mu\)&lt;/span>. In the most basic form, perhaps, the question is nothing more than whether &lt;span class="math inline">\(\mu=0\)&lt;/span> or not.&lt;/p></description></item><item><title>Mean of the upper half of a Gaussian</title><link>https://sebastiansauer.github.io/data_se/2020/07/22/mean-of-the-upper-half-of-a-gaussian/</link><pubDate>Wed, 22 Jul 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/07/22/mean-of-the-upper-half-of-a-gaussian/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/header-attrs/header-attrs.js">&lt;/script>
 
 
 &lt;div id="load-packages" class="section level1">

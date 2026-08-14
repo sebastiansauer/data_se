@@ -1,0 +1,48 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>tidyeval, some musings on dplyr::filter - Data Se</title>
+<meta property="og:title" content="tidyeval, some musings on dplyr::filter - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>4 min read</span><h1 class=article-title>tidyeval, some musings on dplyr::filter</h1><span class=article-date>2022/02/09</span><div class=article-content><script src="/data_se/2022/02/09/tidyeval-some-musings-on-dplyr-filter/
+index_files/header-attrs/header-attrs.js"></script><div id=programming-with-the-tidyverse class="section level1"><h1>Programming with the tidyverse</h1><p>… Is not exactly self-evident. It actually requires some head wrapping, at
+least in my experience.
+In this post, we are exploring some aspects on programming when filtering rows.
+Let’s see.</p></div><div id=setup class="section level1"><h1>Setup</h1><pre class=r><code>library(tidyverse)</code></pre></div><div id=some-filtering-chunk class="section level1"><h1>Some filtering chunk</h1><p>Let’s say we would like to filter observations according to some variable and a given threshold in some data set:</p><pre class=r><code>mtcars %&gt;% 
+  filter(hp &gt; 200)</code></pre><pre><code>##                      mpg cyl disp  hp drat    wt  qsec vs am gear carb
+## Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3    4
+## Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3    4
+## Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3    4
+## Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3    4
+## Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3    4
+## Ford Pantera L      15.8   8  351 264 4.22 3.170 14.50  0  1    5    4
+## Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8</code></pre><p>Of course, that’s a toy problem, but for the sake of the tidyverse programming thing,
+it may be a helpful start to keep things straight.</p><p>Now, say, instead of <code>200</code>, we abstract it to <code>threshold</code>, a variable giving the filter value:</p><pre class=r><code>threshold &lt;- 200
+
+mtcars %&gt;% 
+  filter(hp &gt; threshold)</code></pre><pre><code>##                      mpg cyl disp  hp drat    wt  qsec vs am gear carb
+## Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3    4
+## Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3    4
+## Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3    4
+## Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3    4
+## Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3    4
+## Ford Pantera L      15.8   8  351 264 4.22 3.170 14.50  0  1    5    4
+## Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8</code></pre><p>Works! So <code>filter</code> is able to digest a variable, at least at the right hand side of the filter expression.</p></div><div id=now-lets-abstract-it-to-a-function class="section level1"><h1>Now let’s abstract it to a function</h1><pre class=r><code>filter_fun &lt;- function(data, threshold){
+  
+  data %&gt;% 
+    filter(hp &gt; threshold)
+}</code></pre><p>Let’s try it:</p><pre class=r><code>filter_fun(mtcars, 200)</code></pre><pre><code>##                      mpg cyl disp  hp drat    wt  qsec vs am gear carb
+## Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3    4
+## Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3    4
+## Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3    4
+## Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3    4
+## Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3    4
+## Ford Pantera L      15.8   8  351 264 4.22 3.170 14.50  0  1    5    4
+## Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8</code></pre><p>Works!</p></div><div id=actract-variable-to-be-filtered class="section level1"><h1>Actract variable to be filtered</h1><pre class=r><code>filter_fun &lt;- function(data, col, threshold){
+  
+  data %&gt;% 
+    filter({{col}} &gt; threshold)
+}</code></pre><p>Let’s try it:</p><pre class=r><code>filter_fun(mtcars, hp, 200)</code></pre><pre><code>##                      mpg cyl disp  hp drat    wt  qsec vs am gear carb
+## Duster 360          14.3   8  360 245 3.21 3.570 15.84  0  0    3    4
+## Cadillac Fleetwood  10.4   8  472 205 2.93 5.250 17.98  0  0    3    4
+## Lincoln Continental 10.4   8  460 215 3.00 5.424 17.82  0  0    3    4
+## Chrysler Imperial   14.7   8  440 230 3.23 5.345 17.42  0  0    3    4
+## Camaro Z28          13.3   8  350 245 3.73 3.840 15.41  0  0    3    4
+## Ford Pantera L      15.8   8  351 264 4.22 3.170 14.50  0  1    5    4
+## Maserati Bora       15.0   8  301 335 3.54 3.570 14.60  0  1    5    8</code></pre><p>Works!</p><p>We can make use of the “curly curly” operator as in <code>{{col}}</code> to explain to the tidyverse function
+that what now comes is a variable, and <em>not</em> a column name in the present data frame.</p></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script></body></html>

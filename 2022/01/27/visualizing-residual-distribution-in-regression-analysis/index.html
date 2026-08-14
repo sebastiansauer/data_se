@@ -1,0 +1,73 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Visualizing error distribution in regression analysis - Data Se</title>
+<meta property="og:title" content="Visualizing error distribution in regression analysis - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>3 min read</span><h1 class=article-title>Visualizing error distribution in regression analysis</h1><span class=article-date>2022/01/27</span><div class=article-content><script src="/data_se/2022/01/27/visualizing-residual-distribution-in-regression-analysis/
+index_files/header-attrs/header-attrs.js"></script><div id=errors-and-residuals-in-regression class="section level1"><h1>Errors and residuals in Regression</h1><p>A residual is defined as</p><p><span class="math inline">\(r_i = y_i - X_i \hat{\beta}\)</span>.</p><p>That is, a residual is a tangible thing in the sense that it describes observables (cf. Gelman 2021, chap. 11.3, p. 161).
+That is, the residuals are the difference between observed and predicted values.</p><p>In contrast, the error term is defined as the difference between the observed value and the true (unobserved) value:</p><p><span class="math inline">\(e_i = y_i - X_i \beta\)</span>.</p><p>The residuals can be thought of as estimates of the errors <a href=https://stats.stackexchange.com/questions/133389/what-is-the-difference-between-errors-and-residuals>source</a>.</p><p>(Also see <a href=https://stackoverflow.com/questions/56754560/what-is-the-exact-difference-between-error-and-residual>this</a>).</p><p>Frequently, it is assumed that the errors are distributed normally.</p><p>Let’s visualize error terms assuming normality.</p></div><div id=setup class="section level1"><h1>Setup</h1><pre class=r><code>data(mtcars)
+library(tidyverse)
+library(glue)</code></pre></div><div id=illustrative-data-set class="section level1"><h1>Illustrative data set</h1><p>Let’s say we’d like to illustrate the errors for this regression:</p><pre class=r><code>mtcars &lt;-
+  mtcars %&gt;% 
+  mutate(hp_z = (hp - mean(hp)) / sd(hp))</code></pre><p>Any NAs?</p><pre class=r><code>mtcars %&gt;% 
+  summarise(sum(is.na(hp_z)))</code></pre><pre><code>##   sum(is.na(hp_z))
+## 1                0</code></pre><p>No.</p><pre class=r><code>lm1 &lt;- lm(mpg ~ hp_z, data = mtcars)
+coef(lm1)</code></pre><pre><code>## (Intercept)        hp_z 
+##   20.090625   -4.677926</code></pre><p>Define some constants:</p><pre class=r><code>z &lt;- 3  # go until 3 sd&#39;s away from the mean
+avg &lt;- 0  # mean value
+sigma &lt;- sigma(lm1)
+b0 &lt;- coef(lm1)[1]
+b1 &lt;- coef(lm1)[2]</code></pre><pre class=r><code>preds &lt;- c(
+    predict(lm1, data.frame(hp_z = 0)) ,
+    predict(lm1, data.frame(hp_z = 1)) 
+)
+
+p1 &lt;- 
+  mtcars %&gt;% 
+  ggplot() +
+  aes(x = hp_z, y = mpg) +
+  geom_point() +
+  geom_abline(slope = b1, intercept = b0, color = &quot;blue&quot;) +
+  annotate(&quot;point&quot;, x = 0, y = predict(lm1, data.frame(hp_z = 0)),
+           color = &quot;red&quot;, size = 5, alpha = .7) +
+  annotate(&quot;point&quot;, x = 1, y = predict(lm1, data.frame(hp_z = 1)),
+           color = &quot;red&quot;, size = 5, alpha = .7) +
+  ylim(0, 30)
+
+p1</code></pre><p><img src=chunk-img/unnamed-chunk-6-1.png width=100% style=display:block;margin:auto></p></div><div id=lets-visualize-errors class="section level1"><h1>Let’s visualize errors</h1><p>Here’s a vector holding the densities of a normal along with the x-values:</p><pre class=r><code>d &lt;-
+  tibble(
+  x = seq(-z*sigma, z*sigma, length.out = 100),
+  y = dnorm(x, mean = avg, sd = sigma)
+)</code></pre><p>Let’s plot that:</p><pre class=r><code>ggplot(d) +
+  aes(x = x, y = y) +
+  geom_line()</code></pre><p><img src=chunk-img/unnamed-chunk-8-1.png width=100% style=display:block;margin:auto></p><p>In all its glory.</p><p>But not what we wanted.</p></div><div id=put-it-in-a-function class="section level1"><h1>Put it in a function</h1><pre class=r><code>vertical_dnorm &lt;- function(predictor_value, mod, pred_y, k = 2){
+  
+  sigma_mod &lt;- sigma(mod)
+  #predictor_name &lt;- coef(lm1)[2] %&gt;% names()
+  
+  
+  out &lt;-
+    tibble(
+      y = seq(-k*sigma, k*sigma, length.out = 100),
+      x = dnorm(y, mean = 0, sd = sigma_mod)
+    ) %&gt;% 
+    mutate(x = x + predictor_value,
+           y = y + pred_y)
+  
+  return(out)
+  
+}</code></pre><p>We have not standardized the height of the normal curve in the plot.
+The normal curve of the errors should appear equally heigh,
+no matter what the scale of the x axis is.
+Let’s take care of that some other time.</p><pre class=r><code>#debug(vertical_dnorm)
+d1 &lt;- vertical_dnorm(predictor_value = 0, mod = lm1, pred_y = predict(lm1, tibble(hp_z = 0))) 
+d2 &lt;- vertical_dnorm(predictor_value = -2, mod = lm1, pred_y = predict(lm1, tibble(hp_z = -2))) 
+d3 &lt;- vertical_dnorm(predictor_value = 2, mod = lm1, pred_y = predict(lm1, tibble(hp_z = 2))) </code></pre><pre class=r><code>head(d)</code></pre><pre><code>## # A tibble: 6 × 2
+##       x       y
+##   &lt;dbl&gt;   &lt;dbl&gt;
+## 1 -11.6 0.00115
+## 2 -11.4 0.00137
+## 3 -11.1 0.00164
+## 4 -10.9 0.00195
+## 5 -10.7 0.00231
+## 6 -10.4 0.00272</code></pre><pre class=r><code>p1 +
+  geom_path(data = d1, aes(x,y)) +
+  geom_path(data = d2, aes(x,y)) +
+  geom_path(data = d3, aes(x,y)) </code></pre><p><img src=chunk-img/unnamed-chunk-12-1.png width=100% style=display:block;margin:auto></p><p>Yeah.</p><p>The sigmas look quite wide though.
+Let’s check:</p><pre class=r><code>sigma(lm1)</code></pre><pre><code>## [1] 3.862962</code></pre><p>Ok, the plot appears reasonable.</p></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>

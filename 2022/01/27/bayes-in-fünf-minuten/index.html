@@ -1,0 +1,55 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Bayes in fünf Minuten - Data Se</title>
+<meta property="og:title" content="Bayes in fünf Minuten - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>4 min read</span><h1 class=article-title>Bayes in fünf Minuten</h1><span class=article-date>2022/01/27</span><div class=article-content><script src="/data_se/2022/01/27/bayes-in-f%C3%BCnf-minuten/
+index_files/header-attrs/header-attrs.js"></script><div id=das-ist-ein-fünf-minuten-bayes-kurs class="section level1"><h1>Das ist ein Fünf-Minuten-Bayes-Kurs</h1><p>Sie würden gerne Bayes lernen und dafür zwischen 1-3 Wochen Zeit investieren?
+Dann sind Sie hier falsch.
+Dieser Post zeigt einen Kurzüberblick in Bayes-Statistik in fünf Minuten.
+Naja, ich probiere es jedenfalls.</p></div><div id=forschungsfrage class="section level1"><h1>Forschungsfrage</h1><p>Sagen wir, uns interessiert folgende Forschungsfrage, die mit Methoden der Inferenz-Statistik untersucht werden soll.
+In diesem Fall Bayes-Inferenz (nicht Frequentistische Statistik).</p><blockquote><p>Verbrauchen Autos mit Automatik-Getriebe im Durchschnitt mehr Sprit als Autos mit manuellem Getriebe?</p></blockquote><ul><li>AV: mpg (miles per gallone)</li><li>UV: am (automatic vs. manual)</li></ul><p>Die AV ist metrisch. Die UV ist binär. Wir vergleichen also zwei Gruppen,
+das ist ähnlich zum t-Test.</p></div><div id=vorbereitung class="section level1"><h1>Vorbereitung</h1><pre class=r><code>data(&quot;mtcars&quot;)  # Datensatz laden
+library(rstanarm)  # Funktionen für Bayes-Statistik laden
+library(tidyverse)  # Für Datenjudo</code></pre><p>Der Datensatz <code>mtcars</code> ist “fest eingebaut” in R, so dass wir ihn nicht irgendwo herunterladen müssen.</p><p>Hilfe zum Datensatz bekommt man so:</p><pre class=r><code>help(mtcars) # Hilfe/Codebook zum Datensatz 
+# Output hier nicht dargestellt</code></pre></div><div id=visualisierung class="section level1"><h1>Visualisierung</h1><p>Zwar nicht Gegenstand dieses Posts,
+aber hilfreich,
+daher hier nur kurz ein Bild ohne Syntax:</p><p><img src=chunk-img/unnamed-chunk-4-1.png width=100% style=display:block;margin:auto></p><p>Jeder (leicht verwackelte) Punkt stellt ein Auto dar.
+Die Line ist die Regressionsgerade.
+Die roten Punkte sind die Mittelwerte der beiden Gruppen.</p></div><div id=zur-interpretation-der-regression class="section level1"><h1>Zur Interpretation der Regression</h1><p>Die einfache Regression (also mit nur einer UV) hat zwei Koeffizienten:
+Achsenabschnitt und Steigung.</p><p>Bei einer binären (zweistufigen) UV bedeutet das:</p><ul><li>Der Achsenabschnitt zeigt den vorhergesagten Wert (der Mittelwert) der 1. Gruppe.</li><li>Die Steigung zeigt den (vorhergesagten) Unterschied der zweiten Gruppe (im Vergleich zur 1. Gruppe).</li></ul><p>Der vorhergesagte Wert der zweiten Gruppe ergibt sich also als Summe von Achsenabschnitt plus Steigung.</p></div><div id=modell-berechnen class="section level1"><h1>Modell berechnen</h1><p>Nutzen wir das allgemeine (oder verallgemeinerte) lineare Modell,
+um unsere Forschungsfrage zu beantworten.
+Anders gesagt: Wir berechnen einen Regression.
+Das schöne an einer Regression ist,
+sie passt<a href=#fn1 class=footnote-ref id=fnref1><sup>1</sup></a> auf die meisten Probleme,
+so ähnlich wie ein Schweizer Taschenmesser.</p><pre class=r><code>m1 &lt;- stan_glm(mpg ~ am, data = mtcars)</code></pre><p>Schön oder: Die Syntax von <code>stan_glm()</code> entspricht der Syntax von <code>lm()</code>.</p></div><div id=unterschied-zwischen-den-zwei-gruppen class="section level1"><h1>Unterschied zwischen den zwei Gruppen</h1><pre class=r><code>coef(m1)</code></pre><pre><code>## (Intercept)          am 
+##    17.14117     7.23137</code></pre><p>Was wir bekommen,
+sind Punktschätzer für die Population:</p><p>Der Achsenabschnitt wird auf ca. 17 geschätzt.
+Die Steigung (Unterschied zwischen den Gruppen) wird auf ca. 7 geschätzt.</p></div><div id=aber-ist-der-unterschied-zwischen-den-gruppen-signifikant class="section level1"><h1>Aber ist der Unterschied zwischen den Gruppen “signifikant”?</h1><p>In Bayes gibt es das Wort “signifikant” nicht.
+Formulieren wir die Frage doch so um:</p><blockquote><p>Liegt der Wert “Null” innerhalb oder außerhalb des 90%-Konfidenzintervalls (KI)?</p></blockquote><pre class=r><code>posterior_interval(m1)</code></pre><pre><code>##                    5%       95%
+## (Intercept) 15.254335 19.033602
+## am           4.272263 10.316920
+## sigma        4.083712  6.269345</code></pre><p>Das 90%-KI wird auf den Bereich von ca. 4 bis 10 geschätzt.
+Die Null liegt <em>nicht</em> in diesem Intervall.</p><p>Folglich verwerfen wir die Nullhypothese.</p></div><div id=ich-hätte-aber-lieber-ein-89-oder-ein-95-ki class="section level1"><h1>Ich hätte aber lieber ein 89% oder ein 95%-KI!</h1><p>Also gut…</p><pre class=r><code>posterior_interval(m1, prob = .89)  # oder auch prob = .95 etc.</code></pre><pre><code>##                  5.5%     94.5%
+## (Intercept) 15.308339 18.980810
+## am           4.360551 10.214754
+## sigma        4.101605  6.228754</code></pre></div><div id=warum-eigentlich-89 class="section level1"><h1>Warum eigentlich 89%?</h1><p>Richard McElreath begründet die 89 so: Es ist die kleinste Primzahl kleiner als 95.
+Noch Fragen? 😄</p></div><div id=mit-welcher-wahrscheinlichkeit-ist-der-unterschied-größer-als-null class="section level1"><h1>Mit welcher Wahrscheinlichkeit ist der Unterschied größer als Null?</h1><p>Eine interessante Variante der Forschungsfrage ist zu fragen,
+mit welcher Wahrscheinlichkeit - basierend auf den Daten und dem Modell -
+man mit einem Unterschied größer als Null zwischen Gruppen rechnen kann?</p><p>Wandeln wir das Modellobjekt in eine Tabelle um:</p><pre class=r><code>m1_stipros &lt;-
+  m1 %&gt;% 
+  as_tibble()   # Modellergebnis m1 in Tabelle (tibble) umwandeln</code></pre><pre><code>## # A tibble: 4,000 × 3
+##    `(Intercept)`    am sigma
+##            &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+##  1          15.8  8.25  4.56
+##  2          18.9  5.32  5.23
+##  3          15.7  8.23  4.10
+##  4          15.7  8.76  4.54
+##  5          16.0  9.43  4.82
+##  6          18.6  4.69  5.04
+##  7          15.3  9.21  4.97
+##  8          16.8  8.39  5.03
+##  9          16.2  8.17  3.66
+## 10          17.2  7.06  5.04
+## # … with 3,990 more rows</code></pre><p>Wie man sieht,
+findet das Modell in allen 4000 Stichproben (4000 ist der Defaultwert)
+einen Unterschied größer Null.</p><p>Wir resümieren also:</p><blockquote><p>Laut Modell beträgt die Wahrscheinlichkeit praktisch 100%, dass wir einen Unterschied größer Null zwischen den Gruppenmittelwerten finden.</p></blockquote></div><div id=fertig class="section level1"><h1>Fertig</h1><p>Ich fasse zusammen. Wir haben gerade Bayes-Statistik betrieben.
+Und zwar haben wir ein einfaches Regressionsmodell, analog zum t-Test, berechnet.
+Dann haben wir ein Bayes-Analog zur Nullhypothese und zum Konfidenzintervall uns ausgeben lassen.</p></div><div id=interpretation-der-ergebnisse class="section level1"><h1>Interpretation der Ergebnisse</h1><p>Im Frequentismus sind die zentralen Statistiken schwierig zu interpretieren.</p><p>In der Bayes-Statistik ist es einfach.
+Wir können sagen, dass (laut Modell!) der (mittlere) Gruppenunterschie mit 90% Wahrscheinlichkeit zwischen 4 und 10 Gallonen Sprit liegt.</p></div><div class="footnotes footnotes-end-of-document"><hr><ol><li id=fn1><p>Oft ist sie nur eine Näherung und manchmal eine schlechte, aber man kann erstaunlich viel mit der Regression machen, auch nicht-lineare wie polynombasierte oder exponentielle Zusammenhänge modellieren.<a href=#fnref1 class=footnote-back>↩︎</a></p></li></ol></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script></body></html>

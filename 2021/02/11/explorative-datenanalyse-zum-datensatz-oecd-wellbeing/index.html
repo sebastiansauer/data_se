@@ -1,0 +1,337 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Explorative Datenanalyse zum Datensatz "OECD Wellbeing" - Data Se</title>
+<meta property="og:title" content='Explorative Datenanalyse zum Datensatz "OECD Wellbeing" - Data Se'><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>17 min read</span><h1 class=article-title>Explorative Datenanalyse zum Datensatz "OECD Wellbeing"</h1><span class=article-date>2021/02/11</span><div class=article-content><script src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/header-attrs/header-attrs.js"></script><div id=TOC><ul><li><a href=#load-packages><span class=toc-section-number>1</span> Load packages</a></li><li><a href=#benötigte-pakete><span class=toc-section-number>2</span> Benötigte Pakete</a></li><li><a href=#datensatz-laden><span class=toc-section-number>3</span> Datensatz laden</a></li><li><a href=#erster-blick><span class=toc-section-number>4</span> Erster Blick</a></li><li><a href=#metrische-variablen-einzeln-univariat><span class=toc-section-number>5</span> Metrische Variablen einzeln (univariat)</a><ul><li><a href=#histogramm-nach-gruppen><span class=toc-section-number>5.1</span> Histogramm nach Gruppen</a></li><li><a href=#vertiefung-histogramm-für-alle-variablen><span class=toc-section-number>5.2</span> VERTIEFUNG: Histogramm für alle Variablen</a></li></ul></li><li><a href=#forschungsfrage><span class=toc-section-number>6</span> Forschungsfrage</a></li><li><a href=#datensatz-filtern---nur-länder-keine-landesteile><span class=toc-section-number>7</span> Datensatz filtern - nur Länder, keine Landesteile</a></li><li><a href=#vergleich-der-lebenszufriedenheit-der-länder><span class=toc-section-number>8</span> Vergleich der Lebenszufriedenheit der Länder</a><ul><li><a href=#umwandling-in-eine-faktor-variable><span class=toc-section-number>8.1</span> Umwandling in eine Faktor-Variable</a></li><li><a href=#ranking-und-top-10-prozent-der-zufriedenheit><span class=toc-section-number>8.2</span> Ranking und Top-10-Prozent der Zufriedenheit</a></li><li><a href=#vertiefung><span class=toc-section-number>8.3</span> Vertiefung</a></li><li><a href=#vertiefung-1><span class=toc-section-number>8.4</span> Vertiefung</a></li><li><a href=#vertiefung-2><span class=toc-section-number>8.5</span> Vertiefung</a></li></ul></li><li><a href=#zusammenhang-zweier-metrischer-variablen-punktediagramm><span class=toc-section-number>9</span> Zusammenhang zweier metrischer Variablen – Punktediagramm</a><ul><li><a href=#und-so-weiter><span class=toc-section-number>9.0.1</span> Und so weiter</a></li><li><a href=#vertiefung-pairs-plot><span class=toc-section-number>9.1</span> Vertiefung Pairs plot</a><ul><li><a href=#vertiefung-ggpairs><span class=toc-section-number>9.1.1</span> Vertiefung ggpairs</a></li></ul></li><li><a href=#zusammenhang-zweier-variablen-unter-berücksichtigung-von-drittvariablen><span class=toc-section-number>9.2</span> Zusammenhang zweier Variablen unter Berücksichtigung von Drittvariablen</a><ul><li><a href=#vertiefung-korrelation-pro-gruppe><span class=toc-section-number>9.2.1</span> Vertiefung: Korrelation pro Gruppe</a></li></ul></li></ul></li><li><a href=#deskriptive-statistiken-nach-ländern><span class=toc-section-number>10</span> Deskriptive Statistiken nach Ländern</a><ul><li><a href=#lebenszufriedenheit><span class=toc-section-number>10.1</span> Lebenszufriedenheit</a></li></ul></li><li><a href=#reproducibility><span class=toc-section-number>11</span> Reproducibility</a></li></ul></div><div id=load-packages class="section level1" number=1><h1><span class=header-section-number>1</span> Load packages</h1><pre class=r><code>library(tidyverse)  # data wrangling
+library(skimr)  # Viele Statistiken auf einen Blick</code></pre><p>In diesem Post untersuchen wir einige Aspekte der explorativen Datenanalyse für den Datensatz <code>oecd wellbeing</code> aus dem Jahr 2016.</p><p><em>Hinweis</em>: Als <em>Vertiefung</em> gekennzeichnete Abschnitt sind nicht prüfungsrelevant.</p></div><div id=benötigte-pakete class="section level1" number=2><h1><span class=header-section-number>2</span> Benötigte Pakete</h1><p>Ein Standard-Paket zur grundlegenden Datenanalyse:</p><pre class=r><code>library(tidyverse)</code></pre></div><div id=datensatz-laden class="section level1" number=3><h1><span class=header-section-number>3</span> Datensatz laden</h1><p>Der Datensatz kann <a href="https://stats.oecd.org/Index.aspx?DataSetCode=RWB">hier</a> bezogen werden.</p><p>Doi: <a href=https://doi.org/10.1787/data-00707-en class=uri>https://doi.org/10.1787/data-00707-en</a>.</p><p>Falls der Datensatz lokal (auf Ihrem Rechner) vorliegt, können Sie ihn in gewohnter Manier importieren. Geben Sie dazu den Pfad zum Datensatz ein; bei mir sieht das so aus:</p><pre class=r><code>oecd &lt;- read_csv(&quot;/Users/sebastiansaueruser/datasets/oecd_wellbeing.csv&quot;)</code></pre><p>Liegt die Datendatei im <em>gleichen Verzeichnis</em> wie Ihre Rmd-Datei, dann brauchen Sie <em>nur</em> den Dateinamen, nicht den Pfad, anzugeben.</p><p><em>Alternativ</em> können Sie die Daten direkt von einem Server beziehen:</p><pre class=r><code>oecd &lt;- read_csv(&quot;https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/OECD/oecd-wellbeing.csv&quot;)</code></pre></div><div id=erster-blick class="section level1" number=4><h1><span class=header-section-number>4</span> Erster Blick</h1><pre class=r><code>glimpse(oecd)
+#&gt; Rows: 429
+#&gt; Columns: 15
+#&gt; $ Country                  &lt;chr&gt; &quot;Australia&quot;, &quot;Australia&quot;, &quot;Australia&quot;, &quot;Austr…
+#&gt; $ Region                   &lt;chr&gt; &quot;New South Wales&quot;, &quot;Victoria&quot;, &quot;Queensland&quot;, …
+#&gt; $ region_type              &lt;chr&gt; &quot;country_part&quot;, &quot;country_part&quot;, &quot;country_part…
+#&gt; $ Code                     &lt;chr&gt; &quot;AU1&quot;, &quot;AU2&quot;, &quot;AU3&quot;, &quot;AU4&quot;, &quot;AU5&quot;, &quot;AU6&quot;, &quot;AU…
+#&gt; $ Education                &lt;dbl&gt; 8.0, 8.1, 7.8, 7.3, 7.6, 6.5, 8.1, 9.5, 8.8, …
+#&gt; $ Jobs                     &lt;dbl&gt; 8.1, 7.9, 8.1, 7.8, 8.8, 7.6, 8.7, 9.3, 7.8, …
+#&gt; $ Income                   &lt;dbl&gt; 6.8, 5.9, 6.3, 6.1, 7.9, 5.4, 8.2, 10.0, 5.7,…
+#&gt; $ Safety                   &lt;dbl&gt; 8.8, 9.5, 9.5, 9.0, 8.6, 8.8, 0.0, 10.0, 9.7,…
+#&gt; $ Health                   &lt;dbl&gt; 9.0, 9.5, 8.3, 8.5, 9.3, 5.4, 2.4, 9.3, 6.7, …
+#&gt; $ Environment              &lt;dbl&gt; 9.8, 8.6, 9.9, 9.4, 9.6, 10.0, 9.2, 9.1, 3.5,…
+#&gt; $ Civic_engagement         &lt;dbl&gt; 10.0, 10.0, 10.0, 10.0, 10.0, 10.0, 8.4, 10.0…
+#&gt; $ Accessiblity_to_services &lt;dbl&gt; 7.2, 7.5, 7.7, 7.2, 7.8, 6.8, 7.8, 8.7, 8.0, …
+#&gt; $ Housing                  &lt;dbl&gt; 7.2, 7.8, 8.3, 8.3, 8.9, 8.3, 5.6, 8.3, 6.1, …
+#&gt; $ Community                &lt;dbl&gt; 8.9, 9.3, 8.6, 8.6, 8.5, 8.6, 10.0, 9.8, 8.3,…
+#&gt; $ Life_satisfaction        &lt;dbl&gt; 7.8, 8.5, 8.1, 8.5, 7.8, 9.6, 7.0, 9.6, 7.8, …</code></pre><p>Wie <code>glimpse()</code> aufzeigt, liegen also einige qualitative (kategoriale, <code>chr</code>) und einige quantitative (metrische, <code>dbl</code>) Variablen vor. Die qualitativen Variablen sind für eine direkte Analyse weniger interessant; vielmehr ist es interessant, die Statistiken auf die <em>Gruppen</em> (Stufen, Level) der qualitativen Variablen aufzusplitten.</p><p>Betrachten wir aber zu Beginn die metrischen Variablen einzeln (univariat).</p></div><div id=metrische-variablen-einzeln-univariat class="section level1" number=5><h1><span class=header-section-number>5</span> Metrische Variablen einzeln (univariat)</h1><p>Die typischen Statistiken zu den metrischen Variablen liegen uns von <code>inspect()</code> bereits vor. Daher gehen wir weiter zur Visualisierung.</p><pre class=r><code>oecd %&gt;% 
+  ggplot(aes(x = Life_satisfaction)) +
+  geom_histogram()</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-3-1.png" width=100% style=display:block;margin:auto></p><p>Eine ähnliche Aussage liefert das Dichte-Diagramm:</p><pre class=r><code>oecd %&gt;% 
+  ggplot(aes(x = Life_satisfaction)) +
+  geom_density()</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-4-1.png" width=100% style=display:block;margin:auto></p><p>Die <em>Dichte</em> gibt an, welcher Anteil der Beobachtungen an der jeweiligen Stelle der X-Achse lägen, wenn man eine Einheit betrachtet (z.B. die Lebenszufriedenheit von 5-6).</p><div id=histogramm-nach-gruppen class="section level2" number=5.1><h2><span class=header-section-number>5.1</span> Histogramm nach Gruppen</h2><p>Angenommen, man möchte Deutschland mit Frankfreich vergleichen im Hinblick auf die Lebenszufriedenheit:</p><pre class=r><code>oecd %&gt;% 
+  filter(Country == &quot;Germany&quot; | Country == &quot;France&quot;) -&gt; oecd_de_fr</code></pre><p>Dann</p><pre class=r><code>oecd_de_fr %&gt;% 
+  ggplot(aes(x = Life_satisfaction)) +
+  geom_histogram(bins = 15) +
+  facet_wrap(~ Country)</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-6-1.png" width=100% style=display:block;margin:auto></p></div><div id=vertiefung-histogramm-für-alle-variablen class="section level2" number=5.2><h2><span class=header-section-number>5.2</span> VERTIEFUNG: Histogramm für alle Variablen</h2><hr><p>Dieser Abschnitt ist eine Vertiefung; Sie können in überspringen, ohne den Anschluss zu den folgenden Abschnitten zu verlieren.</p><hr><p>Um einen Überblick über die Verteilungen zu bekommen, bietet es sich an, sich alle anzuschauen. Das ist natürlich mit etwas Monotonie verbunden (den gleichen Befehl mehrfach wiederholen).</p><p>Malen wir einmal alle Histogramme auf einmal. Dazu brauchen wir ein weiteres Paket:</p><p>Als erstes erzeugen wir einen langen Dataframe (der nur aus metrischen Variablen besteht):</p><pre class=r><code>oecd_de_fr %&gt;% 
+  select(where(is.numeric)) %&gt;%  # wähle alle Spalten aus, wo sich Nummern finden
+  pivot_longer(everything()) %&gt;%  # baue alle Variablen in ein langes Format um
+  slice(1:10) # zeige die Zeilen 1 bis 10
+#&gt; # A tibble: 10 x 2
+#&gt;    name                     value
+#&gt;    &lt;chr&gt;                    &lt;dbl&gt;
+#&gt;  1 Education                  7.8
+#&gt;  2 Jobs                       6  
+#&gt;  3 Income                     6.3
+#&gt;  4 Safety                     8.6
+#&gt;  5 Health                    10  
+#&gt;  6 Environment                3.5
+#&gt;  7 Civic_engagement           7.4
+#&gt;  8 Accessiblity_to_services   8.6
+#&gt;  9 Housing                    3.3
+#&gt; 10 Community                  7.9</code></pre><p>Dann plotten wir Histogramme, wobei wir nach den Ländern (<code>key</code>) gruppieren. Aber zuerst speichenr wir uns den “langen” Datensatz ab:</p><pre class=r><code>oecd_de_fr %&gt;% 
+  select(where(is.numeric)) %&gt;%  # wähle alle Spalten aus, wo sich Nummern finden
+  pivot_longer(everything()) -&gt; oecd_de_fr_long</code></pre><p>Betrachten Sie diesen Daten einmal zur Übung.</p><p>Dann plotten wir in gewohnter Manier:</p><pre class=r><code>oecd_de_fr_long %&gt;% 
+  ggplot(aes(x = value)) +
+  geom_histogram() +
+  facet_wrap(~ name)</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-9-1.png" width=100% style=display:block;margin:auto></p></div></div><div id=forschungsfrage class="section level1" number=6><h1><span class=header-section-number>6</span> Forschungsfrage</h1><p>Hat Deutschland in Vergleich zu anderen Ländern eine hohe Lebenszufriedenheit?</p><p>Die Frage ist noch recht unpräzise formuliert, aber dafür gibt sie Raum für eine Menge von Untersuchungsansätzen.</p></div><div id=datensatz-filtern---nur-länder-keine-landesteile class="section level1" number=7><h1><span class=header-section-number>7</span> Datensatz filtern - nur Länder, keine Landesteile</h1><p>Der Datensatz verstößt gegen die Regel, dass in jeder Zeile eine Beobachtungseinheit steht. In einigen Zeilen stehen <em>Länder</em>, in den meisten anderen aber <em>Landesteile</em> (wie Bayern, Baden-Württemberg etc.). Filtern wir uns nur die Länder, und exklduieren die Landesteile:</p><pre class=r><code>filter(oecd, region_type == &quot;country_whole&quot;) -&gt; oecd_short</code></pre><p>Die Anzahl der Zeilen deses Datensatz <code>oecd_short</code> gibt uns Aufschluss über die Anzahl der untersuchten Länder.</p></div><div id=vergleich-der-lebenszufriedenheit-der-länder class="section level1" number=8><h1><span class=header-section-number>8</span> Vergleich der Lebenszufriedenheit der Länder</h1><pre class=r><code>oecd_short %&gt;% 
+  ggplot(aes(x = Country, y = Life_satisfaction)) +
+  geom_point()</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-11-1.png" width=100% style=display:block;margin:auto></p><p>Hm, sieht nicht übersichtlich aus. Besser wäre es, die Punkte absteigend zu sortieren.</p><p>Betrachten wir dazu die Variable <code>country</code> näher: Es handelt sich um eine Character-Variable:</p><pre class=r><code>str(oecd)
+#&gt; spec_tbl_df[,15] [429 × 15] (S3: spec_tbl_df/tbl_df/tbl/data.frame)
+#&gt;  $ Country                 : chr [1:429] &quot;Australia&quot; &quot;Australia&quot; &quot;Australia&quot; &quot;Australia&quot; ...
+#&gt;  $ Region                  : chr [1:429] &quot;New South Wales&quot; &quot;Victoria&quot; &quot;Queensland&quot; &quot;South Australia&quot; ...
+#&gt;  $ region_type             : chr [1:429] &quot;country_part&quot; &quot;country_part&quot; &quot;country_part&quot; &quot;country_part&quot; ...
+#&gt;  $ Code                    : chr [1:429] &quot;AU1&quot; &quot;AU2&quot; &quot;AU3&quot; &quot;AU4&quot; ...
+#&gt;  $ Education               : num [1:429] 8 8.1 7.8 7.3 7.6 6.5 8.1 9.5 8.8 8.5 ...
+#&gt;  $ Jobs                    : num [1:429] 8.1 7.9 8.1 7.8 8.8 7.6 8.7 9.3 7.8 8.2 ...
+#&gt;  $ Income                  : num [1:429] 6.8 5.9 6.3 6.1 7.9 5.4 8.2 10 5.7 5.9 ...
+#&gt;  $ Safety                  : num [1:429] 8.8 9.5 9.5 9 8.6 8.8 0 10 9.7 9.8 ...
+#&gt;  $ Health                  : num [1:429] 9 9.5 8.3 8.5 9.3 5.4 2.4 9.3 6.7 6.6 ...
+#&gt;  $ Environment             : num [1:429] 9.8 8.6 9.9 9.4 9.6 10 9.2 9.1 3.5 2.6 ...
+#&gt;  $ Civic_engagement        : num [1:429] 10 10 10 10 10 10 8.4 10 8.6 8.1 ...
+#&gt;  $ Accessiblity_to_services: num [1:429] 7.2 7.5 7.7 7.2 7.8 6.8 7.8 8.7 8 7.4 ...
+#&gt;  $ Housing                 : num [1:429] 7.2 7.8 8.3 8.3 8.9 8.3 5.6 8.3 6.1 5.6 ...
+#&gt;  $ Community               : num [1:429] 8.9 9.3 8.6 8.6 8.5 8.6 10 9.8 8.3 7.8 ...
+#&gt;  $ Life_satisfaction       : num [1:429] 7.8 8.5 8.1 8.5 7.8 9.6 7 9.6 7.8 8.1 ...
+#&gt;  - attr(*, &quot;spec&quot;)=
+#&gt;   .. cols(
+#&gt;   ..   Country = col_character(),
+#&gt;   ..   Region = col_character(),
+#&gt;   ..   region_type = col_character(),
+#&gt;   ..   Code = col_character(),
+#&gt;   ..   Education = col_double(),
+#&gt;   ..   Jobs = col_double(),
+#&gt;   ..   Income = col_double(),
+#&gt;   ..   Safety = col_double(),
+#&gt;   ..   Health = col_double(),
+#&gt;   ..   Environment = col_double(),
+#&gt;   ..   Civic_engagement = col_double(),
+#&gt;   ..   Accessiblity_to_services = col_double(),
+#&gt;   ..   Housing = col_double(),
+#&gt;   ..   Community = col_double(),
+#&gt;   ..   Life_satisfaction = col_double()
+#&gt;   .. )</code></pre><p>Offensichtlich sind diese alphabetisch geordnet - nach dieser Ordnung richtet sich die Ordnung im Plot-Befehl (<code>xyplot</code>).</p><div id=umwandling-in-eine-faktor-variable class="section level2" number=8.1><h2><span class=header-section-number>8.1</span> Umwandling in eine Faktor-Variable</h2><p>In solchen Fällen bietet es sich an, die Character-Variable in eine Factor-Variable umzuwandeln; dann geht das Weitere einfacher.</p><pre class=r><code>oecd_short %&gt;% 
+  mutate(Country = factor(Country)) -&gt; oecd_short</code></pre><p>Möchte man wissen, wie viele <em>unterschiedliche</em> Werte eine Variable enthält, dann kann die Funktion <code>distinct()</code> verwenden:</p><pre class=r><code>oecd_short %&gt;% 
+  distinct(Country)
+#&gt; # A tibble: 34 x 1
+#&gt;    Country       
+#&gt;    &lt;fct&gt;         
+#&gt;  1 Australia     
+#&gt;  2 Austria       
+#&gt;  3 Belgium       
+#&gt;  4 Canada        
+#&gt;  5 Chile         
+#&gt;  6 Czech Republic
+#&gt;  7 Denmark       
+#&gt;  8 Estonia       
+#&gt;  9 Finland       
+#&gt; 10 France        
+#&gt; # … with 24 more rows</code></pre></div><div id=ranking-und-top-10-prozent-der-zufriedenheit class="section level2" number=8.2><h2><span class=header-section-number>8.2</span> Ranking und Top-10-Prozent der Zufriedenheit</h2><p>Schauen wir uns die “Happy-Top-10” an, die 10 Länder mit der höchsten Lebenszufriedenheit:</p><pre class=r><code>oecd_short %&gt;% 
+  arrange(-Life_satisfaction) %&gt;% 
+  select(Country, Life_satisfaction) %&gt;% 
+  slice(1:10)
+#&gt; # A tibble: 10 x 2
+#&gt;    Country     Life_satisfaction
+#&gt;    &lt;fct&gt;                   &lt;dbl&gt;
+#&gt;  1 Denmark                  10  
+#&gt;  2 Switzerland              10  
+#&gt;  3 Finland                   9.7
+#&gt;  4 Netherlands               9.7
+#&gt;  5 Norway                    9.7
+#&gt;  6 Canada                    9.3
+#&gt;  7 Iceland                   9.3
+#&gt;  8 Sweden                    9.3
+#&gt;  9 Australia                 8.8
+#&gt; 10 Austria                   8.8</code></pre><p>Mit welcher Lebenszufriedenheit gehört ein Land zu den Top-10-Prozent der zufriedenen Länder?</p><pre class=r><code>oecd_short %&gt;% 
+  summarise(quantile(Life_satisfaction, probs = .90))
+#&gt; # A tibble: 1 x 1
+#&gt;   `quantile(Life_satisfaction, probs = 0.9)`
+#&gt;                                        &lt;dbl&gt;
+#&gt; 1                                        9.7</code></pre><p>Ah, Länder mit einer Lebenszufriedenheit von mind. 9.7 gehören zu den oberen Top-10-Prozent. Filtern wir mal entsprechend:</p><pre class=r><code>oecd_short %&gt;% 
+  filter(Life_satisfaction &gt;= 9.7) %&gt;% 
+  select(Country, Life_satisfaction)
+#&gt; # A tibble: 5 x 2
+#&gt;   Country     Life_satisfaction
+#&gt;   &lt;fct&gt;                   &lt;dbl&gt;
+#&gt; 1 Denmark                  10  
+#&gt; 2 Finland                   9.7
+#&gt; 3 Netherlands               9.7
+#&gt; 4 Norway                    9.7
+#&gt; 5 Switzerland              10</code></pre></div><div id=vertiefung class="section level2" number=8.3><h2><span class=header-section-number>8.3</span> Vertiefung</h2><p>Ändern wir die Sortierung! Mit <code>reorder()</code> kann man die Sortierung ändern (re-ordnen, daher der Name):</p><pre class=r><code>oecd_short %&gt;% 
+  mutate(Country_sorted = reorder(Country, Life_satisfaction)) -&gt; oecd_short_reordered</code></pre><p>Ist das jetzt geordnet? <code>str()</code> verrät es uns:</p><pre class=r><code>str(oecd_short_reordered)
+#&gt; spec_tbl_df[,16] [34 × 16] (S3: spec_tbl_df/tbl_df/tbl/data.frame)
+#&gt;  $ Country                 : Factor w/ 34 levels &quot;Australia&quot;,&quot;Austria&quot;,..: 1 2 3 4 5 6 7 8 9 10 ...
+#&gt;  $ Region                  : chr [1:34] &quot;Australia&quot; &quot;Austria&quot; &quot;Belgium&quot; &quot;Canada&quot; ...
+#&gt;  $ region_type             : chr [1:34] &quot;country_whole&quot; &quot;country_whole&quot; &quot;country_whole&quot; &quot;country_whole&quot; ...
+#&gt;  $ Code                    : chr [1:34] &quot;AUS&quot; &quot;AUT&quot; &quot;BEL&quot; &quot;CAN&quot; ...
+#&gt;  $ Education               : num [1:34] 7.6 8.4 7.5 9.2 7.2 10 6.7 9.6 8.7 7.6 ...
+#&gt;  $ Jobs                    : num [1:34] 7.9 7.7 5 6.6 6.2 7.3 7.9 6.6 6.4 5.2 ...
+#&gt;  $ Income                  : num [1:34] 9.5 7.9 6.2 7.4 0.4 2.8 5.1 1 5.6 7 ...
+#&gt;  $ Safety                  : num [1:34] 8.4 10 5.7 6.5 0.6 6.1 10 0 10 8.4 ...
+#&gt;  $ Health                  : num [1:34] 9 7.2 6.6 8.5 4.2 2.7 5.8 2.1 7.3 9.3 ...
+#&gt;  $ Environment             : num [1:34] 9.7 2.8 1.9 7.4 8.5 1.4 5.8 6.4 7.9 4.5 ...
+#&gt;  $ Civic_engagement        : num [1:34] 10 6.2 9.7 4.7 0.1 2.6 8.9 3.7 4.8 7.5 ...
+#&gt;  $ Accessiblity_to_services: num [1:34] 6.9 7.2 7.6 8.1 0 6.7 8.3 7.6 9 6.9 ...
+#&gt;  $ Housing                 : num [1:34] 9.5 5.1 8.8 10 1.5 2.9 6.6 1.5 6.6 5.1 ...
+#&gt;  $ Community               : num [1:34] 8.8 7.6 7.7 8.5 2.5 5.1 9.6 4.6 8.7 7.6 ...
+#&gt;  $ Life_satisfaction       : num [1:34] 8.8 8.8 7.9 9.3 4.9 5.3 10 0.4 9.7 6.2 ...
+#&gt;  $ Country_sorted          : Factor w/ 34 levels &quot;Hungary&quot;,&quot;Portugal&quot;,..: 23 24 20 27 12 13 33 4 30 15 ...
+#&gt;   ..- attr(*, &quot;scores&quot;)= num [1:34(1d)] 8.8 8.8 7.9 9.3 4.9 5.3 10 0.4 9.7 6.2 ...
+#&gt;   .. ..- attr(*, &quot;dimnames&quot;)=List of 1
+#&gt;   .. .. ..$ : chr [1:34] &quot;Australia&quot; &quot;Austria&quot; &quot;Belgium&quot; &quot;Canada&quot; ...
+#&gt;  - attr(*, &quot;spec&quot;)=
+#&gt;   .. cols(
+#&gt;   ..   Country = col_character(),
+#&gt;   ..   Region = col_character(),
+#&gt;   ..   region_type = col_character(),
+#&gt;   ..   Code = col_character(),
+#&gt;   ..   Education = col_double(),
+#&gt;   ..   Jobs = col_double(),
+#&gt;   ..   Income = col_double(),
+#&gt;   ..   Safety = col_double(),
+#&gt;   ..   Health = col_double(),
+#&gt;   ..   Environment = col_double(),
+#&gt;   ..   Civic_engagement = col_double(),
+#&gt;   ..   Accessiblity_to_services = col_double(),
+#&gt;   ..   Housing = col_double(),
+#&gt;   ..   Community = col_double(),
+#&gt;   ..   Life_satisfaction = col_double()
+#&gt;   .. )</code></pre><p>Wie man sieht, ist <code>Country_sorted</code> jetzt anders sortiert. Betrachten wir das Ergebnis:</p><pre class=r><code>plot_sorted &lt;- oecd_short_reordered %&gt;% 
+  ggplot(aes(x = Country_sorted, y = Life_satisfaction)) +
+  geom_point()
+
+plot_sorted</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-20-1.png" width=100% style=display:block;margin:auto></p><p>Schon besser. Man kann z.B. die Achsen nicht lesen 😞. Was könnte man da bloß tun?</p></div><div id=vertiefung-1 class="section level2" number=8.4><h2><span class=header-section-number>8.4</span> Vertiefung</h2><p>Mit <code>+ coord_flip()</code> lassen sich die Achsen um 90 Grad drehen:</p><pre class=r><code>plot_sorted + coord_flip()</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-21-1.png" width=100% style=display:block;margin:auto></p><p>Schön 😄.</p><p>Man hätte das Sortieren und Achsen drehen auch in einem Haps machen können:</p><pre class=r><code>oecd_short_reordered %&gt;% 
+  ggplot(aes(x = Country_sorted, y = Life_satisfaction)) +
+  geom_point() + coord_flip()</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-22-1.png" width=100% style=display:block;margin:auto></p><p>Aber übersichtliches ist es, die Dinge nacheinander zu tun.</p></div><div id=vertiefung-2 class="section level2" number=8.5><h2><span class=header-section-number>8.5</span> Vertiefung</h2><p>Schön wäre es noch, im Bild den Mittelwert o.Ä. zu sehen:</p><pre class=r><code>oecd_short_reordered %&gt;% 
+  ggplot(aes(x = Country_sorted, y = Life_satisfaction)) +
+  geom_point() +
+  geom_hline(yintercept = 6.08, data = NA, color = &quot;firebrick&quot;) + 
+  coord_flip()</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-23-1.png" width=100% style=display:block;margin:auto></p><p>Tja, die Wünsche hören nie auf… Wäre es nicht noch nett, wenn “Deutschland” hervorgehoben wäre, optisch, so dass es im Diagramm hervorsticht. Nehmen wir an, wir sind an diesem Land besonders interessiert.</p><pre class=r><code>oecd_short_reordered &lt;- 
+  oecd_short_reordered %&gt;% 
+  mutate(is_Germany = Country == &quot;Germany&quot;)</code></pre><p>Damit haben wir eine Spalte erstellt, die angibt, ob ein Land Deutschland ist (<code>TRUE</code>) oder nicht (<code>FALSE</code>). Diese neue Variable nehmen wir her, um die Farbe, Größe und Form der Punkte zu bestimmen:</p><pre class=r><code>oecd_short_reordered %&gt;% 
+  ggplot(aes(x = Country_sorted, y = Life_satisfaction)) +
+  geom_point(aes(color = is_Germany, shape = is_Germany, size = is_Germany)) +
+  geom_hline(yintercept = 6.08, data = NA, color = &quot;firebrick&quot;) + 
+  geom_hline(yintercept = 6.08, data = NA, color = &quot;grey60&quot;) %&gt;% 
+  geom_vline(xintercept = 16, data = NA, color = &quot;grey80&quot;) +
+  coord_flip()</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-25-1.png" width=100% style=display:block;margin:auto></p></div></div><div id=zusammenhang-zweier-metrischer-variablen-punktediagramm class="section level1" number=9><h1><span class=header-section-number>9</span> Zusammenhang zweier metrischer Variablen – Punktediagramm</h1><p>Hängt die Lebenszufriedenheit mit <code>Civic_engagment</code> zusammen?</p><pre class=r><code>oecd_short_reordered %&gt;% 
+  ggplot(aes(x = Civic_engagement, y = Life_satisfaction)) +
+  geom_point()</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-26-1.png" width=100% style=display:block;margin:auto></p><p>Hm, es ist kein starker Trend zu erkennen.</p><p>Was sagt die Korrelation dazu:</p><pre class=r><code>oecd_short_reordered %&gt;% 
+  summarise(cor_ce_ls = cor(Civic_engagement, Life_satisfaction))
+#&gt; # A tibble: 1 x 1
+#&gt;   cor_ce_ls
+#&gt;       &lt;dbl&gt;
+#&gt; 1     0.402</code></pre><p>Immerhin, kein ganz unwesentlicher Wert.</p><div id=und-so-weiter class="section level3" number=9.0.1><h3><span class=header-section-number>9.0.1</span> Und so weiter</h3><p>Dieses Prinzip mit dem Punktediagramm könnte man jetzt weiterführen ad nauseam.</p></div><div id=vertiefung-pairs-plot class="section level2" number=9.1><h2><span class=header-section-number>9.1</span> Vertiefung Pairs plot</h2><p>Eleganter geht es so. Dafür benötigen wir Extra-Pakete:</p><pre class=r><code>library(sjPlot)</code></pre><p>Dann erstellen wir einen Dataframe mit <em>nur</em> metrischen Variablen; d.h. wir entfernen die nicht-metrischen Variablen:</p><pre class=r><code>oecd_short_reordered %&gt;% 
+  select(-Country, -Region, -region_type, -Code, -Country_sorted) -&gt; oecd_short_numeric</code></pre><p>Übrigens kann (und muss man oft) mehrere Werte mit dem Befehl <code>c()</code> zusammenfassen (c wie “combine”):</p><pre class=r><code>oecd_short_reordered %&gt;% 
+  select(-c(Country, Region, region_type, Code, Country_sorted)) -&gt; oecd_short_numeric</code></pre><p>Oder man wählt gleich nur die numerischen Variablen aus:</p><pre class=r><code>oecd_short_reordered %&gt;% 
+  select(where(is.numeric)) -&gt; oecd_short_numeric</code></pre><pre class=r><code>sjp.corr(oecd_short_numeric)</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-32-1.png" width=100% style=display:block;margin:auto></p><div id=vertiefung-ggpairs class="section level3" number=9.1.1><h3><span class=header-section-number>9.1.1</span> Vertiefung ggpairs</h3><pre class=r><code>library(GGally)</code></pre><p>Das sieht auch ganz nett aus:</p><pre class=r><code>ggpairs(oecd_short,
+        columns = c(5,6,7,15))</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-34-1.png" width=100% style=display:block;margin:auto></p></div></div><div id=zusammenhang-zweier-variablen-unter-berücksichtigung-von-drittvariablen class="section level2" number=9.2><h2><span class=header-section-number>9.2</span> Zusammenhang zweier Variablen unter Berücksichtigung von Drittvariablen</h2><p>Oben haben wir gesehen, dass Lebenszufriedenheit und Civiv Engagement zusammenhängen.</p><p>Aber vielleicht hängt dieser Zusammenhang wiederum von der finanziellen Absicherung ab? Nur wenn man materiell abgesichert ist, so könnte man argumentieren, wird bürgerliches Engagement (bzw. die Möglichkeit zu) eine Einflussgröße auf die Lebenszufriedenheit.</p><p>Um diese Frage zu untersuchen, teilen wir <code>Income</code> in zwei Stufen, hoch und gering. Dann untersuchen wir jeweils den Zusammenhang von Lebenszufriedenheit und bürgerlichem Engagement.</p><p>Achtung! Eine metrische Variablen in zwei Hälften zu spalten birgt einen hohen Informationsverlust. Da wir aber nur eine grobe Untersuchung vorhaben (und uns noch nicht fortgeschrittener Technik bedienen wollen), bleiben wir erstmal bei dieser sog. <em>Dichotomisierung</em>.</p><p>Nehmen wir den Median des Einkommen als Teilungspunkt; man spricht von einem “Mediansplit”:</p><pre class=r><code>oecd_short %&gt;% 
+  summarise(Income_md = median(Income))
+#&gt; # A tibble: 1 x 1
+#&gt;   Income_md
+#&gt;       &lt;dbl&gt;
+#&gt; 1      5.15</code></pre><p>Zuerst erstellen wir eine Variable <code>Income_high</code> mit den Stufen 0 (nein) und 1 (ja):</p><pre class=r><code>oecd_short_reordered &lt;- 
+  oecd_short_reordered %&gt;% 
+    mutate(Income_high = 
+           case_when( Income &gt;= 5.15 ~ 1,
+                      Income &lt; 5.15 ~ 0))</code></pre><p>Jetzt plotten wir den Zusammenhang:</p><pre class=r><code>income_labels &lt;- c(`0` = &quot;arm&quot;, 
+                   `1` =&quot;reich&quot;)
+
+oecd_short_reordered %&gt;% 
+  ggplot(aes(x = Country_sorted, y = Life_satisfaction)) +
+  geom_point() +
+  facet_wrap(~ Income_high, 
+             labeller = labeller(Income_high = income_labels))  +
+  coord_flip() +
+  labs(y = &quot;Länder&quot;,
+       x = &quot;Lebenszufriedenheit&quot;,
+       title = &quot;Lebenszufriedenheit in armen und reichen Ländern &quot;) +
+  theme_minimal()</code></pre><p><img src="/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/figure-html/unnamed-chunk-37-1.png" width=100% style=display:block;margin:auto></p><div id=vertiefung-korrelation-pro-gruppe class="section level3" number=9.2.1><h3><span class=header-section-number>9.2.1</span> Vertiefung: Korrelation pro Gruppe</h3><p>Um die Korrelation pro Gruppe zu erhalten, könnten wir jeweils einen Dataframe pro Gruppe erzeugen (mit <code>filter()</code>) und dann jeweils die Korrelation von Zufriedenheit und Engagement berechnen.</p><p>Eine andere, etwas elegantere Möglichkeit kann so aussehen:</p><pre class=r><code>oecd_short_reordered %&gt;%
+  group_by(Income_high) %&gt;% 
+  summarise(cor_zuf_eng = cor(Life_satisfaction, Civic_engagement))
+#&gt; # A tibble: 2 x 2
+#&gt;   Income_high cor_zuf_eng
+#&gt;         &lt;dbl&gt;       &lt;dbl&gt;
+#&gt; 1           0       0.367
+#&gt; 2           1       0.140</code></pre><p>Interessanterweise ist die Korrelation durchaus verschieden in den beiden Gruppen.</p><p>Natürlich sind die beiden Gruppen nur Stichproben - es stellt sich die Frage, ob die Unterschiede nur durch Zufälligkeiten des Stichprobenziehens entstanden sind oder auch in der Grundgesatmtheit der “reichen” und “armen” Ländern existieren? Dazu später mehr!</p></div></div></div><div id=deskriptive-statistiken-nach-ländern class="section level1" number=10><h1><span class=header-section-number>10</span> Deskriptive Statistiken nach Ländern</h1><div id=lebenszufriedenheit class="section level2" number=10.1><h2><span class=header-section-number>10.1</span> Lebenszufriedenheit</h2><p>Das ist relativ einfach:</p><pre class=r><code>oecd_short_reordered %&gt;% 
+  select(Life_satisfaction) %&gt;% 
+  skim()</code></pre><table><caption><span id=tab:unnamed-chunk-39>Table 10.1: </span>Data summary</caption><tbody><tr class=odd><td align=left>Name</td><td align=left>Piped data</td></tr><tr class=even><td align=left>Number of rows</td><td align=left>34</td></tr><tr class=odd><td align=left>Number of columns</td><td align=left>1</td></tr><tr class=even><td align=left>_______________________</td><td align=left></td></tr><tr class=odd><td align=left>Column type frequency:</td><td align=left></td></tr><tr class=even><td align=left>numeric</td><td align=left>1</td></tr><tr class=odd><td align=left>________________________</td><td align=left></td></tr><tr class=even><td align=left>Group variables</td><td align=left>None</td></tr></tbody></table><p><strong>Variable type: numeric</strong></p><table><thead><tr class=header><th align=left>skim_variable</th><th align=right>n_missing</th><th align=right>complete_rate</th><th align=right>mean</th><th align=right>sd</th><th align=right>p0</th><th align=right>p25</th><th align=right>p50</th><th align=right>p75</th><th align=right>p100</th><th align=left>hist</th></tr></thead><tbody><tr class=odd><td align=left>Life_satisfaction</td><td align=right>0</td><td align=right>1</td><td align=right>6.07</td><td align=right>3.38</td><td align=right>0</td><td align=right>2.83</td><td align=right>7.3</td><td align=right>8.8</td><td align=right>10</td><td align=left>▃▃▂▅▇</td></tr></tbody></table></div></div><div id=reproducibility class="section level1" number=11><h1><span class=header-section-number>11</span> Reproducibility</h1><pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.0.2 (2020-06-22)
+#&gt;  os       macOS  10.16                
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2021-02-11                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version     date       lib source                             
+#&gt;  assertthat    0.2.1       2019-03-21 [1] CRAN (R 4.0.0)                     
+#&gt;  backports     1.2.1       2020-12-09 [1] CRAN (R 4.0.2)                     
+#&gt;  blogdown      1.1         2021-01-19 [1] CRAN (R 4.0.2)                     
+#&gt;  bookdown      0.21.6      2021-02-02 [1] Github (rstudio/bookdown@6c7346a)  
+#&gt;  broom         0.7.4       2021-01-29 [1] CRAN (R 4.0.2)                     
+#&gt;  bslib         0.2.4.9000  2021-02-02 [1] Github (rstudio/bslib@b3cd7a9)     
+#&gt;  cachem        1.0.1       2021-01-21 [1] CRAN (R 4.0.2)                     
+#&gt;  callr         3.5.1       2020-10-13 [1] CRAN (R 4.0.2)                     
+#&gt;  cellranger    1.1.0       2016-07-27 [1] CRAN (R 4.0.0)                     
+#&gt;  cli           2.3.0       2021-01-31 [1] CRAN (R 4.0.2)                     
+#&gt;  codetools     0.2-16      2018-12-24 [2] CRAN (R 4.0.2)                     
+#&gt;  colorspace    2.0-0       2020-11-11 [1] CRAN (R 4.0.2)                     
+#&gt;  crayon        1.4.1       2021-02-08 [1] CRAN (R 4.0.2)                     
+#&gt;  DBI           1.1.1       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  dbplyr        2.0.0       2020-11-03 [1] CRAN (R 4.0.2)                     
+#&gt;  desc          1.2.0       2018-05-01 [1] CRAN (R 4.0.0)                     
+#&gt;  devtools      2.3.2       2020-09-18 [1] CRAN (R 4.0.2)                     
+#&gt;  digest        0.6.27      2020-10-24 [1] CRAN (R 4.0.2)                     
+#&gt;  dplyr       * 1.0.3       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  ellipsis      0.3.1       2020-05-15 [1] CRAN (R 4.0.0)                     
+#&gt;  evaluate      0.14        2019-05-28 [1] CRAN (R 4.0.0)                     
+#&gt;  fastmap       1.1.0       2021-01-25 [1] CRAN (R 4.0.2)                     
+#&gt;  forcats     * 0.5.1       2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  fs            1.5.0       2020-07-31 [1] CRAN (R 4.0.2)                     
+#&gt;  generics      0.1.0       2020-10-31 [1] CRAN (R 4.0.2)                     
+#&gt;  ggplot2     * 3.3.3       2020-12-30 [1] CRAN (R 4.0.2)                     
+#&gt;  glue          1.4.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  gtable        0.3.0       2019-03-25 [1] CRAN (R 4.0.0)                     
+#&gt;  haven         2.3.1       2020-06-01 [1] CRAN (R 4.0.0)                     
+#&gt;  hms           1.0.0       2021-01-13 [1] CRAN (R 4.0.2)                     
+#&gt;  htmltools     0.5.1.1     2021-01-22 [1] CRAN (R 4.0.2)                     
+#&gt;  httr          1.4.2       2020-07-20 [1] CRAN (R 4.0.2)                     
+#&gt;  jquerylib     0.1.3       2020-12-17 [1] CRAN (R 4.0.2)                     
+#&gt;  jsonlite      1.7.2       2020-12-09 [1] CRAN (R 4.0.2)                     
+#&gt;  knitr         1.31        2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  lifecycle     0.2.0       2020-03-06 [1] CRAN (R 4.0.0)                     
+#&gt;  lubridate     1.7.9.2     2020-11-13 [1] CRAN (R 4.0.2)                     
+#&gt;  magrittr      2.0.1       2020-11-17 [1] CRAN (R 4.0.2)                     
+#&gt;  memoise       2.0.0       2021-01-26 [1] CRAN (R 4.0.2)                     
+#&gt;  modelr        0.1.8       2020-05-19 [1] CRAN (R 4.0.0)                     
+#&gt;  munsell       0.5.0       2018-06-12 [1] CRAN (R 4.0.0)                     
+#&gt;  pillar        1.4.7       2020-11-20 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgbuild      1.2.0       2020-12-15 [1] CRAN (R 4.0.2)                     
+#&gt;  pkgconfig     2.0.3       2019-09-22 [1] CRAN (R 4.0.0)                     
+#&gt;  pkgload       1.1.0       2020-05-29 [1] CRAN (R 4.0.0)                     
+#&gt;  prettyunits   1.1.1       2020-01-24 [1] CRAN (R 4.0.0)                     
+#&gt;  processx      3.4.5       2020-11-30 [1] CRAN (R 4.0.2)                     
+#&gt;  ps            1.5.0       2020-12-05 [1] CRAN (R 4.0.2)                     
+#&gt;  purrr       * 0.3.4       2020-04-17 [1] CRAN (R 4.0.0)                     
+#&gt;  R6            2.5.0       2020-10-28 [1] CRAN (R 4.0.2)                     
+#&gt;  Rcpp          1.0.6       2021-01-15 [1] CRAN (R 4.0.2)                     
+#&gt;  readr       * 1.4.0       2020-10-05 [1] CRAN (R 4.0.2)                     
+#&gt;  readxl        1.3.1       2019-03-13 [1] CRAN (R 4.0.0)                     
+#&gt;  remotes       2.2.0       2020-07-21 [1] CRAN (R 4.0.2)                     
+#&gt;  reprex        1.0.0       2021-01-27 [1] CRAN (R 4.0.2)                     
+#&gt;  rlang         0.4.10      2020-12-30 [1] CRAN (R 4.0.2)                     
+#&gt;  rmarkdown     2.6.6       2021-02-11 [1] Github (rstudio/rmarkdown@a62cb20) 
+#&gt;  rprojroot     2.0.2       2020-11-15 [1] CRAN (R 4.0.2)                     
+#&gt;  rstudioapi    0.13.0-9000 2021-02-11 [1] Github (rstudio/rstudioapi@9d21f50)
+#&gt;  rvest         0.3.6       2020-07-25 [1] CRAN (R 4.0.2)                     
+#&gt;  sass          0.3.1       2021-01-24 [1] CRAN (R 4.0.2)                     
+#&gt;  scales        1.1.1       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  sessioninfo   1.1.1       2018-11-05 [1] CRAN (R 4.0.0)                     
+#&gt;  stringi       1.5.3       2020-09-09 [1] CRAN (R 4.0.2)                     
+#&gt;  stringr     * 1.4.0       2019-02-10 [1] CRAN (R 4.0.0)                     
+#&gt;  testthat      3.0.1       2020-12-17 [1] CRAN (R 4.0.2)                     
+#&gt;  tibble      * 3.0.6       2021-01-29 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyr       * 1.1.2       2020-08-27 [1] CRAN (R 4.0.2)                     
+#&gt;  tidyselect    1.1.0       2020-05-11 [1] CRAN (R 4.0.0)                     
+#&gt;  tidyverse   * 1.3.0       2019-11-21 [1] CRAN (R 4.0.0)                     
+#&gt;  usethis       2.0.0       2020-12-10 [1] CRAN (R 4.0.2)                     
+#&gt;  vctrs         0.3.6       2020-12-17 [1] CRAN (R 4.0.2)                     
+#&gt;  withr         2.4.1       2021-01-26 [1] CRAN (R 4.0.2)                     
+#&gt;  xfun          0.21        2021-02-10 [1] CRAN (R 4.0.2)                     
+#&gt;  xml2          1.3.2       2020-04-23 [1] CRAN (R 4.0.0)                     
+#&gt;  yaml          2.2.1       2020-02-01 [1] CRAN (R 4.0.0)                     
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Rlibs
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library</code></pre></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>

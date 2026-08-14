@@ -1,4 +1,313 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Modeling on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/modeling/</link><description>Recent content in Modeling on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Wed, 10 Jun 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/modeling/index.xml" rel="self" type="application/rss+xml"/><item><title>Spell out your model explicitly</title><link>https://sebastiansauer.github.io/data_se/2020/06/10/spell-out-your-model-explicitly/</link><pubDate>Wed, 10 Jun 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/06/10/spell-out-your-model-explicitly/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/header-attrs/header-attrs.js">&lt;/script>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Modeling on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/modeling/</link><description>Recent content in Modeling on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Sat, 04 Jun 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/modeling/index.xml" rel="self" type="application/rss+xml"/><item><title>Vorher-Nachher-Messung und Vergleich zwischen Gruppen</title><link>https://sebastiansauer.github.io/data_se/2022/06/04/vorher-nachher-messung-und-vergleich-zwischen-gruppen/</link><pubDate>Sat, 04 Jun 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/06/04/vorher-nachher-messung-und-vergleich-zwischen-gruppen/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#forschungsfrage" id="toc-forschungsfrage">&lt;span class="toc-section-number">2&lt;/span> Forschungsfrage&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#simulierte-daten" id="toc-simulierte-daten">&lt;span class="toc-section-number">3&lt;/span> Simulierte Daten&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#differenzwert-berechnen" id="toc-differenzwert-berechnen">&lt;span class="toc-section-number">4&lt;/span> Differenzwert berechnen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualisieren" id="toc-visualisieren">&lt;span class="toc-section-number">5&lt;/span> Visualisieren&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#deskriptive-statistik" id="toc-deskriptive-statistik">&lt;span class="toc-section-number">6&lt;/span> Deskriptive Statistik&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#deskriptive-statistik-als-schöne-tabelle" id="toc-deskriptive-statistik-als-schöne-tabelle">&lt;span class="toc-section-number">7&lt;/span> Deskriptive Statistik als schöne Tabelle&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#cohens-d" id="toc-cohens-d">&lt;span class="toc-section-number">8&lt;/span> Cohens d&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#inferenzstatistik" id="toc-inferenzstatistik">&lt;span class="toc-section-number">9&lt;/span> Inferenzstatistik&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#parameter-koeffizienten-des-modells-plotten" id="toc-parameter-koeffizienten-des-modells-plotten">&lt;span class="toc-section-number">10&lt;/span> Parameter (Koeffizienten des Modells) plotten&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#ja-ist-der-effekt-jetzt-groß-oder-nicht" id="toc-ja-ist-der-effekt-jetzt-groß-oder-nicht">&lt;span class="toc-section-number">11&lt;/span> Ja, ist der Effekt jetzt groß oder nicht?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#rope" id="toc-rope">&lt;span class="toc-section-number">12&lt;/span> ROPE&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#was-ist-mit-r-quadrat" id="toc-was-ist-mit-r-quadrat">&lt;span class="toc-section-number">13&lt;/span> Was ist mit R-Quadrat?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fazit" id="toc-fazit">&lt;span class="toc-section-number">14&lt;/span> Fazit&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">15&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(easystats) # make stasts easy again
+library(rstanarm) # Bayes
+library(gt) # schöne Tabellen&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="forschungsfrage" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Forschungsfrage&lt;/h1>
+&lt;p>Stellen Sie sich vor, Sie haben ein Experiment durchgeführt.
+Im Zuge dessen haben Sie vor einer Intervention und nach einer Intervention die interessierende Variable (AV) gemessen.
+Jetzt sind sie an der Frage interessiert,
+ob die Veränderung in der AV sich zwischen den Experimentalbedingungen unterscheidet.&lt;/p></description></item><item><title>Warum Bayes anstelle von Frequentismus?</title><link>https://sebastiansauer.github.io/data_se/2022/01/27/warum-bayes/</link><pubDate>Thu, 27 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/27/warum-bayes/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/27/warum-bayes/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="plädoyer-pro-bayes" class="section level1">
+&lt;h1>Plädoyer pro Bayes&lt;/h1>
+&lt;p>Dieser Post ist ein Plädoyer, Bayes-Statistik in der Statistikausbildung und in der praktischen Forschung zu nutzen.
+Keines der hier vorgetragenen Argumente ist neu.
+Die Thematik ist schon 1000 Mal diskutiert worden und oft umfangreicher und systematischer,
+ja besser, als in diesem Post.
+Ich schreibe hier kurz meine Sichtweise zusammen und verweise auf weitere Liteatur.&lt;/p>
+&lt;/div>
+&lt;div id="bayes-inferenz-kenn-ich-nicht" class="section level1">
+&lt;h1>Bayes-Inferenz kenn ich nicht!&lt;/h1>
+&lt;p>Die klassische Statistikausbildung in den Sozialwissenschaften beinhaltet meist kein oder kaum Bayes.
+Das hat vermutlich zwei Gründe: Zum ersten haben es die Dozentis selber nicht gelernt.
+Zum zweiten gibt es erst seit wenigen Jahren komfortable Software (und genug Rechenpower).
+Kein Wunder also, dass Bayes weniger bekannt ist als die “klassische”,
+die sog. “Frequentistische” Statistik.&lt;/p></description></item><item><title>Visualizing a log-y regression model</title><link>https://sebastiansauer.github.io/data_se/2022/01/14/visualizing-a-log-y-regression-model/</link><pubDate>Fri, 14 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/14/visualizing-a-log-y-regression-model/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/14/visualizing-a-log-y-regression-model/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="setup" class="section level1">
+&lt;h1>Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+data(mtcars)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="using-a-log-y-regression" class="section level1">
+&lt;h1>Using a log-Y regression&lt;/h1>
+&lt;p>Gelman et al., in “Regression and other stories” are stating that “when additivity and linearity are not reasonable assumptions” it may sense to “take the logarithms of outcomes that are all positive” (p. 189).&lt;/p>
+&lt;p>A log-y regression can be defined as follows, in the simplest case:&lt;/p>
+&lt;p>&lt;span class="math display">\[\text{log} \, y = b_0 + b_1X_1 + \ldots + \epsilon\]&lt;/span>
+Exponentiating both sides yields&lt;/p></description></item><item><title>Vorhersage-Modellierung des Diamantenpreises</title><link>https://sebastiansauer.github.io/data_se/2021/07/06/diamantenpreis-vorhersagen/</link><pubDate>Tue, 06 Jul 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/07/06/diamantenpreis-vorhersagen/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/07/06/diamantenpreis-vorhersagen/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#vorbereitung">&lt;span class="toc-section-number">1&lt;/span> Vorbereitung&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#forschungsfrage">&lt;span class="toc-section-number">1.1&lt;/span> Forschungsfrage&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#aufgabe">&lt;span class="toc-section-number">1.2&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pakete-laden">&lt;span class="toc-section-number">1.3&lt;/span> Pakete laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">1.4&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#id-spalte-ergänzen">&lt;span class="toc-section-number">1.5&lt;/span> ID-Spalte ergänzen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#vorwissen">&lt;span class="toc-section-number">2&lt;/span> Vorwissen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#woran-erkennt-man-einen-starken-haupteffekt">&lt;span class="toc-section-number">3&lt;/span> Woran erkennt man einen “starken Haupteffekt”?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#wichtige-prädiktoren">&lt;span class="toc-section-number">4&lt;/span> Wichtige Prädiktoren&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#train2">&lt;span class="toc-section-number">4.1&lt;/span> train2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#test2">&lt;span class="toc-section-number">4.2&lt;/span> test2&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#feature-engineering">&lt;span class="toc-section-number">5&lt;/span> Feature Engineering&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#train3test3">&lt;span class="toc-section-number">5.1&lt;/span> train3/test3&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#korrelation">&lt;span class="toc-section-number">5.2&lt;/span> Korrelation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#preds_important">&lt;span class="toc-section-number">5.3&lt;/span> &lt;code>preds_important&lt;/code>&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#funktionale-form-der-zusammenhänge">&lt;span class="toc-section-number">6&lt;/span> Funktionale Form der Zusammenhänge&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#filtern">&lt;span class="toc-section-number">7&lt;/span> Filtern&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#train4">&lt;span class="toc-section-number">7.1&lt;/span> train4&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#transformationen">&lt;span class="toc-section-number">8&lt;/span> Transformationen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#log-transformation-train5">&lt;span class="toc-section-number">8.1&lt;/span> Log-Transformation (train5)&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#z-transformation-train6">&lt;span class="toc-section-number">8.2&lt;/span> z-Transformation (train6)&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#vorhersage-modellierung">&lt;span class="toc-section-number">9&lt;/span> Vorhersage-Modellierung&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#lm1">&lt;span class="toc-section-number">9.1&lt;/span> lm1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm2">&lt;span class="toc-section-number">9.2&lt;/span> lm2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm3">&lt;span class="toc-section-number">9.3&lt;/span> lm3&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm4">&lt;span class="toc-section-number">9.4&lt;/span> lm4&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm5">&lt;span class="toc-section-number">9.5&lt;/span> lm5&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm6">&lt;span class="toc-section-number">9.6&lt;/span> lm6&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm7-regsubsets">&lt;span class="toc-section-number">9.7&lt;/span> lm7: regsubsets&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#achtung">&lt;span class="toc-section-number">9.7.1&lt;/span> Achtung&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#lm8">&lt;span class="toc-section-number">9.8&lt;/span> lm8&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm9-schrittweise-regression">&lt;span class="toc-section-number">9.9&lt;/span> lm9: Schrittweise Regression&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#predict">&lt;span class="toc-section-number">10&lt;/span> Predict&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#vorhersagen-hinzufügen">&lt;span class="toc-section-number">10.1&lt;/span> Vorhersagen hinzufügen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#zurücktransformieren">&lt;span class="toc-section-number">10.2&lt;/span> Zurücktransformieren&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#test-r2">&lt;span class="toc-section-number">11&lt;/span> Test-R2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fazit">&lt;span class="toc-section-number">12&lt;/span> Fazit&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="vorbereitung" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Vorbereitung&lt;/h1>
+&lt;div id="forschungsfrage" class="section level2" number="1.1">
+&lt;h2>&lt;span class="header-section-number">1.1&lt;/span> Forschungsfrage&lt;/h2>
+&lt;p>&lt;em>Welche Prädiktoren lassen den Preis einen Diamanten vorhersagen?&lt;/em>&lt;/p></description></item><item><title>Modellierung Diamantenpreis 2</title><link>https://sebastiansauer.github.io/data_se/2021/05/25/modellierung-diamantenpreis-2/</link><pubDate>Tue, 25 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/25/modellierung-diamantenpreis-2/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#modellierung-des-preises-von-diamanten">&lt;span class="toc-section-number">1&lt;/span> Modellierung des Preises von Diamanten&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pakete-laden">&lt;span class="toc-section-number">2&lt;/span> Pakete laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">3&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#datensatz-verstehen">&lt;span class="toc-section-number">4&lt;/span> Datensatz verstehen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#modellierung">&lt;span class="toc-section-number">5&lt;/span> Modellierung&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#modell-1">&lt;span class="toc-section-number">5.1&lt;/span> Modell 1&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#modellgüte">&lt;span class="toc-section-number">5.1.1&lt;/span> Modellgüte&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#überprüfung-der-annahmen">&lt;span class="toc-section-number">5.1.2&lt;/span> Überprüfung der Annahmen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#modell-2">&lt;span class="toc-section-number">5.2&lt;/span> Modell 2&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#genauerer-blick-auf-den-zusammenhang">&lt;span class="toc-section-number">5.2.1&lt;/span> Genauerer Blick auf den Zusammenhang&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#log-modell">&lt;span class="toc-section-number">5.2.2&lt;/span> Log-Modell&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#modell-3">&lt;span class="toc-section-number">5.3&lt;/span> Modell 3&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#modellgüte-1">&lt;span class="toc-section-number">5.3.1&lt;/span> Modellgüte&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#voraussetzungen-prüfen">&lt;span class="toc-section-number">5.3.2&lt;/span> Voraussetzungen prüfen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#modell-3a-und-4">&lt;span class="toc-section-number">5.4&lt;/span> Modell 3a und 4&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#konfundierung-von-schliff-und-karat">&lt;span class="toc-section-number">5.4.1&lt;/span> Konfundierung von Schliff und Karat&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm3a">&lt;span class="toc-section-number">5.4.2&lt;/span> &lt;code>lm3a&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm4-schliff-als-prädiktor">&lt;span class="toc-section-number">5.4.3&lt;/span> &lt;code>lm4&lt;/code>: Schliff als Prädiktor&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#modellkoeffizienten">&lt;span class="toc-section-number">5.4.4&lt;/span> Modellkoeffizienten&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#r2-zur-beurteilung-der-relevanz-von-prädiktoren">&lt;span class="toc-section-number">5.4.5&lt;/span> &lt;span class="math inline">\(R^2\)&lt;/span> zur Beurteilung der Relevanz von Prädiktoren&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#fazit-händische-modellierung">&lt;span class="toc-section-number">6&lt;/span> Fazit: “Händische” Modellierung&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#maschinelle-prädiktorenwahl">&lt;span class="toc-section-number">6.1&lt;/span> Maschinelle Prädiktorenwahl&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#einreichen">&lt;span class="toc-section-number">6.2&lt;/span> Einreichen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="modellierung-des-preises-von-diamanten" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Modellierung des Preises von Diamanten&lt;/h1>
+&lt;p>In diesem Post untersuchen wir den Preis von Diamanten und gehen auf einige Aspekte der statistischen Modellierung ein.&lt;/p></description></item><item><title>Vorhersage-Modellierung des Preises von Diamanten</title><link>https://sebastiansauer.github.io/data_se/2021/05/19/vohrersgage-modellierung-des-preises-von-diamanten/</link><pubDate>Wed, 19 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/19/vohrersgage-modellierung-des-preises-von-diamanten/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/05/19/vohrersgage-modellierung-des-preises-von-diamanten/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#hintergrund-und-ziel">&lt;span class="toc-section-number">1&lt;/span> Hintergrund und Ziel&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pakete-laden">&lt;span class="toc-section-number">2&lt;/span> Pakete laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">3&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#aufteilen-in-train--und-test-datensatz">&lt;span class="toc-section-number">4&lt;/span> Aufteilen in Train- und Test-Datensatz&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#eda">&lt;span class="toc-section-number">5&lt;/span> EDA&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#modellierung">&lt;span class="toc-section-number">6&lt;/span> Modellierung&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#modell-1">&lt;span class="toc-section-number">6.1&lt;/span> Modell 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#modell-2">&lt;span class="toc-section-number">6.2&lt;/span> Modell 2&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#vorhersage-im-test-datensatz">&lt;span class="toc-section-number">7&lt;/span> Vorhersage im Test-Datensatz&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#r-quadrat-im-test-datensatz">&lt;span class="toc-section-number">8&lt;/span> R-Quadrat im Test-Datensatz&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#weitere-überlegungen">&lt;span class="toc-section-number">9&lt;/span> Weitere Überlegungen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#einreichen">&lt;span class="toc-section-number">10&lt;/span> Einreichen&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="hintergrund-und-ziel" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Hintergrund und Ziel&lt;/h1>
+&lt;p>In diesem Post sagen wir den Preis von Diamanten vorher. Nehmen wir an, Sie hätten bei einem großen Online-Kaufhaus angeheuert und ihre Chefin möchte gerne wissen, welchen Preis sie wohl für bestimmte Diamanten erzielen kann. &lt;code>price&lt;/code> ist also die vorherzusagende Größe im Datensatz &lt;code>diamonds&lt;/code> (aus ggplot2).&lt;/p></description></item><item><title>Modeling your research data: A crash course using R</title><link>https://sebastiansauer.github.io/data_se/2021/03/24/modeling-your-research-data-a-crash-course-using-r/</link><pubDate>Wed, 24 Mar 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/03/24/modeling-your-research-data-a-crash-course-using-r/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#course-description" id="toc-course-description">&lt;span class="toc-section-number">1&lt;/span> Course description&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#were-on-a-crash-course" id="toc-were-on-a-crash-course">&lt;span class="toc-section-number">2&lt;/span> We’re on a crash course&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#more-on-modelling" id="toc-more-on-modelling">&lt;span class="toc-section-number">3&lt;/span> More on modelling&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#course-prerequisites" id="toc-course-prerequisites">&lt;span class="toc-section-number">4&lt;/span> Course prerequisites&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#learning-objectives" id="toc-learning-objectives">&lt;span class="toc-section-number">5&lt;/span> Learning objectives&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#course-website-book" id="toc-course-website-book">&lt;span class="toc-section-number">6&lt;/span> Course website (book)&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#course-literature" id="toc-course-literature">&lt;span class="toc-section-number">7&lt;/span> Course Literature&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#course-logistics" id="toc-course-logistics">&lt;span class="toc-section-number">8&lt;/span> Course logistics&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#upfront-student-preparation" id="toc-upfront-student-preparation">&lt;span class="toc-section-number">9&lt;/span> UPFRONT student preparation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#didactic-outline" id="toc-didactic-outline">&lt;span class="toc-section-number">10&lt;/span> Didactic outline&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#schedule" id="toc-schedule">&lt;span class="toc-section-number">11&lt;/span> Schedule&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#overview-on-topics-covered" id="toc-overview-on-topics-covered">&lt;span class="toc-section-number">11.1&lt;/span> Overview on topics covered&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#block-1-explorative-data-analysis" id="toc-block-1-explorative-data-analysis">&lt;span class="toc-section-number">11.2&lt;/span> Block 1: Explorative Data Analysis&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#visualization" id="toc-visualization">&lt;span class="toc-section-number">11.2.1&lt;/span> Visualization&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#data-wrangling" id="toc-data-wrangling">&lt;span class="toc-section-number">11.2.2&lt;/span> Data Wrangling&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#exercises-case-study" id="toc-exercises-case-study">&lt;span class="toc-section-number">11.2.3&lt;/span> Exercises / Case study&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#block-2-statistical-modelling-basic" id="toc-block-2-statistical-modelling-basic">&lt;span class="toc-section-number">11.3&lt;/span> Block 2: Statistical Modelling: Basic&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#theory" id="toc-theory">&lt;span class="toc-section-number">11.3.1&lt;/span> Theory&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#case-study" id="toc-case-study">&lt;span class="toc-section-number">11.3.2&lt;/span> Case study&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#block-3-statistical-modelling-multiple-regression-and-interaction" id="toc-block-3-statistical-modelling-multiple-regression-and-interaction">&lt;span class="toc-section-number">11.4&lt;/span> Block 3: Statistical Modelling: Multiple Regression and interaction&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#theory-1" id="toc-theory-1">&lt;span class="toc-section-number">11.4.1&lt;/span> Theory&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#case-study-1" id="toc-case-study-1">&lt;span class="toc-section-number">11.4.2&lt;/span> Case study&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#block-4-project-coaching" id="toc-block-4-project-coaching">&lt;span class="toc-section-number">11.5&lt;/span> Block 4: Project coaching&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#instructor" id="toc-instructor">&lt;span class="toc-section-number">12&lt;/span> Instructor&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#contact-me" id="toc-contact-me">&lt;span class="toc-section-number">13&lt;/span> Contact me&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#assessment-and-grades" id="toc-assessment-and-grades">&lt;span class="toc-section-number">14&lt;/span> Assessment and grades&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#talk-to-me" id="toc-talk-to-me">&lt;span class="toc-section-number">15&lt;/span> Talk to me&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#course-materials" id="toc-course-materials">&lt;span class="toc-section-number">16&lt;/span> Course materials&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#more-resources" id="toc-more-resources">&lt;span class="toc-section-number">17&lt;/span> More resources&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#recommendations" id="toc-recommendations">&lt;span class="toc-section-number">17.1&lt;/span> Recommendations&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#packages" id="toc-packages">&lt;span class="toc-section-number">17.2&lt;/span> R Packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#data" id="toc-data">&lt;span class="toc-section-number">17.3&lt;/span> Data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#labs-case-studies" id="toc-labs-case-studies">&lt;span class="toc-section-number">17.4&lt;/span> Labs (case studies)&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#sketching-causal-models" id="toc-sketching-causal-models">&lt;span class="toc-section-number">17.5&lt;/span> Sketching causal models&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#german-introductary-course" id="toc-german-introductary-course">&lt;span class="toc-section-number">17.6&lt;/span> German introductary course&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#where-are-the-slides" id="toc-where-are-the-slides">&lt;span class="toc-section-number">18&lt;/span> Where are the slides?&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="course-description" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Course description&lt;/h1>
+&lt;p>Analyzing research data can broadly be classified in three parts: explorative data analysis, modeling (including inference), and visualization. Either part is pivotal in its own right, but it can be argued that modeling is at the core of the scientific endeavor. However, in practice, modeling, visualization, and data exploration is heavily intertwined, so that three parts may be recognized (as individual entities) but not usefully separated from each other. This idea provides the rationale of this course: Data exploration, data visualization and data modeling is discussed as an integrated framework.&lt;/p></description></item><item><title>Fallstudie: Modellierung von Flugverspätungen</title><link>https://sebastiansauer.github.io/data_se/2021/03/10/fallstudie-modellierung-von-flugversp%C3%A4tungen/</link><pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/03/10/fallstudie-modellierung-von-flugversp%C3%A4tungen/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/03/10/fallstudie-modellierung-von-flugversp%C3%A4tungen/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#hintergrund-und-forschungsfrage">&lt;span class="toc-section-number">1&lt;/span> Hintergrund und Forschungsfrage&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pakete-laden">&lt;span class="toc-section-number">2&lt;/span> Pakete laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">3&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#flights2-nicht-benötigte-variablen-entfernen-und-id-hinzufügen">&lt;span class="toc-section-number">4&lt;/span> flights2: Nicht benötigte Variablen entfernen und ID hinzufügen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#aufteilung-in-train--und-testsample">&lt;span class="toc-section-number">5&lt;/span> Aufteilung in Train- und Testsample&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#flights_train2-flights_test2">&lt;span class="toc-section-number">6&lt;/span> flights_train2, flights_test2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm0-nullmodell">&lt;span class="toc-section-number">7&lt;/span> lm0: Nullmodell&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm1-origin">&lt;span class="toc-section-number">8&lt;/span> lm1: origin&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm2-all-in">&lt;span class="toc-section-number">9&lt;/span> lm2: All in&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#flights_train3-textvariablen-in-faktorvariablen-umwandeln">&lt;span class="toc-section-number">10&lt;/span> flights_train3: Textvariablen in Faktorvariablen umwandeln&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#flights_test3">&lt;span class="toc-section-number">10.1&lt;/span> flights_test3&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#flights_train4-faktorstufen-zusammenfassen">&lt;span class="toc-section-number">11&lt;/span> flights_train4: Faktorstufen zusammenfassen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#flights_test4">&lt;span class="toc-section-number">11.1&lt;/span> flights_test4&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#lm3-alle-zusammengefassten-faktorvariablen">&lt;span class="toc-section-number">12&lt;/span> lm3: Alle zusammengefassten Faktorvariablen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm4-alle-metrischen-variablen">&lt;span class="toc-section-number">13&lt;/span> lm4: Alle metrischen Variablen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm5-alle-metrischen-und-alle-zusammengefassten-nominalen-variablen">&lt;span class="toc-section-number">14&lt;/span> lm5: Alle metrischen und alle (zusammengefassten) nominalen Variablen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#wetter-daten-ergänzen">&lt;span class="toc-section-number">15&lt;/span> Wetter-Daten ergänzen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#wetterdaten-laden">&lt;span class="toc-section-number">15.1&lt;/span> Wetterdaten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#flights_train5-wetterdaten-mit-flugdaten-verheiraten">&lt;span class="toc-section-number">15.2&lt;/span> flights_train5: Wetterdaten mit Flugdaten verheiraten&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#flights_train6">&lt;span class="toc-section-number">16&lt;/span> flights_train6&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm6-plus-wetterdaten">&lt;span class="toc-section-number">17&lt;/span> lm6: Plus Wetterdaten&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#r2-im-testsample">&lt;span class="toc-section-number">17.1&lt;/span> R2 im Testsample&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#lm7-rohe-gewalt">&lt;span class="toc-section-number">18&lt;/span> lm7: Rohe Gewalt&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#zeitabschätzung">&lt;span class="toc-section-number">18.1&lt;/span> Zeitabschätzung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#best-subsets-ergebnisse">&lt;span class="toc-section-number">18.2&lt;/span> Best Subsets – Ergebnisse&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vorwärts-rückwärts-schrittweise-regression">&lt;span class="toc-section-number">18.3&lt;/span> Vorwärts-/Rückwärts-Schrittweise Regression&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#lm8-bestes-modell-aus-der-best-subset-analyse">&lt;span class="toc-section-number">19&lt;/span> lm8: Bestes Modell aus der Best-Subset-Analyse&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#r2-im-testdatensatz">&lt;span class="toc-section-number">19.1&lt;/span> R2 im Testdatensatz&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#prüfen-der-modellqualität">&lt;span class="toc-section-number">20&lt;/span> Prüfen der Modellqualität&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#einreichen">&lt;span class="toc-section-number">21&lt;/span> Einreichen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#csv-datei-erstellen-zum-einreichen">&lt;span class="toc-section-number">21.1&lt;/span> CSV-Datei erstellen zum Einreichen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#was-noch">&lt;span class="toc-section-number">22&lt;/span> Was noch?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#tidymodels">&lt;span class="toc-section-number">23&lt;/span> Tidymodels&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">24&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="hintergrund-und-forschungsfrage" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Hintergrund und Forschungsfrage&lt;/h1>
+&lt;p>Wir untersuchen die Forschungsfrage &lt;em>Was sind Prädiktoren von Flugverspätungen&lt;/em>. Dazu nutzen wir lineare Modelle als Modellierungsmethoden.&lt;/p></description></item><item><title>Spell out your model explicitly</title><link>https://sebastiansauer.github.io/data_se/2020/06/10/spell-out-your-model-explicitly/</link><pubDate>Wed, 10 Jun 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/06/10/spell-out-your-model-explicitly/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/header-attrs/header-attrs.js">&lt;/script>
 
 
 &lt;div id="load-packages" class="section level1">

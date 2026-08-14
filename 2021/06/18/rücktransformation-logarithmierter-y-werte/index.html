@@ -1,0 +1,58 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Rücktransformation logarithmierter y-Werte - Data Se</title>
+<meta property="og:title" content="Rücktransformation logarithmierter y-Werte - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>3 min read</span><h1 class=article-title>Rücktransformation logarithmierter y-Werte</h1><span class=article-date>2021/06/18</span><div class=article-content><script src="/data_se/2021/06/18/r%C3%BCcktransformation-logarithmierter-y-werte/
+index_files/header-attrs/header-attrs.js"></script><div id=TOC><ul><li><a href=#kontext><span class=toc-section-number>1</span> Kontext</a></li><li><a href=#vorbereitung><span class=toc-section-number>2</span> Vorbereitung</a></li><li><a href=#logy-logx-modell><span class=toc-section-number>3</span> LogY-LogX-Modell</a></li><li><a href=#modell-1><span class=toc-section-number>4</span> Modell 1</a></li><li><a href=#vorhersage-zum-beispiel-aus-der-fallstudie><span class=toc-section-number>5</span> Vorhersage zum Beispiel aus der Fallstudie</a></li><li><a href=#vorhersagen-wie-im-prognose-wettbewerb><span class=toc-section-number>6</span> Vorhersagen wie im Prognose-Wettbewerb</a></li><li><a href=#check><span class=toc-section-number>7</span> Check</a></li></ul></div><div id=kontext class="section level1" number=1><h1><span class=header-section-number>1</span> Kontext</h1><p>Dieser Post bezieht sich auf <a href=https://moderndive.com/11-thinking-with-data.html#seattle-house-prices>diese Fallstudie</a>.</p></div><div id=vorbereitung class="section level1" number=2><h1><span class=header-section-number>2</span> Vorbereitung</h1><pre class=r><code>library(tidyverse)  # Datenjudo</code></pre><pre><code>## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──</code></pre><pre><code>## ✓ ggplot2 3.3.4     ✓ purrr   0.3.4
+## ✓ tibble  3.1.2     ✓ dplyr   1.0.6
+## ✓ tidyr   1.1.3     ✓ stringr 1.4.0
+## ✓ readr   1.4.0     ✓ forcats 0.5.1</code></pre><pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag()    masks stats::lag()</code></pre><pre class=r><code>library(moderndive)  # Daten
+library(modelr)  # für &quot;add_predictions()&quot;
+data(&quot;house_prices&quot;)</code></pre></div><div id=logy-logx-modell class="section level1" number=3><h1><span class=header-section-number>3</span> LogY-LogX-Modell</h1><blockquote><p>Bei einem LogY-LogX-Modell gilt: Steigt X um 1%, so steigt Y um k%.</p></blockquote><p>LogY-X-Modell: Steigt X um 1 Einheit, so steigt Y um k%.</p><pre class=r><code>house_prices &lt;- house_prices %&gt;%
+  mutate(
+    log10_price = log10(price),
+    log10_size = log10(sqft_living)
+    )</code></pre><p>Hier ist die Basis des Logarithmus 10, so dass gilt <span class="math inline">\(lg(100) = 2, lg(1000) = 3\)</span> etc.</p></div><div id=modell-1 class="section level1" number=4><h1><span class=header-section-number>4</span> Modell 1</h1><p>Wir beziehen uns auf <a href=https://moderndive.com/11-thinking-with-data.html#house-prices-regression>dieses Modell</a>.</p><pre class=r><code># Fit regression model:
+price_interaction &lt;- lm(log10_price ~ log10_size * condition, 
+                        data = house_prices)
+
+# Get regression table:
+get_regression_table(price_interaction)</code></pre><pre><code>## # A tibble: 10 x 7
+##    term                  estimate std_error statistic p_value lower_ci upper_ci
+##    &lt;chr&gt;                    &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;   &lt;dbl&gt;    &lt;dbl&gt;    &lt;dbl&gt;
+##  1 intercept                3.33      0.451     7.38    0        2.45     4.22 
+##  2 log10_size               0.69      0.148     4.65    0        0.399    0.98 
+##  3 condition2               0.047     0.498     0.094   0.925   -0.93     1.02 
+##  4 condition3              -0.367     0.452    -0.812   0.417   -1.25     0.519
+##  5 condition4              -0.398     0.453    -0.879   0.38    -1.29     0.49 
+##  6 condition5              -0.883     0.457    -1.93    0.053   -1.78     0.013
+##  7 log10_size:condition2   -0.024     0.163    -0.148   0.882   -0.344    0.295
+##  8 log10_size:condition3    0.133     0.148     0.893   0.372   -0.158    0.424
+##  9 log10_size:condition4    0.146     0.149     0.979   0.328   -0.146    0.437
+## 10 log10_size:condition5    0.31      0.15      2.07    0.039    0.016    0.604</code></pre></div><div id=vorhersage-zum-beispiel-aus-der-fallstudie class="section level1" number=5><h1><span class=header-section-number>5</span> Vorhersage zum Beispiel aus der Fallstudie</h1><pre class=r><code>preds1 &lt;- predict(price_interaction,
+                  newdata = data.frame(
+                    condition = factor(&quot;5&quot;),  #nominal skaliert
+                    log10_size = 3.28))
+preds1  # 5.73</code></pre><pre><code>##        1 
+## 5.725459</code></pre><p>100000 -> 1000000</p><p>500000</p><p>Das ist der Wert des Hauses in der Log-Skala. Für die Rohwerte müssen wir den Logarithmus wieder umkehren, also die Umkehrfunktion anwenden, das ist die <em>Exponenzialfunktion</em>, hier zur Basis 10:</p><pre class=r><code>10^5.73  # delog</code></pre><pre><code>## [1] 537031.8</code></pre><p>Der Wert der Immobilie liegt also, laut Modell, bei gut 500 Tausend Dollar.</p></div><div id=vorhersagen-wie-im-prognose-wettbewerb class="section level1" number=6><h1><span class=header-section-number>6</span> Vorhersagen wie im Prognose-Wettbewerb</h1><pre class=r><code>house_prices &lt;-
+  house_prices %&gt;% 
+  add_predictions(price_interaction,
+                  var = &quot;pred_log10&quot;) %&gt;% 
+  mutate(pred = 10^pred_log10)  # da Log-Basis 10</code></pre><p>Wäre die Basis des Log. nicht 10, sondern <em>e</em>, dann hieße der Code:</p><pre class=r><code>house_prices &lt;-
+  house_prices %&gt;% 
+  add_predictions(price_interaction,
+                  var = &quot;pred_log10&quot;) %&gt;% 
+  mutate(pred_e = 2.71^pred_log10)  # da Log-Basis 10</code></pre></div><div id=check class="section level1" number=7><h1><span class=header-section-number>7</span> Check</h1><p>Ein Blick in die Daten:</p><pre class=r><code>house_prices %&gt;% 
+  select(price, pred_log10, pred) %&gt;% 
+  slice(1:10)</code></pre><pre><code>## # A tibble: 10 x 3
+##      price pred_log10     pred
+##      &lt;dbl&gt;      &lt;dbl&gt;    &lt;dbl&gt;
+##  1  221900       5.49  308270.
+##  2  538000       5.77  584591.
+##  3  180000       5.34  217028.
+##  4  604000       5.74  546648.
+##  5  510000       5.62  412162.
+##  6 1225000       6.03 1079632.
+##  7  257500       5.62  419208.
+##  8  291850       5.45  282254.
+##  9  229500       5.64  432227.
+## 10  323000       5.66  454069.</code></pre><p>Unser Modell scheint plausible Vorhersagen zu tätigen.</p></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>

@@ -1,0 +1,84 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Simulation sample and interval sizes for proportions - Data Se</title>
+<meta property="og:title" content="Simulation sample and interval sizes for proportions - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>5 min read</span><h1 class=article-title>Simulation sample and interval sizes for proportions</h1><span class=article-date>2021/09/16</span><div class=article-content><script src="/data_se/2021/09/16/simulation-sample-and-interval-sizes-for-proportions/
+index_files/header-attrs/header-attrs.js"></script><div id=TOC><ul><li><a href=#exemplary-research-question><span class=toc-section-number>1</span> Exemplary Research question</a></li><li><a href=#task-definition><span class=toc-section-number>2</span> Task definition</a></li><li><a href=#technical-setup><span class=toc-section-number>3</span> Technical setup</a></li><li><a href=#define-constants><span class=toc-section-number>4</span> Define constants</a></li><li><a href=#prepare-data-frame-for-the-simulation><span class=toc-section-number>5</span> Prepare data frame for the simulation</a></li><li><a href=#simulation><span class=toc-section-number>6</span> Simulation</a></li><li><a href=#check-some-distributions><span class=toc-section-number>7</span> Check some distributions</a></li><li><a href=#minimum-sample-size><span class=toc-section-number>8</span> Minimum sample size</a></li><li><a href=#plot-results><span class=toc-section-number>9</span> Plot results</a></li><li><a href=#summary><span class=toc-section-number>10</span> Summary</a></li><li><a href=#discussion><span class=toc-section-number>11</span> Discussion</a></li><li><a href=#suggested-reading><span class=toc-section-number>12</span> Suggested reading</a></li><li><a href=#bibliography>Bibliography</a></li></ul></div><div id=exemplary-research-question class="section level1" number=1><h1><span class=header-section-number>1</span> Exemplary Research question</h1><p>What is the sample size needed to estimate the proportion of the event “high quality study” with an error margin of ±5%, and a confidence level of 99%? Let’s assume the probability of the event is 50%, and we draw the studies independently?</p></div><div id=task-definition class="section level1" number=2><h1><span class=header-section-number>2</span> Task definition</h1><p>Let’s simulate the width of a <span class="math inline">\(1-\alpha\)</span> compatibility interval with a given margin of error <span class="math inline">\(E\)</span> for varying samples sizes <span class="math inline">\(n_i\)</span>, where <span class="math inline">\(i = 1,...,N\)</span>, and <span class="math inline">\(N\)</span> is the maximum sample size we can afford. We’ll assume indendently distributed and independent trials (iid).</p><p>Let’s further assume we are looking at a binary event <span class="math inline">\(X\)</span> with a success <span class="math inline">\(x\)</span> probability of <span class="math inline">\(Pr(X=x)=p\)</span>.</p><p>Let <span class="math inline">\(Y_k = \sum_1^i X_j\)</span>; think of <span class="math inline">\(Y_k\)</span> as one sample of a given sample size, <span class="math inline">\(n_i\)</span>. Note that <span class="math inline">\(Y_k \overset{iid}{\sim} \mathcal{B}(n,p)\)</span> (Binomially distributed).</p><p>Let’s draw <span class="math inline">\(K\)</span> samples for each <span class="math inline">\(Y_k\)</span>, and dub the resulting statistic <span class="math inline">\(Z_i\)</span>. We’ll compute <span class="math inline">\(Z_i\)</span> for each sample size <span class="math inline">\(n_i\)</span>, with <span class="math inline">\(i = 1,...,N\)</span>.</p><p>Finally, we’ll compute the arithmetic average of each <span class="math inline">\(Y_k\)</span> and of <span class="math inline">\(Z_i\)</span>, for scale independency.</p></div><div id=technical-setup class="section level1" number=3><h1><span class=header-section-number>3</span> Technical setup</h1><p>We’ll run this simulation in R, making use of the following packages:</p><pre class=r><code>library(tidyverse)
+library(scales)
+library(glue)
+library(moments)</code></pre></div><div id=define-constants class="section level1" number=4><h1><span class=header-section-number>4</span> Define constants</h1><pre class=r><code>N &lt;- 1e04  # max. sample size
+E &lt;- .05  # error margin
+p &lt;- 1/2  # probability of event (success)
+alpha = .01  # compatibility level
+K &lt;- 1e03  # repetitions per sample size
+
+q &lt;- abs(qnorm(p = alpha/2))
+q  # quantile in the normal distribution for alpha</code></pre><pre><code>## [1] 2.575829</code></pre><p>Note that <span class="math inline">\(p=1/2\)</span> is the maximum conservative assumption yielding the largest sample size.</p></div><div id=prepare-data-frame-for-the-simulation class="section level1" number=5><h1><span class=header-section-number>5</span> Prepare data frame for the simulation</h1><pre class=r><code>df &lt;- tibble(
+  i = 1:N,
+  estimate = NA,
+  se = NA,
+  lwr = NA,
+  upr = NA,
+  width = NA,
+  small_enough = NA
+)</code></pre></div><div id=simulation class="section level1" number=6><h1><span class=header-section-number>6</span> Simulation</h1><p>Let’s draw <span class="math inline">\(N\)</span> samples with increasing sample size from 1 to <span class="math inline">\(N=10^{4}\)</span>, each time with <span class="math inline">\(K=1000\)</span> repetitions, assuming independent draws and a Binomial distribution with <span class="math inline">\(p=0.5\)</span>.</p><pre class=r><code>for (i in 1:N) {
+  # draw K &quot;coin flip&quot; samples of size i, 
+  # with succcess propability p: 
+  tmp &lt;- rbinom(n = K, size = i, prob = p)
+  # compute succcess rate for each sample:
+  prop_success &lt;- tmp/i
+  # compute success rate over all K samples:
+  df$estimate[i] &lt;- mean(prop_success)
+  # compute standard error:
+  df$se[i] &lt;- sd(prop_success)
+  # compute interval borders and width:
+  df$lwr[i] &lt;- df$estimate[i] - q * df$se[i]
+  df$upr[i] &lt;- df$estimate[i] + q * df$se[i]
+  df$width[i] &lt;- df$upr[i] - df$lwr[i] 
+  # check if intervals is as small as desired:
+  if (df$width[i] &lt; 2*E)
+   {df$small_enough[i] &lt;- TRUE} else {
+     df$small_enough[i] &lt;- FALSE}
+}</code></pre></div><div id=check-some-distributions class="section level1" number=7><h1><span class=header-section-number>7</span> Check some distributions</h1><p>Note that the binomial distributions converges against the normal distribution. For instance, let’s pick <span class="math inline">\(n_i=100\)</span> and <span class="math inline">\(K=10^4\)</span>.</p><pre class=r><code>smple &lt;- tibble(
+ estimate = rbinom(n = 1e04, 
+                   size = 100, 
+                   prob = p))
+
+smple %&gt;% 
+  ggplot(aes(x = estimate)) +
+  geom_density()</code></pre><p><img src=unnamed-chunk-6-1.png width=70% style=display:block;margin:auto></p><p>Let’s briefly check for normality, using a quantile-quantile plot:</p><pre class=r><code>ggplot(smple, aes(sample = estimate)) + 
+  stat_qq() +
+  stat_qq_line(col = &quot;red&quot;)</code></pre><p><img src=unnamed-chunk-7-1.png width=70% style=display:block;margin:auto></p><p>This check reassured us that this distribution is normal.</p><p>Add some stats for checking normality:</p><pre class=r><code>skewness(smple$estimate)</code></pre><pre><code>## [1] -0.01740677</code></pre><pre class=r><code>kurtosis(smple$estimate)</code></pre><pre><code>## [1] 2.952453</code></pre><p>Which nicely fits a normal distribution.</p><p>Also note that a linear transformation of a normal curve is still normal:</p><pre class=r><code>tibble(
+ estimate = rbinom(n = 1e04, 
+                   size = 100, 
+                   prob = p),
+ prop = estimate / 100) %&gt;% 
+  ggplot(aes(x = prop)) +
+  geom_density()</code></pre><p><img src=unnamed-chunk-9-1.png width=70% style=display:block;margin:auto></p></div><div id=minimum-sample-size class="section level1" number=8><h1><span class=header-section-number>8</span> Minimum sample size</h1><p>What’s the minimum sample size <span class="math inline">\(n_{min}\)</span> needed such that <span class="math inline">\(w \le 2E\)</span>, where <span class="math inline">\(w\)</span> denotes the width of the compatibility interval?</p><pre class=r><code>n_min &lt;- 
+  df$width %&gt;% 
+  detect_index(~ .x &lt;= 2*E)
+
+n_min</code></pre><pre><code>## [1] 357</code></pre><p>What’s the <em>maximum</em> sample size <span class="math inline">\(n_{max}\)</span> needed such that <span class="math inline">\(w > 2E\)</span>?</p><pre class=r><code>n_max &lt;- 
+  df$width %&gt;% 
+  detect_index(~ .x &gt; 2*E, .dir = &quot;backward&quot;)
+
+n_max</code></pre><pre><code>## [1] 419</code></pre></div><div id=plot-results class="section level1" number=9><h1><span class=header-section-number>9</span> Plot results</h1><pre class=r><code>df %&gt;% 
+  filter(i &gt; 30) %&gt;% 
+  ggplot(aes(x = i, y = width)) +
+  geom_line() + 
+  scale_x_continuous(trans = log10_trans()) + 
+  geom_hline(yintercept = 2*E, linetype =&quot;dashed&quot;, color = &quot;grey60&quot;) +
+  annotate(&quot;label&quot;, x = 100, y = .1, label = &quot;2E&quot;) +
+  geom_vline(xintercept = n_max, linetype = &quot;dashed&quot;, 
+             color = &quot;blue&quot;) +
+  geom_vline(xintercept = n_min, linetype = &quot;dashed&quot;,
+             color = &quot;red&quot;) +
+  annotate(&quot;label&quot;, x = n_max, y = .3, 
+           label = glue(&quot;nmax={n_max}&quot;), 
+           color = &quot;blue&quot;) +
+  annotate(&quot;label&quot;, x = n_max, y = .2, 
+           label = glue(&quot;nmin={n_min}&quot;),
+           color = &quot;red&quot;) +
+  labs(x = &quot;sample size (log)&quot;,
+       y = &quot;margin of error&quot;,
+       subtitle = &quot;for estimating the width of compatibility intervals&quot;,
+       title = &quot;Simulating minimum sample sizes&quot;,
+       caption = glue(&quot;Alpha: {alpha}, desired E = {E}, p = 1/2. See text for details.\n Each x-value depicts the average of {K} samples&quot;)) +
+  theme_minimal()</code></pre><p><img src=unnamed-chunk-12-1.png width=120% style=display:block;margin:auto></p></div><div id=summary class="section level1" number=10><h1><span class=header-section-number>10</span> Summary</h1><p>The simulation implies that we need a sample size <span class="math inline">\(n\)</span> of approx. around 357 to 419 to get a compatibility interval of width <span class="math inline">\(2E\)</span> for an alpha level of <span class="math inline">\(1-\alpha=0.99\)</span>.</p></div><div id=discussion class="section level1" number=11><h1><span class=header-section-number>11</span> Discussion</h1><p>This post proposes a rough approach of attaining practical sample sizes when an analytical approach is not wanted or feasible. Several limitations should be put forward: One might want with finite populations; one might want to compare the simulation results with typical formulas; one might prefer different stopping rules.</p></div><div id=suggested-reading class="section level1" number=12><h1><span class=header-section-number>12</span> Suggested reading</h1><p>Check out the following sources for related issues and more in-depth treatment: <span class=citation><a href=#ref-landau_sample_2013 role=doc-biblioref>Landau and Stahl</a> (<a href=#ref-landau_sample_2013 role=doc-biblioref>2013</a>)</span>, <span class=citation><a href=#ref-Schonbrodt2013a role=doc-biblioref>Schönbrodt and Perugini</a> (<a href=#ref-Schonbrodt2013a role=doc-biblioref>2013</a>)</span>, <span class=citation><a href=#ref-maxwell_sample_2008 role=doc-biblioref>Maxwell, Kelley, and Rausch</a> (<a href=#ref-maxwell_sample_2008 role=doc-biblioref>2008</a>)</span>, <span class=citation><a href=#ref-arnold_simulation_2011 role=doc-biblioref>Arnold et al.</a> (<a href=#ref-arnold_simulation_2011 role=doc-biblioref>2011</a>)</span>, <span class=citation><a href=#ref-kruschke_doing_2015 role=doc-biblioref>Kruschke</a> (<a href=#ref-kruschke_doing_2015 role=doc-biblioref>2015</a>)</span>.</p></div><div id=bibliography class="section level1 unnumbered"><h1>Bibliography</h1><div id=refs class="references csl-bib-body hanging-indent"><div id=ref-arnold_simulation_2011 class=csl-entry>Arnold, Benjamin F., Daniel R. Hogan, John M. Colford, and Alan E. Hubbard. 2011. <span>“Simulation Methods to Estimate Design Power: An Overview for Applied Research.”</span> <em>BMC Medical Research Methodology</em> 11 (1): 94. <a href=https://doi.org/10.1186/1471-2288-11-94>https://doi.org/10.1186/1471-2288-11-94</a>.</div><div id=ref-kruschke_doing_2015 class=csl-entry>Kruschke, John K. 2015. <em>Doing <span>Bayesian</span> Data Analysis: A Tutorial with <span>R</span>, <span>JAGS</span>, and <span>Stan</span></em>. Edition 2. <span>Boston</span>: <span>Academic Press</span>.</div><div id=ref-landau_sample_2013 class=csl-entry>Landau, Sabine, and Daniel Stahl. 2013. <span>“Sample Size and Power Calculations for Medical Studies by Simulation When Closed Form Expressions Are Not Available.”</span> <em>Statistical Methods in Medical Research</em> 22 (3): 324–45. <a href=https://doi.org/10.1177/0962280212439578>https://doi.org/10.1177/0962280212439578</a>.</div><div id=ref-maxwell_sample_2008 class=csl-entry>Maxwell, Scott E., Ken Kelley, and Joseph R. Rausch. 2008. <span>“Sample <span>Size Planning</span> for <span>Statistical Power</span> and <span>Accuracy</span> in <span>Parameter Estimation</span>.”</span> <em>Annual Review of Psychology</em> 59 (1): 537–63. <a href=https://doi.org/10.1146/annurev.psych.59.103006.093735>https://doi.org/10.1146/annurev.psych.59.103006.093735</a>.</div><div id=ref-Schonbrodt2013a class=csl-entry>Schönbrodt, Felix D., and Marco Perugini. 2013. <span>“At What Sample Size Do Correlations Stabilize?”</span> <em>Journal of Research in Personality</em> 47 (5): 609–12. <a href=https://doi.org/10.1016/j.jrp.2013.05.009>https://doi.org/10.1016/j.jrp.2013.05.009</a>.</div></div></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>

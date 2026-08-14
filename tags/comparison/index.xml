@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Comparison on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/comparison/</link><description>Recent content in Comparison on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Sat, 05 Dec 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/comparison/index.xml" rel="self" type="application/rss+xml"/><item><title>Comparison of R and Knime: Largish data set 1 (taxi rides 2020-06)</title><link>https://sebastiansauer.github.io/data_se/2020/12/05/comparison-of-r-and-knime-largish-data-set-1-taxi-rides-2020-06/</link><pubDate>Sat, 05 Dec 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/12/05/comparison-of-r-and-knime-largish-data-set-1-taxi-rides-2020-06/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+
+&lt;div id="motivation" class="section level1">
+&lt;h1>Motivation&lt;/h1>
+&lt;p>Knime and R have their specific strengths (and weaknesses). Let’s compare the R workflow in &lt;a href="https://data-se.netlify.app/2020/12/05/execution-time-for-largish-data/#typical-data-wrangling">this post&lt;/a> with this &lt;a href="https://github.com/sebastiansauer/sesa-blog/blob/main/static/div/largish-data-wrangling.knwf">knime workflow&lt;/a>.&lt;/p>
+&lt;p>&lt;img src="https://raw.githubusercontent.com/sebastiansauer/sesa-blog/main/static/images/knwf-largish1.png" width="100%" style="display: block; margin: auto;" />&lt;/p>
+&lt;/div>
+&lt;div id="comparison" class="section level1">
+&lt;h1>Comparison&lt;/h1>
+&lt;p>What you think? As an old-fart R user I feel pressed to admit that Knime appears to be a useful and handy tool.&lt;/p>
+&lt;/div>
+&lt;div id="caveat" class="section level1">
+&lt;h1>Caveat&lt;/h1>
+&lt;p>Repeating the workflow for a larger data set, &lt;a href="https://s3.amazonaws.com/nyc-tlc/trip+data/yellow_tripdata_2020-01.csv">NYC yellow cabs 2019-01&lt;/a>, it seems that my Knime got stuck (on a 2020 MacBook Pro, 16 GB machine). Error message: &lt;code>Execute failed: Java heap space&lt;/code>. I’ll check that later.&lt;/p></description></item><item><title>Comparing Knime and R: ETL_Basics</title><link>https://sebastiansauer.github.io/data_se/2020/11/28/comparing-knime-and-r-etl-basics/</link><pubDate>Sat, 28 Nov 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/11/28/comparing-knime-and-r-etl-basics/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#knime-workflow">Knime workflow&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#r-translation">R translation&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#setup">Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#chunk-1-read-sort-filter">Chunk 1: Read, sort, filter&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#chunk-2-group-and-aggregate">Chunk 2: group and aggregate&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#chunk-3-filter">Chunk 3: filter&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#chunk-4-concatenate">Chunk 4: concatenate&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#chunk-5-join">Chunk 5: join&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#chuunk-6-write-to-csv">Chuunk 6: write to csv&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="knime-workflow" class="section level1">
+&lt;h1>Knime workflow&lt;/h1>
+&lt;p>Consider this Knime workflow:&lt;/p>
+&lt;p>&lt;img src="https://i.postimg.cc/G273xn2Q/knime-etl.png" />&lt;/p>
+&lt;/div>
+&lt;div id="r-translation" class="section level1">
+&lt;h1>R translation&lt;/h1>
+&lt;div id="setup" class="section level2">
+&lt;h2>Setup&lt;/h2>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(lubridate)
+library(knitr)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="chunk-1-read-sort-filter" class="section level2">
+&lt;h2>Chunk 1: Read, sort, filter&lt;/h2>
+&lt;pre class="r">&lt;code>datafile &amp;lt;- &amp;quot;https://raw.githubusercontent.com/sebastiansauer/sesa-blog/main/static/datasets/sales_2008-2011.csv&amp;quot;
+
+d &amp;lt;- read_csv(datafile)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## 
+## ── Column specification ────────────────────────────────────────────────────────
+## cols(
+## product = col_character(),
+## country = col_character(),
+## date = col_date(format = &amp;quot;&amp;quot;),
+## quantity = col_double(),
+## amount = col_double(),
+## card = col_character(),
+## Cust_ID = col_character()
+## )&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>glimpse(d)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## Rows: 47
+## Columns: 7
+## $ product &amp;lt;chr&amp;gt; &amp;quot;prod_4&amp;quot;, &amp;quot;prod_3&amp;quot;, &amp;quot;prod_3&amp;quot;, &amp;quot;prod_3&amp;quot;, &amp;quot;prod_3&amp;quot;, &amp;quot;prod_3&amp;quot;, …
+## $ country &amp;lt;chr&amp;gt; &amp;quot;unknown&amp;quot;, &amp;quot;China&amp;quot;, &amp;quot;China&amp;quot;, &amp;quot;China&amp;quot;, &amp;quot;USA&amp;quot;, &amp;quot;Brazil&amp;quot;, &amp;quot;USA&amp;quot;…
+## $ date &amp;lt;date&amp;gt; 2008-12-12, 2009-04-10, 2009-04-10, 2009-05-10, 2009-05-20,…
+## $ quantity &amp;lt;dbl&amp;gt; 1, 2, 2, 2, 20, 15, 2, 2, 20, 15, 15, 1, 1, 20, 1, 1, 25, 2,…
+## $ amount &amp;lt;dbl&amp;gt; 3, 160, 160, 160, 1600, 1200, 70, 70, 1600, 600, 600, 35, 35…
+## $ card &amp;lt;chr&amp;gt; NA, &amp;quot;N&amp;quot;, &amp;quot;Y&amp;quot;, NA, NA, NA, &amp;quot;Y&amp;quot;, NA, NA, NA, &amp;quot;N&amp;quot;, &amp;quot;Y&amp;quot;, &amp;quot;Y&amp;quot;, NA…
+## $ Cust_ID &amp;lt;chr&amp;gt; &amp;quot;Cust_8&amp;quot;, &amp;quot;Cust_2&amp;quot;, &amp;quot;Cust_5&amp;quot;, &amp;quot;Cust_2&amp;quot;, &amp;quot;Cust_3&amp;quot;, &amp;quot;Cust_7&amp;quot;, …&lt;/code>&lt;/pre>
+&lt;p>The data is already recognized as date; no need for transformation.&lt;/p></description></item><item><title>Comparing Knime and R: Simple Random Forest</title><link>https://sebastiansauer.github.io/data_se/2020/11/28/comparing-knime-and-r-simple-random-forest/</link><pubDate>Sat, 28 Nov 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/11/28/comparing-knime-and-r-simple-random-forest/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#knime-workflow">Knime Workflow&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#translate-it-to-r">Translate it to R!&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">Load Packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-data">Load Data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#stratified-sampling">Stratified sampling&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#random-forest-classification-model-in-r">Random Forest classification model in R&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#define-and-run-random-forest-classification-model">Define and run Random Forest classification model&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#define-learner-model">Define learner (model)&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-recipe">Define recipe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#put-workflow-together">Put workflow together&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fit-the-model-to-the-train-data">Fit the model to the train data&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#oob-results">OOB results&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-results-in-test-data">Model results in test data&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#multiclass-accuracy">Multiclass accuracy&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#roc">ROC&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#confusion-matrix">Confusion Matrix&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#random-forest-regression-model-in-r">Random Forest regression model in R&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#define-and-run-the-model">Define and run the model&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#update-model-to-regression">Update model to regression&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-recipe-1">Define recipe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#put-workflow-together-1">Put workflow together&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#oob-results-1">OOB results&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-results-in-test-data-1">Model results in test data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#variabble-importance">Variabble importance&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#collect-performance-metrics">Collect performance metrics&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="knime-workflow" class="section level1">
+&lt;h1>Knime Workflow&lt;/h1>
+&lt;p>Consider &lt;a href="https://hub.knime.com/knime/spaces/Examples/latest/04_Analytics/13_Meta_Learning/02_Learning_a_Random_Forest">this&lt;/a> Knime workflow:&lt;/p></description></item></channel></rss>

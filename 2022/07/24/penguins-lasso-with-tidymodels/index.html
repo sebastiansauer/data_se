@@ -1,0 +1,307 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Penguins Lasso with Tidymodels - Data Se</title>
+<meta property="og:title" content="Penguins Lasso with Tidymodels - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>9 min read</span><h1 class=article-title>Penguins Lasso with Tidymodels</h1><span class=article-date>2022/07/24</span><div class=article-content><div id=TOC><ul><li><a href=#load-packages id=toc-load-packages><span class=toc-section-number>1</span> Load packages</a></li><li><a href=#data id=toc-data><span class=toc-section-number>2</span> Data</a></li><li><a href=#a-bit-more-than-minimal id=toc-a-bit-more-than-minimal><span class=toc-section-number>3</span> A bit more than minimal</a></li><li><a href=#results id=toc-results><span class=toc-section-number>4</span> Results</a></li><li><a href=#extract-fit id=toc-extract-fit><span class=toc-section-number>5</span> Extract fit</a></li><li><a href=#reproducibility id=toc-reproducibility><span class=toc-section-number>6</span> Reproducibility</a></li></ul></div><div id=load-packages class="section level1" number=1><h1><span class=header-section-number>1</span> Load packages</h1><pre class=r><code>library(tidyverse)  # data wrangling
+library(tidymodels)</code></pre></div><div id=data class="section level1" number=2><h1><span class=header-section-number>2</span> Data</h1><pre class=r><code>data(&quot;penguins&quot;, package = &quot;modeldata&quot;)</code></pre></div><div id=a-bit-more-than-minimal class="section level1" number=3><h1><span class=header-section-number>3</span> A bit more than minimal</h1><pre class=r><code>rec1 &lt;-
+  recipe(body_mass_g ~ ., data = penguins) %&gt;% 
+  step_dummy(all_nominal()) %&gt;% 
+  step_normalize(all_numeric_predictors()) %&gt;% 
+  step_nzv(all_numeric_predictors()) %&gt;% 
+  step_naomit(all_predictors())</code></pre><p>Checks:</p><pre class=r><code>summary(rec1)
+#&gt; # A tibble: 7 × 4
+#&gt;   variable          type    role      source  
+#&gt;   &lt;chr&gt;             &lt;chr&gt;   &lt;chr&gt;     &lt;chr&gt;   
+#&gt; 1 species           nominal predictor original
+#&gt; 2 island            nominal predictor original
+#&gt; 3 bill_length_mm    numeric predictor original
+#&gt; 4 bill_depth_mm     numeric predictor original
+#&gt; 5 flipper_length_mm numeric predictor original
+#&gt; 6 sex               nominal predictor original
+#&gt; 7 body_mass_g       numeric outcome   original</code></pre><pre class=r><code>tidy(rec1)
+#&gt; # A tibble: 5 × 6
+#&gt;   number operation type      trained skip  id             
+#&gt;    &lt;int&gt; &lt;chr&gt;     &lt;chr&gt;     &lt;lgl&gt;   &lt;lgl&gt; &lt;chr&gt;          
+#&gt; 1      1 step      dummy     FALSE   FALSE dummy_rc5a2    
+#&gt; 2      2 step      normalize FALSE   FALSE normalize_U3yg4
+#&gt; 3      3 step      nzv       FALSE   FALSE nzv_vruQ8      
+#&gt; 4      4 step      naomit    FALSE   TRUE  naomit_PqP3J   
+#&gt; 5      5 step      novel     FALSE   FALSE novel_6pjBL</code></pre><pre class=r><code>rec1 %&gt;% 
+  prep() %&gt;% 
+  bake(new_data = NULL) %&gt;% 
+  head()
+#&gt; # A tibble: 6 × 9
+#&gt;   bill_length_mm bill_depth_mm flipper_length_mm body_mass_g species_Chinstrap
+#&gt;            &lt;dbl&gt;         &lt;dbl&gt;             &lt;dbl&gt;       &lt;int&gt;             &lt;dbl&gt;
+#&gt; 1         -0.883         0.784            -1.42         3750            -0.496
+#&gt; 2         -0.810         0.126            -1.06         3800            -0.496
+#&gt; 3         -0.663         0.430            -0.421        3250            -0.496
+#&gt; 4         -1.32          1.09             -0.563        3450            -0.496
+#&gt; 5         -0.847         1.75             -0.776        3650            -0.496
+#&gt; 6         -0.920         0.329            -1.42         3625            -0.496
+#&gt; # … with 4 more variables: species_Gentoo &lt;dbl&gt;, island_Dream &lt;dbl&gt;,
+#&gt; #   island_Torgersen &lt;dbl&gt;, sex_male &lt;dbl&gt;</code></pre><pre class=r><code>wf1 &lt;-
+  workflow() %&gt;% 
+  add_model(spec = linear_reg(engine = &quot;glmnet&quot;, mixture = 1, penalty = 1)) %&gt;% 
+  add_recipe(recipe = rec1)</code></pre><pre class=r><code>m2 &lt;- wf1 %&gt;% 
+  fit(data = penguins)</code></pre></div><div id=results class="section level1" number=4><h1><span class=header-section-number>4</span> Results</h1><pre class=r><code>tidy(m2)
+#&gt; # A tibble: 9 × 3
+#&gt;   term              estimate penalty
+#&gt;   &lt;chr&gt;                &lt;dbl&gt;   &lt;dbl&gt;
+#&gt; 1 (Intercept)        4208.         1
+#&gt; 2 bill_length_mm       96.0        1
+#&gt; 3 bill_depth_mm       123.         1
+#&gt; 4 flipper_length_mm   232.         1
+#&gt; 5 species_Chinstrap  -101.         1
+#&gt; 6 species_Gentoo      465.         1
+#&gt; 7 island_Dream         -5.44       1
+#&gt; 8 island_Torgersen    -15.3        1
+#&gt; 9 sex_male            197.         1</code></pre><p>In case some predictor beta has been shrunken to zero, it would be noted here.</p></div><div id=extract-fit class="section level1" number=5><h1><span class=header-section-number>5</span> Extract fit</h1><p>Less einformative …</p><pre class=r><code>m2 %&gt;% 
+  extract_fit_parsnip()
+#&gt; parsnip model object
+#&gt; 
+#&gt; 
+#&gt; Call:  glmnet::glmnet(x = maybe_matrix(x), y = y, family = &quot;gaussian&quot;,      alpha = ~1) 
+#&gt; 
+#&gt;    Df  %Dev Lambda
+#&gt; 1   0  0.00 701.90
+#&gt; 2   1 12.94 639.50
+#&gt; 3   1 23.68 582.70
+#&gt; 4   1 32.60 530.90
+#&gt; 5   1 40.00 483.80
+#&gt; 6   1 46.15 440.80
+#&gt; 7   1 51.25 401.60
+#&gt; 8   2 55.69 366.00
+#&gt; 9   2 59.46 333.40
+#&gt; 10  2 62.59 303.80
+#&gt; 11  2 65.18 276.80
+#&gt; 12  2 67.34 252.20
+#&gt; 13  3 69.88 229.80
+#&gt; 14  3 72.71 209.40
+#&gt; 15  3 75.06 190.80
+#&gt; 16  3 77.01 173.90
+#&gt; 17  3 78.62 158.40
+#&gt; 18  3 79.97 144.30
+#&gt; 19  3 81.09 131.50
+#&gt; 20  3 82.01 119.80
+#&gt; 21  3 82.78 109.20
+#&gt; 22  3 83.42  99.49
+#&gt; 23  3 83.95  90.65
+#&gt; 24  3 84.39  82.60
+#&gt; 25  3 84.76  75.26
+#&gt; 26  3 85.06  68.57
+#&gt; 27  3 85.31  62.48
+#&gt; 28  3 85.52  56.93
+#&gt; 29  3 85.69  51.87
+#&gt; 30  4 85.85  47.27
+#&gt; 31  4 85.99  43.07
+#&gt; 32  4 86.11  39.24
+#&gt; 33  4 86.21  35.75
+#&gt; 34  4 86.29  32.58
+#&gt; 35  5 86.38  29.68
+#&gt; 36  5 86.50  27.05
+#&gt; 37  5 86.59  24.64
+#&gt; 38  5 86.67  22.46
+#&gt; 39  5 86.73  20.46
+#&gt; 40  5 86.79  18.64
+#&gt; 41  5 86.83  16.99
+#&gt; 42  6 86.89  15.48
+#&gt; 43  6 86.99  14.10
+#&gt; 44  6 87.08  12.85
+#&gt; 45  6 87.15  11.71
+#&gt; 46  6 87.21  10.67
+#&gt; 47  7 87.26   9.72
+#&gt; 48  7 87.30   8.86
+#&gt; 49  7 87.34   8.07
+#&gt; 50  7 87.37   7.35
+#&gt; 51  7 87.40   6.70
+#&gt; 52  8 87.42   6.11
+#&gt; 53  8 87.43   5.56
+#&gt; 54  8 87.45   5.07
+#&gt; 55  8 87.46   4.62
+#&gt; 56  8 87.47   4.21
+#&gt; 57  8 87.48   3.83
+#&gt; 58  8 87.49   3.49
+#&gt; 59  8 87.49   3.18
+#&gt; 60  8 87.50   2.90
+#&gt; 61  8 87.50   2.64
+#&gt; 62  8 87.50   2.41
+#&gt; 63  8 87.51   2.19
+#&gt; 64  8 87.51   2.00
+#&gt; 65  8 87.51   1.82
+#&gt; 66  8 87.51   1.66
+#&gt; 67  8 87.52   1.51
+#&gt; 68  8 87.52   1.38
+#&gt; 69  8 87.52   1.25
+#&gt; 70  8 87.52   1.14</code></pre><p>Similar to:</p><pre class=r><code>m2 %&gt;% 
+  extract_fit_engine()
+#&gt; 
+#&gt; Call:  glmnet::glmnet(x = maybe_matrix(x), y = y, family = &quot;gaussian&quot;,      alpha = ~1) 
+#&gt; 
+#&gt;    Df  %Dev Lambda
+#&gt; 1   0  0.00 701.90
+#&gt; 2   1 12.94 639.50
+#&gt; 3   1 23.68 582.70
+#&gt; 4   1 32.60 530.90
+#&gt; 5   1 40.00 483.80
+#&gt; 6   1 46.15 440.80
+#&gt; 7   1 51.25 401.60
+#&gt; 8   2 55.69 366.00
+#&gt; 9   2 59.46 333.40
+#&gt; 10  2 62.59 303.80
+#&gt; 11  2 65.18 276.80
+#&gt; 12  2 67.34 252.20
+#&gt; 13  3 69.88 229.80
+#&gt; 14  3 72.71 209.40
+#&gt; 15  3 75.06 190.80
+#&gt; 16  3 77.01 173.90
+#&gt; 17  3 78.62 158.40
+#&gt; 18  3 79.97 144.30
+#&gt; 19  3 81.09 131.50
+#&gt; 20  3 82.01 119.80
+#&gt; 21  3 82.78 109.20
+#&gt; 22  3 83.42  99.49
+#&gt; 23  3 83.95  90.65
+#&gt; 24  3 84.39  82.60
+#&gt; 25  3 84.76  75.26
+#&gt; 26  3 85.06  68.57
+#&gt; 27  3 85.31  62.48
+#&gt; 28  3 85.52  56.93
+#&gt; 29  3 85.69  51.87
+#&gt; 30  4 85.85  47.27
+#&gt; 31  4 85.99  43.07
+#&gt; 32  4 86.11  39.24
+#&gt; 33  4 86.21  35.75
+#&gt; 34  4 86.29  32.58
+#&gt; 35  5 86.38  29.68
+#&gt; 36  5 86.50  27.05
+#&gt; 37  5 86.59  24.64
+#&gt; 38  5 86.67  22.46
+#&gt; 39  5 86.73  20.46
+#&gt; 40  5 86.79  18.64
+#&gt; 41  5 86.83  16.99
+#&gt; 42  6 86.89  15.48
+#&gt; 43  6 86.99  14.10
+#&gt; 44  6 87.08  12.85
+#&gt; 45  6 87.15  11.71
+#&gt; 46  6 87.21  10.67
+#&gt; 47  7 87.26   9.72
+#&gt; 48  7 87.30   8.86
+#&gt; 49  7 87.34   8.07
+#&gt; 50  7 87.37   7.35
+#&gt; 51  7 87.40   6.70
+#&gt; 52  8 87.42   6.11
+#&gt; 53  8 87.43   5.56
+#&gt; 54  8 87.45   5.07
+#&gt; 55  8 87.46   4.62
+#&gt; 56  8 87.47   4.21
+#&gt; 57  8 87.48   3.83
+#&gt; 58  8 87.49   3.49
+#&gt; 59  8 87.49   3.18
+#&gt; 60  8 87.50   2.90
+#&gt; 61  8 87.50   2.64
+#&gt; 62  8 87.50   2.41
+#&gt; 63  8 87.51   2.19
+#&gt; 64  8 87.51   2.00
+#&gt; 65  8 87.51   1.82
+#&gt; 66  8 87.51   1.66
+#&gt; 67  8 87.52   1.51
+#&gt; 68  8 87.52   1.38
+#&gt; 69  8 87.52   1.25
+#&gt; 70  8 87.52   1.14</code></pre><p>More information, such as the difference between the last two functions, can be found <a href=https://www.tidymodels.org/learn/models/coefficients/>here</a>, the tidymodels page on model coefficients.</p></div><div id=reproducibility class="section level1" number=6><h1><span class=header-section-number>6</span> Reproducibility</h1><pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value
+#&gt;  version  R version 4.2.0 (2022-04-22)
+#&gt;  os       macOS Big Sur/Monterey 10.16
+#&gt;  system   x86_64, darwin17.0
+#&gt;  ui       X11
+#&gt;  language (EN)
+#&gt;  collate  en_US.UTF-8
+#&gt;  ctype    en_US.UTF-8
+#&gt;  tz       Europe/Berlin
+#&gt;  date     2022-07-24
+#&gt;  pandoc   2.18 @ /usr/local/bin/ (via rmarkdown)
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version date (UTC) lib source
+#&gt;  assertthat    0.2.1   2019-03-21 [1] CRAN (R 4.2.0)
+#&gt;  backports     1.4.1   2021-12-13 [1] CRAN (R 4.2.0)
+#&gt;  blogdown      1.10    2022-05-10 [1] CRAN (R 4.2.0)
+#&gt;  bookdown      0.27    2022-06-14 [1] CRAN (R 4.2.0)
+#&gt;  brio          1.1.3   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  broom         1.0.0   2022-07-01 [1] CRAN (R 4.2.0)
+#&gt;  bslib         0.3.1   2021-10-06 [1] CRAN (R 4.2.0)
+#&gt;  cachem        1.0.6   2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  callr         3.7.0   2021-04-20 [1] CRAN (R 4.2.0)
+#&gt;  cellranger    1.1.0   2016-07-27 [1] CRAN (R 4.2.0)
+#&gt;  cli           3.3.0   2022-04-25 [1] CRAN (R 4.2.0)
+#&gt;  codetools     0.2-18  2020-11-04 [2] CRAN (R 4.2.0)
+#&gt;  colorout    * 1.2-2   2022-06-13 [1] local
+#&gt;  colorspace    2.0-3   2022-02-21 [1] CRAN (R 4.2.0)
+#&gt;  crayon        1.5.1   2022-03-26 [1] CRAN (R 4.2.0)
+#&gt;  DBI           1.1.2   2021-12-20 [1] CRAN (R 4.2.0)
+#&gt;  dbplyr        2.2.0   2022-06-05 [1] CRAN (R 4.2.0)
+#&gt;  desc          1.4.1   2022-03-06 [1] CRAN (R 4.2.0)
+#&gt;  devtools      2.4.3   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  digest        0.6.29  2021-12-01 [1] CRAN (R 4.2.0)
+#&gt;  dplyr       * 1.0.9   2022-04-28 [1] CRAN (R 4.2.0)
+#&gt;  ellipsis      0.3.2   2021-04-29 [1] CRAN (R 4.2.0)
+#&gt;  evaluate      0.15    2022-02-18 [1] CRAN (R 4.2.0)
+#&gt;  fansi         1.0.3   2022-03-24 [1] CRAN (R 4.2.0)
+#&gt;  fastmap       1.1.0   2021-01-25 [1] CRAN (R 4.2.0)
+#&gt;  forcats     * 0.5.1   2021-01-27 [1] CRAN (R 4.2.0)
+#&gt;  fs            1.5.2   2021-12-08 [1] CRAN (R 4.2.0)
+#&gt;  generics      0.1.3   2022-07-05 [1] CRAN (R 4.2.0)
+#&gt;  ggplot2     * 3.3.6   2022-05-03 [1] CRAN (R 4.2.0)
+#&gt;  glue          1.6.2   2022-02-24 [1] CRAN (R 4.2.0)
+#&gt;  gtable        0.3.0   2019-03-25 [1] CRAN (R 4.2.0)
+#&gt;  haven         2.5.0   2022-04-15 [1] CRAN (R 4.2.0)
+#&gt;  hms           1.1.1   2021-09-26 [1] CRAN (R 4.2.0)
+#&gt;  htmltools     0.5.2   2021-08-25 [1] CRAN (R 4.2.0)
+#&gt;  httr          1.4.3   2022-05-04 [1] CRAN (R 4.2.0)
+#&gt;  jquerylib     0.1.4   2021-04-26 [1] CRAN (R 4.2.0)
+#&gt;  jsonlite      1.8.0   2022-02-22 [1] CRAN (R 4.2.0)
+#&gt;  knitr         1.39    2022-04-26 [1] CRAN (R 4.2.0)
+#&gt;  lifecycle     1.0.1   2021-09-24 [1] CRAN (R 4.2.0)
+#&gt;  lubridate     1.8.0   2021-10-07 [1] CRAN (R 4.2.0)
+#&gt;  magrittr      2.0.3   2022-03-30 [1] CRAN (R 4.2.0)
+#&gt;  memoise       2.0.1   2021-11-26 [1] CRAN (R 4.2.0)
+#&gt;  modelr        0.1.8   2020-05-19 [1] CRAN (R 4.2.0)
+#&gt;  munsell       0.5.0   2018-06-12 [1] CRAN (R 4.2.0)
+#&gt;  pillar        1.7.0   2022-02-01 [1] CRAN (R 4.2.0)
+#&gt;  pkgbuild      1.3.1   2021-12-20 [1] CRAN (R 4.2.0)
+#&gt;  pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgload       1.2.4   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  prettyunits   1.1.1   2020-01-24 [1] CRAN (R 4.2.0)
+#&gt;  processx      3.6.1   2022-06-17 [1] CRAN (R 4.2.0)
+#&gt;  ps            1.7.1   2022-06-18 [1] CRAN (R 4.2.0)
+#&gt;  purrr       * 0.3.4   2020-04-17 [1] CRAN (R 4.2.0)
+#&gt;  R6            2.5.1   2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  readr       * 2.1.2   2022-01-30 [1] CRAN (R 4.2.0)
+#&gt;  readxl        1.4.0   2022-03-28 [1] CRAN (R 4.2.0)
+#&gt;  remotes       2.4.2   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  reprex        2.0.1   2021-08-05 [1] CRAN (R 4.2.0)
+#&gt;  rlang         1.0.3   2022-06-27 [1] CRAN (R 4.2.0)
+#&gt;  rmarkdown     2.14    2022-04-25 [1] CRAN (R 4.2.0)
+#&gt;  rprojroot     2.0.3   2022-04-02 [1] CRAN (R 4.2.0)
+#&gt;  rstudioapi    0.13    2020-11-12 [1] CRAN (R 4.2.0)
+#&gt;  rvest         1.0.2   2021-10-16 [1] CRAN (R 4.2.0)
+#&gt;  sass          0.4.1   2022-03-23 [1] CRAN (R 4.2.0)
+#&gt;  scales        1.2.0   2022-04-13 [1] CRAN (R 4.2.0)
+#&gt;  sessioninfo   1.2.2   2021-12-06 [1] CRAN (R 4.2.0)
+#&gt;  stringi       1.7.6   2021-11-29 [1] CRAN (R 4.2.0)
+#&gt;  stringr     * 1.4.0   2019-02-10 [1] CRAN (R 4.2.0)
+#&gt;  testthat      3.1.4   2022-04-26 [1] CRAN (R 4.2.0)
+#&gt;  tibble      * 3.1.7   2022-05-03 [1] CRAN (R 4.2.0)
+#&gt;  tidyr       * 1.2.0   2022-02-01 [1] CRAN (R 4.2.0)
+#&gt;  tidyselect    1.1.2   2022-02-21 [1] CRAN (R 4.2.0)
+#&gt;  tidyverse   * 1.3.1   2021-04-15 [1] CRAN (R 4.2.0)
+#&gt;  tzdb          0.3.0   2022-03-28 [1] CRAN (R 4.2.0)
+#&gt;  usethis       2.1.6   2022-05-25 [1] CRAN (R 4.2.0)
+#&gt;  utf8          1.2.2   2021-07-24 [1] CRAN (R 4.2.0)
+#&gt;  vctrs         0.4.1   2022-04-13 [1] CRAN (R 4.2.0)
+#&gt;  withr         2.5.0   2022-03-03 [1] CRAN (R 4.2.0)
+#&gt;  xfun          0.31    2022-05-10 [1] CRAN (R 4.2.0)
+#&gt;  xml2          1.3.3   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  yaml          2.3.5   2022-02-21 [1] CRAN (R 4.2.0)
+#&gt; 
+#&gt;  [1] /Users/sebastiansaueruser/Rlibs
+#&gt;  [2] /Library/Frameworks/R.framework/Versions/4.2/Resources/library
+#&gt; 
+#&gt; ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script></body></html>

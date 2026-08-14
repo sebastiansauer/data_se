@@ -1,4 +1,1950 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Tutorial on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/tutorial/</link><description>Recent content in Tutorial on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Sat, 28 Nov 2020 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/tutorial/index.xml" rel="self" type="application/rss+xml"/><item><title>Derivation of the logistic regression</title><link>https://sebastiansauer.github.io/data_se/2020/11/28/derivation-of-the-logistic-regression/</link><pubDate>Sat, 28 Nov 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/11/28/derivation-of-the-logistic-regression/</guid><description>&lt;p>The logistic regression is an incredible useful tool, partly because binary outcomes are so frequent in live (“she loves me - she doesn’t love me”). In parts because we can make use of well-known “normal” regression instruments.&lt;/p>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Tutorial on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/tutorial/</link><description>Recent content in Tutorial on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Wed, 11 May 2022 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/tutorial/index.xml" rel="self" type="application/rss+xml"/><item><title>Importing data into R</title><link>https://sebastiansauer.github.io/data_se/2022/05/11/importing-data-into-r/</link><pubDate>Wed, 11 May 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/05/11/importing-data-into-r/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation-get-your-data-into-r-different-ways" id="toc-motivation-get-your-data-into-r-different-ways">&lt;span class="toc-section-number">2&lt;/span> Motivation: Get your data into R, different ways&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pragmatic-goal" id="toc-pragmatic-goal">&lt;span class="toc-section-number">3&lt;/span> Pragmatic goal&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#approach-1-quick-and-easy" id="toc-approach-1-quick-and-easy">&lt;span class="toc-section-number">4&lt;/span> Approach 1: Quick and easy&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#approach-2-start-an-rstudio-project" id="toc-approach-2-start-an-rstudio-project">&lt;span class="toc-section-number">5&lt;/span> Approach 2: Start an RStudio project&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#approach-3-import-from-an-online-source" id="toc-approach-3-import-from-an-online-source">&lt;span class="toc-section-number">6&lt;/span> Approach 3: Import from an online source&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#approach-4-learn-what-a-path-means" id="toc-approach-4-learn-what-a-path-means">&lt;span class="toc-section-number">7&lt;/span> Approach 4: Learn what a path means&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#example-time-dataset-tips" id="toc-example-time-dataset-tips">&lt;span class="toc-section-number">8&lt;/span> Example time – dataset &lt;code>tips&lt;/code>&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation-get-your-data-into-r-different-ways" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation: Get your data into R, different ways&lt;/h1>
+&lt;p>Importing data into R can cause headaches for newbies. For some, the concept of relative and absolute paths is new.
+That’s why I compiled here some recommendations on how to important data into R and on how to ditch the “what’s my path” problem.&lt;/p></description></item><item><title>Rowwise NA</title><link>https://sebastiansauer.github.io/data_se/2022/05/09/rowwise-na/</link><pubDate>Mon, 09 May 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/05/09/rowwise-na/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#sample-data" id="toc-sample-data">&lt;span class="toc-section-number">2&lt;/span> Sample data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#count-na-rowwise" id="toc-count-na-rowwise">&lt;span class="toc-section-number">3&lt;/span> Count NA rowwise&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-1-rowwise-sum-with-mutate-and-c_across" id="toc-way-1-rowwise-sum-with-mutate-and-c_across">&lt;span class="toc-section-number">4&lt;/span> Way 1: rowwise sum with mutate and &lt;code>c_across&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-2-apply-with-margin-1" id="toc-way-2-apply-with-margin-1">&lt;span class="toc-section-number">5&lt;/span> Way 2: &lt;code>apply()&lt;/code> with margin 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-3-rowsums" id="toc-way-3-rowsums">&lt;span class="toc-section-number">6&lt;/span> Way 3: &lt;code>rowSums&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-4-cur_data" id="toc-way-4-cur_data">&lt;span class="toc-section-number">7&lt;/span> Way 4: &lt;code>cur_data()&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#why-not-map" id="toc-why-not-map">&lt;span class="toc-section-number">8&lt;/span> Why not &lt;code>map()&lt;/code>?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">9&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="sample-data" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Sample data&lt;/h1>
+&lt;pre class="r">&lt;code>data(&amp;quot;mtcars&amp;quot;)&lt;/code>&lt;/pre>
+&lt;p>Create some NA:&lt;/p>
+&lt;pre class="r">&lt;code>mtcars$mpg[c(1,2,3)] &amp;lt;- NA
+mtcars$hp[c(1,2,3)] &amp;lt;- NA&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="count-na-rowwise" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Count NA rowwise&lt;/h1>
+&lt;p>What we would like to achieve is to comfortable count the missing values &lt;em>per row&lt;/em>.&lt;/p></description></item><item><title>Empirische Verteilungsfunktion</title><link>https://sebastiansauer.github.io/data_se/2022/05/02/empirische-verteilungsfunktion/</link><pubDate>Mon, 02 May 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/05/02/empirische-verteilungsfunktion/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/05/02/empirische-verteilungsfunktion/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#r-pakete" id="toc-r-pakete">&lt;span class="toc-section-number">1&lt;/span> R-Pakete&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hintergrund" id="toc-hintergrund">&lt;span class="toc-section-number">2&lt;/span> Hintergrund&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#verteilungsfunktion-der-normalverteilung" id="toc-verteilungsfunktion-der-normalverteilung">&lt;span class="toc-section-number">3&lt;/span> Verteilungsfunktion der Normalverteilung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#empirische-verteilungsfunktion" id="toc-empirische-verteilungsfunktion">&lt;span class="toc-section-number">4&lt;/span> Empirische Verteilungsfunktion&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#tidyverse" id="toc-tidyverse">&lt;span class="toc-section-number">4.1&lt;/span> Tidyverse&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#tidyverse-1" id="toc-tidyverse-1">&lt;span class="toc-section-number">4.1.1&lt;/span> Tidyverse 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#tidyverse-2" id="toc-tidyverse-2">&lt;span class="toc-section-number">4.1.2&lt;/span> Tidyverse 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#plotten-der-ecdf" id="toc-plotten-der-ecdf">&lt;span class="toc-section-number">4.1.3&lt;/span> Plotten der ECDF&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#quantile" id="toc-quantile">&lt;span class="toc-section-number">4.1.4&lt;/span> Quantile&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#base-r" id="toc-base-r">&lt;span class="toc-section-number">4.2&lt;/span> Base R&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#quantile-1" id="toc-quantile-1">&lt;span class="toc-section-number">4.2.1&lt;/span> Quantile&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#ecdf" id="toc-ecdf">&lt;span class="toc-section-number">4.2.2&lt;/span> ECDF&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#plot" id="toc-plot">&lt;span class="toc-section-number">4.2.3&lt;/span> Plot&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#mosaic" id="toc-mosaic">&lt;span class="toc-section-number">4.3&lt;/span> Mosaic&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#ecdf-1" id="toc-ecdf-1">&lt;span class="toc-section-number">4.3.1&lt;/span> ECDF&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#quantile-2" id="toc-quantile-2">&lt;span class="toc-section-number">4.3.2&lt;/span> Quantile&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">5&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="r-pakete" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> R-Pakete&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+theme_set(theme_minimal()) # Stylesheet für ggplot2&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="hintergrund" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Hintergrund&lt;/h1>
+&lt;p>Will man eine Verteilung untersuchen, sind Verteilungsfunktion &lt;span class="math inline">\(F\)&lt;/span> und Quantilsfunktion &lt;span class="math inline">\(F^{-1}\)&lt;/span> wichtige Größen.
+Nicht nur für theoretische, sondern auch für empirische Verteilungen kann man diese Funktionen anwenden.&lt;/p></description></item><item><title>Kontigenztabellen in R</title><link>https://sebastiansauer.github.io/data_se/2022/05/02/kontigenztabellen-in-r/</link><pubDate>Mon, 02 May 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/05/02/kontigenztabellen-in-r/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/05/02/kontigenztabellen-in-r/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#pakete-und-daten" id="toc-pakete-und-daten">&lt;span class="toc-section-number">1&lt;/span> Pakete und Daten&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#häufigkeiten-berechnen" id="toc-häufigkeiten-berechnen">&lt;span class="toc-section-number">2&lt;/span> Häufigkeiten berechnen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#tidyverse" id="toc-tidyverse">&lt;span class="toc-section-number">2.1&lt;/span> Tidyverse&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#univariat" id="toc-univariat">&lt;span class="toc-section-number">2.1.1&lt;/span> Univariat&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#bivariat" id="toc-bivariat">&lt;span class="toc-section-number">2.1.2&lt;/span> Bivariat&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#bezogen-auf-was" id="toc-bezogen-auf-was">&lt;span class="toc-section-number">2.1.3&lt;/span> Bezogen auf was?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#kontingenztabelle-durch-pivotieren" id="toc-kontingenztabelle-durch-pivotieren">&lt;span class="toc-section-number">2.1.4&lt;/span> Kontingenztabelle durch Pivotieren&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#easystats" id="toc-easystats">&lt;span class="toc-section-number">2.2&lt;/span> Easystats&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#sjmisc" id="toc-sjmisc">&lt;span class="toc-section-number">2.3&lt;/span> sjmisc&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#kontingenztabelle" id="toc-kontingenztabelle">&lt;span class="toc-section-number">2.3.1&lt;/span> Kontingenztabelle&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#anteile" id="toc-anteile">&lt;span class="toc-section-number">2.3.2&lt;/span> Anteile&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#kontingenztabelle-gruppiert" id="toc-kontingenztabelle-gruppiert">&lt;span class="toc-section-number">2.3.3&lt;/span> Kontingenztabelle gruppiert&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#base-r" id="toc-base-r">&lt;span class="toc-section-number">2.4&lt;/span> Base R&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#kontingenztabelle-1" id="toc-kontingenztabelle-1">&lt;span class="toc-section-number">2.4.1&lt;/span> Kontingenztabelle&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#ftable" id="toc-ftable">&lt;span class="toc-section-number">2.4.2&lt;/span> ftable&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#anteile-1" id="toc-anteile-1">&lt;span class="toc-section-number">2.4.3&lt;/span> Anteile&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#schöne-tabellen-in-html" id="toc-schöne-tabellen-in-html">&lt;span class="toc-section-number">3&lt;/span> Schöne Tabellen in html&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#gt" id="toc-gt">&lt;span class="toc-section-number">3.1&lt;/span> gt&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#flat_table" id="toc-flat_table">&lt;span class="toc-section-number">3.1.1&lt;/span> flat_table&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pivot_wider" id="toc-pivot_wider">&lt;span class="toc-section-number">3.1.2&lt;/span> pivot_wider&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#exportieren" id="toc-exportieren">&lt;span class="toc-section-number">4&lt;/span> Exportieren&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#export-als-csv--oder-xlsx-datei" id="toc-export-als-csv--oder-xlsx-datei">&lt;span class="toc-section-number">4.1&lt;/span> Export als CSV- oder XLSX-Datei&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#csv-für-excel" id="toc-csv-für-excel">&lt;span class="toc-section-number">4.1.1&lt;/span> CSV für Excel&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#deutsch-formatierte-excel-csv" id="toc-deutsch-formatierte-excel-csv">&lt;span class="toc-section-number">4.1.2&lt;/span> Deutsch formatierte Excel-CSV&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#xlsx-datei" id="toc-xlsx-datei">&lt;span class="toc-section-number">4.1.3&lt;/span> XLSX-Datei&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#export-nach-word" id="toc-export-nach-word">&lt;span class="toc-section-number">4.2&lt;/span> Export nach Word&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#tabelle-in-word-auf-basis-von-textdaten-erstellen" id="toc-tabelle-in-word-auf-basis-von-textdaten-erstellen">&lt;span class="toc-section-number">4.2.1&lt;/span> Tabelle in Word auf Basis von Textdaten erstellen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#copy-paste-aus-rstudio" id="toc-copy-paste-aus-rstudio">&lt;span class="toc-section-number">4.2.2&lt;/span> Copy-Paste aus RStudio&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#flextable" id="toc-flextable">&lt;span class="toc-section-number">4.2.3&lt;/span> Flextable&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lets-go" id="toc-lets-go">&lt;span class="toc-section-number">4.2.4&lt;/span> Let’s go&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#export" id="toc-export">&lt;span class="toc-section-number">4.2.5&lt;/span> Export&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">5&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="pakete-und-daten" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Pakete und Daten&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+
+data(&amp;quot;mtcars&amp;quot;)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="häufigkeiten-berechnen" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Häufigkeiten berechnen&lt;/h1>
+&lt;div id="tidyverse" class="section level2" number="2.1">
+&lt;h2>&lt;span class="header-section-number">2.1&lt;/span> Tidyverse&lt;/h2>
+&lt;div id="univariat" class="section level3" number="2.1.1">
+&lt;h3>&lt;span class="header-section-number">2.1.1&lt;/span> Univariat&lt;/h3>
+&lt;p>Wie viele Autos gibt es mit Automatik- bzw. mit manueller Schaltung?
+Anders gesagt: Was ist die Häufigkeitverteilung von &lt;code>am&lt;/code>?&lt;/p></description></item><item><title>3D Regression plane with scatter plot</title><link>https://sebastiansauer.github.io/data_se/2022/04/19/3d-regression-plane-with-scatter-plot/</link><pubDate>Tue, 19 Apr 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/04/19/3d-regression-plane-with-scatter-plot/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/04/19/3d-regression-plane-with-scatter-plot/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/04/19/3d-regression-plane-with-scatter-plot/
+index_files/htmlwidgets/htmlwidgets.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/04/19/3d-regression-plane-with-scatter-plot/
+index_files/plotly-binding/plotly.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/04/19/3d-regression-plane-with-scatter-plot/
+index_files/typedarray/typedarray.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/04/19/3d-regression-plane-with-scatter-plot/
+index_files/jquery/jquery.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/data_se/2022/04/19/3d-regression-plane-with-scatter-plot/
+index_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/04/19/3d-regression-plane-with-scatter-plot/
+index_files/crosstalk/js/crosstalk.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/data_se/2022/04/19/3d-regression-plane-with-scatter-plot/
+index_files/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/04/19/3d-regression-plane-with-scatter-plot/
+index_files/plotly-main/plotly-latest.min.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-model">&lt;span class="toc-section-number">2&lt;/span> Define model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-grid-for-regression-plane">&lt;span class="toc-section-number">3&lt;/span> Define grid for regression plane&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#scatter-plot">&lt;span class="toc-section-number">4&lt;/span> Scatter Plot&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#scatter-plot-with-3d-surface">&lt;span class="toc-section-number">5&lt;/span> Scatter plot with 3D surface&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">6&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(plotly) # 3D plot interactive&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="define-model" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Define model&lt;/h1>
+&lt;p>Here’s the linear model with 2 predictors, giving us a model that can be visualized in 3D:&lt;/p>
+&lt;pre class="r">&lt;code>lm1 &amp;lt;- lm(mpg ~ hp + disp, data = mtcars)&lt;/code>&lt;/pre>
+&lt;p>As is standard, we’ll predict &lt;code>mpg&lt;/code>.&lt;/p></description></item><item><title>Das arithmetische Mittel minimiert die Abweichungsquadrate</title><link>https://sebastiansauer.github.io/data_se/2022/04/08/mittelwert-minimiert-abweichungsquadrate/</link><pubDate>Fri, 08 Apr 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/04/08/mittelwert-minimiert-abweichungsquadrate/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/04/08/mittelwert-minimiert-abweichungsquadrate/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#behauptung">&lt;span class="toc-section-number">1&lt;/span> Behauptung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#beweis">&lt;span class="toc-section-number">2&lt;/span> Beweis&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#quellen">&lt;span class="toc-section-number">3&lt;/span> Quellen&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="behauptung" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Behauptung&lt;/h1>
+&lt;p>Das arithmetische Mittel &lt;span class="math inline">\(\bar{x}=\frac{1}{n}\sum_{i=1}^n x_i\)&lt;/span> minimiert die Abweichungsquadrate der &lt;span class="math inline">\(x_i\)&lt;/span> zu einem Wert &lt;span class="math inline">\(c\)&lt;/span>, eben der ist das arithmetische Mittel:&lt;/p>
+&lt;p>&lt;span class="math inline">\(\text{arg min}_c \sum_{i=1}^n(x_i - c)^2\)&lt;/span>.&lt;/p>
+&lt;p>Mit anderen Worten: Es gibt keine andere Zahl, für die obige Summe einen kleineren Wert liefert,
+so die Behauptung.&lt;/p>
+&lt;p>Nennen wir die Summe der Abweichungsquadrate &lt;span class="math inline">\(s(c) = \sum_{i=1}^n(x_i -c)^2\)&lt;/span>.&lt;/p>
+&lt;/div>
+&lt;div id="beweis" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Beweis&lt;/h1>
+&lt;p>&lt;span class="math display">\[
+\begin{aligned}
+s(c) &amp;amp;= \sum_{i=1}^n (x_i -c)^2 \\
+&amp;amp;= \sum_{i=1}^n (x_i^2 - 2x_ic + c^2) \\
+&amp;amp;= \sum_{i=1}^n x_i^2 - \sum_{i=1}^n 2x_ic + \sum_{i=1}^n c^2 \\
+&amp;amp;= \sum_{i=1}^n x_i^2 - 2c \sum_{i=1}^n x_i + n c^2
+\end{aligned}
+\]&lt;/span>&lt;/p></description></item><item><title>Median minimiert Absolutabweichungen</title><link>https://sebastiansauer.github.io/data_se/2022/04/08/median-minimiert-absolutabweichungen/</link><pubDate>Fri, 08 Apr 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/04/08/median-minimiert-absolutabweichungen/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/04/08/median-minimiert-absolutabweichungen/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#behauptung">&lt;span class="toc-section-number">1&lt;/span> Behauptung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#beweis-1">&lt;span class="toc-section-number">2&lt;/span> Beweis 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#beweis-2">&lt;span class="toc-section-number">3&lt;/span> Beweis 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#quellen">&lt;span class="toc-section-number">4&lt;/span> Quellen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">5&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;div id="behauptung" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Behauptung&lt;/h1>
+&lt;p>Der Median &lt;span class="math inline">\(md\)&lt;/span> minimiert die Absolutabweichungen der &lt;span class="math inline">\(x_i\)&lt;/span> zu einem Wert &lt;span class="math inline">\(c\)&lt;/span>, eben der ist Median:&lt;/p>
+&lt;p>&lt;span class="math inline">\(\text{arg min}_c \sum_{i=1}^n|(x_i - c)|\)&lt;/span>.&lt;/p>
+&lt;p>Mit anderen Worten: Es gibt keine andere Zahl, für die obige Summe einen kleineren Wert liefert,
+so die Behauptung.&lt;/p>
+&lt;p>Nennen wir die Summe der Absolutabweichungen &lt;span class="math inline">\(e(c) = \sum_{i=1}^n|(x_i - c)|\)&lt;/span>.&lt;/p>
+&lt;/div>
+&lt;div id="beweis-1" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Beweis 1&lt;/h1>
+&lt;p>Betrachten wir zwei reelle Zahlen, &lt;span class="math inline">\(a &amp;lt; b\)&lt;/span>.
+Dann ist unser Ziel&lt;/p></description></item><item><title>How to import GoogleSheets into R</title><link>https://sebastiansauer.github.io/data_se/2022/04/02/how-to-import-googlesheets-into-r/</link><pubDate>Sat, 02 Apr 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/04/02/how-to-import-googlesheets-into-r/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/04/02/how-to-import-googlesheets-into-r/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#find-your-googlesheets-file">&lt;span class="toc-section-number">3&lt;/span> Find your GoogleSheets File&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#authentificate">&lt;span class="toc-section-number">4&lt;/span> Authentificate&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#read-it">&lt;span class="toc-section-number">5&lt;/span> Read it&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#check">&lt;span class="toc-section-number">6&lt;/span> Check&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#rename">&lt;span class="toc-section-number">7&lt;/span> Rename&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#some-caveats">&lt;span class="toc-section-number">8&lt;/span> Some caveats&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#further-reading">&lt;span class="toc-section-number">9&lt;/span> Further reading&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">10&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(googlesheets4) # GSheets API
+library(gt) # html tables&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>Data sharing is of primary concern for science and, increasingly, technology.
+Whereas there are specialized repositories for data storage and exchange (which are very useful),
+at times more quick and dirty solutions are desirable.
+This is what we are looking at in this post:
+Using GoogleSheets for quick data access.&lt;/p></description></item><item><title>Visualizing variation in data, simple ideas</title><link>https://sebastiansauer.github.io/data_se/2022/04/02/visualizing-variation-in-data-simple-ideas/</link><pubDate>Sat, 02 Apr 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/04/02/visualizing-variation-in-data-simple-ideas/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/04/02/visualizing-variation-in-data-simple-ideas/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#simulate-data">&lt;span class="toc-section-number">2&lt;/span> Simulate data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#plot-1">&lt;span class="toc-section-number">3&lt;/span> Plot 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#plot-2">&lt;span class="toc-section-number">4&lt;/span> Plot 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#plot-3">&lt;span class="toc-section-number">5&lt;/span> Plot 3&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#plot-4">&lt;span class="toc-section-number">6&lt;/span> Plot 4&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">7&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="simulate-data" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Simulate data&lt;/h1>
+&lt;pre class="r">&lt;code>low_spread &amp;lt;- 
+ tibble(var = rnorm(n = 100),
+ id = 1:100,
+ type = &amp;quot;low spread&amp;quot;)
+high_spread &amp;lt;-
+ tibble(var= rnorm(n = 100, sd = 10),
+ id = 1:100,
+ type = &amp;quot;high spread&amp;quot;)&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>d &amp;lt;-
+ low_spread %&amp;gt;% 
+ bind_rows(high_spread)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="plot-1" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Plot 1&lt;/h1>
+&lt;pre class="r">&lt;code>ggplot(d) +
+ aes(x = id, y = var) +
+ facet_wrap(~ type) +
+ geom_hline(yintercept = 0, color = &amp;quot;grey40&amp;quot;) +
+ geom_point() +
+ theme_minimal()&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/data_se/2022/04/02/visualizing-variation-in-data-simple-ideas/
+index_files/figure-html/unnamed-chunk-3-1.png" width="100%" style="display: block; margin: auto;" />&lt;/p></description></item><item><title>Programming the tidyverse: quoted and unqouted parameters</title><link>https://sebastiansauer.github.io/data_se/2022/03/11/programming-the-tidyverse-quoted-and-unqouted-parameters/</link><pubDate>Fri, 11 Mar 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/03/11/programming-the-tidyverse-quoted-and-unqouted-parameters/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/03/11/programming-the-tidyverse-quoted-and-unqouted-parameters/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#first-quoted-string-parameter">&lt;span class="toc-section-number">3&lt;/span> First: Quoted (string) parameter&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#second-unquoted-parameter">&lt;span class="toc-section-number">4&lt;/span> Second: Unquoted parameter&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#check">&lt;span class="toc-section-number">5&lt;/span> Check&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#bonus">&lt;span class="toc-section-number">6&lt;/span> Bonus&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>If a project reaches some level of complexity, sooner or later, more systematical meausures of coding need to be employed.&lt;/p>
+&lt;p>Using the tidyverse ecosystem, programming - instead of interactive use -
+may be something different or unusual and it may take some time to wrap your head around it.&lt;/p></description></item><item><title>tidyeval, some musings on dplyr::filter</title><link>https://sebastiansauer.github.io/data_se/2022/02/09/tidyeval-some-musings-on-dplyr-filter/</link><pubDate>Wed, 09 Feb 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/02/09/tidyeval-some-musings-on-dplyr-filter/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/02/09/tidyeval-some-musings-on-dplyr-filter/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="programming-with-the-tidyverse" class="section level1">
+&lt;h1>Programming with the tidyverse&lt;/h1>
+&lt;p>… Is not exactly self-evident. It actually requires some head wrapping, at
+least in my experience.
+In this post, we are exploring some aspects on programming when filtering rows.
+Let’s see.&lt;/p>
+&lt;/div>
+&lt;div id="setup" class="section level1">
+&lt;h1>Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="some-filtering-chunk" class="section level1">
+&lt;h1>Some filtering chunk&lt;/h1>
+&lt;p>Let’s say we would like to filter observations according to some variable and a given threshold in some data set:&lt;/p>
+&lt;pre class="r">&lt;code>mtcars %&amp;gt;% 
+ filter(hp &amp;gt; 200)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## mpg cyl disp hp drat wt qsec vs am gear carb
+## Duster 360 14.3 8 360 245 3.21 3.570 15.84 0 0 3 4
+## Cadillac Fleetwood 10.4 8 472 205 2.93 5.250 17.98 0 0 3 4
+## Lincoln Continental 10.4 8 460 215 3.00 5.424 17.82 0 0 3 4
+## Chrysler Imperial 14.7 8 440 230 3.23 5.345 17.42 0 0 3 4
+## Camaro Z28 13.3 8 350 245 3.73 3.840 15.41 0 0 3 4
+## Ford Pantera L 15.8 8 351 264 4.22 3.170 14.50 0 1 5 4
+## Maserati Bora 15.0 8 301 335 3.54 3.570 14.60 0 1 5 8&lt;/code>&lt;/pre>
+&lt;p>Of course, that’s a toy problem, but for the sake of the tidyverse programming thing,
+it may be a helpful start to keep things straight.&lt;/p></description></item><item><title>Erbie: Einfache, reproduzierbare Beispiele Ihres Problems mit (R-)Syntax</title><link>https://sebastiansauer.github.io/data_se/2022/01/31/erbie-einfache-reproduzierbare-beispiele-ihres-problems-mit-r-syntax/</link><pubDate>Mon, 31 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/31/erbie-einfache-reproduzierbare-beispiele-ihres-problems-mit-r-syntax/</guid><description>&lt;div id="hilfe-mein-r-läuft-nicht-was-soll-ich-tun" class="section level1">
+&lt;h1>Hilfe, mein R läuft nicht? Was soll ich tun?&lt;/h1>
+&lt;p>Angenommen, Sie haben ein Problem mit R … Oder präzisieren wir,
+Sie haben ein Problem &lt;em>mit einer bestimmten R-Syntax&lt;/em> (ob R auch ein Problem mit uns haben kann,
+ist nicht bekannt).&lt;/p>
+&lt;p>Jedenfall wollen Sie, dass R etwas bestimmtes tut. Macht es aber nicht.
+Jetzt könnte man es mit anschreien versuchen; Maschinen lassen das geduldig über
+sich ergehen. Man könnte den Computer zum Fenster rausschmeißen,
+das könnte auch Erleichterung bringen … Dem hab ich’s jetzt mal richtig gezeigt.&lt;/p></description></item><item><title>Bayes-Software installieren für R</title><link>https://sebastiansauer.github.io/data_se/2022/01/28/bayes-software-installieren-f%C3%BCr-r/</link><pubDate>Fri, 28 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/28/bayes-software-installieren-f%C3%BCr-r/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/28/bayes-software-installieren-f%C3%BCr-r/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="r-und-seine-freunde-installieren." class="section level1">
+&lt;h1>R und seine Freunde installieren.&lt;/h1>
+&lt;p>Schauen Sie, dass Sie zuerst &lt;a href="https://data-se.netlify.app/2021/11/30/installation-von-r-und-seiner-freunde/">R und seine Freunde&lt;/a> installiert haben.&lt;/p>
+&lt;/div>
+&lt;div id="bayes-software" class="section level1">
+&lt;h1>Bayes-Software&lt;/h1>
+&lt;p>Bayes-Inferenz kann rechenintensiv sein.
+Daher braucht’s Software, die schnell rechnen kann.
+Außerdem sollte die Software sich gut mit Wahrscheinlichkeitsrechnung auskennen,
+denn Bayes ist nichts anderes als angewandte Wahrscheinlichkeitsrechnung.&lt;/p>
+&lt;p>Aktuell ist die Software &lt;a href="https://mc-stan.org/">Stan&lt;/a> die führende Software für diesen Zweck.&lt;/p>
+&lt;p>Bevor Sie aber Stan installieren können, brauchen Sie eine (Software für eine)
+“schnelle Rechenmaschine” auf Ihrem Computer installiert.
+Stan nutzt dafür C++.&lt;/p></description></item><item><title>Kurs "Bayes:Start"</title><link>https://sebastiansauer.github.io/data_se/2022/01/28/kurs-bayes-start/</link><pubDate>Fri, 28 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/28/kurs-bayes-start/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/28/kurs-bayes-start/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="bayes-lernen" class="section level1">
+&lt;h1>Bayes lernen&lt;/h1>
+&lt;p>Sie möchten (oder müssen) Bayes lernen?
+&lt;a href="https://sebastiansauer.github.io/bayes-start/">Hier&lt;/a> ist ein Kurs dazu.&lt;/p>
+&lt;p>Alle Materialien des Kurses sind frei verfügbar, können kostenfrei genutzt werden und sind quelloffen.&lt;/p>
+&lt;/div></description></item><item><title>Kurs: "Vorhersage-Modellierung"</title><link>https://sebastiansauer.github.io/data_se/2022/01/28/kurs-vorhersage-modellierung/</link><pubDate>Fri, 28 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/28/kurs-vorhersage-modellierung/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/28/kurs-vorhersage-modellierung/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="einführung-in-die-vorhersage-modellierung" class="section level1">
+&lt;h1>Einführung in die Vorhersage-Modellierung 🔮&lt;/h1>
+&lt;p>Ein Kurs zur Grundlagen der Datenanalyse und der Vorhersage-Modellierung mit R.&lt;/p>
+&lt;p>&lt;a href="https://sebastiansauer.github.io/vorhersagemodellierung/index.html">Hier&lt;/a> geht es zum Kurs.&lt;/p>
+&lt;p>Alle Materialien des Kurses sind frei verfügbar, können kostenfrei genutzt werden und sind quelloffen.&lt;/p>
+&lt;/div></description></item><item><title>Wissenschaftliche Notation in R an und ausstellen</title><link>https://sebastiansauer.github.io/data_se/2022/01/28/wissenschaftliche-notation-in-r-an-und-ausstellen/</link><pubDate>Fri, 28 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/28/wissenschaftliche-notation-in-r-an-und-ausstellen/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/28/wissenschaftliche-notation-in-r-an-und-ausstellen/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="wissenschaftliche-notation-was-is-das" class="section level1">
+&lt;h1>Wissenschaftliche Notation, was is das?&lt;/h1>
+&lt;p>Zahlen können in der “fixierten” oder normalen Notation geschrieben sein:&lt;/p>
+&lt;pre class="r">&lt;code>1&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## [1] 1&lt;/code>&lt;/pre>
+&lt;p>oder&lt;/p>
+&lt;pre class="r">&lt;code>10&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## [1] 10&lt;/code>&lt;/pre>
+&lt;p>und so weiter.&lt;/p>
+&lt;p>Die sog. &lt;em>wissenschaftliche Notation&lt;/em> von Zahlen sieht so aus:&lt;/p>
+&lt;pre>&lt;code>## [1] 1e+15&lt;/code>&lt;/pre>
+&lt;p>Die wissenschaftliche Notation dieser großen Zahl sagt uns: “Das ist eine Zahl, die mit der Ziffer 1 beginnt und dann folgen 15 Nullen”.&lt;/p>
+&lt;p>Das &lt;em>e&lt;/em> steht für &lt;em>Exponent&lt;/em>. Eigentlich nutzt der Computer die typische Taschenrechner-Schreibweise,
+von dem, was in der Mathe so geschrieben würde:&lt;/p></description></item><item><title>Installation von R und seiner Freunde</title><link>https://sebastiansauer.github.io/data_se/2021/11/30/installation-von-r-und-seiner-freunde/</link><pubDate>Tue, 30 Nov 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/11/30/installation-von-r-und-seiner-freunde/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/11/30/installation-von-r-und-seiner-freunde/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#überblick">&lt;span class="toc-section-number">1&lt;/span> Überblick&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#versions-infos-und-update">&lt;span class="toc-section-number">2&lt;/span> Versions-Infos und Update&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#installation">&lt;span class="toc-section-number">3&lt;/span> Installation&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#r">&lt;span class="toc-section-number">3.1&lt;/span> R&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#rstudio">&lt;span class="toc-section-number">3.2&lt;/span> RStudio&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#rstudio-cloud">&lt;span class="toc-section-number">3.3&lt;/span> RStudio Cloud&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#konto-anlegen">&lt;span class="toc-section-number">3.3.1&lt;/span> Konto anlegen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#projekte">&lt;span class="toc-section-number">3.3.2&lt;/span> Projekte&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#r-pakete">&lt;span class="toc-section-number">3.4&lt;/span> R-Pakete&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#was-sind-r-pakete">&lt;span class="toc-section-number">3.4.1&lt;/span> Was sind R-Pakete?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#welche-r-pakete-brauche-ich">&lt;span class="toc-section-number">3.4.2&lt;/span> Welche R-Pakete brauche ich?&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#hinweise">&lt;span class="toc-section-number">3.5&lt;/span> Hinweise&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#wenn-nichts-mehr-hilft">&lt;span class="toc-section-number">4&lt;/span> Wenn nichts mehr hilft …&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="überblick" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Überblick&lt;/h1>
+&lt;p>Wir wollen uns hier nicht mit Fragen beschäftigen &lt;a href="https://www.r-bloggers.com/2014/03/why-use-r-five-reasons/">Warum R?&lt;/a> (und auch nicht mit &lt;a href="https://www.burns-stat.com/pages/Tutor/R_inferno.pdf">Warum, R?&lt;/a>).
+Stattdessen soll Ihnen diese Seite helfen, R und was sonst noch so dazu gehört, zu installieren.&lt;/p></description></item><item><title>Analyse einiger RKI-Coronadaten: Eine reproduzierbare Fallstudie</title><link>https://sebastiansauer.github.io/data_se/2021/11/27/analyse-der-rki-coronadaten/</link><pubDate>Sat, 27 Nov 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/11/27/analyse-der-rki-coronadaten/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/11/27/analyse-der-rki-coronadaten/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#r-pakete">&lt;span class="toc-section-number">1&lt;/span> R-Pakete&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hintergrund">&lt;span class="toc-section-number">2&lt;/span> Hintergrund&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#inzidenzen-in-deutschland---daten-vom-rki">&lt;span class="toc-section-number">3&lt;/span> Inzidenzen in Deutschland - Daten vom RKI&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hospitalisierungen-in-deutschland">&lt;span class="toc-section-number">4&lt;/span> Hospitalisierungen in Deutschland&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#adjustierte-daten">&lt;span class="toc-section-number">4.1&lt;/span> Adjustierte Daten&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-importieren">&lt;span class="toc-section-number">4.1.1&lt;/span> Daten importieren&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#eda">&lt;span class="toc-section-number">4.1.2&lt;/span> EDA&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#unadjustierte-daten">&lt;span class="toc-section-number">4.2&lt;/span> Unadjustierte Daten&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-importieren-1">&lt;span class="toc-section-number">4.2.1&lt;/span> Daten importieren&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#eda-1">&lt;span class="toc-section-number">4.2.2&lt;/span> EDA&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#impfungen-in-deutschland">&lt;span class="toc-section-number">5&lt;/span> Impfungen in Deutschland&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#neueste-daten">&lt;span class="toc-section-number">5.1&lt;/span> Neueste Daten&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">5.1.1&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#eda-2">&lt;span class="toc-section-number">5.1.2&lt;/span> EDA&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#impfquoten-im-zeitverlauf">&lt;span class="toc-section-number">5.2&lt;/span> Impfquoten im Zeitverlauf&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-laden-1">&lt;span class="toc-section-number">5.2.1&lt;/span> Daten laden 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden-2">&lt;span class="toc-section-number">5.2.2&lt;/span> Daten laden 2&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#eda-3">&lt;span class="toc-section-number">5.3&lt;/span> EDA&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#impfquote-deutschland-im-zeitverlauf">&lt;span class="toc-section-number">5.3.1&lt;/span> Impfquote Deutschland im Zeitverlauf&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#impfquote-der-bundesländer-im-zeitverlauf">&lt;span class="toc-section-number">5.3.2&lt;/span> Impfquote der Bundesländer im Zeitverlauf&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#daten-joinen">&lt;span class="toc-section-number">6&lt;/span> Daten joinen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#zusammenhangsanalysen">&lt;span class="toc-section-number">7&lt;/span> Zusammenhangsanalysen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#zusammenhang-von-impfquote-und-hospitalisierung">&lt;span class="toc-section-number">7.1&lt;/span> Zusammenhang von Impfquote und Hospitalisierung&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#im-zeitverlauf">&lt;span class="toc-section-number">7.1.1&lt;/span> Im Zeitverlauf&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#korrelation-nach-bundesland">&lt;span class="toc-section-number">7.1.2&lt;/span> Korrelation nach Bundesland&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pro-quartal">&lt;span class="toc-section-number">7.1.3&lt;/span> Pro Quartal&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#fazit-zum-zusammenhang-von-hospitalisierung-und-impfquote">&lt;span class="toc-section-number">8&lt;/span> Fazit zum Zusammenhang von Hospitalisierung und Impfquote&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#deskriptiv">&lt;span class="toc-section-number">8.1&lt;/span> Deskriptiv&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#aber-worum-geht-es-uns-eigentlich">&lt;span class="toc-section-number">8.2&lt;/span> Aber worum geht es uns eigentlich?&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#kausalmodell-1">&lt;span class="toc-section-number">8.2.1&lt;/span> Kausalmodell 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#kausalmodell-2">&lt;span class="toc-section-number">8.2.2&lt;/span> Kausalmodell 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#interpretation-hängt-vom-kausalmodell-ab">&lt;span class="toc-section-number">8.2.3&lt;/span> Interpretation hängt vom Kausalmodell ab&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#wo-sind-hier-die-modelle">&lt;span class="toc-section-number">8.3&lt;/span> Wo sind hier die Modelle?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#interpretation-hängt-von-der-gesamten-befundlage-ab">&lt;span class="toc-section-number">8.4&lt;/span> Interpretation hängt von der gesamten Befundlage ab&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#notiz-zum-umgang-mit-fehlinformationen">&lt;span class="toc-section-number">8.5&lt;/span> Notiz zum Umgang mit Fehlinformationen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#sessioninfo">&lt;span class="toc-section-number">9&lt;/span> sessionInfo&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="r-pakete" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> R-Pakete&lt;/h1>
+&lt;/div>
+&lt;div id="hintergrund" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Hintergrund&lt;/h1>
+&lt;p>Die Corona-Epidemie beherrscht (wieder) die Nachrichten, Gespräche und Gedanken.
+Zu Recht, aus zwei Gründen.
+Zum einen sind die Zahlen jetzt schon besorgniserregend, wenn nicht furchtbar.
+Zum anderen haben &lt;a href="https://www.nature.com/articles/s41567-020-0921-x?report=reader">Pandemien das Potenzial zu krassen Extremwerten&lt;/a>.&lt;/p></description></item><item><title>Jedes dritte Corona-Tote ist geimpft, also bringt Impfen nix? Falsch.</title><link>https://sebastiansauer.github.io/data_se/2021/11/15/jedes-dritte-intensivbett-mit-geimpften-belegt-also-bringt-impfen-nix-falsch/</link><pubDate>Mon, 15 Nov 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/11/15/jedes-dritte-intensivbett-mit-geimpften-belegt-also-bringt-impfen-nix-falsch/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/11/15/jedes-dritte-intensivbett-mit-geimpften-belegt-also-bringt-impfen-nix-falsch/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#der-dritte-corona-tote-geimpft">&lt;span class="toc-section-number">1&lt;/span> Der dritte Corona-Tote geimpft?!&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#tldr">&lt;span class="toc-section-number">2&lt;/span> tl;dr&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#frage-wie-viele-menschen-mit-corona-wurden-ins-krankenhaus-eingeliefert">&lt;span class="toc-section-number">3&lt;/span> Frage: Wie viele Menschen mit Corona wurden ins Krankenhaus eingeliefert?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#antwort-hospitalisierungsquoten-lagen-jüngst-zwischen-1-und-15">&lt;span class="toc-section-number">4&lt;/span> Antwort: Hospitalisierungsquoten lagen jüngst zwischen 1% und 15%&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#frage-ist-jede-dritte-corona-tote-geimpft">&lt;span class="toc-section-number">5&lt;/span> Frage: Ist jede Dritte Corona-Tote geimpft?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#antwort-ja-diese-zahl-stimmt-oder-ist-höher">&lt;span class="toc-section-number">6&lt;/span> Antwort: Ja, diese Zahl stimmt oder ist höher&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#frage-wenn-es-so-viele-geimpfte-corona-opfer-gibt-dann-ist-die-impfung-also-kaum-wirksam">&lt;span class="toc-section-number">7&lt;/span> Frage: Wenn es so viele geimpfte Corona-Opfer gibt, dann ist die Impfung also kaum wirksam?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#antwort-der-anteil-der-impfdurchbrüche-ist-abhängig-von-der-impfquote">&lt;span class="toc-section-number">8&lt;/span> Antwort: Der Anteil der Impfdurchbrüche ist abhängig von der Impfquote&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#frage-wie-hoch-ist-die-impfquote-unter-den-coronatoten">&lt;span class="toc-section-number">9&lt;/span> Frage: Wie hoch ist die Impfquote unter den Coronatoten?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#antwort-die-coronatoten-sind-mehrheitlich-hochbetagt-und-hochbetagte-haben-eine-hohe-impfquote">&lt;span class="toc-section-number">10&lt;/span> Antwort: Die Coronatoten sind mehrheitlich hochbetagt und Hochbetagte haben eine hohe Impfquote&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#frage-welcher-anteil-der-geimpften-fände-sich-unter-den-toten-wenn-die-impfung-nichts-helfen-würde">&lt;span class="toc-section-number">11&lt;/span> Frage: Welcher Anteil der Geimpften fände sich unter den Toten, wenn die Impfung nichts helfen würde?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#antwort-würde-die-corona-impfung-nicht-helfen-wäre-der-anteil-der-geimpften-an-den-toten-gleich-zum-anteil-der-geimpften-an-der-bevölkerung">&lt;span class="toc-section-number">12&lt;/span> Antwort: Würde die Corona-Impfung nicht helfen, wäre der Anteil der Geimpften an den Toten gleich zum Anteil der Geimpften an der Bevölkerung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#frage-kann-ich-dazu-mal-ein-einfaches-rechenbeispiel-sehen">&lt;span class="toc-section-number">13&lt;/span> Frage: Kann ich dazu mal ein einfaches Rechenbeispiel sehen?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#antwort-hier-ist-ein-rechenbeispiel-das-unabhängigkeit-von-impfung-und-wirksamkeit-annimmt">&lt;span class="toc-section-number">14&lt;/span> Antwort: Hier ist ein Rechenbeispiel, das Unabhängigkeit von Impfung und Wirksamkeit annimmt&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#welchen-anteil-an-geimpften-unter-den-toten-gäbe-es-wenn-die-impfung-schützen-würde">&lt;span class="toc-section-number">15&lt;/span> Welchen Anteil an Geimpften unter den Toten gäbe es, wenn die Impfung schützen würde?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#frage-was-ist-der-zusammenhang-von-chancen-und-anteil">&lt;span class="toc-section-number">16&lt;/span> Frage: Was ist der Zusammenhang von Chancen und Anteil?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#man-kann-einfach-umrechnen">&lt;span class="toc-section-number">17&lt;/span> Man kann einfach umrechnen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#frage-wie-sind-die-anteile-der-geimpften-unter-den-toten-in-abhängigkeit-der-chance">&lt;span class="toc-section-number">18&lt;/span> Frage: Wie sind die Anteile der Geimpften unter den Toten in Abhängigkeit der Chance?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#antwort-die-anteile-verändern-sich-relativ-wenig-wenn-man-die-chancen-mehrfach-verringert">&lt;span class="toc-section-number">19&lt;/span> Antwort: Die Anteile verändern sich relativ wenig, wenn man die Chancen mehrfach verringert&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#frage-um-welchen-faktor-ist-c-geringer-als-bei-unwirksamkeit">&lt;span class="toc-section-number">20&lt;/span> Frage: Um welchen Faktor ist C geringer als bei Unwirksamkeit?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#antwort-reduktion-von-9-auf-12-ist-ein-reduktionsfaktor-von-18">&lt;span class="toc-section-number">21&lt;/span> Antwort: Reduktion von 9 auf 1/2 ist ein Reduktionsfaktor von 18&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fazit-die-impfung-ist-hoch-wirksam-laut-diesen-daten">&lt;span class="toc-section-number">22&lt;/span> Fazit: Die Impfung ist hoch wirksam laut diesen Daten&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#grenzen-der-analyse">&lt;span class="toc-section-number">23&lt;/span> Grenzen der Analyse&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#sessioninfo">&lt;span class="toc-section-number">24&lt;/span> SessionInfo&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="der-dritte-corona-tote-geimpft" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Der dritte Corona-Tote geimpft?!&lt;/h1>
+&lt;p>Kürzlich (12.10.2021) war u.a. in der &lt;a href="https://www.bild.de/bild-plus/ratgeber/2021/ratgeber/corona-mehr-geimpfte-auf-intensivstation-brauchen-wir-alle-die-dritte-impfung-77912360,view=conversionToLogin.bild.html">Bildzeitung&lt;/a> zu lesen,
+dass jeder dritte Corona-Tote geimpft war:&lt;/p></description></item><item><title>Metadaten von Forschungsartikeln herunterladen</title><link>https://sebastiansauer.github.io/data_se/2021/07/08/metadaten-von-forschungsartikeln-herunterladen/</link><pubDate>Thu, 08 Jul 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/07/08/metadaten-von-forschungsartikeln-herunterladen/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/07/08/metadaten-von-forschungsartikeln-herunterladen/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#vorbereitung">&lt;span class="toc-section-number">1&lt;/span> Vorbereitung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#via-crossref">&lt;span class="toc-section-number">2&lt;/span> Via Crossref&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#abfragen-einfach">&lt;span class="toc-section-number">2.1&lt;/span> Abfragen, einfach&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#filter">&lt;span class="toc-section-number">3&lt;/span> Filter&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#anzahl">&lt;span class="toc-section-number">3.1&lt;/span> Anzahl&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#dois-rausziehen">&lt;span class="toc-section-number">4&lt;/span> Dois rausziehen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#zitationen-herunterladen">&lt;span class="toc-section-number">5&lt;/span> Zitationen herunterladen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#abstracts-herunterladen">&lt;span class="toc-section-number">6&lt;/span> Abstracts herunterladen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#safely-abstracts-herunterladen">&lt;span class="toc-section-number">6.1&lt;/span> “Safely” Abstracts herunterladen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#artikel-nur-mit-abstracts">&lt;span class="toc-section-number">6.2&lt;/span> Artikel nur mit Abstracts&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#abstract-mit-cr_abstract">&lt;span class="toc-section-number">6.3&lt;/span> Abstract mit &lt;code>cr_abstract&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#check">&lt;span class="toc-section-number">6.4&lt;/span> Check&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#auf-einen-haps">&lt;span class="toc-section-number">6.5&lt;/span> Auf einen Haps&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#andere-apis">&lt;span class="toc-section-number">7&lt;/span> Andere APIs&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#google-scholar-hat-keine-api-wie-es-aussieht">&lt;span class="toc-section-number">7.1&lt;/span> Google Scholar hat keine API, wie es aussieht&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#weitere-api">&lt;span class="toc-section-number">7.1.1&lt;/span> Weitere API&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="vorbereitung" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Vorbereitung&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(printr)
+library(rcrossref)
+library(gt)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="via-crossref" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Via Crossref&lt;/h1>
+&lt;p>Von der &lt;a href="https://www.crossref.org/">Crossref-Webseite&lt;/a>:&lt;/p></description></item><item><title>Zeitungsartikel per API herunterladen</title><link>https://sebastiansauer.github.io/data_se/2021/07/07/zeitungsartikel-per-api-herunterladen/</link><pubDate>Wed, 07 Jul 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/07/07/zeitungsartikel-per-api-herunterladen/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/07/07/zeitungsartikel-per-api-herunterladen/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(newsanchor)
+library(printr)
+library(httr)
+library(jsonlite)&lt;/code>&lt;/pre>
+&lt;div id="news-api" class="section level1">
+&lt;h1>News API&lt;/h1>
+&lt;p>Es gibt eine Seite &lt;a href="https://newsapi.org/">News API&lt;/a>, die es erlaubt, per API News (Artikel, Schlagzeilen) von weltweiten Quellen herunterzuladen, per JSON API.&lt;/p>
+&lt;/div>
+&lt;div id="gibts-da-auch-ein-r-paket" class="section level1">
+&lt;h1>Gibt’s da auch ein R-Paket?&lt;/h1>
+&lt;p>Ja - &lt;a href="https://cran.r-project.org/web/packages/newsanchor/vignettes/usage-newsanchor.html">NewsAnchor&lt;/a>.&lt;/p>
+&lt;/div>
+&lt;div id="setup" class="section level1">
+&lt;h1>Setup&lt;/h1>
+&lt;p>Zuerst muss man sich bei der Seite eine API Key holen, für Entwicklerzwecke kostenlos. Komfortabel ist, sich den Schlüssel in die R-environment-Datei (&lt;code>.Renviron&lt;/code>) zu schreiben, s. &lt;a href="https://cran.r-project.org/web/packages/newsanchor/vignettes/usage-newsanchor.html">hier&lt;/a> für mehr Infos.&lt;/p>
+&lt;p>Das kann man z.B. so machen:&lt;/p></description></item><item><title>Diagrams with mermaid</title><link>https://sebastiansauer.github.io/data_se/2021/07/01/diagrams-with-mermaid/</link><pubDate>Thu, 01 Jul 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/07/01/diagrams-with-mermaid/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/07/01/diagrams-with-mermaid/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/07/01/diagrams-with-mermaid/
+index_files/htmlwidgets/htmlwidgets.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/07/01/diagrams-with-mermaid/
+index_files/d3/d3.min.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/07/01/diagrams-with-mermaid/
+index_files/dagre/dagre-d3.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/data_se/2021/07/01/diagrams-with-mermaid/
+index_files/mermaid/dist/mermaid.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/07/01/diagrams-with-mermaid/
+index_files/mermaid/dist/mermaid.slim.min.js">&lt;/script>
+&lt;link href="https://sebastiansauer.github.io/data_se/data_se/2021/07/01/diagrams-with-mermaid/
+index_files/DiagrammeR-styles/styles.css" rel="stylesheet" />
+&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/07/01/diagrams-with-mermaid/
+index_files/chromatography/chromatography.js">&lt;/script>
+&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/07/01/diagrams-with-mermaid/
+index_files/DiagrammeR-binding/DiagrammeR.js">&lt;/script>
+
+
+&lt;div id="setup" class="section level1">
+&lt;h1>Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(DiagrammeR)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="separating-concept-and-appeal" class="section level1">
+&lt;h1>Separating concept and appeal&lt;/h1>
+&lt;p>It can be useful to separate the content or concept from its graphical/visual implementation. For this reasons, slide shows have disadvantages: You spend a lot of time dragging arrows and boxes. This time would be better spend in thinking about &lt;em>why&lt;/em> and &lt;em>where&lt;/em> to move your arrows and boxes.&lt;/p>
+&lt;p>In addition, software that intermingles concept and representation typically is a vendor lock: You cannot (easily) get out if you find some more useful softare.&lt;/p></description></item><item><title>Talent and Looks -- Collider bias</title><link>https://sebastiansauer.github.io/data_se/2021/06/24/talent-and-looks-collider-bias/</link><pubDate>Thu, 24 Jun 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/06/24/talent-and-looks-collider-bias/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/06/24/talent-and-looks-collider-bias/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="background" class="section level1">
+&lt;h1>Background&lt;/h1>
+&lt;p>Some musing on the collider bias.&lt;/p>
+&lt;p>Let’s try to reverse engineer this image&lt;/p>
+&lt;p>&lt;img src="https://brilliant-staff-media.s3-us-west-2.amazonaws.com/tiffany-wang/1Mvt8RPtlU.png" style="width:70.0%" />&lt;/p>
+&lt;/div>
+&lt;div id="setup" class="section level1">
+&lt;h1>Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(ggdag)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="simulate-some-data" class="section level1">
+&lt;h1>Simulate some data&lt;/h1>
+&lt;pre class="r">&lt;code>n &amp;lt;- 1000&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>
+d &amp;lt;- tibble(
+ x = rnorm(n, mean = 0, sd = 1),
+ y = rnorm(n, mean = 0, sd = 1),
+ e = rnorm(n, mean = 0, sd = 0.3),
+ z = abs(x) * abs(y))&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="d-uncorrelated-data" class="section level1">
+&lt;h1>d: Uncorrelated data&lt;/h1>
+&lt;p>The farer from the centroid the lighter the color.&lt;/p></description></item><item><title>Rücktransformation logarithmierter y-Werte</title><link>https://sebastiansauer.github.io/data_se/2021/06/18/r%C3%BCcktransformation-logarithmierter-y-werte/</link><pubDate>Fri, 18 Jun 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/06/18/r%C3%BCcktransformation-logarithmierter-y-werte/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/06/18/r%C3%BCcktransformation-logarithmierter-y-werte/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#kontext">&lt;span class="toc-section-number">1&lt;/span> Kontext&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vorbereitung">&lt;span class="toc-section-number">2&lt;/span> Vorbereitung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#logy-logx-modell">&lt;span class="toc-section-number">3&lt;/span> LogY-LogX-Modell&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#modell-1">&lt;span class="toc-section-number">4&lt;/span> Modell 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vorhersage-zum-beispiel-aus-der-fallstudie">&lt;span class="toc-section-number">5&lt;/span> Vorhersage zum Beispiel aus der Fallstudie&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vorhersagen-wie-im-prognose-wettbewerb">&lt;span class="toc-section-number">6&lt;/span> Vorhersagen wie im Prognose-Wettbewerb&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#check">&lt;span class="toc-section-number">7&lt;/span> Check&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="kontext" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Kontext&lt;/h1>
+&lt;p>Dieser Post bezieht sich auf &lt;a href="https://moderndive.com/11-thinking-with-data.html#seattle-house-prices">diese Fallstudie&lt;/a>.&lt;/p>
+&lt;/div>
+&lt;div id="vorbereitung" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Vorbereitung&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # Datenjudo&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ✓ ggplot2 3.3.4 ✓ purrr 0.3.4
+## ✓ tibble 3.1.2 ✓ dplyr 1.0.6
+## ✓ tidyr 1.1.3 ✓ stringr 1.4.0
+## ✓ readr 1.4.0 ✓ forcats 0.5.1&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag() masks stats::lag()&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>library(moderndive) # Daten
+library(modelr) # für &amp;quot;add_predictions()&amp;quot;
+data(&amp;quot;house_prices&amp;quot;)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="logy-logx-modell" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> LogY-LogX-Modell&lt;/h1>
+&lt;blockquote>
+&lt;p>Bei einem LogY-LogX-Modell gilt: Steigt X um 1%, so steigt Y um k%.&lt;/p></description></item><item><title>Beispiel zur Interpretation des Interaktionseffekts</title><link>https://sebastiansauer.github.io/data_se/2021/06/17/beispiel-zur-interpretation-des-interaktionseffekts/</link><pubDate>Thu, 17 Jun 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/06/17/beispiel-zur-interpretation-des-interaktionseffekts/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/06/17/beispiel-zur-interpretation-des-interaktionseffekts/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#der-interaktionseffekt-in-der-regressionsanalyse">&lt;span class="toc-section-number">1&lt;/span> Der Interaktionseffekt in der Regressionsanalyse&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vorbereitung">&lt;span class="toc-section-number">2&lt;/span> Vorbereitung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#regression-mit-interaktionseffekt-die-erste">&lt;span class="toc-section-number">3&lt;/span> Regression mit Interaktionseffekt, die Erste&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#z-transformation-des-prädiktors-hp">&lt;span class="toc-section-number">3.1&lt;/span> z-Transformation des Prädiktors &lt;code>hp&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm1">&lt;span class="toc-section-number">3.2&lt;/span> lm1&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#regression-mit-interaktionseffekt-die-zweite">&lt;span class="toc-section-number">4&lt;/span> Regression mit Interaktionseffekt, die Zweite&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten">&lt;span class="toc-section-number">4.1&lt;/span> Daten&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#ohne-z-transformation">&lt;span class="toc-section-number">4.2&lt;/span> Ohne z-Transformation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#mit-z-transformation">&lt;span class="toc-section-number">4.3&lt;/span> Mit z-Transformation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualisierung">&lt;span class="toc-section-number">4.4&lt;/span> Visualisierung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#interpretation-zum-vorhandensein-eines-interpretationseffekts">&lt;span class="toc-section-number">4.5&lt;/span> Interpretation zum Vorhandensein eines Interpretationseffekts&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#interpretation-der-koeffizienten">&lt;span class="toc-section-number">4.6&lt;/span> Interpretation der Koeffizienten&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#viel-besser-mit-z-transformation">&lt;span class="toc-section-number">4.7&lt;/span> Viel besser mit z-Transformation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#berechnen-eines-vorhergesagten-wertes-mit-der-hand">&lt;span class="toc-section-number">4.8&lt;/span> Berechnen eines vorhergesagten Wertes mit der Hand&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#fazit">&lt;span class="toc-section-number">5&lt;/span> Fazit&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="der-interaktionseffekt-in-der-regressionsanalyse" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Der Interaktionseffekt in der Regressionsanalyse&lt;/h1>
+&lt;p>Der Interaktionseffekt in der Regressionsanalyse ist nicht einfach zu interpretieren. Daher ist eine z-Transformation nützlich, die die Interpretation erleichtert. Das soll hier an einem Beispiel verdeutlicht werden.&lt;/p></description></item><item><title>ARM, Kap. 4 Syntax im Tidyverse-Stil</title><link>https://sebastiansauer.github.io/data_se/2021/06/15/arm-kap-4-syntax-im-tidyverse-stil/</link><pubDate>Tue, 15 Jun 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/06/15/arm-kap-4-syntax-im-tidyverse-stil/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/06/15/arm-kap-4-syntax-im-tidyverse-stil/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#pakete-laden">&lt;span class="toc-section-number">1&lt;/span> Pakete laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lineare-transformationen">&lt;span class="toc-section-number">2&lt;/span> Lineare Transformationen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-laden-kidsiq">&lt;span class="toc-section-number">2.1&lt;/span> Daten laden: &lt;code>kidsiq&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm1-interaktionseffekt">&lt;span class="toc-section-number">2.2&lt;/span> lm1: Interaktionseffekt&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm2-zentrieren">&lt;span class="toc-section-number">2.3&lt;/span> lm2: Zentrieren&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm3-z-transformation">&lt;span class="toc-section-number">2.4&lt;/span> lm3: z-Transformation&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#modelle-mit-logy">&lt;span class="toc-section-number">3&lt;/span> Modelle mit &lt;code>log(y)&lt;/code>&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">3.1&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm4-earn_log">&lt;span class="toc-section-number">3.2&lt;/span> lm4: earn_log&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm5-earn_log-mit-zwei-prädiktoren">&lt;span class="toc-section-number">3.3&lt;/span> lm5: earn_log mit zwei Prädiktoren&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm6-mit-z-transformation-und-interaktion">&lt;span class="toc-section-number">3.4&lt;/span> lm6: Mit z-Transformation und Interaktion&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#logy-logx-modelle">&lt;span class="toc-section-number">4&lt;/span> LogY-LogX-Modelle&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#weitere-transformationen">&lt;span class="toc-section-number">5&lt;/span> Weitere Transformationen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#diskretisierung-metrischer-prädiktoren">&lt;span class="toc-section-number">5.1&lt;/span> Diskretisierung metrischer Prädiktoren&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#buschbeispiel---mesquite">&lt;span class="toc-section-number">6&lt;/span> “Buschbeispiel” - &lt;code>mesquite&lt;/code>&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-laden-1">&lt;span class="toc-section-number">6.1&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lineares-modell-mit-allen-prädiktoren">&lt;span class="toc-section-number">6.2&lt;/span> Lineares Modell mit allen Prädiktoren&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#multiplikatives-modell">&lt;span class="toc-section-number">6.3&lt;/span> Multiplikatives Modell&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#referenz">&lt;span class="toc-section-number">7&lt;/span> Referenz&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="pakete-laden" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Pakete laden&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(arm) # nicht wirklich wichtig, nur für Funktion &amp;quot;display&amp;quot;
+library(foreign)
+library(rio)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="lineare-transformationen" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Lineare Transformationen&lt;/h1>
+&lt;div id="daten-laden-kidsiq" class="section level2" number="2.1">
+&lt;h2>&lt;span class="header-section-number">2.1&lt;/span> Daten laden: &lt;code>kidsiq&lt;/code>&lt;/h2>
+&lt;pre class="r">&lt;code>kidsiq &amp;lt;- read_csv(&amp;quot;https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/ARM/kidsiq.csv&amp;quot;)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## 
+## ── Column specification ────────────────────────────────────────────────────────
+## cols(
+## kid_score = col_double(),
+## mom_hs = col_double(),
+## mom_iq = col_double(),
+## mom_work = col_double(),
+## mom_age = col_double()
+## )&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="lm1-interaktionseffekt" class="section level2" number="2.2">
+&lt;h2>&lt;span class="header-section-number">2.2&lt;/span> lm1: Interaktionseffekt&lt;/h2>
+&lt;pre class="r">&lt;code>lm1 &amp;lt;- lm(kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq,
+ data = kidsiq)
+display(lm1)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## lm(formula = kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq, data = kidsiq)
+## coef.est coef.se
+## (Intercept) -11.48 13.76 
+## mom_hs 51.27 15.34 
+## mom_iq 0.97 0.15 
+## mom_hs:mom_iq -0.48 0.16 
+## ---
+## n = 434, k = 4
+## residual sd = 17.97, R-Squared = 0.23&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="lm2-zentrieren" class="section level2" number="2.3">
+&lt;h2>&lt;span class="header-section-number">2.3&lt;/span> lm2: Zentrieren&lt;/h2>
+&lt;pre class="r">&lt;code>kidsiq &amp;lt;-
+ kidsiq %&amp;gt;% 
+ mutate(mom_hs_c = mom_hs - mean(mom_hs),
+ mom_iq_c = mom_iq - mean(mom_iq))&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>lm2 &amp;lt;- lm(kid_score ~ mom_hs_c + mom_iq_c + mom_hs_c:mom_iq_c,
+ data = kidsiq)
+display(lm2)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## lm(formula = kid_score ~ mom_hs_c + mom_iq_c + mom_hs_c:mom_iq_c, 
+## data = kidsiq)
+## coef.est coef.se
+## (Intercept) 87.64 0.91 
+## mom_hs_c 2.84 2.43 
+## mom_iq_c 0.59 0.06 
+## mom_hs_c:mom_iq_c -0.48 0.16 
+## ---
+## n = 434, k = 4
+## residual sd = 17.97, R-Squared = 0.23&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>lm2a &amp;lt;- lm(kid_score ~ mom_hs + mom_iq_c + mom_hs:mom_iq_c,
+ data = kidsiq)
+display(lm2a)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## lm(formula = kid_score ~ mom_hs + mom_iq_c + mom_hs:mom_iq_c, 
+## data = kidsiq)
+## coef.est coef.se
+## (Intercept) 85.41 2.22 
+## mom_hs 2.84 2.43 
+## mom_iq_c 0.97 0.15 
+## mom_hs:mom_iq_c -0.48 0.16 
+## ---
+## n = 434, k = 4
+## residual sd = 17.97, R-Squared = 0.23&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="lm3-z-transformation" class="section level2" number="2.4">
+&lt;h2>&lt;span class="header-section-number">2.4&lt;/span> lm3: z-Transformation&lt;/h2>
+&lt;pre class="r">&lt;code>kidsiq &amp;lt;-
+ kidsiq %&amp;gt;% 
+ mutate(mom_iq_z = (mom_iq - mean(mom_iq)) / sd(mom_iq))&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>lm3 &amp;lt;- lm(kid_score ~ mom_hs + mom_iq_z + mom_hs:mom_iq_c, 
+ data = kidsiq)
+
+display(lm3)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## lm(formula = kid_score ~ mom_hs + mom_iq_z + mom_hs:mom_iq_c, 
+## data = kidsiq)
+## coef.est coef.se
+## (Intercept) 85.41 2.22 
+## mom_hs 2.84 2.43 
+## mom_iq_z 14.53 2.23 
+## mom_hs:mom_iq_c -0.48 0.16 
+## ---
+## n = 434, k = 4
+## residual sd = 17.97, R-Squared = 0.23&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;/div>
+&lt;div id="modelle-mit-logy" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Modelle mit &lt;code>log(y)&lt;/code>&lt;/h1>
+&lt;div id="daten-laden" class="section level2" number="3.1">
+&lt;h2>&lt;span class="header-section-number">3.1&lt;/span> Daten laden&lt;/h2>
+&lt;pre class="r">&lt;code>earn &amp;lt;- read_csv(&amp;quot;https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/ARM/heights.csv&amp;quot;)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## 
+## ── Column specification ────────────────────────────────────────────────────────
+## cols(
+## earn = col_double(),
+## height1 = col_double(),
+## height2 = col_double(),
+## sex = col_double(),
+## race = col_double(),
+## hisp = col_double(),
+## ed = col_double(),
+## yearbn = col_double(),
+## height = col_double()
+## )&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="lm4-earn_log" class="section level2" number="3.2">
+&lt;h2>&lt;span class="header-section-number">3.2&lt;/span> lm4: earn_log&lt;/h2>
+&lt;pre class="r">&lt;code>earn &amp;lt;-
+ earn %&amp;gt;% 
+ mutate(earn_log = log(earn))&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>lm4 &amp;lt;- lm(earn_log ~ height, 
+ data = earn %&amp;gt;% filter(earn &amp;gt; 0))
+display(lm4)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## lm(formula = earn_log ~ height, data = earn %&amp;gt;% filter(earn &amp;gt; 
+## 0))
+## coef.est coef.se
+## (Intercept) 5.78 0.45 
+## height 0.06 0.01 
+## ---
+## n = 1192, k = 2
+## residual sd = 0.89, R-Squared = 0.06&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="lm5-earn_log-mit-zwei-prädiktoren" class="section level2" number="3.3">
+&lt;h2>&lt;span class="header-section-number">3.3&lt;/span> lm5: earn_log mit zwei Prädiktoren&lt;/h2>
+&lt;pre class="r">&lt;code>earn %&amp;gt;% 
+ count(sex)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## # A tibble: 2 x 2
+## sex n
+## &amp;lt;dbl&amp;gt; &amp;lt;int&amp;gt;
+## 1 1 748
+## 2 2 1281&lt;/code>&lt;/pre>
+&lt;p>Leider wissen wir nicht, ob Frauen mit 1 oder mit 2 codiert sind. Gehen wir davon aus, dass Männer mit 1 kodiert sind (vgl. Buch ARM, S. 61).&lt;/p></description></item><item><title>Vektorisierter Mittelwert in R</title><link>https://sebastiansauer.github.io/data_se/2021/06/15/vektorisierter-mittelwert-in-r/</link><pubDate>Tue, 15 Jun 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/06/15/vektorisierter-mittelwert-in-r/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/06/15/vektorisierter-mittelwert-in-r/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="setup" class="section level1">
+&lt;h1>Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ✓ ggplot2 3.3.3 ✓ purrr 0.3.4
+## ✓ tibble 3.1.2 ✓ dplyr 1.0.6
+## ✓ tidyr 1.1.3 ✓ stringr 1.4.0
+## ✓ readr 1.4.0 ✓ forcats 0.5.1&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## x dplyr::filter() masks stats::filter()
+## x dplyr::lag() masks stats::lag()&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="einige-funktionen-in-r-sind-vektorisiert-andere-nicht" class="section level1">
+&lt;h1>Einige Funktionen in R sind vektorisiert, andere nicht&lt;/h1>
+&lt;p>Einige Funktionen in R sind vektorisiert: sie führen ihren Dienst für jedes Element eines Vektors aus. Erzeugen wir dazu ein paar Daten:&lt;/p></description></item><item><title>ARM, Kap. 3 Syntax im Tidyverse-Stil</title><link>https://sebastiansauer.github.io/data_se/2021/06/05/arm-kap-3-syntax-im-tidyverse-stil/</link><pubDate>Sat, 05 Jun 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/06/05/arm-kap-3-syntax-im-tidyverse-stil/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/06/05/arm-kap-3-syntax-im-tidyverse-stil/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#einführung">&lt;span class="toc-section-number">1&lt;/span> Einführung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pakete-laden">&lt;span class="toc-section-number">2&lt;/span> Pakete laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">3&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#ein-prädiktor">&lt;span class="toc-section-number">4&lt;/span> Ein Prädiktor&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#lm1-binärer-prädiktor">&lt;span class="toc-section-number">4.1&lt;/span> lm1: Binärer Prädiktor&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#diagramm">&lt;span class="toc-section-number">4.1.1&lt;/span> Diagramm&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#unterschied-im-mittelwert">&lt;span class="toc-section-number">4.1.2&lt;/span> Unterschied im Mittelwert&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#lm2-ein-kontinuierlicher-prädiktor">&lt;span class="toc-section-number">4.2&lt;/span> lm2: Ein kontinuierlicher Prädiktor&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#mehrere-prädiktoren">&lt;span class="toc-section-number">5&lt;/span> Mehrere Prädiktoren&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#lm3-ohne-interaktionseffekt">&lt;span class="toc-section-number">5.1&lt;/span> lm3: Ohne Interaktionseffekt&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm4-mit-interaktionseffekt">&lt;span class="toc-section-number">5.2&lt;/span> lm4: Mit Interaktionseffekt&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#eingeschränkter-wertebereich">&lt;span class="toc-section-number">6&lt;/span> Eingeschränkter Wertebereich&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#lm5-regressionsmodell">&lt;span class="toc-section-number">6.1&lt;/span> lm5: Regressionsmodell&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#visualisierung-von-ungewissheit-im-model">&lt;span class="toc-section-number">7&lt;/span> Visualisierung von Ungewissheit im Model&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#variation-eines-prädiktors-und-anderen-konstant-gehalten">&lt;span class="toc-section-number">7.1&lt;/span> Variation eines Prädiktors und anderen konstant gehalten&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#variation-von-mom_iq">&lt;span class="toc-section-number">7.1.1&lt;/span> Variation von &lt;code>mom_iq&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#kovariation-mit-mom_iq">&lt;span class="toc-section-number">7.1.2&lt;/span> Kovariation mit &lt;code>mom_iq&lt;/code>&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#annahmen-der-regressionsanalyse">&lt;span class="toc-section-number">8&lt;/span> Annahmen der Regressionsanalyse&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#additivität">&lt;span class="toc-section-number">8.1&lt;/span> Additivität&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#log-transformation">&lt;span class="toc-section-number">8.1.1&lt;/span> Log-Transformation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#interaktionen-hinzufügen">&lt;span class="toc-section-number">8.1.2&lt;/span> Interaktionen hinzufügen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#linearität">&lt;span class="toc-section-number">8.2&lt;/span> Linearität&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualisierung-der-residen-um-verletzungen-der-annahmen-zu-entdecken">&lt;span class="toc-section-number">8.3&lt;/span> Visualisierung der Residen, um Verletzungen der Annahmen zu entdecken&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#additivität-1">&lt;span class="toc-section-number">8.4&lt;/span> Additivität&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#linearität-1">&lt;span class="toc-section-number">8.5&lt;/span> Linearität&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#vorhersage">&lt;span class="toc-section-number">9&lt;/span> Vorhersage&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#referenz">&lt;span class="toc-section-number">10&lt;/span> Referenz&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="einführung" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Einführung&lt;/h1>
+&lt;p>Dieser Post stellt den Code zum Kapitel 3 aus ARM vor, und zwar im Tidyverse-Stil.&lt;/p></description></item><item><title>Normalverteilung der Residuen, nicht Normalverteilung von Y</title><link>https://sebastiansauer.github.io/data_se/2021/06/05/normalverteilung-der-residuen-nicht-normalverteilung-von-y/</link><pubDate>Sat, 05 Jun 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/06/05/normalverteilung-der-residuen-nicht-normalverteilung-von-y/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/06/05/normalverteilung-der-residuen-nicht-normalverteilung-von-y/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#motivation">&lt;span class="toc-section-number">1&lt;/span> Motivation&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#setup">&lt;span class="toc-section-number">1.1&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#datenbeispiel">&lt;span class="toc-section-number">2&lt;/span> Datenbeispiel&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-simulieren">&lt;span class="toc-section-number">2.1&lt;/span> Daten simulieren&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#verteilung-von-y">&lt;span class="toc-section-number">2.2&lt;/span> Verteilung von Y&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#verteilung-der-residuen">&lt;span class="toc-section-number">2.3&lt;/span> Verteilung der Residuen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#y-vs.-x">&lt;span class="toc-section-number">2.4&lt;/span> Y vs. X&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#residuen">&lt;span class="toc-section-number">2.5&lt;/span> Residuen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="motivation" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Motivation&lt;/h1>
+&lt;p>Manchmal hört man, die Regression verlange, dass die Y-Variable normalverteilt sei. Das ist keine Annahme der Regression. Stattdessen sollten die &lt;em>Residuen&lt;/em> normalverteilt sein.&lt;/p>
+&lt;p>Übrigens ist die Normalverteilung der Residuen laut Gelman und Hill 2007 &lt;em>keine&lt;/em> wichtige Annahmen in vielen Situationen: Der Verlauf der Regressionsgeraden wird nämlich die die Normalität der Residuen nicht beeinflusst (vgl. S. 46f).&lt;/p></description></item><item><title>Logarithmen und Exponenten in Regressionen: Wer braucht sowas?</title><link>https://sebastiansauer.github.io/data_se/2021/05/31/logarithmen-und-exponenten-in-regressionen-wer-braucht-sowas/</link><pubDate>Mon, 31 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/31/logarithmen-und-exponenten-in-regressionen-wer-braucht-sowas/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/05/31/logarithmen-und-exponenten-in-regressionen-wer-braucht-sowas/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;p>Die Folien des Vortrags (HTML-Version) liegen &lt;a href="https://sebastiansauer.github.io/2021-sose/QuantMeth1/Vertiefung/Log-Log-Regression.html#1">hier&lt;/a>. Eine Internetverbindung ist nötig, um die Folien zu betrachten.&lt;/p>
+&lt;p>Die Rmd-Quelldatei liegt &lt;a href="https://sebastiansauer.github.io/2021-sose/QuantMeth1/Vertiefung/Log-Log-Regression.Rmd">hier&lt;/a>.&lt;/p>
+&lt;p>Lizenz: CC-BY&lt;/p></description></item><item><title>YACSDA Seitensprünge</title><link>https://sebastiansauer.github.io/data_se/2021/05/28/yacsda-seitenspr%C3%BCnge/</link><pubDate>Fri, 28 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/28/yacsda-seitenspr%C3%BCnge/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/05/28/yacsda-seitenspr%C3%BCnge/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#setup">&lt;span class="toc-section-number">1&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#forschungsfrage-und-hintergrund">&lt;span class="toc-section-number">2&lt;/span> Forschungsfrage und Hintergrund&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#achtung">&lt;span class="toc-section-number">3&lt;/span> ACHTUNG&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">4&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#aufgaben">&lt;span class="toc-section-number">5&lt;/span> Aufgaben&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#los-gehts">&lt;span class="toc-section-number">6&lt;/span> Los geht’s&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#geben-sie-zentrale-deskriptive-statistiken-an-für-affärenhäufigkeit-und-ehezufriedenheit">&lt;span class="toc-section-number">6.1&lt;/span> Geben Sie zentrale deskriptive Statistiken an für Affärenhäufigkeit und Ehezufriedenheit!&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualisieren-sie-zentrale-variablen">&lt;span class="toc-section-number">6.2&lt;/span> Visualisieren Sie zentrale Variablen!&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#affairs">&lt;span class="toc-section-number">6.2.1&lt;/span> &lt;code>affairs&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#rating">&lt;span class="toc-section-number">6.2.2&lt;/span> &lt;code>rating&lt;/code>&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#wer-ist-zufriedener-mit-der-partnerschaft-personen-mit-kindern-oder-ohne">&lt;span class="toc-section-number">6.3&lt;/span> Wer ist zufriedener mit der Partnerschaft: Personen mit Kindern oder ohne?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#wie-viele-fehlende-werte-gibt-es-was-machen-wir-am-besten-damit">&lt;span class="toc-section-number">6.4&lt;/span> Wie viele fehlende Werte gibt es? Was machen wir am besten damit?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#wer-ist-glücklicher-in-der-partnerschaft-männer-oder-frauen">&lt;span class="toc-section-number">6.5&lt;/span> Wer ist glücklicher in der Partnerschaft: Männer oder Frauen?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#berechnen-und-visualisieren-sie-zentrale-korrelationen">&lt;span class="toc-section-number">6.6&lt;/span> Berechnen und visualisieren Sie zentrale Korrelationen!&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#wie-groß-ist-der-statistische-einfluss-das-einflussgewicht-der-ehejahre-bzw.-ehezufriedenheit-auf-die-anzahl-der-affären">&lt;span class="toc-section-number">6.7&lt;/span> Wie groß ist der (statistische) “Einfluss” (das Einflussgewicht) der Ehejahre bzw. Ehezufriedenheit auf die Anzahl der Affären?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#um-wie-viel-erhöht-sich-die-erklärte-varianz-r-quadrat-von-affärenhäufigkeit-wenn-man-den-prädiktor-ehezufriedenheit-zum-prädiktor-ehejahre-hinzufügt-wie-verändern-sich-die-einflussgewichte-b">&lt;span class="toc-section-number">6.8&lt;/span> Um wie viel erhöht sich die erklärte Varianz (R-Quadrat) von Affärenhäufigkeit wenn man den Prädiktor Ehezufriedenheit zum Prädiktor Ehejahre hinzufügt? (Wie) verändern sich die Einflussgewichte (b)?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#welche-prädiktoren-würden-sie-noch-in-die-regressionsanalyse-aufnehmen">&lt;span class="toc-section-number">6.9&lt;/span> Welche Prädiktoren würden Sie noch in die Regressionsanalyse aufnehmen?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#unterscheiden-sich-die-geschlechter-deutlich-in-ihrer-zufriedenheit-mit-der-partnerschaft-und-in-der-häufigkeit-von-seitensprüngen-wie-groß-ist-der-unterschied">&lt;span class="toc-section-number">6.10&lt;/span> Unterscheiden sich die Geschlechter (deutlich) in ihrer Zufriedenheit mit der Partnerschaft und in der Häufigkeit von Seitensprüngen? Wie groß ist der Unterschied?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#rechnen-sie-die-regressionsanalyse-getrennt-für-kinderlose-ehe-und-ehen-mit-kindern">&lt;span class="toc-section-number">6.11&lt;/span> Rechnen Sie die Regressionsanalyse getrennt für kinderlose Ehe und Ehen mit Kindern!&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#rechnen-sie-die-regression-nur-für-halodries-d.h.-für-menschen-mit-seitensprüngen.-dafür-müssen-sie-alle-menschen-ohne-affären-aus-den-datensatz-entfernen.">&lt;span class="toc-section-number">6.12&lt;/span> Rechnen Sie die Regression nur für “Halodries”; d.h. für Menschen mit Seitensprüngen. Dafür müssen Sie alle Menschen ohne Affären aus den Datensatz entfernen.&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="setup" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(skimr)
+library(corrr)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="forschungsfrage-und-hintergrund" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Forschungsfrage und Hintergrund&lt;/h1>
+&lt;p>Wovon ist die Häufigkeit von Affären (Seitensprüngen) in Ehen abhängig (nur prädiktiv!)? Diese Frage soll anhand des Datensatzes &lt;code>Affair&lt;/code> untersucht werden.&lt;/p></description></item><item><title>Modeling your research data: A crash course using R</title><link>https://sebastiansauer.github.io/data_se/2021/03/24/modeling-your-research-data-a-crash-course-using-r/</link><pubDate>Wed, 24 Mar 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/03/24/modeling-your-research-data-a-crash-course-using-r/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#course-description" id="toc-course-description">&lt;span class="toc-section-number">1&lt;/span> Course description&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#were-on-a-crash-course" id="toc-were-on-a-crash-course">&lt;span class="toc-section-number">2&lt;/span> We’re on a crash course&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#more-on-modelling" id="toc-more-on-modelling">&lt;span class="toc-section-number">3&lt;/span> More on modelling&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#course-prerequisites" id="toc-course-prerequisites">&lt;span class="toc-section-number">4&lt;/span> Course prerequisites&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#learning-objectives" id="toc-learning-objectives">&lt;span class="toc-section-number">5&lt;/span> Learning objectives&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#course-website-book" id="toc-course-website-book">&lt;span class="toc-section-number">6&lt;/span> Course website (book)&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#course-literature" id="toc-course-literature">&lt;span class="toc-section-number">7&lt;/span> Course Literature&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#course-logistics" id="toc-course-logistics">&lt;span class="toc-section-number">8&lt;/span> Course logistics&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#upfront-student-preparation" id="toc-upfront-student-preparation">&lt;span class="toc-section-number">9&lt;/span> UPFRONT student preparation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#didactic-outline" id="toc-didactic-outline">&lt;span class="toc-section-number">10&lt;/span> Didactic outline&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#schedule" id="toc-schedule">&lt;span class="toc-section-number">11&lt;/span> Schedule&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#overview-on-topics-covered" id="toc-overview-on-topics-covered">&lt;span class="toc-section-number">11.1&lt;/span> Overview on topics covered&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#block-1-explorative-data-analysis" id="toc-block-1-explorative-data-analysis">&lt;span class="toc-section-number">11.2&lt;/span> Block 1: Explorative Data Analysis&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#visualization" id="toc-visualization">&lt;span class="toc-section-number">11.2.1&lt;/span> Visualization&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#data-wrangling" id="toc-data-wrangling">&lt;span class="toc-section-number">11.2.2&lt;/span> Data Wrangling&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#exercises-case-study" id="toc-exercises-case-study">&lt;span class="toc-section-number">11.2.3&lt;/span> Exercises / Case study&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#block-2-statistical-modelling-basic" id="toc-block-2-statistical-modelling-basic">&lt;span class="toc-section-number">11.3&lt;/span> Block 2: Statistical Modelling: Basic&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#theory" id="toc-theory">&lt;span class="toc-section-number">11.3.1&lt;/span> Theory&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#case-study" id="toc-case-study">&lt;span class="toc-section-number">11.3.2&lt;/span> Case study&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#block-3-statistical-modelling-multiple-regression-and-interaction" id="toc-block-3-statistical-modelling-multiple-regression-and-interaction">&lt;span class="toc-section-number">11.4&lt;/span> Block 3: Statistical Modelling: Multiple Regression and interaction&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#theory-1" id="toc-theory-1">&lt;span class="toc-section-number">11.4.1&lt;/span> Theory&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#case-study-1" id="toc-case-study-1">&lt;span class="toc-section-number">11.4.2&lt;/span> Case study&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#block-4-project-coaching" id="toc-block-4-project-coaching">&lt;span class="toc-section-number">11.5&lt;/span> Block 4: Project coaching&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#instructor" id="toc-instructor">&lt;span class="toc-section-number">12&lt;/span> Instructor&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#contact-me" id="toc-contact-me">&lt;span class="toc-section-number">13&lt;/span> Contact me&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#assessment-and-grades" id="toc-assessment-and-grades">&lt;span class="toc-section-number">14&lt;/span> Assessment and grades&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#talk-to-me" id="toc-talk-to-me">&lt;span class="toc-section-number">15&lt;/span> Talk to me&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#course-materials" id="toc-course-materials">&lt;span class="toc-section-number">16&lt;/span> Course materials&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#more-resources" id="toc-more-resources">&lt;span class="toc-section-number">17&lt;/span> More resources&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#recommendations" id="toc-recommendations">&lt;span class="toc-section-number">17.1&lt;/span> Recommendations&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#packages" id="toc-packages">&lt;span class="toc-section-number">17.2&lt;/span> R Packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#data" id="toc-data">&lt;span class="toc-section-number">17.3&lt;/span> Data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#labs-case-studies" id="toc-labs-case-studies">&lt;span class="toc-section-number">17.4&lt;/span> Labs (case studies)&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#sketching-causal-models" id="toc-sketching-causal-models">&lt;span class="toc-section-number">17.5&lt;/span> Sketching causal models&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#german-introductary-course" id="toc-german-introductary-course">&lt;span class="toc-section-number">17.6&lt;/span> German introductary course&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#where-are-the-slides" id="toc-where-are-the-slides">&lt;span class="toc-section-number">18&lt;/span> Where are the slides?&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="course-description" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Course description&lt;/h1>
+&lt;p>Analyzing research data can broadly be classified in three parts: explorative data analysis, modeling (including inference), and visualization. Either part is pivotal in its own right, but it can be argued that modeling is at the core of the scientific endeavor. However, in practice, modeling, visualization, and data exploration is heavily intertwined, so that three parts may be recognized (as individual entities) but not usefully separated from each other. This idea provides the rationale of this course: Data exploration, data visualization and data modeling is discussed as an integrated framework.&lt;/p></description></item><item><title>Fallstudie: Modellierung von Flugverspätungen</title><link>https://sebastiansauer.github.io/data_se/2021/03/10/fallstudie-modellierung-von-flugversp%C3%A4tungen/</link><pubDate>Wed, 10 Mar 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/03/10/fallstudie-modellierung-von-flugversp%C3%A4tungen/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/03/10/fallstudie-modellierung-von-flugversp%C3%A4tungen/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#hintergrund-und-forschungsfrage">&lt;span class="toc-section-number">1&lt;/span> Hintergrund und Forschungsfrage&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pakete-laden">&lt;span class="toc-section-number">2&lt;/span> Pakete laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">3&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#flights2-nicht-benötigte-variablen-entfernen-und-id-hinzufügen">&lt;span class="toc-section-number">4&lt;/span> flights2: Nicht benötigte Variablen entfernen und ID hinzufügen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#aufteilung-in-train--und-testsample">&lt;span class="toc-section-number">5&lt;/span> Aufteilung in Train- und Testsample&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#flights_train2-flights_test2">&lt;span class="toc-section-number">6&lt;/span> flights_train2, flights_test2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm0-nullmodell">&lt;span class="toc-section-number">7&lt;/span> lm0: Nullmodell&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm1-origin">&lt;span class="toc-section-number">8&lt;/span> lm1: origin&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm2-all-in">&lt;span class="toc-section-number">9&lt;/span> lm2: All in&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#flights_train3-textvariablen-in-faktorvariablen-umwandeln">&lt;span class="toc-section-number">10&lt;/span> flights_train3: Textvariablen in Faktorvariablen umwandeln&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#flights_test3">&lt;span class="toc-section-number">10.1&lt;/span> flights_test3&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#flights_train4-faktorstufen-zusammenfassen">&lt;span class="toc-section-number">11&lt;/span> flights_train4: Faktorstufen zusammenfassen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#flights_test4">&lt;span class="toc-section-number">11.1&lt;/span> flights_test4&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#lm3-alle-zusammengefassten-faktorvariablen">&lt;span class="toc-section-number">12&lt;/span> lm3: Alle zusammengefassten Faktorvariablen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm4-alle-metrischen-variablen">&lt;span class="toc-section-number">13&lt;/span> lm4: Alle metrischen Variablen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm5-alle-metrischen-und-alle-zusammengefassten-nominalen-variablen">&lt;span class="toc-section-number">14&lt;/span> lm5: Alle metrischen und alle (zusammengefassten) nominalen Variablen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#wetter-daten-ergänzen">&lt;span class="toc-section-number">15&lt;/span> Wetter-Daten ergänzen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#wetterdaten-laden">&lt;span class="toc-section-number">15.1&lt;/span> Wetterdaten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#flights_train5-wetterdaten-mit-flugdaten-verheiraten">&lt;span class="toc-section-number">15.2&lt;/span> flights_train5: Wetterdaten mit Flugdaten verheiraten&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#flights_train6">&lt;span class="toc-section-number">16&lt;/span> flights_train6&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm6-plus-wetterdaten">&lt;span class="toc-section-number">17&lt;/span> lm6: Plus Wetterdaten&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#r2-im-testsample">&lt;span class="toc-section-number">17.1&lt;/span> R2 im Testsample&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#lm7-rohe-gewalt">&lt;span class="toc-section-number">18&lt;/span> lm7: Rohe Gewalt&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#zeitabschätzung">&lt;span class="toc-section-number">18.1&lt;/span> Zeitabschätzung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#best-subsets-ergebnisse">&lt;span class="toc-section-number">18.2&lt;/span> Best Subsets – Ergebnisse&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vorwärts-rückwärts-schrittweise-regression">&lt;span class="toc-section-number">18.3&lt;/span> Vorwärts-/Rückwärts-Schrittweise Regression&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#lm8-bestes-modell-aus-der-best-subset-analyse">&lt;span class="toc-section-number">19&lt;/span> lm8: Bestes Modell aus der Best-Subset-Analyse&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#r2-im-testdatensatz">&lt;span class="toc-section-number">19.1&lt;/span> R2 im Testdatensatz&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#prüfen-der-modellqualität">&lt;span class="toc-section-number">20&lt;/span> Prüfen der Modellqualität&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#einreichen">&lt;span class="toc-section-number">21&lt;/span> Einreichen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#csv-datei-erstellen-zum-einreichen">&lt;span class="toc-section-number">21.1&lt;/span> CSV-Datei erstellen zum Einreichen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#was-noch">&lt;span class="toc-section-number">22&lt;/span> Was noch?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#tidymodels">&lt;span class="toc-section-number">23&lt;/span> Tidymodels&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">24&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="hintergrund-und-forschungsfrage" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Hintergrund und Forschungsfrage&lt;/h1>
+&lt;p>Wir untersuchen die Forschungsfrage &lt;em>Was sind Prädiktoren von Flugverspätungen&lt;/em>. Dazu nutzen wir lineare Modelle als Modellierungsmethoden.&lt;/p></description></item><item><title>How to standardize variables in R</title><link>https://sebastiansauer.github.io/data_se/2021/02/26/how-to-standardize-variables-in-r/</link><pubDate>Fri, 26 Feb 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/02/26/how-to-standardize-variables-in-r/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/02/26/how-to-standardize-variables-in-r/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#motivation">&lt;span class="toc-section-number">1&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">2&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#some-data">&lt;span class="toc-section-number">3&lt;/span> Some data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#research-question">&lt;span class="toc-section-number">4&lt;/span> Research question&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#regression-with-unstandardized-input-variables">&lt;span class="toc-section-number">5&lt;/span> Regression with &lt;em>un&lt;/em>standardized input variables&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#standardize-input-variables">&lt;span class="toc-section-number">6&lt;/span> Standardize input variables&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#regression-with-standardized-input-variables">&lt;span class="toc-section-number">7&lt;/span> Regression with standardized input variables&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#the-models-lm1-and-lm2-are-identical">&lt;span class="toc-section-number">8&lt;/span> The models (&lt;code>lm1&lt;/code> and &lt;code>lm2&lt;/code>) are identical&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#interpretation-of-a-standardized-regression-coefficient">&lt;span class="toc-section-number">9&lt;/span> Interpretation of a standardized regression coefficient&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">10&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="motivation" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Motivation&lt;/h1>
+&lt;p>Running a regression in R yields &lt;em>un&lt;/em>standardized coefficients, &lt;em>not&lt;/em> standardized ones. However, as is spelled out by eg., Gelman and Hill (2007), standardizing values is of advantages in many situations. This post shows how run a regression in R using standardized values as inputs (“standardized regression” for short, as some dup it).&lt;/p></description></item><item><title>Case study: data vizualization on flight delays using tidyverse tools</title><link>https://sebastiansauer.github.io/data_se/2021/02/24/case-study-data-vizualization-on-flight-delays-using-tidyverse-tools/</link><pubDate>Wed, 24 Feb 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/02/24/case-study-data-vizualization-on-flight-delays-using-tidyverse-tools/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/02/24/case-study-data-vizualization-on-flight-delays-using-tidyverse-tools/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-data">&lt;span class="toc-section-number">2&lt;/span> Load data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#exercisesquestions">&lt;span class="toc-section-number">3&lt;/span> Exercises/questions&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#solutions">&lt;span class="toc-section-number">4&lt;/span> Solutions&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#plot-the-distribution-of-the-delays.-describe-your-insights.">&lt;span class="toc-section-number">4.1&lt;/span> Plot the distribution of the delays. Describe your insights.&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#plot-the-distribution-of-the-delays-per-origin-airport.">&lt;span class="toc-section-number">4.2&lt;/span> Plot the distribution of the delays per origin airport.&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualize-the-assocation-of-delay-and-time-of-the-day.-find-a-way-to-reduce-overplotting.">&lt;span class="toc-section-number">4.3&lt;/span> Visualize the assocation of delay and time of the day. Find a way to reduce overplotting.&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualize-the-assocation-of-delay-and-distance-to-destination.-separate-by-origin-and-month.">&lt;span class="toc-section-number">4.4&lt;/span> Visualize the assocation of delay and distance to destination. Separate by origin and month.&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualize-the-assocation-of-delay-and-time-of-the-day.-only-include-the-three-airlines-where-the-delay-is-highest.">&lt;span class="toc-section-number">4.5&lt;/span> Visualize the assocation of delay and time of the day. Only include the three airlines where the delay is highest.&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualize-the-proportion-of-delayed-flights-per-origin.">&lt;span class="toc-section-number">4.6&lt;/span> Visualize the proportion of delayed flights per origin.&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualize-the-proportion-of-delayed-flights-per-time-of-the-day">&lt;span class="toc-section-number">4.7&lt;/span> Visualize the proportion of delayed flights per time of the day&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualize-the-proportion-of-delayed-flights-per-week-day">&lt;span class="toc-section-number">4.8&lt;/span> Visualize the proportion of delayed flights per week day&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">5&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="load-data" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Load data&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(nycflights13)
+
+data(&amp;quot;flights&amp;quot;)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="exercisesquestions" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Exercises/questions&lt;/h1>
+&lt;p>See &lt;a href="">here&lt;/a>&lt;/p></description></item><item><title>Exercises (no solutions): data vizualization on flight delays using tidyverse tools</title><link>https://sebastiansauer.github.io/data_se/2021/02/24/exercises-no-solutions-data-vizualization-on-flight-delays-using-tidyverse-tools/</link><pubDate>Wed, 24 Feb 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/02/24/exercises-no-solutions-data-vizualization-on-flight-delays-using-tidyverse-tools/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/02/24/exercises-no-solutions-data-vizualization-on-flight-delays-using-tidyverse-tools/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#get-the-data">&lt;span class="toc-section-number">2&lt;/span> Get the data&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#alternative-way-to-get-the-data">&lt;span class="toc-section-number">2.1&lt;/span> Alternative way to get the data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#code-book">&lt;span class="toc-section-number">2.2&lt;/span> Code book&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#exercises">&lt;span class="toc-section-number">3&lt;/span> Exercises&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#solutions">&lt;span class="toc-section-number">4&lt;/span> Solutions&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">5&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="get-the-data" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Get the data&lt;/h1>
+&lt;p>We’ll be analyzing the data set &lt;code>flights&lt;/code>, describing the flights which started from NYC in 2013.&lt;/p>
+&lt;p>Here’s how to get the data set:&lt;/p>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(nycflights13)
+
+data(&amp;quot;flights&amp;quot;)&lt;/code>&lt;/pre>
+&lt;div id="alternative-way-to-get-the-data" class="section level2" number="2.1">
+&lt;h2>&lt;span class="header-section-number">2.1&lt;/span> Alternative way to get the data&lt;/h2>
+&lt;p>Alternatively, import the data from a csv file:&lt;/p></description></item><item><title>Exercises to data wrangling with the tidyverse</title><link>https://sebastiansauer.github.io/data_se/2021/02/24/exercises-to-data-wrangling-with-the-tidyverse/</link><pubDate>Wed, 24 Feb 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/02/24/exercises-to-data-wrangling-with-the-tidyverse/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/02/24/exercises-to-data-wrangling-with-the-tidyverse/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#exercise-collection-life-exptectancy">&lt;span class="toc-section-number">1&lt;/span> Exercise collection: Life exptectancy&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#disclosure">&lt;span class="toc-section-number">2&lt;/span> Disclosure&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#research-questions">&lt;span class="toc-section-number">3&lt;/span> Research questions&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#first-steps">&lt;span class="toc-section-number">4&lt;/span> First steps&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#getting-help">&lt;span class="toc-section-number">5&lt;/span> Getting help&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#exercises">&lt;span class="toc-section-number">6&lt;/span> Exercises&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#data-wrangling">&lt;span class="toc-section-number">6.1&lt;/span> Data Wrangling&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#data-visualization">&lt;span class="toc-section-number">6.2&lt;/span> Data Visualization&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#solutions">&lt;span class="toc-section-number">7&lt;/span> Solutions&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">8&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;div id="exercise-collection-life-exptectancy" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Exercise collection: Life exptectancy&lt;/h1>
+&lt;p>Get the data from &lt;a href="https://raw.githubusercontent.com/swcarpentry/r-novice-gapminder/gh-pages/_episodes_rmd/data/gapminder-FiveYearData.csv">this source&lt;/a>.&lt;/p>
+&lt;pre class="r">&lt;code>gapminder_raw &amp;lt;- read_csv(&amp;quot;https://raw.githubusercontent.com/swcarpentry/r-novice-gapminder/gh-pages/_episodes_rmd/data/gapminder-FiveYearData.csv&amp;quot;)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="disclosure" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Disclosure&lt;/h1>
+&lt;p>This exercises are based on a tutorial by &lt;a href="http://www.rebeccabarter.com/">Rebekka Barter&lt;/a>. Great work!&lt;/p>
+&lt;/div>
+&lt;div id="research-questions" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Research questions&lt;/h1>
+&lt;p>How did life expectancy change in the course of the last decades? Did id change differently between the continents?&lt;/p></description></item><item><title>Modelling movie successes: linear regression</title><link>https://sebastiansauer.github.io/data_se/2021/02/24/modelling-movie-successes-linear-regression/</link><pubDate>Wed, 24 Feb 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/02/24/modelling-movie-successes-linear-regression/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/02/24/modelling-movie-successes-linear-regression/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-data">&lt;span class="toc-section-number">2&lt;/span> Load data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#research-question">&lt;span class="toc-section-number">3&lt;/span> Research question&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#disclaimer">&lt;span class="toc-section-number">4&lt;/span> Disclaimer&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#get-overview">&lt;span class="toc-section-number">5&lt;/span> Get overview&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#descriptive-statistics">&lt;span class="toc-section-number">5.1&lt;/span> Descriptive statistics&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#missing-values">&lt;span class="toc-section-number">5.2&lt;/span> Missing values&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#distribution-of-the-output-variable">&lt;span class="toc-section-number">5.3&lt;/span> Distribution of the output variable&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#distribution-of-the-predictors">&lt;span class="toc-section-number">5.4&lt;/span> Distribution of the predictors&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#transform-budget-via-logarithm">&lt;span class="toc-section-number">5.5&lt;/span> Transform budget (via logarithm)&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#ggscatterstats">&lt;span class="toc-section-number">5.6&lt;/span> ggscatterstats&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pivot-data-set">&lt;span class="toc-section-number">5.7&lt;/span> Pivot data set&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#drop-unused-variables">&lt;span class="toc-section-number">5.8&lt;/span> Drop unused variables&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#drop-cases-with-missing-values">&lt;span class="toc-section-number">5.9&lt;/span> Drop cases with missing values&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#model-0">&lt;span class="toc-section-number">6&lt;/span> Model 0&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-1-budget_log10">&lt;span class="toc-section-number">7&lt;/span> Model 1: &lt;code>budget_log10&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-2-adding-number-of-votes">&lt;span class="toc-section-number">8&lt;/span> Model 2: Adding number of votes&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-3-number-of-votes-quadratic">&lt;span class="toc-section-number">9&lt;/span> Model 3: Number of votes, quadratic&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-4-number-of-votes-3rd-degree">&lt;span class="toc-section-number">10&lt;/span> Model 4: Number of votes, 3rd degree&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-5-multiple-regression">&lt;span class="toc-section-number">11&lt;/span> Model 5: Multiple regression&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-6-interaction">&lt;span class="toc-section-number">12&lt;/span> Model 6: Interaction&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-selection-anova">&lt;span class="toc-section-number">13&lt;/span> Model selection: ANOVA&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#regression-diagnostics-testing-the-assumptions">&lt;span class="toc-section-number">14&lt;/span> Regression diagnostics: testing the assumptions&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">15&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(broom) # nice formatting of output
+library(skimr) # gives overview on descriptives
+library(ggfortify) # plotting regression diagnostics
+library(ggstatsplot) # fancy scatter plot&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="load-data" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Load data&lt;/h1>
+&lt;p>Load this package to access the data set:&lt;/p></description></item><item><title>Scraping Cochrane Reviews, some trials</title><link>https://sebastiansauer.github.io/data_se/2021/02/19/scraping-cochrane-reviews/</link><pubDate>Fri, 19 Feb 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/02/19/scraping-cochrane-reviews/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/02/19/scraping-cochrane-reviews/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#parse-one-review">&lt;span class="toc-section-number">2&lt;/span> Parse one review&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#parse-the-title">&lt;span class="toc-section-number">3&lt;/span> Parse the title&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#parse-the-abstract">&lt;span class="toc-section-number">4&lt;/span> Parse the abstract&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#segment-the-abstract">&lt;span class="toc-section-number">5&lt;/span> Segment the abstract&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#background">&lt;span class="toc-section-number">5.1&lt;/span> Background&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#objectives">&lt;span class="toc-section-number">5.2&lt;/span> Objectives&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#and-so-forth">&lt;span class="toc-section-number">5.3&lt;/span> And so forth&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#summary-of-findings-table">&lt;span class="toc-section-number">6&lt;/span> Summary of Findings table&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#parse-node-of-class-summaryoffindings">&lt;span class="toc-section-number">6.1&lt;/span> Parse node of class ‘summaryOfFindings’&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#table-by-id">&lt;span class="toc-section-number">6.2&lt;/span> Table by ID&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#looking-for-tables">&lt;span class="toc-section-number">6.3&lt;/span> Looking for tables&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#extract-primary-outcomes-with-the-grade">&lt;span class="toc-section-number">7&lt;/span> Extract (Primary) Outcomes with the GRADE&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#get-column-with-outcomes">&lt;span class="toc-section-number">7.1&lt;/span> Get column with outcomes&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#delete-non-data-rows">&lt;span class="toc-section-number">7.2&lt;/span> Delete non-data rows&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#delete-footer">&lt;span class="toc-section-number">8&lt;/span> Delete footer&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#get-columns-with-grade-information">&lt;span class="toc-section-number">8.1&lt;/span> Get columns with GRADE information&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#show-the-outcomes-and-the-respective-grade">&lt;span class="toc-section-number">8.2&lt;/span> Show the Outcomes and the respective GRADE&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#type-of-effect-effect-statistic">&lt;span class="toc-section-number">9&lt;/span> Type of Effect (effect statistic)&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#number-of-trials-and-participants-per-outcome">&lt;span class="toc-section-number">10&lt;/span> Number of trials and participants per outcome&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#confidence-interval-for-relative-risk-per-outcome">&lt;span class="toc-section-number">11&lt;/span> Confidence interval for relative risk per outcome&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#debrief">&lt;span class="toc-section-number">12&lt;/span> Debrief&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">13&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;hr />
+&lt;p>&lt;strong>CAUTION&lt;/strong>&lt;/p></description></item><item><title>Explorative Datenanalyse zum Datensatz "OECD Wellbeing"</title><link>https://sebastiansauer.github.io/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/</link><pubDate>Thu, 11 Feb 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/02/11/explorative-datenanalyse-zum-datensatz-oecd-wellbeing/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#benötigte-pakete">&lt;span class="toc-section-number">2&lt;/span> Benötigte Pakete&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#datensatz-laden">&lt;span class="toc-section-number">3&lt;/span> Datensatz laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#erster-blick">&lt;span class="toc-section-number">4&lt;/span> Erster Blick&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#metrische-variablen-einzeln-univariat">&lt;span class="toc-section-number">5&lt;/span> Metrische Variablen einzeln (univariat)&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#histogramm-nach-gruppen">&lt;span class="toc-section-number">5.1&lt;/span> Histogramm nach Gruppen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vertiefung-histogramm-für-alle-variablen">&lt;span class="toc-section-number">5.2&lt;/span> VERTIEFUNG: Histogramm für alle Variablen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#forschungsfrage">&lt;span class="toc-section-number">6&lt;/span> Forschungsfrage&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#datensatz-filtern---nur-länder-keine-landesteile">&lt;span class="toc-section-number">7&lt;/span> Datensatz filtern - nur Länder, keine Landesteile&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vergleich-der-lebenszufriedenheit-der-länder">&lt;span class="toc-section-number">8&lt;/span> Vergleich der Lebenszufriedenheit der Länder&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#umwandling-in-eine-faktor-variable">&lt;span class="toc-section-number">8.1&lt;/span> Umwandling in eine Faktor-Variable&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#ranking-und-top-10-prozent-der-zufriedenheit">&lt;span class="toc-section-number">8.2&lt;/span> Ranking und Top-10-Prozent der Zufriedenheit&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vertiefung">&lt;span class="toc-section-number">8.3&lt;/span> Vertiefung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vertiefung-1">&lt;span class="toc-section-number">8.4&lt;/span> Vertiefung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vertiefung-2">&lt;span class="toc-section-number">8.5&lt;/span> Vertiefung&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#zusammenhang-zweier-metrischer-variablen-punktediagramm">&lt;span class="toc-section-number">9&lt;/span> Zusammenhang zweier metrischer Variablen – Punktediagramm&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#und-so-weiter">&lt;span class="toc-section-number">9.0.1&lt;/span> Und so weiter&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vertiefung-pairs-plot">&lt;span class="toc-section-number">9.1&lt;/span> Vertiefung Pairs plot&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#vertiefung-ggpairs">&lt;span class="toc-section-number">9.1.1&lt;/span> Vertiefung ggpairs&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#zusammenhang-zweier-variablen-unter-berücksichtigung-von-drittvariablen">&lt;span class="toc-section-number">9.2&lt;/span> Zusammenhang zweier Variablen unter Berücksichtigung von Drittvariablen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#vertiefung-korrelation-pro-gruppe">&lt;span class="toc-section-number">9.2.1&lt;/span> Vertiefung: Korrelation pro Gruppe&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#deskriptive-statistiken-nach-ländern">&lt;span class="toc-section-number">10&lt;/span> Deskriptive Statistiken nach Ländern&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#lebenszufriedenheit">&lt;span class="toc-section-number">10.1&lt;/span> Lebenszufriedenheit&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">11&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(skimr) # Viele Statistiken auf einen Blick&lt;/code>&lt;/pre>
+&lt;p>In diesem Post untersuchen wir einige Aspekte der explorativen Datenanalyse für den Datensatz &lt;code>oecd wellbeing&lt;/code> aus dem Jahr 2016.&lt;/p></description></item><item><title>YACSDA: Topgear</title><link>https://sebastiansauer.github.io/data_se/2021/02/11/yacda-topgear/</link><pubDate>Thu, 11 Feb 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/02/11/yacda-topgear/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/02/11/yacda-topgear/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#numerischer-überblick">&lt;span class="toc-section-number">1.1&lt;/span> Numerischer Überblick&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#wie-verteilen-sich-die-preise">&lt;span class="toc-section-number">1.2&lt;/span> Wie verteilen sich die Preise?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#wie-ist-der-zusammenhang-von-preis-und-beurteilung-des-autos">&lt;span class="toc-section-number">1.3&lt;/span> Wie ist der Zusammenhang von Preis und Beurteilung des Autos?&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#wie-verteilt-sich-das-gewicht-der-autos">&lt;span class="toc-section-number">2&lt;/span> Wie verteilt sich das Gewicht der Autos?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hängt-gewicht-mit-preis-zusammen">&lt;span class="toc-section-number">3&lt;/span> Hängt Gewicht mit Preis zusammen?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#wie-verteilt-sich-die-geschwindigkeit-der-autos">&lt;span class="toc-section-number">4&lt;/span> Wie verteilt sich die Geschwindigkeit der Autos?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hängt-preis-mit-geschwindigkeit-zusammen">&lt;span class="toc-section-number">5&lt;/span> Hängt Preis mit Geschwindigkeit zusammen?&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#wie-hängt-geschwindigkeit-mit-beurteilung-zusammen">&lt;span class="toc-section-number">5.1&lt;/span> Wie hängt Geschwindigkeit mit Beurteilung zusammen?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#welche-hersteller-hat-die-meisten-autotypen">&lt;span class="toc-section-number">5.2&lt;/span> Welche Hersteller hat die meisten Autotypen?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#die-10-größten-hersteller">&lt;span class="toc-section-number">5.3&lt;/span> Die 10% größten Hersteller&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#beliebtheit-der-10-größten-hersteller">&lt;span class="toc-section-number">5.4&lt;/span> Beliebtheit der 10% größten Hersteller&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#milttlerer-preis-der-10-größten-hersteller">&lt;span class="toc-section-number">5.5&lt;/span> Milttlerer Preis der 10% größten Hersteller&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#überblick-zu-den-10-größten-hersteller">&lt;span class="toc-section-number">5.6&lt;/span> Überblick zu den 10% größten Hersteller&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#anzahl-modellytypen-der-großen-hersteller-als-torte-hüstel">&lt;span class="toc-section-number">5.7&lt;/span> Anzahl Modellytypen der großen Hersteller als Torte (hüstel)&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#anzahl-modellytypen-der-großen-hersteller">&lt;span class="toc-section-number">5.8&lt;/span> Anzahl Modellytypen der großen Hersteller&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#preisverteilung-der-10-größten-hersteller">&lt;span class="toc-section-number">5.9&lt;/span> Preisverteilung der 10% größten Hersteller&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#beliebtheitsverteilung-der-10-größten-hersteller">&lt;span class="toc-section-number">5.10&lt;/span> Beliebtheitsverteilung der 10% größten Hersteller&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hängt-beschleunigung-mit-dem-preis-zusammen">&lt;span class="toc-section-number">5.11&lt;/span> Hängt Beschleunigung mit dem Preis zusammen?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hängt-beschleunigung-mit-beurteilung-zusammen---nur-die-großen-hersteller">&lt;span class="toc-section-number">5.12&lt;/span> Hängt Beschleunigung mit Beurteilung zusammen? - Nur die großen Hersteller&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hängt-die-verwendung-bestimmter-sprit-arten-mit-dem-kontinent-zusammen">&lt;span class="toc-section-number">5.13&lt;/span> Hängt die Verwendung bestimmter Sprit-Arten mit dem Kontinent zusammen?&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">6&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(skimr) # overview on descriptive statistics&lt;/code>&lt;/pre>
+&lt;hr />
+&lt;p>YADCSDA in German language.&lt;/p></description></item><item><title>Grading a prediction contest</title><link>https://sebastiansauer.github.io/data_se/2021/01/20/grading-a-prediction-contest/</link><pubDate>Wed, 20 Jan 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/01/20/grading-a-prediction-contest/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#motivation">&lt;span class="toc-section-number">1&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#setup">&lt;span class="toc-section-number">2&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#helper-functions">&lt;span class="toc-section-number">3&lt;/span> Helper functions&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#function-to-parse-data">&lt;span class="toc-section-number">3.1&lt;/span> Function to parse data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#function-to-compute-r2">&lt;span class="toc-section-number">3.2&lt;/span> Function to compute &lt;span class="math inline">\(R^2\)&lt;/span>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#function-to-compute-mse">&lt;span class="toc-section-number">3.3&lt;/span> Function to compute &lt;span class="math inline">\(MSE\)&lt;/span>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#function-to-compute-generalized-error-function">&lt;span class="toc-section-number">3.4&lt;/span> Function to compute generalized error function&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#import-solution-true-data-ie.-solution">&lt;span class="toc-section-number">4&lt;/span> Import solution (true) data (ie., solution)&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#parse-the-data">&lt;span class="toc-section-number">5&lt;/span> Parse the data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#build-master-data-frame">&lt;span class="toc-section-number">6&lt;/span> Build master data frame&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#list-df-where-each-submission-is-one-row">&lt;span class="toc-section-number">6.1&lt;/span> List df where each submission is one row&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#change-character-to-numeric">&lt;span class="toc-section-number">6.2&lt;/span> Change character to numeric&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#add-observed-true-values">&lt;span class="toc-section-number">6.3&lt;/span> Add observed (true) values&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#check-lengths-of-submissions">&lt;span class="toc-section-number">6.4&lt;/span> Check lengths of submissions&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#compute-accuracy-r2-etc.">&lt;span class="toc-section-number">7&lt;/span> Compute accuracy (&lt;span class="math inline">\(R^2\)&lt;/span> etc.)&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#check-distribution-of-r2">&lt;span class="toc-section-number">7.1&lt;/span> Check distribution of &lt;span class="math inline">\(R^2\)&lt;/span>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#number-of-distinct-values-for-r2">&lt;span class="toc-section-number">7.2&lt;/span> Number of distinct values for &lt;span class="math inline">\(R^2\)&lt;/span>&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#grading">&lt;span class="toc-section-number">8&lt;/span> Grading&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#note-4.0-model">&lt;span class="toc-section-number">8.1&lt;/span> Note-4.0 model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#note-1.0-model">&lt;span class="toc-section-number">8.2&lt;/span> Note-1.0 model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#grades-in-sequence">&lt;span class="toc-section-number">8.3&lt;/span> Grades in sequence&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#map-grades-to-individual-r2-values-of-the-students">&lt;span class="toc-section-number">8.4&lt;/span> Map grades to individual &lt;span class="math inline">\(R^2\)&lt;/span> values of the students&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#grade-distribution">&lt;span class="toc-section-number">8.5&lt;/span> Grade distribution&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">9&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="motivation" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Motivation&lt;/h1>
+&lt;p>Being a teacher (in some part of my life), I conducted a prediction contest. Students had to predict a bunch of values as precisely as possible. That’s the sort of stuff data scientist do (or are said to do). As far as I am concerned, I was looking at a convenient way of grading the prediction data. Here’s an attempt.&lt;/p></description></item><item><title>Vorhersagen mit lm</title><link>https://sebastiansauer.github.io/data_se/2020/12/15/vorhersagen-mit-lm/</link><pubDate>Tue, 15 Dec 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/12/15/vorhersagen-mit-lm/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#pakete-laden">&lt;span class="toc-section-number">1&lt;/span> Pakete laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">2&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#forschungsfrage">&lt;span class="toc-section-number">3&lt;/span> Forschungsfrage&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-aufbereiten">&lt;span class="toc-section-number">3.1&lt;/span> Daten aufbereiten&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#modell-schätzen">&lt;span class="toc-section-number">3.2&lt;/span> Modell schätzen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#vorhersage-mit-predict-ohne-schätzbereich">&lt;span class="toc-section-number">4&lt;/span> Vorhersage mit &lt;code>predict()&lt;/code> – ohne Schätzbereich&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vorhersage-mit-predict-mit-schätzbereich">&lt;span class="toc-section-number">5&lt;/span> Vorhersage mit &lt;code>predict()&lt;/code> – mit Schätzbereich&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">6&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="pakete-laden" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Pakete laden&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(moderndive)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="daten-laden" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Daten laden&lt;/h1>
+&lt;pre class="r">&lt;code>data(movies, package = &amp;quot;ggplot2movies&amp;quot;)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="forschungsfrage" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Forschungsfrage&lt;/h1>
+&lt;p>Wie beliebt ist erwartungsgemäß ein Actionfilm nach dem Jahr 2000, der zu den Top-10-Prozent der Budgetverteilung gehört?&lt;/p>
+&lt;div id="daten-aufbereiten" class="section level2" number="3.1">
+&lt;h2>&lt;span class="header-section-number">3.1&lt;/span> Daten aufbereiten&lt;/h2>
+&lt;pre class="r">&lt;code>movies &amp;lt;- 
+ movies %&amp;gt;% 
+ mutate(year_after_2000 = case_when(
+ year &amp;gt;= 2000 ~ &amp;quot;yes&amp;quot;,
+ TRUE ~ &amp;quot;no&amp;quot;
+ )) %&amp;gt;% 
+ mutate(is_top10percent_budget = case_when(
+ percent_rank(budget) &amp;gt; 0.90 ~ &amp;quot;yes&amp;quot;,
+ TRUE ~ &amp;quot;no&amp;quot;
+ ))&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="modell-schätzen" class="section level2" number="3.2">
+&lt;h2>&lt;span class="header-section-number">3.2&lt;/span> Modell schätzen&lt;/h2>
+&lt;pre class="r">&lt;code>lm1 &amp;lt;- lm(rating ~ year_after_2000 + is_top10percent_budget + Action, data = movies)&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>lm1 %&amp;gt;% 
+ get_regression_summaries()
+#&amp;gt; # A tibble: 1 x 9
+#&amp;gt; r_squared adj_r_squared mse rmse sigma statistic p_value df nobs
+#&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt;
+#&amp;gt; 1 0.026 0.026 2.35 1.53 1.53 520. 0 3 58788&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>lm1 %&amp;gt;% 
+ get_regression_table()
+#&amp;gt; # A tibble: 4 x 7
+#&amp;gt; term estimate std_error statistic p_value lower_ci upper_ci
+#&amp;gt; &amp;lt;chr&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt;
+#&amp;gt; 1 intercept 5.91 0.007 817. 0 5.90 5.93 
+#&amp;gt; 2 year_after_2000yes 0.407 0.016 24.8 0 0.375 0.439
+#&amp;gt; 3 is_top10percent_budget… 0.362 0.068 5.30 0 0.228 0.496
+#&amp;gt; 4 Action -0.714 0.024 -30.3 0 -0.76 -0.668&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;/div>
+&lt;div id="vorhersage-mit-predict-ohne-schätzbereich" class="section level1" number="4">
+&lt;h1>&lt;span class="header-section-number">4&lt;/span> Vorhersage mit &lt;code>predict()&lt;/code> – ohne Schätzbereich&lt;/h1>
+&lt;pre class="r">&lt;code>neue_daten &amp;lt;-
+ tibble(year_after_2000 = &amp;quot;yes&amp;quot;,
+ is_top10percent_budget = &amp;quot;yes&amp;quot;,
+ Action = 1)&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>predict(lm1, newdata = neue_daten)
+#&amp;gt; 1 
+#&amp;gt; 5.966912&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="vorhersage-mit-predict-mit-schätzbereich" class="section level1" number="5">
+&lt;h1>&lt;span class="header-section-number">5&lt;/span> Vorhersage mit &lt;code>predict()&lt;/code> – mit Schätzbereich&lt;/h1>
+&lt;p>Ein Schätzintervall (im Form eines Konfidenzintervalls, 95%) lässt sich so anfordern:&lt;/p></description></item><item><title>titanic-tidymodels: boost</title><link>https://sebastiansauer.github.io/data_se/2020/12/14/titanic-tidymodels-boost/</link><pubDate>Mon, 14 Dec 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/12/14/titanic-tidymodels-boost/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#objective">&lt;span class="toc-section-number">1&lt;/span> Objective&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#detect-available-cores">&lt;span class="toc-section-number">2&lt;/span> Detect available cores&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-and-prepare-data">&lt;span class="toc-section-number">3&lt;/span> Load and prepare data&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#hide-details-in-a-function">&lt;span class="toc-section-number">3.1&lt;/span> Hide details in a function&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#split-data-into-train-and-test">&lt;span class="toc-section-number">4&lt;/span> Split data into train and test&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-recipe">&lt;span class="toc-section-number">5&lt;/span> Define recipe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-model">&lt;span class="toc-section-number">6&lt;/span> Define model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-cross-validation-scheme">&lt;span class="toc-section-number">7&lt;/span> Define cross validation scheme&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-workflow">&lt;span class="toc-section-number">8&lt;/span> Define workflow&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-analysis-and-validation-oob-set">&lt;span class="toc-section-number">9&lt;/span> Define analysis and validation (oob) set&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fit-the-grid">&lt;span class="toc-section-number">10&lt;/span> Fit the grid&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#view-results">&lt;span class="toc-section-number">11&lt;/span> View results&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#get-best-model">&lt;span class="toc-section-number">12&lt;/span> Get best model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#final-fit-on-train-data">&lt;span class="toc-section-number">13&lt;/span> Final fit (on train data)&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#fit-final-workflow-on-test-data">&lt;span class="toc-section-number">13.1&lt;/span> Fit final workflow (on test data)&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#predict-test-data">&lt;span class="toc-section-number">14&lt;/span> Predict test data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#save-predictions-to-disk">&lt;span class="toc-section-number">15&lt;/span> Save predictions to disk&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">16&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(tidymodels) # modelling
+library(broom) # tidy model output
+library(skimr) # overview on descriptives
+library(parallel) # multiple cores -- unix only&lt;/code>&lt;/pre>
+&lt;div id="objective" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Objective&lt;/h1>
+&lt;p>Predicting the survival in the Titanic disaster. We’ll be using a tidymodels approach.&lt;/p></description></item><item><title>titanic-tidymodels: boost simple</title><link>https://sebastiansauer.github.io/data_se/2020/12/14/titanic-tidymodels-boost-simple/</link><pubDate>Mon, 14 Dec 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/12/14/titanic-tidymodels-boost-simple/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#objective">&lt;span class="toc-section-number">2&lt;/span> Objective&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-and-prepare-data">&lt;span class="toc-section-number">3&lt;/span> Load and prepare data&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#hide-details-in-a-function">&lt;span class="toc-section-number">3.1&lt;/span> Hide details in a function&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#split-data-into-train-and-test">&lt;span class="toc-section-number">4&lt;/span> Split data into train and test&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-recipe">&lt;span class="toc-section-number">5&lt;/span> Define recipe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-model">&lt;span class="toc-section-number">6&lt;/span> Define model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-workflow">&lt;span class="toc-section-number">7&lt;/span> Define workflow&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fit-the-model">&lt;span class="toc-section-number">8&lt;/span> Fit the model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#predict-the-test-data">&lt;span class="toc-section-number">9&lt;/span> Predict the test data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#save-csv-file-to-disk">&lt;span class="toc-section-number">10&lt;/span> Save csv file to disk&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">11&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(tidymodels) # modelling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="objective" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Objective&lt;/h1>
+&lt;p>Predicting the survival in the Titanic disaster. We’ll be using a tidymodels approach.&lt;/p></description></item><item><title>titanic-tidymodels: glm1</title><link>https://sebastiansauer.github.io/data_se/2020/12/14/titanic-tidymodels-glm1/</link><pubDate>Mon, 14 Dec 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/12/14/titanic-tidymodels-glm1/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#objective">&lt;span class="toc-section-number">2&lt;/span> Objective&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-and-prepare-data">&lt;span class="toc-section-number">3&lt;/span> Load and prepare data&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#hide-details-in-a-function">&lt;span class="toc-section-number">3.1&lt;/span> Hide details in a function&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#split-data-into-train-and-test">&lt;span class="toc-section-number">4&lt;/span> Split data into train and test&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-recipe">&lt;span class="toc-section-number">5&lt;/span> Define recipe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-model">&lt;span class="toc-section-number">6&lt;/span> Define model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-workflow">&lt;span class="toc-section-number">7&lt;/span> Define workflow&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fit-the-model">&lt;span class="toc-section-number">8&lt;/span> Fit the model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#predict-the-test-data">&lt;span class="toc-section-number">9&lt;/span> Predict the test data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#save-csv-file-to-disk">&lt;span class="toc-section-number">10&lt;/span> Save csv file to disk&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">11&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(tidymodels) # modelling
+library(broom) # tidy model output
+library(skimr) # overview on descriptives
+library(testthat) # unit testing&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="objective" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Objective&lt;/h1>
+&lt;p>Predicting the survival in the Titanic disaster. We’ll be using a tidymodels approach.&lt;/p></description></item><item><title>titanic-tidymodels: rf1</title><link>https://sebastiansauer.github.io/data_se/2020/12/14/titanic-tidymodels-rf1/</link><pubDate>Mon, 14 Dec 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/12/14/titanic-tidymodels-rf1/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#objective">&lt;span class="toc-section-number">2&lt;/span> Objective&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-and-prepare-data">&lt;span class="toc-section-number">3&lt;/span> Load and prepare data&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#hide-details-in-a-function">&lt;span class="toc-section-number">3.1&lt;/span> Hide details in a function&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#split-data-into-train-and-test">&lt;span class="toc-section-number">4&lt;/span> Split data into train and test&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-recipe">&lt;span class="toc-section-number">5&lt;/span> Define recipe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-model">&lt;span class="toc-section-number">6&lt;/span> Define model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-workflow">&lt;span class="toc-section-number">7&lt;/span> Define workflow&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fit-the-model">&lt;span class="toc-section-number">8&lt;/span> Fit the model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#predict-the-test-data">&lt;span class="toc-section-number">9&lt;/span> Predict the test data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#save-csv-file-to-disk">&lt;span class="toc-section-number">10&lt;/span> Save csv file to disk&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">11&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(tidymodels) # modelling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="objective" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Objective&lt;/h1>
+&lt;p>Predicting the survival in the Titanic disaster. We’ll be using a tidymodels approach.&lt;/p></description></item><item><title>titanic-tidymodels: rf2</title><link>https://sebastiansauer.github.io/data_se/2020/12/14/titanic-itdymodels-rf2/</link><pubDate>Mon, 14 Dec 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/12/14/titanic-itdymodels-rf2/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#objective">&lt;span class="toc-section-number">2&lt;/span> Objective&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#setup">&lt;span class="toc-section-number">3&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-and-prepare-data">&lt;span class="toc-section-number">4&lt;/span> Load and prepare data&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#hide-details-in-a-function">&lt;span class="toc-section-number">4.1&lt;/span> Hide details in a function&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#split-data-into-train-and-test">&lt;span class="toc-section-number">5&lt;/span> Split data into train and test&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-recipe">&lt;span class="toc-section-number">6&lt;/span> Define recipe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-model">&lt;span class="toc-section-number">7&lt;/span> Define model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-cross-validation-scheme">&lt;span class="toc-section-number">8&lt;/span> Define cross validation scheme&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-workflow">&lt;span class="toc-section-number">9&lt;/span> Define workflow&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fit-the-grid">&lt;span class="toc-section-number">10&lt;/span> Fit the grid&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#view-results">&lt;span class="toc-section-number">11&lt;/span> View results&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#get-best-model">&lt;span class="toc-section-number">12&lt;/span> Get best model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#final-fit-on-train-data">&lt;span class="toc-section-number">13&lt;/span> Final fit (on train data)&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#fit-final-workflow-on-test-data">&lt;span class="toc-section-number">13.1&lt;/span> Fit final workflow (on test data)&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#predict-test-data">&lt;span class="toc-section-number">14&lt;/span> Predict test data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#save-predictions-to-disk">&lt;span class="toc-section-number">15&lt;/span> Save predictions to disk&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">16&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(tidymodels) # modelling
+library(broom) # tidy model output
+library(skimr) # overview on descriptives
+library(parallel) # multiple cores -- unix only&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="objective" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Objective&lt;/h1>
+&lt;p>Predicting the survival in the Titanic disaster. We’ll be using a tidymodels approach.&lt;/p></description></item><item><title>titanic-tidymodels: tree</title><link>https://sebastiansauer.github.io/data_se/2020/12/14/titani-tidymodels-tree/</link><pubDate>Mon, 14 Dec 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/12/14/titani-tidymodels-tree/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#objective">&lt;span class="toc-section-number">2&lt;/span> Objective&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-and-prepare-data">&lt;span class="toc-section-number">3&lt;/span> Load and prepare data&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#hide-details-in-a-function">&lt;span class="toc-section-number">3.1&lt;/span> Hide details in a function&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#split-data-into-train-and-test">&lt;span class="toc-section-number">4&lt;/span> Split data into train and test&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-recipe">&lt;span class="toc-section-number">5&lt;/span> Define recipe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-model">&lt;span class="toc-section-number">6&lt;/span> Define model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#define-workflow">&lt;span class="toc-section-number">7&lt;/span> Define workflow&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fit-the-model">&lt;span class="toc-section-number">8&lt;/span> Fit the model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#predict-the-test-data">&lt;span class="toc-section-number">9&lt;/span> Predict the test data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#save-csv-file-to-disk">&lt;span class="toc-section-number">10&lt;/span> Save csv file to disk&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">11&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(tidymodels) # modelling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="objective" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Objective&lt;/h1>
+&lt;p>Predicting the survival in the Titanic disaster. We’ll be using a tidymodels approach.&lt;/p></description></item><item><title>Beispiel für eine Vorwärts-schrittweise-Regression</title><link>https://sebastiansauer.github.io/data_se/2020/12/10/beispiel-f%C3%BCr-eine-vorw%C3%A4rts-schrittweise-regression/</link><pubDate>Thu, 10 Dec 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/12/10/beispiel-f%C3%BCr-eine-vorw%C3%A4rts-schrittweise-regression/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#hintergrund">&lt;span class="toc-section-number">1&lt;/span> Hintergrund&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#achtung">&lt;span class="toc-section-number">2&lt;/span> Achtung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pakete">&lt;span class="toc-section-number">3&lt;/span> Pakete&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">4&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fehlende-werte">&lt;span class="toc-section-number">5&lt;/span> Fehlende Werte&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#modell-0">&lt;span class="toc-section-number">6&lt;/span> Modell 0&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#modelle-mit-einer-variablen-lm1">&lt;span class="toc-section-number">7&lt;/span> Modelle mit einer Variablen (&lt;code>lm1&lt;/code>)&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#lm1a">&lt;span class="toc-section-number">7.1&lt;/span> lm1a&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm1b">&lt;span class="toc-section-number">7.2&lt;/span> lm1b&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm1c">&lt;span class="toc-section-number">7.3&lt;/span> lm1c&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#moment-mal">&lt;span class="toc-section-number">7.4&lt;/span> Moment mal…&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#automatisiertes-vorwärts-regression">&lt;span class="toc-section-number">8&lt;/span> Automatisiertes Vorwärts-Regression&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#modellgüten-der-modelle-mit-einem-prädiktor">&lt;span class="toc-section-number">9&lt;/span> Modellgüten der Modelle mit einem Prädiktor&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproduzierbarkeit">&lt;span class="toc-section-number">10&lt;/span> Reproduzierbarkeit&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="hintergrund" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Hintergrund&lt;/h1>
+&lt;p>Diese Übung bezieht sich auf &lt;a href="https://www.openintro.org/book/isrs/">ISRS&lt;/a>, Kap. 6.2.&lt;/p>
+&lt;/div>
+&lt;div id="achtung" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Achtung&lt;/h1>
+&lt;p>Gelman hasst schrittweise Regression …&lt;/p>
+&lt;/div>
+&lt;div id="pakete" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Pakete&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(broom) # tidy Regressionsoutput
+library(skimr) # EDA
+library(moderndive) # Komfort
+library(olsrr) # Schrittweise Regression&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="daten-laden" class="section level1" number="4">
+&lt;h1>&lt;span class="header-section-number">4&lt;/span> Daten laden&lt;/h1>
+&lt;p>Auf &lt;a href="https://www.openintro.org/data/index.php?data=mariokart">dieser Seite&lt;/a> sind die Daten zu finden.&lt;/p></description></item><item><title>Modellannahmen grafisch überprüfen</title><link>https://sebastiansauer.github.io/data_se/2020/12/10/modellannahmen-grafisch-%C3%BCberpr%C3%BCfen/</link><pubDate>Thu, 10 Dec 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/12/10/modellannahmen-grafisch-%C3%BCberpr%C3%BCfen/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#hintergrund">&lt;span class="toc-section-number">1&lt;/span> Hintergrund&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pakete">&lt;span class="toc-section-number">2&lt;/span> Pakete&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">3&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fehlende-werte">&lt;span class="toc-section-number">4&lt;/span> Fehlende Werte&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#modell-1">&lt;span class="toc-section-number">5&lt;/span> Modell 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#überprüfen-der-annahmen">&lt;span class="toc-section-number">6&lt;/span> Überprüfen der Annahmen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#linearität">&lt;span class="toc-section-number">6.1&lt;/span> Linearität&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#varianzgleichheit-der-residuen">&lt;span class="toc-section-number">6.2&lt;/span> Varianzgleichheit der Residuen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#normalverteilung-der-residuen">&lt;span class="toc-section-number">6.3&lt;/span> Normalverteilung der Residuen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#reproducibility">&lt;span class="toc-section-number">7&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="hintergrund" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Hintergrund&lt;/h1>
+&lt;p>Diese Übung bezieht sich auf &lt;a href="https://www.openintro.org/book/isrs/">ISRS&lt;/a>, Kap. 6.3.&lt;/p>
+&lt;/div>
+&lt;div id="pakete" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Pakete&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+#library(broom) # tidy Regressionsoutput
+library(skimr) # EDA
+library(moderndive) # Komfort&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="daten-laden" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Daten laden&lt;/h1>
+&lt;p>Auf &lt;a href="https://www.openintro.org/data/index.php?data=mariokart">dieser Seite&lt;/a> sind die Daten zu finden.&lt;/p>
+&lt;pre class="r">&lt;code>d &amp;lt;- read_csv(&amp;quot;https://www.openintro.org/data/csv/mariokart.csv&amp;quot;)&lt;/code>&lt;/pre>
+&lt;p>(“d” wie &lt;em>D&lt;/em>aten.)&lt;/p></description></item><item><title>ModernDive, Chapter 05 - Exercises/Aufgaben (in Deutsch)</title><link>https://sebastiansauer.github.io/data_se/2020/12/02/moderndive-chapter-05-exercises-aufgaben-in-deutsch/</link><pubDate>Wed, 02 Dec 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/12/02/moderndive-chapter-05-exercises-aufgaben-in-deutsch/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2020/12/02/moderndive-chapter-05-exercises-aufgaben-in-deutsch/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#überblick">&lt;span class="toc-section-number">0.1&lt;/span> Überblick&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#stärkster-univariater-prädiktor-der-dozentenbeurteilung">&lt;span class="toc-section-number">1&lt;/span> Stärkster univariater Prädiktor der Dozentenbeurteilung&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe">&lt;span class="toc-section-number">1.1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hilfe">&lt;span class="toc-section-number">1.2&lt;/span> Hilfe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hinweise">&lt;span class="toc-section-number">1.3&lt;/span> Hinweise&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lösung">&lt;span class="toc-section-number">1.4&lt;/span> Lösung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#für-fortgeschrittene">&lt;span class="toc-section-number">1.5&lt;/span> Für Fortgeschrittene&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#r2-für-univariate-regression-von-score-auf-den-stärksten-prädiktor">&lt;span class="toc-section-number">2&lt;/span> &lt;span class="math inline">\(R^2\)&lt;/span> für univariate Regression von &lt;code>score&lt;/code> auf den stärksten Prädiktor&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe-1">&lt;span class="toc-section-number">2.1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lösung-1">&lt;span class="toc-section-number">2.2&lt;/span> Lösung&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#visualisieren-sie-die-univariate-regression">&lt;span class="toc-section-number">3&lt;/span> Visualisieren Sie die univariate Regression&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe-2">&lt;span class="toc-section-number">3.1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lösung-2">&lt;span class="toc-section-number">3.2&lt;/span> Lösung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#variante">&lt;span class="toc-section-number">3.3&lt;/span> Variante&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#vergleich-zur-korrelation">&lt;span class="toc-section-number">4&lt;/span> Vergleich zur Korrelation&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe-3">&lt;span class="toc-section-number">4.1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lösung-3">&lt;span class="toc-section-number">4.2&lt;/span> Lösung&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#standardisierte-prädiktoren">&lt;span class="toc-section-number">5&lt;/span> Standardisierte Prädiktoren&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe-4">&lt;span class="toc-section-number">5.1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lösung-4">&lt;span class="toc-section-number">5.2&lt;/span> Lösung&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#lebenserwartung-nach-kontinent-berechnen">&lt;span class="toc-section-number">6&lt;/span> Lebenserwartung nach Kontinent berechnen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe-5">&lt;span class="toc-section-number">6.1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lösung-5">&lt;span class="toc-section-number">6.2&lt;/span> Lösung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hinweis">&lt;span class="toc-section-number">6.3&lt;/span> Hinweis&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#lebenserwartung-nach-kontinent-visualisieren">&lt;span class="toc-section-number">7&lt;/span> Lebenserwartung nach Kontinent visualisieren&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe-6">&lt;span class="toc-section-number">7.1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lösung-6">&lt;span class="toc-section-number">7.2&lt;/span> Lösung&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#lebenserwartung-nach-kontinent-und-regression">&lt;span class="toc-section-number">8&lt;/span> Lebenserwartung nach Kontinent und Regression&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe-7">&lt;span class="toc-section-number">8.1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lösung-7">&lt;span class="toc-section-number">8.2&lt;/span> Lösung&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#berechnung-der-lebenswertung-für-einen-spezifischen-kontinent">&lt;span class="toc-section-number">9&lt;/span> Berechnung der Lebenswertung für einen spezifischen Kontinent&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe-8">&lt;span class="toc-section-number">9.1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lösung-8">&lt;span class="toc-section-number">9.2&lt;/span> Lösung&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#bedeutung-der-residuen-in-der-regressionsanalyse">&lt;span class="toc-section-number">10&lt;/span> Bedeutung der Residuen in der Regressionsanalyse&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe-9">&lt;span class="toc-section-number">10.1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lösung-9">&lt;span class="toc-section-number">10.2&lt;/span> Lösung&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#konfundierung">&lt;span class="toc-section-number">11&lt;/span> Konfundierung&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe-10">&lt;span class="toc-section-number">11.1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lösung-10">&lt;span class="toc-section-number">11.2&lt;/span> Lösung&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#optimierungskriterium-der-regression">&lt;span class="toc-section-number">12&lt;/span> Optimierungskriterium der Regression&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe-11">&lt;span class="toc-section-number">12.1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lösung-11">&lt;span class="toc-section-number">12.2&lt;/span> Lösung&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hinweis-1">&lt;span class="toc-section-number">12.3&lt;/span> Hinweis&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="überblick" class="section level2" number="0.1">
+&lt;h2>&lt;span class="header-section-number">0.1&lt;/span> Überblick&lt;/h2>
+&lt;p>Diese Aufgaben beziehen sich auf &lt;a href="https://moderndive.com/5-regression.html">Kapitel 5&lt;/a> aus dem Buch ModernDive.&lt;/p></description></item><item><title>Derivation of the logistic regression</title><link>https://sebastiansauer.github.io/data_se/2020/11/28/derivation-of-the-logistic-regression/</link><pubDate>Sat, 28 Nov 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/11/28/derivation-of-the-logistic-regression/</guid><description>&lt;p>The logistic regression is an incredible useful tool, partly because binary outcomes are so frequent in live (“she loves me - she doesn’t love me”). In parts because we can make use of well-known “normal” regression instruments.&lt;/p>
 &lt;p>But the formula of logistic regression appears opaque to many (beginners or those with not so much math background).&lt;/p>
 &lt;p>Let’s try to shed some light on the formula by discussing some accessible explanation on how to derive the formula.&lt;/p></description></item><item><title>Simple derivation of linear regression coefficients</title><link>https://sebastiansauer.github.io/data_se/2020/11/18/simple-derivation-of-linear-regression-coefficients2/</link><pubDate>Wed, 18 Nov 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/11/18/simple-derivation-of-linear-regression-coefficients2/</guid><description>&lt;div id="load-packages" class="section level1">
 &lt;h1>Load packages&lt;/h1>

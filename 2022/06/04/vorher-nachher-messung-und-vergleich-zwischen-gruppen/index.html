@@ -1,0 +1,290 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Vorher-Nachher-Messung und Vergleich zwischen Gruppen - Data Se</title>
+<meta property="og:title" content="Vorher-Nachher-Messung und Vergleich zwischen Gruppen - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>13 min read</span><h1 class=article-title>Vorher-Nachher-Messung und Vergleich zwischen Gruppen</h1><span class=article-date>2022/06/04</span><div class=article-content><div id=TOC><ul><li><a href=#load-packages id=toc-load-packages><span class=toc-section-number>1</span> Load packages</a></li><li><a href=#forschungsfrage id=toc-forschungsfrage><span class=toc-section-number>2</span> Forschungsfrage</a></li><li><a href=#simulierte-daten id=toc-simulierte-daten><span class=toc-section-number>3</span> Simulierte Daten</a></li><li><a href=#differenzwert-berechnen id=toc-differenzwert-berechnen><span class=toc-section-number>4</span> Differenzwert berechnen</a></li><li><a href=#visualisieren id=toc-visualisieren><span class=toc-section-number>5</span> Visualisieren</a></li><li><a href=#deskriptive-statistik id=toc-deskriptive-statistik><span class=toc-section-number>6</span> Deskriptive Statistik</a></li><li><a href=#deskriptive-statistik-als-schöne-tabelle id=toc-deskriptive-statistik-als-schöne-tabelle><span class=toc-section-number>7</span> Deskriptive Statistik als schöne Tabelle</a></li><li><a href=#cohens-d id=toc-cohens-d><span class=toc-section-number>8</span> Cohens d</a></li><li><a href=#inferenzstatistik id=toc-inferenzstatistik><span class=toc-section-number>9</span> Inferenzstatistik</a></li><li><a href=#parameter-koeffizienten-des-modells-plotten id=toc-parameter-koeffizienten-des-modells-plotten><span class=toc-section-number>10</span> Parameter (Koeffizienten des Modells) plotten</a></li><li><a href=#ja-ist-der-effekt-jetzt-groß-oder-nicht id=toc-ja-ist-der-effekt-jetzt-groß-oder-nicht><span class=toc-section-number>11</span> Ja, ist der Effekt jetzt groß oder nicht?</a></li><li><a href=#rope id=toc-rope><span class=toc-section-number>12</span> ROPE</a></li><li><a href=#was-ist-mit-r-quadrat id=toc-was-ist-mit-r-quadrat><span class=toc-section-number>13</span> Was ist mit R-Quadrat?</a></li><li><a href=#fazit id=toc-fazit><span class=toc-section-number>14</span> Fazit</a></li><li><a href=#reproducibility id=toc-reproducibility><span class=toc-section-number>15</span> Reproducibility</a></li></ul></div><div id=load-packages class="section level1" number=1><h1><span class=header-section-number>1</span> Load packages</h1><pre class=r><code>library(tidyverse)  # data wrangling
+library(easystats)  # make stasts easy again
+library(rstanarm)  # Bayes
+library(gt)  # schöne Tabellen</code></pre></div><div id=forschungsfrage class="section level1" number=2><h1><span class=header-section-number>2</span> Forschungsfrage</h1><p>Stellen Sie sich vor, Sie haben ein Experiment durchgeführt.
+Im Zuge dessen haben Sie vor einer Intervention und nach einer Intervention die interessierende Variable (AV) gemessen.
+Jetzt sind sie an der Frage interessiert,
+ob die Veränderung in der AV sich zwischen den Experimentalbedingungen unterscheidet.</p><p>Ein Beispiel, um es konkreter zu machen.
+Sie sind interessiert am Effekt von Koffein auf die Konzentrationsfähigkeit.
+Dazu messen Sie die Konzentrationsfähigkeit (mit einem geeigneten Verfahren) vor und nach
+der experimentellen Intervention.
+Die experimentelle Intervention ist in diesem Fall die Gabe von 300mg Koffein in der Kontrollgruppe,
+und ein Placebo (kein Koffein) in der Kontrollgruppe.</p><p>Natürlich haben Sie auf möglichst gleiche Bedingungen zwischen den Gruppen und für
+alle Studienteilnehmer:innen geachtet.
+Außerdem haben Sie Störeinflüsse vermieden.
+Sogar die Stichprobengröße war ziemlich groß.</p><p>Okay. Was jetzt? Wie wertet man diese Daten aus (mit R)?</p></div><div id=simulierte-daten class="section level1" number=3><h1><span class=header-section-number>3</span> Simulierte Daten</h1><p>Basteln wir uns einen Datensatz mit Fake-Daten:</p><pre class=r><code>d &lt;-
+  tibble(
+    konz_t1 = rnorm(60),
+    konz_t2 = c(rnorm(30), rnorm(30, mean = 1)),
+    gruppe = c(rep(&quot;Placebo&quot;, 30), rep(&quot;Exp&quot;, 30)))</code></pre><p>Wir haben uns <span class="math inline">\(n=60\)</span> Daten simuliert, 30 pro Gruppe (Experimental- und Placebogruppe).
+Zu <span class="math inline">\(t1\)</span>, vor dem Experiment, haben beide Populationen den gleichen Mittelwert, nämlich 0.
+Wir haben alle Werte aus einer Normalverteilung mit <span class="math inline">\(\mu=0, \sigma=1\)</span> gezogen.
+Bei <span class="math inline">\(t2\)</span> haben wir die Werte so simuliert,
+dass die Experimentalgruppe jetzt aus einer Normalverteilung mit <span class="math inline">\(\mu=1\)</span> gezogen wird.</p><p>Das sieht dann so aus (die ersten paar Zeilen):</p><pre class=r><code>d %&gt;% 
+  head()
+#&gt; # A tibble: 6 × 3
+#&gt;   konz_t1 konz_t2 gruppe 
+#&gt;     &lt;dbl&gt;   &lt;dbl&gt; &lt;chr&gt;  
+#&gt; 1  0.0315   0.507 Placebo
+#&gt; 2  0.540   -2.30  Placebo
+#&gt; 3  0.732    0.708 Placebo
+#&gt; 4  0.0861   0.368 Placebo
+#&gt; 5  1.23    -2.34  Placebo
+#&gt; 6 -2.54     0.418 Placebo</code></pre><p>Das Simulieren der Daten ist bei einem echten Experiment natürlich nicht nötig.
+Durch das Messen bzw. das Durchführen des Experiments bekommen Sie die Daten “von allein”.</p><p>Beachten Sie, dass <em>alle</em> Daten in <em>einer</em> Tabelle stehen, nicht etwa in mehreren Tabellen.</p></div><div id=differenzwert-berechnen class="section level1" number=4><h1><span class=header-section-number>4</span> Differenzwert berechnen</h1><p>Als nächstes berechnen wir die Veränderung in der Konzentrationsfähigkeit für jede Person:</p><pre class=r><code>d2 &lt;-
+  d %&gt;% 
+  mutate(differenz = konz_t2 - konz_t1)</code></pre></div><div id=visualisieren class="section level1" number=5><h1><span class=header-section-number>5</span> Visualisieren</h1><p>Schauen wir uns da mal näher an:</p><pre class=r><code>d2 %&gt;% 
+  ggplot(aes(x = gruppe, y = differenz)) +
+  geom_violin(alpha = .5) +
+  geom_jitter(alpha = .7, width = .1) +
+  stat_summary(geom = &quot;line&quot;, fun = mean, color = &quot;red&quot;, group = 1)</code></pre><p><img src="/data_se/2022/06/04/vorher-nachher-messung-und-vergleich-zwischen-gruppen/
+index_files/figure-html/unnamed-chunk-4-1.png" width=100% style=display:block;margin:auto></p><p>Wie man sieht, scheint der Zuwachs zwischen den Gruppen bei der Experimentalgruppe tatsächlich größer zu sein.</p></div><div id=deskriptive-statistik class="section level1" number=6><h1><span class=header-section-number>6</span> Deskriptive Statistik</h1><pre class=r><code>d2 %&gt;% 
+  select(differenz, gruppe) %&gt;% 
+  group_by(gruppe) %&gt;% 
+  describe_distribution()
+#&gt; # gruppe=Exp
+#&gt; 
+#&gt; Variable  | Mean |   SD |  IQR |         Range | Skewness | Kurtosis |  n | n_Missing
+#&gt; -------------------------------------------------------------------------------------
+#&gt; differenz | 1.31 | 1.46 | 2.07 | [-1.81, 4.57] |    -0.04 |    -0.20 | 30 |         0
+#&gt; 
+#&gt; # gruppe=Placebo
+#&gt; 
+#&gt; Variable  |  Mean |   SD |  IQR |         Range | Skewness | Kurtosis |  n | n_Missing
+#&gt; --------------------------------------------------------------------------------------
+#&gt; differenz | -0.18 | 1.50 | 1.62 | [-3.57, 2.95] |    -0.51 |     0.28 | 30 |         0</code></pre></div><div id=deskriptive-statistik-als-schöne-tabelle class="section level1" number=7><h1><span class=header-section-number>7</span> Deskriptive Statistik als schöne Tabelle</h1><pre class=r><code>d2 %&gt;% 
+  select(differenz, gruppe) %&gt;% 
+  group_by(gruppe) %&gt;% 
+  describe_distribution() %&gt;% 
+  gt() %&gt;% 
+  fmt_number(columns = where(is.numeric))</code></pre><div id=ppteefwyin style=overflow-x:auto;overflow-y:auto;width:auto;height:auto><style>html{font-family:-apple-system,BlinkMacSystemFont,segoe ui,Roboto,Oxygen,Ubuntu,Cantarell,helvetica neue,fira sans,droid sans,Arial,sans-serif}#ppteefwyin .gt_table{display:table;border-collapse:collapse;margin-left:auto;margin-right:auto;color:#333;font-size:16px;font-weight:400;font-style:normal;background-color:#fff;width:auto;border-top-style:solid;border-top-width:2px;border-top-color:#a8a8a8;border-right-style:none;border-right-width:2px;border-right-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#a8a8a8;border-left-style:none;border-left-width:2px;border-left-color:#d3d3d3}#ppteefwyin .gt_heading{background-color:#fff;text-align:center;border-bottom-color:#fff;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3}#ppteefwyin .gt_title{color:#333;font-size:125%;font-weight:initial;padding-top:4px;padding-bottom:4px;border-bottom-color:#fff;border-bottom-width:0}#ppteefwyin .gt_subtitle{color:#333;font-size:85%;font-weight:initial;padding-top:0;padding-bottom:6px;border-top-color:#fff;border-top-width:0}#ppteefwyin .gt_bottom_border{border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3}#ppteefwyin .gt_col_headings{border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3}#ppteefwyin .gt_col_heading{color:#333;background-color:#fff;font-size:100%;font-weight:400;text-transform:inherit;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3;vertical-align:bottom;padding-top:5px;padding-bottom:6px;padding-left:5px;padding-right:5px;overflow-x:hidden}#ppteefwyin .gt_column_spanner_outer{color:#333;background-color:#fff;font-size:100%;font-weight:400;text-transform:inherit;padding-top:0;padding-bottom:0;padding-left:4px;padding-right:4px}#ppteefwyin .gt_column_spanner_outer:first-child{padding-left:0}#ppteefwyin .gt_column_spanner_outer:last-child{padding-right:0}#ppteefwyin .gt_column_spanner{border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3;vertical-align:bottom;padding-top:5px;padding-bottom:5px;overflow-x:hidden;display:inline-block;width:100%}#ppteefwyin .gt_group_heading{padding:8px;color:#333;background-color:#fff;font-size:100%;font-weight:initial;text-transform:inherit;border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3;vertical-align:middle}#ppteefwyin .gt_empty_group_heading{padding:.5px;color:#333;background-color:#fff;font-size:100%;font-weight:initial;border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3;vertical-align:middle}#ppteefwyin .gt_from_md>:first-child{margin-top:0}#ppteefwyin .gt_from_md>:last-child{margin-bottom:0}#ppteefwyin .gt_row{padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px;margin:10px;border-top-style:solid;border-top-width:1px;border-top-color:#d3d3d3;border-left-style:none;border-left-width:1px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:1px;border-right-color:#d3d3d3;vertical-align:middle;overflow-x:hidden}#ppteefwyin .gt_stub{color:#333;background-color:#fff;font-size:100%;font-weight:initial;text-transform:inherit;border-right-style:solid;border-right-width:2px;border-right-color:#d3d3d3;padding-left:12px}#ppteefwyin .gt_summary_row{color:#333;background-color:#fff;text-transform:inherit;padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px}#ppteefwyin .gt_first_summary_row{padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px;border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3}#ppteefwyin .gt_grand_summary_row{color:#333;background-color:#fff;text-transform:inherit;padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px}#ppteefwyin .gt_first_grand_summary_row{padding-top:8px;padding-bottom:8px;padding-left:5px;padding-right:5px;border-top-style:double;border-top-width:6px;border-top-color:#d3d3d3}#ppteefwyin .gt_striped{background-color:rgba(128,128,128,5%)}#ppteefwyin .gt_table_body{border-top-style:solid;border-top-width:2px;border-top-color:#d3d3d3;border-bottom-style:solid;border-bottom-width:2px;border-bottom-color:#d3d3d3}#ppteefwyin .gt_footnotes{color:#333;background-color:#fff;border-bottom-style:none;border-bottom-width:2px;border-bottom-color:#d3d3d3;border-left-style:none;border-left-width:2px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:2px;border-right-color:#d3d3d3}#ppteefwyin .gt_footnote{margin:0;font-size:90%;padding:4px}#ppteefwyin .gt_sourcenotes{color:#333;background-color:#fff;border-bottom-style:none;border-bottom-width:2px;border-bottom-color:#d3d3d3;border-left-style:none;border-left-width:2px;border-left-color:#d3d3d3;border-right-style:none;border-right-width:2px;border-right-color:#d3d3d3}#ppteefwyin .gt_sourcenote{font-size:90%;padding:4px}#ppteefwyin .gt_left{text-align:left}#ppteefwyin .gt_center{text-align:center}#ppteefwyin .gt_right{text-align:right;font-variant-numeric:tabular-nums}#ppteefwyin .gt_font_normal{font-weight:400}#ppteefwyin .gt_font_bold{font-weight:700}#ppteefwyin .gt_font_italic{font-style:italic}#ppteefwyin .gt_super{font-size:65%}#ppteefwyin .gt_footnote_marks{font-style:italic;font-weight:400;font-size:65%}</style><table class=gt_table><thead class=gt_col_headings><tr><th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan=1 colspan=1>Variable</th><th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan=1 colspan=1>Mean</th><th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan=1 colspan=1>SD</th><th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan=1 colspan=1>IQR</th><th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan=1 colspan=1>Min</th><th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan=1 colspan=1>Max</th><th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan=1 colspan=1>Skewness</th><th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan=1 colspan=1>Kurtosis</th><th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan=1 colspan=1>n</th><th class="gt_col_heading gt_columns_bottom_border gt_right" rowspan=1 colspan=1>n_Missing</th><th class="gt_col_heading gt_columns_bottom_border gt_left" rowspan=1 colspan=1>.group</th></tr></thead><tbody class=gt_table_body><tr><td class="gt_row gt_left">differenz</td><td class="gt_row gt_right">1.31</td><td class="gt_row gt_right">1.46</td><td class="gt_row gt_right">2.07</td><td class="gt_row gt_right">&minus;1.81</td><td class="gt_row gt_right">4.57</td><td class="gt_row gt_right">&minus;0.04</td><td class="gt_row gt_right">&minus;0.20</td><td class="gt_row gt_right">30.00</td><td class="gt_row gt_right">0.00</td><td class="gt_row gt_left">gruppe=Exp</td></tr><tr><td class="gt_row gt_left">differenz</td><td class="gt_row gt_right">&minus;0.18</td><td class="gt_row gt_right">1.50</td><td class="gt_row gt_right">1.62</td><td class="gt_row gt_right">&minus;3.57</td><td class="gt_row gt_right">2.95</td><td class="gt_row gt_right">&minus;0.51</td><td class="gt_row gt_right">0.28</td><td class="gt_row gt_right">30.00</td><td class="gt_row gt_right">0.00</td><td class="gt_row gt_left">gruppe=Placebo</td></tr></tbody></table></div><p>Mehr zum Paket <code>{gt}</code> findet sich <a href=https://gt.rstudio.com/>hier</a>.</p></div><div id=cohens-d class="section level1" number=8><h1><span class=header-section-number>8</span> Cohens d</h1><pre class=r><code>cohens_d(differenz ~ gruppe, data = d2)
+#&gt; Cohen&#39;s d |       95% CI
+#&gt; ------------------------
+#&gt; 1.01      | [0.47, 1.54]
+#&gt; 
+#&gt; - Estimated using pooled SD.</code></pre><p>Sie könnten schreiben:</p><blockquote><p>Der Unterschied im Mittelwert zwischen den beiden Experimentalbedingungen wird auf 0.95 geschätzt, 95% KI [0.41, 1.48].</p></blockquote><p>Äh, war 0.95 ein großer Effekt, laut Cohen?</p><pre class=r><code>interpret_cohens_d(0.95)
+#&gt; [1] &quot;large&quot;
+#&gt; (Rules: cohen1988)</code></pre><p>Ja!</p></div><div id=inferenzstatistik class="section level1" number=9><h1><span class=header-section-number>9</span> Inferenzstatistik</h1><p>Aber ist der Unterschied zwischen den Gruppen wirklich “signifikant”?</p><p>Bemühen wir etwas Inferenzstatistik.</p><pre class=r><code>m1 &lt;- stan_glm(differenz ~ gruppe, data = d2, refresh = 0)
+
+m1
+#&gt; stan_glm
+#&gt;  family:       gaussian [identity]
+#&gt;  formula:      differenz ~ gruppe
+#&gt;  observations: 60
+#&gt;  predictors:   2
+#&gt; ------
+#&gt;               Median MAD_SD
+#&gt; (Intercept)    1.3    0.3  
+#&gt; gruppePlacebo -1.5    0.4  
+#&gt; 
+#&gt; Auxiliary parameter(s):
+#&gt;       Median MAD_SD
+#&gt; sigma 1.5    0.1   
+#&gt; 
+#&gt; ------
+#&gt; * For help interpreting the printed output see ?print.stanreg
+#&gt; * For info on the priors used see ?prior_summary.stanreg</code></pre><p>Ok, der mediane Effekt zwischen den Gruppen wird auf ca. -1.5 geschätzt.</p><p>Aber ein Konfidenzintervall wäre schön:</p><pre class=r><code>posterior_interval(m1, prob = .95)
+#&gt;                     2.5%      97.5%
+#&gt; (Intercept)    0.7657152  1.8679423
+#&gt; gruppePlacebo -2.2549596 -0.7436646
+#&gt; sigma          1.2476414  1.7896489</code></pre><p>Ah, jetzt sehen wir, dass das 95%-PI auf ca. -2.3 bis -0.7 geschätzt wird.
+Es gibt also einen Effekt zwischen den Gruppen: Die Null (der “Null-Effekt”) ist nicht im Schätzbereich plausibler Werte enthalten.
+Ob der Effekt groß ist, ist eine andere Frage - keine statistische.</p><p>So geht es noch ein bisschen einfacher,
+wenn auch die Informationen etwas reichhaltiger sind:</p><pre class=r><code>library(easystats)
+parameters(m1)
+#&gt; Parameter     | Median |         95% CI |   pd | % in ROPE |  Rhat |     ESS |                 Prior
+#&gt; ----------------------------------------------------------------------------------------------------
+#&gt; (Intercept)   |   1.32 | [ 0.77,  1.87] | 100% |        0% | 1.000 | 3338.00 | Normal (0.56 +- 4.12)
+#&gt; gruppePlacebo |  -1.50 | [-2.25, -0.74] | 100% |        0% | 1.000 | 3841.00 | Normal (0.00 +- 8.18)</code></pre><p>Was ist <code>pd</code>:</p><blockquote><p>Compute the Probability of Direction (pd, also known as the Maximum Probability of Effect - MPE). It varies between 50% and 100% (i.e., 0.5 and 1) and can be interpreted as the probability (expressed in percentage) that a parameter (described by its posterior distribution) is strictly positive or negative (whichever is the most probable). It is mathematically defined as the proportion of the posterior distribution that is of the median’s sign. Although differently expressed, this index is fairly similar (i.e., is strongly correlated) to the frequentist p-value.</p></blockquote><p><a href=https://easystats.github.io/bayestestR/reference/p_direction.html>Quelle</a></p><p><code>pd</code> gibt uns die Wahrscheinlichkeitsmasse links von der Null (da der Medianschätzwert negativ ist, sonst würde sich der Wert auf rechts von der Null beziehen).</p><p><code>Rhat</code> und <code>ESS</code> sagen uns, ob das Stichprobenziehen gut funktioniert hat. Ja, sieht hier alles gut aus.</p></div><div id=parameter-koeffizienten-des-modells-plotten class="section level1" number=10><h1><span class=header-section-number>10</span> Parameter (Koeffizienten des Modells) plotten</h1><p>Für <code>parameters()</code> gibt es auch eine <code>plot</code>-Methode:</p><pre class=r><code>plot(parameters(m1))</code></pre><p><img src="/data_se/2022/06/04/vorher-nachher-messung-und-vergleich-zwischen-gruppen/
+index_files/figure-html/unnamed-chunk-12-1.png" width=100% style=display:block;margin:auto></p><p>Alternativ bietet <code>rstanarm</code> auch eine Plot-Methoden:</p><pre class=r><code>plot(m1)</code></pre><p><img src="/data_se/2022/06/04/vorher-nachher-messung-und-vergleich-zwischen-gruppen/
+index_files/figure-html/unnamed-chunk-13-1.png" width=100% style=display:block;margin:auto></p></div><div id=ja-ist-der-effekt-jetzt-groß-oder-nicht class="section level1" number=11><h1><span class=header-section-number>11</span> Ja, ist der Effekt jetzt groß oder nicht?</h1><p>Also gut, definieren wir einen “gerade noch relevanten Effekt” auf 0.1 SD-Einheiten der AV (<code>differenz</code>).
+Diese Wahl basiert auf Cohen (1988), vgl. Kruschke (2018).</p><p>z-Transformieren wir noch unsere AV, <code>differenz</code>,
+dann können wir komfortabel schauen, ob der Effekt größer ist als ±0.1:</p><pre class=r><code>library(easystats)
+
+d2 &lt;-
+  d2 %&gt;% 
+  mutate(differenz_z = standardise(differenz))</code></pre><pre class=r><code>m2 &lt;- stan_glm(differenz_z ~ gruppe, data = d2, refresh = 0)
+coef(m2)
+#&gt;   (Intercept) gruppePlacebo 
+#&gt;     0.4540214    -0.9044253</code></pre><p>Ja, der Effekt ist deutlich größer als 0.1! Damit ist der Effekt größer als “vernachlässigbar klein”.</p></div><div id=rope class="section level1" number=12><h1><span class=header-section-number>12</span> ROPE</h1><p>Wir könnten noch ein ROPE berechnen,
+das sollte uns das gleiche wie oben bestätigen:</p><pre class=r><code>rope(m2)
+#&gt; # Proportion of samples inside the ROPE [-0.10, 0.10]:
+#&gt; 
+#&gt; Parameter     | inside ROPE
+#&gt; ---------------------------
+#&gt; (Intercept)   |      0.00 %
+#&gt; gruppePlacebo |      0.00 %</code></pre><p>0% im Rope! Das Rope kann ausgeschlossen werden.</p><pre class=r><code>plot(rope(m2))</code></pre><p><img src="/data_se/2022/06/04/vorher-nachher-messung-und-vergleich-zwischen-gruppen/
+index_files/figure-html/unnamed-chunk-17-1.png" width=100% style=display:block;margin:auto></p></div><div id=was-ist-mit-r-quadrat class="section level1" number=13><h1><span class=header-section-number>13</span> Was ist mit R-Quadrat?</h1><p>Also gut, hier kommt noch <span class="math inline">\(R^2\)</span>:</p><pre class=r><code>r2_bayes(m2)
+#&gt; # Bayesian R2 with Compatibility Interval
+#&gt; 
+#&gt;   Conditional R2: 0.204 (95% CI [0.038, 0.364])</code></pre></div><div id=fazit class="section level1" number=14><h1><span class=header-section-number>14</span> Fazit</h1><p>Wir resümieren,
+dass es offenbar einen Effekt gibt, und zwar einen, der größer ist als vernachlässigbar klein.
+Damit ist die “Nullhypothese”, die besagt, dass der Effekt Null ist, dass es also keinen Effekt gibt,
+ausgeschlossen.
+Kann man die Nullhypothese ausschließen, nennt man das Ergebnis auch “signifikant”.
+Zu beachten ist, dass der Begriff der Signifikanz verschiedene Bedeutungen haben kann.
+Hier definieren wir “signifikant”, wenn mind. 95% der Posteriori-Verteilung außerhalb des ROPE liegen (s. <a href=https://easystats.github.io/bayestestR/reference/rope.html>hier</a>).</p></div><div id=reproducibility class="section level1" number=15><h1><span class=header-section-number>15</span> Reproducibility</h1><pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value                       
+#&gt;  version  R version 4.1.3 (2022-03-10)
+#&gt;  os       macOS Big Sur/Monterey 10.16
+#&gt;  system   x86_64, darwin17.0          
+#&gt;  ui       X11                         
+#&gt;  language (EN)                        
+#&gt;  collate  en_US.UTF-8                 
+#&gt;  ctype    en_US.UTF-8                 
+#&gt;  tz       Europe/Berlin               
+#&gt;  date     2022-06-04                  
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package      * version  date       lib source                                    
+#&gt;  assertthat     0.2.1    2019-03-21 [1] CRAN (R 4.1.0)                            
+#&gt;  backports      1.4.1    2021-12-13 [1] CRAN (R 4.1.0)                            
+#&gt;  base64enc      0.1-3    2015-07-28 [1] CRAN (R 4.1.0)                            
+#&gt;  bayesplot      1.8.1    2021-06-14 [1] CRAN (R 4.1.0)                            
+#&gt;  bayestestR   * 0.12.1   2022-05-02 [1] CRAN (R 4.1.3)                            
+#&gt;  blogdown       1.8      2022-02-16 [2] CRAN (R 4.1.2)                            
+#&gt;  bookdown       0.26.2   2022-05-02 [1] Github (rstudio/bookdown@6adacc3)         
+#&gt;  boot           1.3-28   2021-05-03 [2] CRAN (R 4.1.3)                            
+#&gt;  brio           1.1.3    2021-11-30 [1] CRAN (R 4.1.0)                            
+#&gt;  broom          0.8.0    2022-04-13 [1] CRAN (R 4.1.2)                            
+#&gt;  bslib          0.3.1    2021-10-06 [1] CRAN (R 4.1.0)                            
+#&gt;  cachem         1.0.6    2021-08-19 [1] CRAN (R 4.1.0)                            
+#&gt;  callr          3.7.0    2021-04-20 [1] CRAN (R 4.1.0)                            
+#&gt;  cellranger     1.1.0    2016-07-27 [1] CRAN (R 4.1.0)                            
+#&gt;  cli            3.3.0    2022-04-25 [1] CRAN (R 4.1.2)                            
+#&gt;  coda           0.19-4   2020-09-30 [1] CRAN (R 4.1.0)                            
+#&gt;  codetools      0.2-18   2020-11-04 [2] CRAN (R 4.1.3)                            
+#&gt;  colorout     * 1.2-2    2022-01-04 [1] Github (jalvesaq/colorout@79931fd)        
+#&gt;  colorspace     2.0-3    2022-02-21 [1] CRAN (R 4.1.2)                            
+#&gt;  colourpicker   1.1.0    2020-09-14 [2] CRAN (R 4.1.0)                            
+#&gt;  correlation  * 0.8.0.1  2022-04-21 [1] https://easystats.r-universe.dev (R 4.1.3)
+#&gt;  crayon         1.5.1    2022-03-26 [1] CRAN (R 4.1.2)                            
+#&gt;  crosstalk      1.1.1    2021-01-12 [2] CRAN (R 4.1.0)                            
+#&gt;  datawizard   * 0.4.0.17 2022-05-02 [1] Github (easystats/datawizard@de462e3)     
+#&gt;  DBI            1.1.2    2021-12-20 [1] CRAN (R 4.1.0)                            
+#&gt;  dbplyr         2.1.1    2021-04-06 [1] CRAN (R 4.1.0)                            
+#&gt;  desc           1.4.1    2022-03-06 [1] CRAN (R 4.1.2)                            
+#&gt;  devtools       2.4.3    2021-11-30 [1] CRAN (R 4.1.0)                            
+#&gt;  digest         0.6.29   2021-12-01 [1] CRAN (R 4.1.0)                            
+#&gt;  dplyr        * 1.0.9    2022-04-28 [1] CRAN (R 4.1.2)                            
+#&gt;  DT             0.20     2021-11-15 [1] CRAN (R 4.1.0)                            
+#&gt;  dygraphs       1.1.1.6  2018-07-11 [1] CRAN (R 4.1.0)                            
+#&gt;  easystats    * 0.4.3    2022-04-21 [1] https://easystats.r-universe.dev (R 4.1.3)
+#&gt;  effectsize   * 0.6.0.1  2022-01-26 [1] CRAN (R 4.1.2)                            
+#&gt;  ellipsis       0.3.2    2021-04-29 [1] CRAN (R 4.1.0)                            
+#&gt;  emmeans        1.7.3    2022-03-27 [1] CRAN (R 4.1.2)                            
+#&gt;  estimability   1.3      2018-02-11 [1] CRAN (R 4.1.0)                            
+#&gt;  evaluate       0.15     2022-02-18 [1] CRAN (R 4.1.2)                            
+#&gt;  fansi          1.0.3    2022-03-24 [1] CRAN (R 4.1.2)                            
+#&gt;  farver         2.1.0    2021-02-28 [1] CRAN (R 4.1.0)                            
+#&gt;  fastmap        1.1.0    2021-01-25 [2] CRAN (R 4.1.0)                            
+#&gt;  forcats      * 0.5.1    2021-01-27 [1] CRAN (R 4.1.0)                            
+#&gt;  fs             1.5.2    2021-12-08 [1] CRAN (R 4.1.0)                            
+#&gt;  generics       0.1.2    2022-01-31 [1] CRAN (R 4.1.2)                            
+#&gt;  ggplot2      * 3.3.6    2022-05-03 [1] CRAN (R 4.1.2)                            
+#&gt;  ggridges       0.5.3    2021-01-08 [1] CRAN (R 4.1.0)                            
+#&gt;  glue           1.6.2    2022-02-24 [1] CRAN (R 4.1.2)                            
+#&gt;  gridExtra      2.3      2017-09-09 [2] CRAN (R 4.1.0)                            
+#&gt;  gtable         0.3.0    2019-03-25 [1] CRAN (R 4.1.0)                            
+#&gt;  gtools         3.9.2    2021-06-06 [2] CRAN (R 4.1.0)                            
+#&gt;  haven          2.4.3    2021-08-04 [1] CRAN (R 4.1.0)                            
+#&gt;  highr          0.9      2021-04-16 [1] CRAN (R 4.1.0)                            
+#&gt;  hms            1.1.1    2021-09-26 [1] CRAN (R 4.1.0)                            
+#&gt;  htmltools      0.5.2    2021-08-25 [1] CRAN (R 4.1.0)                            
+#&gt;  htmlwidgets    1.5.4    2021-09-08 [1] CRAN (R 4.1.0)                            
+#&gt;  httpuv         1.6.5    2022-01-05 [1] CRAN (R 4.1.2)                            
+#&gt;  httr           1.4.3    2022-05-04 [1] CRAN (R 4.1.2)                            
+#&gt;  igraph         1.2.11   2022-01-04 [1] CRAN (R 4.1.2)                            
+#&gt;  inline         0.3.19   2021-05-31 [1] CRAN (R 4.1.0)                            
+#&gt;  insight      * 0.17.0.6 2022-05-02 [1] Github (easystats/insight@0e1dbaf)        
+#&gt;  jquerylib      0.1.4    2021-04-26 [1] CRAN (R 4.1.0)                            
+#&gt;  jsonlite       1.8.0    2022-02-22 [1] CRAN (R 4.1.2)                            
+#&gt;  knitr          1.39     2022-04-26 [1] CRAN (R 4.1.2)                            
+#&gt;  labeling       0.4.2    2020-10-20 [1] CRAN (R 4.1.0)                            
+#&gt;  later          1.3.0    2021-08-18 [1] CRAN (R 4.1.0)                            
+#&gt;  lattice        0.20-45  2021-09-22 [2] CRAN (R 4.1.3)                            
+#&gt;  lifecycle      1.0.1    2021-09-24 [1] CRAN (R 4.1.0)                            
+#&gt;  lme4           1.1-29   2022-04-07 [1] CRAN (R 4.1.2)                            
+#&gt;  loo            2.4.1    2020-12-09 [1] CRAN (R 4.1.0)                            
+#&gt;  lubridate      1.8.0    2021-10-07 [1] CRAN (R 4.1.0)                            
+#&gt;  magrittr       2.0.3    2022-03-30 [1] CRAN (R 4.1.2)                            
+#&gt;  markdown       1.1      2019-08-07 [1] CRAN (R 4.1.0)                            
+#&gt;  MASS           7.3-55   2022-01-16 [2] CRAN (R 4.1.3)                            
+#&gt;  Matrix         1.4-0    2021-12-08 [2] CRAN (R 4.1.3)                            
+#&gt;  matrixStats    0.61.0   2021-09-17 [1] CRAN (R 4.1.0)                            
+#&gt;  memoise        2.0.0    2021-01-26 [2] CRAN (R 4.1.0)                            
+#&gt;  mime           0.12     2021-09-28 [1] CRAN (R 4.1.0)                            
+#&gt;  miniUI         0.1.1.1  2018-05-18 [1] CRAN (R 4.1.0)                            
+#&gt;  minqa          1.2.4    2014-10-09 [1] CRAN (R 4.1.0)                            
+#&gt;  modelbased   * 0.8.0    2022-04-12 [1] https://easystats.r-universe.dev (R 4.1.3)
+#&gt;  modelr         0.1.8    2020-05-19 [1] CRAN (R 4.1.0)                            
+#&gt;  multcomp       1.4-19   2022-04-26 [2] CRAN (R 4.1.2)                            
+#&gt;  munsell        0.5.0    2018-06-12 [1] CRAN (R 4.1.0)                            
+#&gt;  mvtnorm        1.1-3    2021-10-08 [1] CRAN (R 4.1.0)                            
+#&gt;  nlme           3.1-155  2022-01-16 [2] CRAN (R 4.1.3)                            
+#&gt;  nloptr         2.0.0    2022-01-26 [1] CRAN (R 4.1.2)                            
+#&gt;  parameters   * 0.17.0.9 2022-04-20 [1] https://easystats.r-universe.dev (R 4.1.3)
+#&gt;  performance  * 0.9.0.2  2022-04-20 [1] https://easystats.r-universe.dev (R 4.1.3)
+#&gt;  pillar         1.7.0    2022-02-01 [1] CRAN (R 4.1.2)                            
+#&gt;  pkgbuild       1.2.0    2020-12-15 [2] CRAN (R 4.1.0)                            
+#&gt;  pkgconfig      2.0.3    2019-09-22 [1] CRAN (R 4.1.0)                            
+#&gt;  pkgload        1.2.4    2021-11-30 [1] CRAN (R 4.1.0)                            
+#&gt;  plyr           1.8.7    2022-03-24 [1] CRAN (R 4.1.2)                            
+#&gt;  prettyunits    1.1.1    2020-01-24 [1] CRAN (R 4.1.0)                            
+#&gt;  processx       3.5.3    2022-03-25 [1] CRAN (R 4.1.2)                            
+#&gt;  promises       1.2.0.1  2021-02-11 [2] CRAN (R 4.1.0)                            
+#&gt;  ps             1.7.0    2022-04-23 [1] CRAN (R 4.1.2)                            
+#&gt;  purrr        * 0.3.4    2020-04-17 [1] CRAN (R 4.1.0)                            
+#&gt;  R6             2.5.1    2021-08-19 [1] CRAN (R 4.1.0)                            
+#&gt;  Rcpp         * 1.0.8.3  2022-03-17 [1] CRAN (R 4.1.2)                            
+#&gt;  RcppParallel   5.1.5    2022-01-05 [1] CRAN (R 4.1.2)                            
+#&gt;  readr        * 2.1.2    2022-01-30 [1] CRAN (R 4.1.2)                            
+#&gt;  readxl         1.3.1    2019-03-13 [1] CRAN (R 4.1.0)                            
+#&gt;  remotes        2.4.0    2021-06-02 [2] CRAN (R 4.1.0)                            
+#&gt;  report       * 0.5.1.1  2022-04-11 [1] https://easystats.r-universe.dev (R 4.1.3)
+#&gt;  reprex         2.0.1    2021-08-05 [1] CRAN (R 4.1.0)                            
+#&gt;  reshape2       1.4.4    2020-04-09 [1] CRAN (R 4.1.0)                            
+#&gt;  rlang          1.0.2    2022-03-04 [1] CRAN (R 4.1.2)                            
+#&gt;  rmarkdown      2.14     2022-04-25 [1] CRAN (R 4.1.2)                            
+#&gt;  rprojroot      2.0.3    2022-04-02 [1] CRAN (R 4.1.2)                            
+#&gt;  rsconnect      0.8.25   2021-11-19 [1] CRAN (R 4.1.0)                            
+#&gt;  rstan          2.21.3   2021-12-19 [1] CRAN (R 4.1.0)                            
+#&gt;  rstanarm     * 2.21.1   2020-07-20 [1] CRAN (R 4.1.0)                            
+#&gt;  rstantools     2.1.1    2020-07-06 [1] CRAN (R 4.1.0)                            
+#&gt;  rstudioapi     0.13     2020-11-12 [1] CRAN (R 4.1.0)                            
+#&gt;  rvest          1.0.2    2021-10-16 [1] CRAN (R 4.1.0)                            
+#&gt;  sandwich       3.0-1    2021-05-18 [2] CRAN (R 4.1.0)                            
+#&gt;  sass           0.4.1    2022-03-23 [1] CRAN (R 4.1.2)                            
+#&gt;  scales         1.2.0    2022-04-13 [1] CRAN (R 4.1.3)                            
+#&gt;  see          * 0.7.0.1  2022-04-12 [1] https://easystats.r-universe.dev (R 4.1.3)
+#&gt;  sessioninfo    1.1.1    2018-11-05 [2] CRAN (R 4.1.0)                            
+#&gt;  shiny          1.7.1    2021-10-02 [1] CRAN (R 4.1.0)                            
+#&gt;  shinyjs        2.0.0    2020-09-09 [2] CRAN (R 4.1.0)                            
+#&gt;  shinystan      2.5.0    2018-05-01 [1] CRAN (R 4.1.0)                            
+#&gt;  shinythemes    1.2.0    2021-01-25 [1] CRAN (R 4.1.0)                            
+#&gt;  StanHeaders    2.21.0-7 2020-12-17 [1] CRAN (R 4.1.0)                            
+#&gt;  stringi        1.7.6    2021-11-29 [1] CRAN (R 4.1.0)                            
+#&gt;  stringr      * 1.4.0    2019-02-10 [1] CRAN (R 4.1.0)                            
+#&gt;  survival       3.2-13   2021-08-24 [2] CRAN (R 4.1.3)                            
+#&gt;  testthat       3.1.4    2022-04-26 [1] CRAN (R 4.1.2)                            
+#&gt;  TH.data        1.1-1    2022-04-26 [2] CRAN (R 4.1.2)                            
+#&gt;  threejs        0.3.3    2020-01-21 [1] CRAN (R 4.1.0)                            
+#&gt;  tibble       * 3.1.7    2022-05-03 [1] CRAN (R 4.1.2)                            
+#&gt;  tidyr        * 1.2.0    2022-02-01 [1] CRAN (R 4.1.2)                            
+#&gt;  tidyselect     1.1.2    2022-02-21 [1] CRAN (R 4.1.2)                            
+#&gt;  tidyverse    * 1.3.1    2021-04-15 [1] CRAN (R 4.1.0)                            
+#&gt;  tzdb           0.1.2    2021-07-20 [2] CRAN (R 4.1.0)                            
+#&gt;  usethis        2.0.1    2021-02-10 [2] CRAN (R 4.1.0)                            
+#&gt;  utf8           1.2.2    2021-07-24 [1] CRAN (R 4.1.0)                            
+#&gt;  vctrs          0.4.1    2022-04-13 [1] CRAN (R 4.1.2)                            
+#&gt;  withr          2.5.0    2022-03-03 [1] CRAN (R 4.1.2)                            
+#&gt;  xfun           0.30     2022-03-02 [1] CRAN (R 4.1.2)                            
+#&gt;  xml2           1.3.3    2021-11-30 [1] CRAN (R 4.1.0)                            
+#&gt;  xtable         1.8-4    2019-04-21 [1] CRAN (R 4.1.0)                            
+#&gt;  xts            0.12.1   2020-09-09 [1] CRAN (R 4.1.0)                            
+#&gt;  yaml           2.3.5    2022-02-21 [1] CRAN (R 4.1.2)                            
+#&gt;  zoo            1.8-9    2021-03-09 [1] CRAN (R 4.1.0)                            
+#&gt; 
+#&gt; [1] /Users/sebastiansaueruser/Library/R/x86_64/4.1/library
+#&gt; [2] /Library/Frameworks/R.framework/Versions/4.1/Resources/library</code></pre></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>

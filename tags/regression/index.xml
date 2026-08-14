@@ -1,4 +1,373 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Regression on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/regression/</link><description>Recent content in Regression on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Mon, 21 Oct 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/regression/index.xml" rel="self" type="application/rss+xml"/><item><title>Some ways for plotting 3D linear models</title><link>https://sebastiansauer.github.io/data_se/2019/10/21/some-ways-for-plotting-3d-linear-models/</link><pubDate>Mon, 21 Oct 2019 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2019/10/21/some-ways-for-plotting-3d-linear-models/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/htmlwidgets/htmlwidgets.js">&lt;/script>
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Regression on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/regression/</link><description>Recent content in Regression on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Mon, 29 Jan 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/regression/index.xml" rel="self" type="application/rss+xml"/><item><title>Numerical similarity of some Bayes and Classical models</title><link>https://sebastiansauer.github.io/data_se/2024/01/29/numerical-similarity-of-some-bayes-and-classical-models/</link><pubDate>Mon, 29 Jan 2024 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2024/01/29/numerical-similarity-of-some-bayes-and-classical-models/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#bayes-and-frequentis" id="toc-bayes-and-frequentis">&lt;span class="toc-section-number">2.1&lt;/span> Bayes and Frequentis&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#technical-setup-for-bayes-analysis-provides-a-barrier" id="toc-technical-setup-for-bayes-analysis-provides-a-barrier">&lt;span class="toc-section-number">2.2&lt;/span> Technical setup for Bayes analysis provides a barrier&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#numerical-convergence-of-bayes-and-frequentist-approaches" id="toc-numerical-convergence-of-bayes-and-frequentist-approaches">&lt;span class="toc-section-number">3&lt;/span> Numerical convergence of Bayes and Frequentist approaches&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#example-1-mctcars" id="toc-example-1-mctcars">&lt;span class="toc-section-number">4&lt;/span> Example 1: &lt;code>mctcars&lt;/code>&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#frequentist-model" id="toc-frequentist-model">&lt;span class="toc-section-number">4.1&lt;/span> Frequentist model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#bayesian-numerically-equivalent-model" id="toc-bayesian-numerically-equivalent-model">&lt;span class="toc-section-number">4.2&lt;/span> Bayesian numerically equivalent model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusion" id="toc-conclusion">&lt;span class="toc-section-number">4.3&lt;/span> Conclusion&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#example-2-penguins" id="toc-example-2-penguins">&lt;span class="toc-section-number">5&lt;/span> Example 2: &lt;code>penguins&lt;/code>&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#frequentist-model-1" id="toc-frequentist-model-1">&lt;span class="toc-section-number">5.1&lt;/span> Frequentist model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#bayesian-numerically-equivalent-model-1" id="toc-bayesian-numerically-equivalent-model-1">&lt;span class="toc-section-number">5.2&lt;/span> Bayesian numerically equivalent model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusion-1" id="toc-conclusion-1">&lt;span class="toc-section-number">5.3&lt;/span> Conclusion&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#example-3-diamonds" id="toc-example-3-diamonds">&lt;span class="toc-section-number">6&lt;/span> Example 3: &lt;code>diamonds&lt;/code>&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#frequentist-model-2" id="toc-frequentist-model-2">&lt;span class="toc-section-number">6.1&lt;/span> Frequentist model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#bayesian-numerically-equivalent-model-2" id="toc-bayesian-numerically-equivalent-model-2">&lt;span class="toc-section-number">6.2&lt;/span> Bayesian numerically equivalent model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusion-2" id="toc-conclusion-2">&lt;span class="toc-section-number">6.3&lt;/span> Conclusion&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#caveats" id="toc-caveats">&lt;span class="toc-section-number">7&lt;/span> Caveats&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#concluding-remarks" id="toc-concluding-remarks">&lt;span class="toc-section-number">8&lt;/span> Concluding remarks&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#further-reading" id="toc-further-reading">&lt;span class="toc-section-number">9&lt;/span> Further reading&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">10&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(rstanarm) # Bayes modelling
+library(palmerpenguins) # data
+library(easystats) # unified API
+library(tictoc) # measure computation time&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;div id="bayes-and-frequentis" class="section level2" number="2.1">
+&lt;h2>&lt;span class="header-section-number">2.1&lt;/span> Bayes and Frequentis&lt;/h2>
+&lt;p>Bayes inference comforts its user with an interpretation that many practitioners seem to prefer (and to understand more quickly), ie., Bayes posterior distribution provides the probability of the hypothesis given the data at hand, &lt;span class="math inline">\(Pr(H|D)\)&lt;/span>. Classical Frequentist inference does not provide this probability, but rather the long-run probability of finding an at least as extreme empirical result, given that the Null hypothesis is true. This is all well-known.&lt;/p></description></item><item><title>Logistic regression using z-standardized values</title><link>https://sebastiansauer.github.io/data_se/2023/12/20/logistic-regression-using-z-standardized-values/</link><pubDate>Wed, 20 Dec 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/12/20/logistic-regression-using-z-standardized-values/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#data" id="toc-data">&lt;span class="toc-section-number">2&lt;/span> Data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">3&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#eda" id="toc-eda">&lt;span class="toc-section-number">4&lt;/span> EDA&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-with-raw-values" id="toc-model-with-raw-values">&lt;span class="toc-section-number">5&lt;/span> Model with raw values&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-with-am-as-factor-variable" id="toc-model-with-am-as-factor-variable">&lt;span class="toc-section-number">6&lt;/span> Model with &lt;code>am&lt;/code> as factor-Variable&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#visualizing" id="toc-visualizing">&lt;span class="toc-section-number">7&lt;/span> Visualizing&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#standardizing-predictors" id="toc-standardizing-predictors">&lt;span class="toc-section-number">8&lt;/span> Standardizing predictors&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-with-z-scaled-predictors" id="toc-model-with-z-scaled-predictors">&lt;span class="toc-section-number">9&lt;/span> Model with z-scaled predictors&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#model-with-all-variables-z-scaled" id="toc-model-with-all-variables-z-scaled">&lt;span class="toc-section-number">10&lt;/span> Model with all variables z-scaled&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusion" id="toc-conclusion">&lt;span class="toc-section-number">11&lt;/span> Conclusion&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">12&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(easystats)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="data" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Data&lt;/h1>
+&lt;pre class="r">&lt;code>data(mtcars)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Motivation&lt;/h1>
+&lt;p>In this post, we’ll investigate the consequence of z-standardizing the predictor variables, and in addition the outcome variable in a simple logistic regression setting.&lt;/p></description></item><item><title>Ableitung der Koeffizienten der einfachen Regression</title><link>https://sebastiansauer.github.io/data_se/2022/05/23/ableitung-der-koeffizienten-der-einfachen-regression/</link><pubDate>Mon, 23 May 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/05/23/ableitung-der-koeffizienten-der-einfachen-regression/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#was-ist-die-regression" id="toc-was-ist-die-regression">&lt;span class="toc-section-number">1&lt;/span> Was ist die Regression?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#wie-findet-man-die-regressionsgerade" id="toc-wie-findet-man-die-regressionsgerade">&lt;span class="toc-section-number">2&lt;/span> Wie findet man die Regressionsgerade?&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#b_0" id="toc-b_0">&lt;span class="toc-section-number">2.1&lt;/span> &lt;span class="math inline">\(b_0\)&lt;/span>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#b_1" id="toc-b_1">&lt;span class="toc-section-number">2.2&lt;/span> &lt;span class="math inline">\(b_1\)&lt;/span>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#weitere-umformung-von-b_1" id="toc-weitere-umformung-von-b_1">&lt;span class="toc-section-number">2.3&lt;/span> Weitere Umformung von &lt;span class="math inline">\(b_1\)&lt;/span>&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#quellenangabe" id="toc-quellenangabe">&lt;span class="toc-section-number">3&lt;/span> Quellenangabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fazit" id="toc-fazit">&lt;span class="toc-section-number">4&lt;/span> Fazit&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;div id="was-ist-die-regression" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Was ist die Regression?&lt;/h1>
+&lt;p>In diesem Post geht es um die einfache Regression (d.h. mit einem Prädiktor); genauer gesagt um die Frage, wie man auf die Formeln der Koeffizienten der einfachen Regression kommt.&lt;/p>
+&lt;p>Gehen wir von einigen zweidimensionalen Datenpunkten aus, die zu einem Phänomen gemessen wurden: &lt;span class="math inline">\({(x_1, y_1), (x_2, y_2), \ldots, (x_n,y_n)}\)&lt;/span>.&lt;/p></description></item><item><title>Kurs: "Vorhersage-Modellierung"</title><link>https://sebastiansauer.github.io/data_se/2022/01/28/kurs-vorhersage-modellierung/</link><pubDate>Fri, 28 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/28/kurs-vorhersage-modellierung/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/28/kurs-vorhersage-modellierung/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="einführung-in-die-vorhersage-modellierung" class="section level1">
+&lt;h1>Einführung in die Vorhersage-Modellierung 🔮&lt;/h1>
+&lt;p>Ein Kurs zur Grundlagen der Datenanalyse und der Vorhersage-Modellierung mit R.&lt;/p>
+&lt;p>&lt;a href="https://sebastiansauer.github.io/vorhersagemodellierung/index.html">Hier&lt;/a> geht es zum Kurs.&lt;/p>
+&lt;p>Alle Materialien des Kurses sind frei verfügbar, können kostenfrei genutzt werden und sind quelloffen.&lt;/p>
+&lt;/div></description></item><item><title>Visualizing error distribution in regression analysis</title><link>https://sebastiansauer.github.io/data_se/2022/01/27/visualizing-residual-distribution-in-regression-analysis/</link><pubDate>Thu, 27 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/27/visualizing-residual-distribution-in-regression-analysis/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/27/visualizing-residual-distribution-in-regression-analysis/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="errors-and-residuals-in-regression" class="section level1">
+&lt;h1>Errors and residuals in Regression&lt;/h1>
+&lt;p>A residual is defined as&lt;/p>
+&lt;p>&lt;span class="math inline">\(r_i = y_i - X_i \hat{\beta}\)&lt;/span>.&lt;/p>
+&lt;p>That is, a residual is a tangible thing in the sense that it describes observables (cf. Gelman 2021, chap. 11.3, p. 161).
+That is, the residuals are the difference between observed and predicted values.&lt;/p>
+&lt;p>In contrast, the error term is defined as the difference between the observed value and the true (unobserved) value:&lt;/p></description></item><item><title>Analyse einiger RKI-Coronadaten: Eine reproduzierbare Fallstudie</title><link>https://sebastiansauer.github.io/data_se/2021/11/27/analyse-der-rki-coronadaten/</link><pubDate>Sat, 27 Nov 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/11/27/analyse-der-rki-coronadaten/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/11/27/analyse-der-rki-coronadaten/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#r-pakete">&lt;span class="toc-section-number">1&lt;/span> R-Pakete&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hintergrund">&lt;span class="toc-section-number">2&lt;/span> Hintergrund&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#inzidenzen-in-deutschland---daten-vom-rki">&lt;span class="toc-section-number">3&lt;/span> Inzidenzen in Deutschland - Daten vom RKI&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hospitalisierungen-in-deutschland">&lt;span class="toc-section-number">4&lt;/span> Hospitalisierungen in Deutschland&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#adjustierte-daten">&lt;span class="toc-section-number">4.1&lt;/span> Adjustierte Daten&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-importieren">&lt;span class="toc-section-number">4.1.1&lt;/span> Daten importieren&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#eda">&lt;span class="toc-section-number">4.1.2&lt;/span> EDA&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#unadjustierte-daten">&lt;span class="toc-section-number">4.2&lt;/span> Unadjustierte Daten&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-importieren-1">&lt;span class="toc-section-number">4.2.1&lt;/span> Daten importieren&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#eda-1">&lt;span class="toc-section-number">4.2.2&lt;/span> EDA&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#impfungen-in-deutschland">&lt;span class="toc-section-number">5&lt;/span> Impfungen in Deutschland&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#neueste-daten">&lt;span class="toc-section-number">5.1&lt;/span> Neueste Daten&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">5.1.1&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#eda-2">&lt;span class="toc-section-number">5.1.2&lt;/span> EDA&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#impfquoten-im-zeitverlauf">&lt;span class="toc-section-number">5.2&lt;/span> Impfquoten im Zeitverlauf&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-laden-1">&lt;span class="toc-section-number">5.2.1&lt;/span> Daten laden 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden-2">&lt;span class="toc-section-number">5.2.2&lt;/span> Daten laden 2&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#eda-3">&lt;span class="toc-section-number">5.3&lt;/span> EDA&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#impfquote-deutschland-im-zeitverlauf">&lt;span class="toc-section-number">5.3.1&lt;/span> Impfquote Deutschland im Zeitverlauf&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#impfquote-der-bundesländer-im-zeitverlauf">&lt;span class="toc-section-number">5.3.2&lt;/span> Impfquote der Bundesländer im Zeitverlauf&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#daten-joinen">&lt;span class="toc-section-number">6&lt;/span> Daten joinen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#zusammenhangsanalysen">&lt;span class="toc-section-number">7&lt;/span> Zusammenhangsanalysen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#zusammenhang-von-impfquote-und-hospitalisierung">&lt;span class="toc-section-number">7.1&lt;/span> Zusammenhang von Impfquote und Hospitalisierung&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#im-zeitverlauf">&lt;span class="toc-section-number">7.1.1&lt;/span> Im Zeitverlauf&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#korrelation-nach-bundesland">&lt;span class="toc-section-number">7.1.2&lt;/span> Korrelation nach Bundesland&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#pro-quartal">&lt;span class="toc-section-number">7.1.3&lt;/span> Pro Quartal&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#fazit-zum-zusammenhang-von-hospitalisierung-und-impfquote">&lt;span class="toc-section-number">8&lt;/span> Fazit zum Zusammenhang von Hospitalisierung und Impfquote&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#deskriptiv">&lt;span class="toc-section-number">8.1&lt;/span> Deskriptiv&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#aber-worum-geht-es-uns-eigentlich">&lt;span class="toc-section-number">8.2&lt;/span> Aber worum geht es uns eigentlich?&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#kausalmodell-1">&lt;span class="toc-section-number">8.2.1&lt;/span> Kausalmodell 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#kausalmodell-2">&lt;span class="toc-section-number">8.2.2&lt;/span> Kausalmodell 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#interpretation-hängt-vom-kausalmodell-ab">&lt;span class="toc-section-number">8.2.3&lt;/span> Interpretation hängt vom Kausalmodell ab&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#wo-sind-hier-die-modelle">&lt;span class="toc-section-number">8.3&lt;/span> Wo sind hier die Modelle?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#interpretation-hängt-von-der-gesamten-befundlage-ab">&lt;span class="toc-section-number">8.4&lt;/span> Interpretation hängt von der gesamten Befundlage ab&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#notiz-zum-umgang-mit-fehlinformationen">&lt;span class="toc-section-number">8.5&lt;/span> Notiz zum Umgang mit Fehlinformationen&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#sessioninfo">&lt;span class="toc-section-number">9&lt;/span> sessionInfo&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="r-pakete" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> R-Pakete&lt;/h1>
+&lt;/div>
+&lt;div id="hintergrund" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Hintergrund&lt;/h1>
+&lt;p>Die Corona-Epidemie beherrscht (wieder) die Nachrichten, Gespräche und Gedanken.
+Zu Recht, aus zwei Gründen.
+Zum einen sind die Zahlen jetzt schon besorgniserregend, wenn nicht furchtbar.
+Zum anderen haben &lt;a href="https://www.nature.com/articles/s41567-020-0921-x?report=reader">Pandemien das Potenzial zu krassen Extremwerten&lt;/a>.&lt;/p></description></item><item><title>Plotting a regression surface (3D)</title><link>https://sebastiansauer.github.io/data_se/2020/12/08/plotting-a-regression-surface-3d/</link><pubDate>Tue, 08 Dec 2020 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2020/12/08/plotting-a-regression-surface-3d/</guid><description>&lt;script src="index_files/header-attrs/header-attrs.js">&lt;/script>
+&lt;link href="index_files/anchor-sections/anchor-sections.css" rel="stylesheet" />
+&lt;script src="index_files/anchor-sections/anchor-sections.js">&lt;/script>
+&lt;script src="index_files/htmlwidgets/htmlwidgets.js">&lt;/script>
+&lt;script src="index_files/plotly-binding/plotly.js">&lt;/script>
+&lt;script src="index_files/typedarray/typedarray.min.js">&lt;/script>
+&lt;script src="index_files/jquery/jquery.min.js">&lt;/script>
+&lt;link href="index_files/crosstalk/css/crosstalk.css" rel="stylesheet" />
+&lt;script src="index_files/crosstalk/js/crosstalk.min.js">&lt;/script>
+&lt;link href="index_files/plotly-htmlwidgets-css/plotly-htmlwidgets.css" rel="stylesheet" />
+&lt;script src="index_files/plotly-main/plotly-latest.min.js">&lt;/script>
+
+
+&lt;div id="load-packages" class="section level1">
+&lt;h1>Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(plotly)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="data" class="section level1">
+&lt;h1>Data&lt;/h1>
+&lt;p>Some sample data&lt;/p>
+&lt;pre class="r">&lt;code>data(tips, package= &amp;quot;reshape2&amp;quot;)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="regression-model" class="section level1">
+&lt;h1>Regression model&lt;/h1>
+&lt;pre class="r">&lt;code>lm1 &amp;lt;- lm(tip ~ total_bill + size, data = tips)
+lm1_coef &amp;lt;- coef(lm1)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="sequence" class="section level1">
+&lt;h1>Sequence&lt;/h1>
+&lt;pre class="r">&lt;code>x1_seq &amp;lt;- seq(min(tips$total_bill), max(tips$total_bill), length.out = 25)
+x2_seq &amp;lt;- seq(min(tips$size), max(tips$size), length.out = 6)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="compute-grid" class="section level1">
+&lt;h1>Compute grid&lt;/h1>
+&lt;pre class="r">&lt;code>z2 &amp;lt;- t(outer(x1_seq, x2_seq, 
+ function(x,y) lm1_coef[1]+lm1_coef[2]*x+lm1_coef[3]*y))&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>z2
+#&amp;gt; [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8]
+#&amp;gt; [1,] 1.146172 1.330595 1.515017 1.699439 1.883862 2.068284 2.252706 2.437128
+#&amp;gt; [2,] 1.338770 1.523193 1.707615 1.892037 2.076459 2.260882 2.445304 2.629726
+#&amp;gt; [3,] 1.531368 1.715790 1.900213 2.084635 2.269057 2.453479 2.637902 2.822324
+#&amp;gt; [4,] 1.723966 1.908388 2.092810 2.277233 2.461655 2.646077 2.830500 3.014922
+#&amp;gt; [5,] 1.916564 2.100986 2.285408 2.469830 2.654253 2.838675 3.023097 3.207520
+#&amp;gt; [6,] 2.109161 2.293584 2.478006 2.662428 2.846851 3.031273 3.215695 3.400117
+#&amp;gt; [,9] [,10] [,11] [,12] [,13] [,14] [,15] [,16]
+#&amp;gt; [1,] 2.621551 2.805973 2.990395 3.174818 3.359240 3.543662 3.728084 3.912507
+#&amp;gt; [2,] 2.814149 2.998571 3.182993 3.367415 3.551838 3.736260 3.920682 4.105104
+#&amp;gt; [3,] 3.006746 3.191169 3.375591 3.560013 3.744435 3.928858 4.113280 4.297702
+#&amp;gt; [4,] 3.199344 3.383766 3.568189 3.752611 3.937033 4.121455 4.305878 4.490300
+#&amp;gt; [5,] 3.391942 3.576364 3.760786 3.945209 4.129631 4.314053 4.498476 4.682898
+#&amp;gt; [6,] 3.584540 3.768962 3.953384 4.137807 4.322229 4.506651 4.691073 4.875496
+#&amp;gt; [,17] [,18] [,19] [,20] [,21] [,22] [,23] [,24]
+#&amp;gt; [1,] 4.096929 4.281351 4.465774 4.650196 4.834618 5.019040 5.203463 5.387885
+#&amp;gt; [2,] 4.289527 4.473949 4.658371 4.842794 5.027216 5.211638 5.396060 5.580483
+#&amp;gt; [3,] 4.482125 4.666547 4.850969 5.035391 5.219814 5.404236 5.588658 5.773080
+#&amp;gt; [4,] 4.674722 4.859145 5.043567 5.227989 5.412411 5.596834 5.781256 5.965678
+#&amp;gt; [5,] 4.867320 5.051742 5.236165 5.420587 5.605009 5.789432 5.973854 6.158276
+#&amp;gt; [6,] 5.059918 5.244340 5.428762 5.613185 5.797607 5.982029 6.166452 6.350874
+#&amp;gt; [,25]
+#&amp;gt; [1,] 5.572307
+#&amp;gt; [2,] 5.764905
+#&amp;gt; [3,] 5.957503
+#&amp;gt; [4,] 6.150101
+#&amp;gt; [5,] 6.342698
+#&amp;gt; [6,] 6.535296&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="draw-the-plane-with-plot_ly-and-add-points-with-add_trace" class="section level1">
+&lt;h1>Draw the plane with “plot_ly” and add points with “add_trace”&lt;/h1>
+&lt;pre class="r">&lt;code>plot_ly(x=~x1_seq, y=~x2_seq, z=~z2,type=&amp;quot;surface&amp;quot;) %&amp;gt;%
+ add_trace(data=tips, 
+ x=~total_bill, y=~size, z=~tip, 
+ mode=&amp;quot;markers&amp;quot;, 
+ type=&amp;quot;scatter3d&amp;quot;,
+ marker = list(color=&amp;quot;#00998a&amp;quot;, 
+ opacity=0.7, 
+ symbol=105)) %&amp;gt;%
+ layout(scene = list(
+ aspectmode = &amp;quot;manual&amp;quot;, 
+ aspectratio = list(x=1, y=1, z=1),
+ xaxis = list(title = &amp;quot;total_bill&amp;quot;),
+ yaxis = list(title = &amp;quot;size&amp;quot;),
+ zaxis = list(title = &amp;quot;tip&amp;quot;)))&lt;/code>&lt;/pre>
+&lt;div id="htmlwidget-1" style="width:100%;height:576px;" class="plotly html-widget">&lt;/div>
+&lt;script type="application/json" data-for="htmlwidget-1">{"x":{"visdat":{"4ce63d000068":["function () ","plotlyVisDat"],"4ce64b1acb21":["function () ","data"]},"cur_data":"4ce64b1acb21","attrs":{"4ce63d000068":{"x":{},"y":{},"z":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"surface"},"4ce64b1acb21":{"x":{},"y":{},"z":{},"alpha_stroke":1,"sizes":[10,100],"spans":[1,20],"type":"scatter3d","mode":"markers","marker":{"color":"#00998a","opacity":0.7,"symbol":105},"inherit":true}},"layout":{"margin":{"b":40,"l":60,"t":25,"r":10},"scene":{"aspectmode":"manual","aspectratio":{"x":1,"y":1,"z":1},"xaxis":{"title":"total_bill"},"yaxis":{"title":"size"},"zaxis":{"title":"tip"}},"hovermode":"closest","showlegend":false,"legend":{"yanchor":"top","y":0.5}},"source":"A","config":{"showSendToCloud":false},"data":[{"colorbar":{"title":"z2&lt;br />tip","ticklen":2,"len":0.5,"lenmode":"fraction","y":1,"yanchor":"top"},"colorscale":[["0","rgba(68,1,84,1)"],["0.0416666666666667","rgba(70,19,97,1)"],["0.0833333333333333","rgba(72,32,111,1)"],["0.125","rgba(71,45,122,1)"],["0.166666666666667","rgba(68,58,128,1)"],["0.208333333333333","rgba(64,70,135,1)"],["0.25","rgba(60,82,138,1)"],["0.291666666666667","rgba(56,93,140,1)"],["0.333333333333333","rgba(49,104,142,1)"],["0.375","rgba(46,114,142,1)"],["0.416666666666667","rgba(42,123,142,1)"],["0.458333333333333","rgba(38,133,141,1)"],["0.5","rgba(37,144,140,1)"],["0.541666666666667","rgba(33,154,138,1)"],["0.583333333333333","rgba(39,164,133,1)"],["0.625","rgba(47,174,127,1)"],["0.666666666666667","rgba(53,183,121,1)"],["0.708333333333333","rgba(79,191,110,1)"],["0.75","rgba(98,199,98,1)"],["0.791666666666667","rgba(119,207,85,1)"],["0.833333333333333","rgba(147,214,70,1)"],["0.875","rgba(172,220,52,1)"],["0.916666666666667","rgba(199,225,42,1)"],["0.958333333333333","rgba(226,228,40,1)"],["1","rgba(253,231,37,1)"]],"showscale":true,"x":[3.07,5.05916666666667,7.04833333333333,9.0375,11.0266666666667,13.0158333333333,15.005,16.9941666666667,18.9833333333333,20.9725,22.9616666666667,24.9508333333333,26.94,28.9291666666667,30.9183333333333,32.9075,34.8966666666667,36.8858333333333,38.875,40.8641666666667,42.8533333333333,44.8425,46.8316666666667,48.8208333333333,50.81],"y":[1,2,3,4,5,6],"z":[[1.14617247927836,1.33059475846055,1.51501703764274,1.69943931682492,1.88386159600711,2.0682838751893,2.25270615437149,2.43712843355368,2.62155071273587,2.80597299191806,2.99039527110025,3.17481755028244,3.35923982946463,3.54366210864682,3.72808438782901,3.9125066670112,4.09692894619339,4.28135122537558,4.46577350455777,4.65019578373996,4.83461806292214,5.01904034210433,5.20346262128652,5.38788490046871,5.5723071796509],[1.33877027366914,1.52319255285133,1.70761483203352,1.89203711121571,2.0764593903979,2.26088166958009,2.44530394876228,2.62972622794447,2.81414850712666,2.99857078630885,3.18299306549104,3.36741534467323,3.55183762385542,3.73625990303761,3.9206821822198,4.10510446140198,4.28952674058417,4.47394901976637,4.65837129894855,4.84279357813074,5.02721585731293,5.21163813649512,5.39606041567731,5.5804826948595,5.76490497404169],[1.53136806805993,1.71579034724212,1.90021262642431,2.0846349056065,2.26905718478869,2.45347946397088,2.63790174315307,2.82232402233526,3.00674630151745,3.19116858069964,3.37559085988183,3.56001313906402,3.7444354182462,3.92885769742839,4.11327997661058,4.29770225579277,4.48212453497496,4.66654681415715,4.85096909333934,5.03539137252153,5.21981365170372,5.40423593088591,5.5886582100681,5.77308048925029,5.95750276843248],[1.72396586245072,1.90838814163291,2.0928104208151,2.27723269999729,2.46165497917948,2.64607725836167,2.83049953754386,3.01492181672605,3.19934409590824,3.38376637509042,3.56818865427261,3.7526109334548,3.93703321263699,4.12145549181918,4.30587777100137,4.49030005018356,4.67472232936575,4.85914460854794,5.04356688773013,5.22798916691232,5.41241144609451,5.5968337252767,5.78125600445889,5.96567828364108,6.15010056282327],[1.91656365684151,2.1009859360237,2.28540821520589,2.46983049438808,2.65425277357027,2.83867505275246,3.02309733193464,3.20751961111683,3.39194189029902,3.57636416948121,3.7607864486634,3.94520872784559,4.12963100702778,4.31405328620997,4.49847556539216,4.68289784457435,4.86732012375654,5.05174240293873,5.23616468212092,5.42058696130311,5.6050092404853,5.78943151966749,5.97385379884968,6.15827607803187,6.34269835721405],[2.1091614512323,2.29358373041449,2.47800600959667,2.66242828877886,2.84685056796105,3.03127284714324,3.21569512632543,3.40011740550762,3.58453968468981,3.768961963872,3.95338424305419,4.13780652223638,4.32222880141857,4.50665108060076,4.69107335978295,4.87549563896514,5.05991791814733,5.24434019732952,5.42876247651171,5.6131847556939,5.79760703487608,5.98202931405827,6.16645159324046,6.35087387242265,6.53529615160484]],"type":"surface","frame":null},{"x":[16.99,10.34,21.01,23.68,24.59,25.29,8.77,26.88,15.04,14.78,10.27,35.26,15.42,18.43,14.83,21.58,10.33,16.29,16.97,20.65,17.92,20.29,15.77,39.42,19.82,17.81,13.37,12.69,21.7,19.65,9.55,18.35,15.06,20.69,17.78,24.06,16.31,16.93,18.69,31.27,16.04,17.46,13.94,9.68,30.4,18.29,22.23,32.4,28.55,18.04,12.54,10.29,34.81,9.94,25.56,19.49,38.01,26.41,11.24,48.27,20.29,13.81,11.02,18.29,17.59,20.08,16.45,3.07,20.23,15.01,12.02,17.07,26.86,25.28,14.73,10.51,17.92,27.2,22.76,17.29,19.44,16.66,10.07,32.68,15.98,34.83,13.03,18.28,24.71,21.16,28.97,22.49,5.75,16.32,22.75,40.17,27.28,12.03,21.01,12.46,11.35,15.38,44.3,22.42,20.92,15.36,20.49,25.21,18.24,14.31,14,7.25,38.07,23.95,25.71,17.31,29.93,10.65,12.43,24.08,11.69,13.42,14.26,15.95,12.48,29.8,8.52,14.52,11.38,22.82,19.08,20.27,11.17,12.26,18.26,8.51,10.33,14.15,16,13.16,17.47,34.3,41.19,27.05,16.43,8.35,18.64,11.87,9.78,7.51,14.07,13.13,17.26,24.55,19.77,29.85,48.17,25,13.39,16.49,21.5,12.66,16.21,13.81,17.51,24.52,20.76,31.71,10.59,10.63,50.81,15.81,7.25,31.85,16.82,32.9,17.89,14.48,9.6,34.63,34.65,23.33,45.35,23.17,40.55,20.69,20.9,30.46,18.15,23.1,15.69,19.81,28.44,15.48,16.58,7.56,10.34,43.11,13,13.51,18.71,12.74,13,16.4,20.53,16.47,26.59,38.73,24.27,12.76,30.06,25.89,48.33,13.27,28.17,12.9,28.15,11.59,7.74,30.14,12.16,13.42,8.58,15.98,13.42,16.27,10.09,20.45,13.28,22.12,24.01,15.69,11.61,10.77,15.53,10.07,12.6,32.83,35.83,29.03,27.18,22.67,17.82,18.78],"y":[2,3,3,2,4,4,2,4,2,2,2,4,2,4,2,2,3,3,3,3,2,2,2,4,2,4,2,2,2,2,2,4,2,4,2,3,3,3,3,3,3,2,2,2,4,2,2,4,3,2,2,2,4,2,4,2,4,2,2,4,2,2,2,4,3,3,2,1,2,2,2,3,2,2,2,2,2,4,2,2,2,2,1,2,2,4,2,2,2,2,2,2,2,2,2,4,2,2,2,2,2,2,3,2,2,2,2,2,2,2,2,1,3,2,3,2,4,2,2,4,2,2,2,2,2,6,2,2,2,3,2,2,2,2,2,2,2,2,2,2,2,6,5,6,2,2,3,2,2,2,2,2,3,4,4,5,6,4,2,4,4,2,3,2,2,3,2,4,2,2,3,2,2,2,2,2,2,2,2,2,4,2,3,4,2,5,3,5,3,3,2,2,2,2,2,2,2,4,2,2,3,2,2,2,4,3,3,4,2,2,3,4,4,2,3,2,5,2,2,4,2,2,1,3,2,2,2,4,2,2,4,3,2,2,2,2,2,2,3,3,2,2,2,2],"z":[1.01,1.66,3.5,3.31,3.61,4.71,2,3.12,1.96,3.23,1.71,5,1.57,3,3.02,3.92,1.67,3.71,3.5,3.35,4.08,2.75,2.23,7.58,3.18,2.34,2,2,4.3,3,1.45,2.5,3,2.45,3.27,3.6,2,3.07,2.31,5,2.24,2.54,3.06,1.32,5.6,3,5,6,2.05,3,2.5,2.6,5.2,1.56,4.34,3.51,3,1.5,1.76,6.73,3.21,2,1.98,3.76,2.64,3.15,2.47,1,2.01,2.09,1.97,3,3.14,5,2.2,1.25,3.08,4,3,2.71,3,3.4,1.83,5,2.03,5.17,2,4,5.85,3,3,3.5,1,4.3,3.25,4.73,4,1.5,3,1.5,2.5,3,2.5,3.48,4.08,1.64,4.06,4.29,3.76,4,3,1,4,2.55,4,3.5,5.07,1.5,1.8,2.92,2.31,1.68,2.5,2,2.52,4.2,1.48,2,2,2.18,1.5,2.83,1.5,2,3.25,1.25,2,2,2,2.75,3.5,6.7,5,5,2.3,1.5,1.36,1.63,1.73,2,2.5,2,2.74,2,2,5.14,5,3.75,2.61,2,3.5,2.5,2,2,3,3.48,2.24,4.5,1.61,2,10,3.16,5.15,3.18,4,3.11,2,2,4,3.55,3.68,5.65,3.5,6.5,3,5,3.5,2,3.5,4,1.5,4.19,2.56,2.02,4,1.44,2,5,2,2,4,2.01,2,2.5,4,3.23,3.41,3,2.03,2.23,2,5.16,9,2.5,6.5,1.1,3,1.5,1.44,3.09,2.2,3.48,1.92,3,1.58,2.5,2,3,2.72,2.88,2,3,3.39,1.47,3,1.25,1,1.17,4.67,5.92,2,2,1.75,3],"type":"scatter3d","mode":"markers","marker":{"color":"#00998a","opacity":0.7,"symbol":105,"line":{"color":"rgba(255,127,14,1)"}},"error_y":{"color":"rgba(255,127,14,1)"},"error_x":{"color":"rgba(255,127,14,1)"},"line":{"color":"rgba(255,127,14,1)"},"frame":null}],"highlight":{"on":"plotly_click","persistent":false,"dynamic":false,"selectize":false,"opacityDim":0.2,"selected":{"opacity":1},"debounce":0},"shinyEvents":["plotly_hover","plotly_click","plotly_selected","plotly_relayout","plotly_brushed","plotly_brushing","plotly_clickannotation","plotly_doubleclick","plotly_deselect","plotly_afterplot","plotly_sunburstclick"],"base_url":"https://plot.ly"},"evals":[],"jsHooks":[]}&lt;/script>
+&lt;/div>
+&lt;div id="reproducibility" class="section level1">
+&lt;h1>Reproducibility&lt;/h1>
+&lt;pre>&lt;code>#&amp;gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&amp;gt; setting value 
+#&amp;gt; version R version 4.0.2 (2020-06-22)
+#&amp;gt; os macOS Catalina 10.15.7 
+#&amp;gt; system x86_64, darwin17.0 
+#&amp;gt; ui X11 
+#&amp;gt; language (EN) 
+#&amp;gt; collate en_US.UTF-8 
+#&amp;gt; ctype en_US.UTF-8 
+#&amp;gt; tz Europe/Berlin 
+#&amp;gt; date 2020-12-08 
+#&amp;gt; 
+#&amp;gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&amp;gt; package * version date lib source 
+#&amp;gt; assertthat 0.2.1 2019-03-21 [1] CRAN (R 4.0.0)
+#&amp;gt; backports 1.2.0 2020-11-02 [1] CRAN (R 4.0.2)
+#&amp;gt; blogdown 0.21 2020-10-11 [1] CRAN (R 4.0.2)
+#&amp;gt; bookdown 0.21 2020-10-13 [1] CRAN (R 4.0.2)
+#&amp;gt; broom 0.7.2 2020-10-20 [1] CRAN (R 4.0.2)
+#&amp;gt; callr 3.5.1 2020-10-13 [1] CRAN (R 4.0.2)
+#&amp;gt; cellranger 1.1.0 2016-07-27 [1] CRAN (R 4.0.0)
+#&amp;gt; cli 2.2.0 2020-11-20 [1] CRAN (R 4.0.2)
+#&amp;gt; codetools 0.2-16 2018-12-24 [2] CRAN (R 4.0.2)
+#&amp;gt; colorspace 2.0-0 2020-11-11 [1] CRAN (R 4.0.2)
+#&amp;gt; crayon 1.3.4 2017-09-16 [1] CRAN (R 4.0.0)
+#&amp;gt; crosstalk 1.1.0.1 2020-03-13 [1] CRAN (R 4.0.0)
+#&amp;gt; data.table 1.13.2 2020-10-19 [1] CRAN (R 4.0.2)
+#&amp;gt; DBI 1.1.0 2019-12-15 [1] CRAN (R 4.0.0)
+#&amp;gt; dbplyr 2.0.0 2020-11-03 [1] CRAN (R 4.0.2)
+#&amp;gt; desc 1.2.0 2018-05-01 [1] CRAN (R 4.0.0)
+#&amp;gt; devtools 2.3.2 2020-09-18 [1] CRAN (R 4.0.2)
+#&amp;gt; digest 0.6.27 2020-10-24 [1] CRAN (R 4.0.2)
+#&amp;gt; dplyr * 1.0.2 2020-08-18 [1] CRAN (R 4.0.2)
+#&amp;gt; ellipsis 0.3.1 2020-05-15 [1] CRAN (R 4.0.0)
+#&amp;gt; evaluate 0.14 2019-05-28 [1] CRAN (R 4.0.0)
+#&amp;gt; fansi 0.4.1 2020-01-08 [1] CRAN (R 4.0.0)
+#&amp;gt; farver 2.0.3 2020-01-16 [1] CRAN (R 4.0.0)
+#&amp;gt; forcats * 0.5.0 2020-03-01 [1] CRAN (R 4.0.0)
+#&amp;gt; fs 1.5.0 2020-07-31 [1] CRAN (R 4.0.2)
+#&amp;gt; generics 0.1.0 2020-10-31 [1] CRAN (R 4.0.2)
+#&amp;gt; ggplot2 * 3.3.2 2020-06-19 [1] CRAN (R 4.0.0)
+#&amp;gt; glue 1.4.2 2020-08-27 [1] CRAN (R 4.0.2)
+#&amp;gt; gtable 0.3.0 2019-03-25 [1] CRAN (R 4.0.0)
+#&amp;gt; haven 2.3.1 2020-06-01 [1] CRAN (R 4.0.0)
+#&amp;gt; hms 0.5.3 2020-01-08 [1] CRAN (R 4.0.0)
+#&amp;gt; htmltools 0.5.0 2020-06-16 [1] CRAN (R 4.0.0)
+#&amp;gt; htmlwidgets 1.5.2 2020-10-03 [1] CRAN (R 4.0.2)
+#&amp;gt; httr 1.4.2 2020-07-20 [1] CRAN (R 4.0.2)
+#&amp;gt; jsonlite 1.7.1 2020-09-07 [1] CRAN (R 4.0.2)
+#&amp;gt; knitr 1.30 2020-09-22 [1] CRAN (R 4.0.2)
+#&amp;gt; lazyeval 0.2.2 2019-03-15 [1] CRAN (R 4.0.0)
+#&amp;gt; lifecycle 0.2.0 2020-03-06 [1] CRAN (R 4.0.0)
+#&amp;gt; lubridate 1.7.9.2 2020-11-13 [1] CRAN (R 4.0.2)
+#&amp;gt; magrittr 2.0.1 2020-11-17 [1] CRAN (R 4.0.2)
+#&amp;gt; memoise 1.1.0 2017-04-21 [1] CRAN (R 4.0.0)
+#&amp;gt; modelr 0.1.8 2020-05-19 [1] CRAN (R 4.0.0)
+#&amp;gt; munsell 0.5.0 2018-06-12 [1] CRAN (R 4.0.0)
+#&amp;gt; pillar 1.4.7 2020-11-20 [1] CRAN (R 4.0.2)
+#&amp;gt; pkgbuild 1.1.0 2020-07-13 [1] CRAN (R 4.0.2)
+#&amp;gt; pkgconfig 2.0.3 2019-09-22 [1] CRAN (R 4.0.0)
+#&amp;gt; pkgload 1.1.0 2020-05-29 [1] CRAN (R 4.0.0)
+#&amp;gt; plotly * 4.9.2.1 2020-04-04 [1] CRAN (R 4.0.0)
+#&amp;gt; prettyunits 1.1.1 2020-01-24 [1] CRAN (R 4.0.0)
+#&amp;gt; processx 3.4.5 2020-11-30 [1] CRAN (R 4.0.2)
+#&amp;gt; ps 1.4.0 2020-10-07 [1] CRAN (R 4.0.2)
+#&amp;gt; purrr * 0.3.4 2020-04-17 [1] CRAN (R 4.0.0)
+#&amp;gt; R6 2.5.0 2020-10-28 [1] CRAN (R 4.0.2)
+#&amp;gt; Rcpp 1.0.5 2020-07-06 [1] CRAN (R 4.0.2)
+#&amp;gt; readr * 1.4.0 2020-10-05 [1] CRAN (R 4.0.2)
+#&amp;gt; readxl 1.3.1 2019-03-13 [1] CRAN (R 4.0.0)
+#&amp;gt; remotes 2.2.0 2020-07-21 [1] CRAN (R 4.0.2)
+#&amp;gt; reprex 0.3.0 2019-05-16 [1] CRAN (R 4.0.0)
+#&amp;gt; rlang 0.4.9 2020-11-26 [1] CRAN (R 4.0.2)
+#&amp;gt; rmarkdown 2.5 2020-10-21 [1] CRAN (R 4.0.2)
+#&amp;gt; rprojroot 2.0.2 2020-11-15 [1] CRAN (R 4.0.2)
+#&amp;gt; rstudioapi 0.13 2020-11-12 [1] CRAN (R 4.0.2)
+#&amp;gt; rvest 0.3.6 2020-07-25 [1] CRAN (R 4.0.2)
+#&amp;gt; scales 1.1.1 2020-05-11 [1] CRAN (R 4.0.0)
+#&amp;gt; sessioninfo 1.1.1 2018-11-05 [1] CRAN (R 4.0.0)
+#&amp;gt; stringi 1.5.3 2020-09-09 [1] CRAN (R 4.0.2)
+#&amp;gt; stringr * 1.4.0 2019-02-10 [1] CRAN (R 4.0.0)
+#&amp;gt; testthat 3.0.0 2020-10-31 [1] CRAN (R 4.0.2)
+#&amp;gt; tibble * 3.0.4 2020-10-12 [1] CRAN (R 4.0.2)
+#&amp;gt; tidyr * 1.1.2 2020-08-27 [1] CRAN (R 4.0.2)
+#&amp;gt; tidyselect 1.1.0 2020-05-11 [1] CRAN (R 4.0.0)
+#&amp;gt; tidyverse * 1.3.0 2019-11-21 [1] CRAN (R 4.0.0)
+#&amp;gt; usethis 1.6.3 2020-09-17 [1] CRAN (R 4.0.2)
+#&amp;gt; vctrs 0.3.5 2020-11-17 [1] CRAN (R 4.0.2)
+#&amp;gt; viridisLite 0.3.0 2018-02-01 [1] CRAN (R 4.0.0)
+#&amp;gt; withr 2.3.0 2020-09-22 [1] CRAN (R 4.0.2)
+#&amp;gt; xfun 0.19 2020-10-30 [1] CRAN (R 4.0.2)
+#&amp;gt; xml2 1.3.2 2020-04-23 [1] CRAN (R 4.0.0)
+#&amp;gt; yaml 2.2.1 2020-02-01 [1] CRAN (R 4.0.0)
+#&amp;gt; 
+#&amp;gt; [1] /Users/sebastiansaueruser/Rlibs
+#&amp;gt; [2] /Library/Frameworks/R.framework/Versions/4.0/Resources/library&lt;/code>&lt;/pre>
+&lt;/div></description></item><item><title>Some ways for plotting 3D linear models</title><link>https://sebastiansauer.github.io/data_se/2019/10/21/some-ways-for-plotting-3d-linear-models/</link><pubDate>Mon, 21 Oct 2019 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2019/10/21/some-ways-for-plotting-3d-linear-models/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/htmlwidgets/htmlwidgets.js">&lt;/script>
 &lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/plotly-binding/plotly.js">&lt;/script>
 &lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/typedarray/typedarray.min.js">&lt;/script>
 &lt;script src="https://sebastiansauer.github.io/data_se/rmarkdown-libs/jquery/jquery.min.js">&lt;/script>

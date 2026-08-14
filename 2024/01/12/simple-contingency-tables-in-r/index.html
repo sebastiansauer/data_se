@@ -1,0 +1,191 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Simple contingency tables in R - Data Se</title>
+<meta property="og:title" content="Simple contingency tables in R - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>7 min read</span><h1 class=article-title>Simple contingency tables in R</h1><span class=article-date>2024/01/12</span><div class=article-content><div id=TOC><ul><li><a href=#load-packages id=toc-load-packages><span class=toc-section-number>1</span> Load packages</a></li><li><a href=#motivation id=toc-motivation><span class=toc-section-number>2</span> Motivation</a></li><li><a href=#toy-data id=toc-toy-data><span class=toc-section-number>3</span> Toy data</a></li><li><a href=#using-table-and-friends id=toc-using-table-and-friends><span class=toc-section-number>4</span> Using <code>table</code> and friends</a></li><li><a href=#using-count id=toc-using-count><span class=toc-section-number>5</span> Using <code>count</code></a></li><li><a href=#dont-drop-unused-factor-levels id=toc-dont-drop-unused-factor-levels><span class=toc-section-number>6</span> Don’t drop unused factor levels</a></li><li><a href=#see-also id=toc-see-also><span class=toc-section-number>7</span> See also</a></li><li><a href=#conclusions id=toc-conclusions><span class=toc-section-number>8</span> Conclusions</a></li><li><a href=#reproducibility id=toc-reproducibility><span class=toc-section-number>9</span> Reproducibility</a></li></ul></div><div id=load-packages class="section level1" number=1><h1><span class=header-section-number>1</span> Load packages</h1><pre class=r><code>library(tidyverse)  # data wrangling</code></pre></div><div id=motivation class="section level1" number=2><h1><span class=header-section-number>2</span> Motivation</h1><p>Assume we would like to compute contingency tables in R without much ado. Let’s explore some ways.</p></div><div id=toy-data class="section level1" number=3><h1><span class=header-section-number>3</span> Toy data</h1><pre class=r><code>data(mtcars)</code></pre></div><div id=using-table-and-friends class="section level1" number=4><h1><span class=header-section-number>4</span> Using <code>table</code> and friends</h1><pre class=r><code>mtcars |&gt; 
+  select(vs, am) |&gt; 
+  table()
+#&gt;    am
+#&gt; vs   0  1
+#&gt;   0 12  6
+#&gt;   1  7  7</code></pre><p>Let’s add margins:</p><pre class=r><code>mtcars |&gt; 
+  select(vs, am) |&gt; 
+  table() |&gt; 
+  addmargins()
+#&gt;      am
+#&gt; vs     0  1 Sum
+#&gt;   0   12  6  18
+#&gt;   1    7  7  14
+#&gt;   Sum 19 13  32</code></pre><p>Let’s show rather proportions instead of raw counts:</p><pre class=r><code>mtcars |&gt; 
+  select(vs, am) |&gt; 
+  table() |&gt; 
+  prop.table() |&gt; 
+  addmargins()
+#&gt;      am
+#&gt; vs          0       1     Sum
+#&gt;   0   0.37500 0.18750 0.56250
+#&gt;   1   0.21875 0.21875 0.43750
+#&gt;   Sum 0.59375 0.40625 1.00000</code></pre><p>Note that <code>addmargins</code> must appear after <code>proptable</code>.</p><p>Let’s round to 2 places:</p><pre class=r><code>mtcars |&gt; 
+  select(vs, am) |&gt; 
+  table() |&gt; 
+  prop.table() |&gt; 
+  addmargins() |&gt; 
+  round(2)
+#&gt;      am
+#&gt; vs       0    1  Sum
+#&gt;   0   0.38 0.19 0.56
+#&gt;   1   0.22 0.22 0.44
+#&gt;   Sum 0.59 0.41 1.00</code></pre><p>Let’s change the margin, i.e, the groups which should sum up to 100%:</p><p>Proportions <em>per row</em>:</p><pre class=r><code>mtcars |&gt; 
+  select(vs, am) |&gt; 
+  table() |&gt; 
+  prop.table(margin = 1) |&gt; 
+  addmargins() |&gt; 
+  round(2)
+#&gt;      am
+#&gt; vs       0    1  Sum
+#&gt;   0   0.67 0.33 1.00
+#&gt;   1   0.50 0.50 1.00
+#&gt;   Sum 1.17 0.83 2.00</code></pre><p>Proportion per <em>column</em>:</p><pre class=r><code>mtcars |&gt; 
+  select(vs, am) |&gt; 
+  table() |&gt; 
+  prop.table(margin = 2) |&gt; 
+  addmargins() |&gt; 
+  round(2)
+#&gt;      am
+#&gt; vs       0    1  Sum
+#&gt;   0   0.63 0.46 1.09
+#&gt;   1   0.37 0.54 0.91
+#&gt;   Sum 1.00 1.00 2.00</code></pre></div><div id=using-count class="section level1" number=5><h1><span class=header-section-number>5</span> Using <code>count</code></h1><pre class=r><code>mtcars |&gt; 
+  count(vs, am)
+#&gt;   vs am  n
+#&gt; 1  0  0 12
+#&gt; 2  0  1  6
+#&gt; 3  1  0  7
+#&gt; 4  1  1  7</code></pre><p>Adding proportions:</p><pre class=r><code>mtcars |&gt; 
+  count(vs, am) |&gt; 
+  mutate(prop = n/sum(n))
+#&gt;   vs am  n    prop
+#&gt; 1  0  0 12 0.37500
+#&gt; 2  0  1  6 0.18750
+#&gt; 3  1  0  7 0.21875
+#&gt; 4  1  1  7 0.21875</code></pre><p>Since some while, <code>count</code> returns an ungrouped table, we would need to group according to our wishes.</p><p>If we group e.g., by <code>am</code> we get the proportion of <code>vs</code> values for each group of <code>am</code>:</p><pre class=r><code>mtcars |&gt; 
+  count(am, vs) |&gt; 
+  group_by(am) |&gt; 
+  mutate(prop = n/sum(n))
+#&gt; # A tibble: 4 × 4
+#&gt; # Groups:   am [2]
+#&gt;      am    vs     n  prop
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;dbl&gt;
+#&gt; 1     0     0    12 0.632
+#&gt; 2     0     1     7 0.368
+#&gt; 3     1     0     6 0.462
+#&gt; 4     1     1     7 0.538</code></pre><p>Grouping by <code>vs</code>:</p><pre class=r><code>mtcars |&gt; 
+  count(am, vs) |&gt; 
+  group_by(vs) |&gt; 
+  mutate(prop = n/sum(n))
+#&gt; # A tibble: 4 × 4
+#&gt; # Groups:   vs [2]
+#&gt;      am    vs     n  prop
+#&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;int&gt; &lt;dbl&gt;
+#&gt; 1     0     0    12 0.667
+#&gt; 2     0     1     7 0.5  
+#&gt; 3     1     0     6 0.333
+#&gt; 4     1     1     7 0.5</code></pre><p>We can also sum up all groups to 100%, if we do not group at all:</p><pre class=r><code>mtcars |&gt; 
+  count(am, vs) |&gt; 
+  mutate(prop = n/sum(n))
+#&gt;   am vs  n    prop
+#&gt; 1  0  0 12 0.37500
+#&gt; 2  0  1  7 0.21875
+#&gt; 3  1  0  6 0.18750
+#&gt; 4  1  1  7 0.21875</code></pre></div><div id=dont-drop-unused-factor-levels class="section level1" number=6><h1><span class=header-section-number>6</span> Don’t drop unused factor levels</h1><p>Use <code>count(..., .drop = FALSE)</code> to prevent that unused factor levels are dropped.</p></div><div id=see-also class="section level1" number=7><h1><span class=header-section-number>7</span> See also</h1><p><a href=https://stackoverflow.com/questions/24576515/relative-frequencies-proportions-with-dplyr>This SO post</a> shows a nice overview on grouping using <code>count</code> from <code>dplyr</code>.</p></div><div id=conclusions class="section level1" number=8><h1><span class=header-section-number>8</span> Conclusions</h1><p>There are many ways in R to produce contingency tables. Here are two :-)</p></div><div id=reproducibility class="section level1" number=9><h1><span class=header-section-number>9</span> Reproducibility</h1><pre><code>#&gt; ─ Session info ───────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  setting  value
+#&gt;  version  R version 4.2.1 (2022-06-23)
+#&gt;  os       macOS Big Sur ... 10.16
+#&gt;  system   x86_64, darwin17.0
+#&gt;  ui       X11
+#&gt;  language (EN)
+#&gt;  collate  en_US.UTF-8
+#&gt;  ctype    en_US.UTF-8
+#&gt;  tz       Europe/Berlin
+#&gt;  date     2024-01-12
+#&gt;  pandoc   3.1.1 @ /Applications/RStudio.app/Contents/Resources/app/quarto/bin/tools/ (via rmarkdown)
+#&gt; 
+#&gt; ─ Packages ───────────────────────────────────────────────────────────────────────────────────────────────────────────
+#&gt;  package     * version date (UTC) lib source
+#&gt;  blogdown      1.18    2023-06-19 [1] CRAN (R 4.2.0)
+#&gt;  bookdown      0.36    2023-10-16 [1] CRAN (R 4.2.0)
+#&gt;  bslib         0.5.1   2023-08-11 [1] CRAN (R 4.2.0)
+#&gt;  cachem        1.0.8   2023-05-01 [1] CRAN (R 4.2.0)
+#&gt;  callr         3.7.3   2022-11-02 [1] CRAN (R 4.2.0)
+#&gt;  cli           3.6.1   2023-03-23 [1] CRAN (R 4.2.0)
+#&gt;  codetools     0.2-19  2023-02-01 [1] CRAN (R 4.2.0)
+#&gt;  colorout    * 1.3-0   2023-11-08 [1] Github (jalvesaq/colorout@8384882)
+#&gt;  colorspace    2.1-0   2023-01-23 [1] CRAN (R 4.2.0)
+#&gt;  crayon        1.5.2   2022-09-29 [1] CRAN (R 4.2.1)
+#&gt;  devtools      2.4.5   2022-10-11 [1] CRAN (R 4.2.1)
+#&gt;  digest        0.6.33  2023-07-07 [1] CRAN (R 4.2.0)
+#&gt;  dplyr       * 1.1.3   2023-09-03 [1] CRAN (R 4.2.0)
+#&gt;  ellipsis      0.3.2   2021-04-29 [1] CRAN (R 4.2.0)
+#&gt;  evaluate      0.21    2023-05-05 [1] CRAN (R 4.2.0)
+#&gt;  fansi         1.0.5   2023-10-08 [1] CRAN (R 4.2.0)
+#&gt;  fastmap       1.1.1   2023-02-24 [1] CRAN (R 4.2.0)
+#&gt;  forcats     * 1.0.0   2023-01-29 [1] CRAN (R 4.2.0)
+#&gt;  fs            1.6.3   2023-07-20 [1] CRAN (R 4.2.0)
+#&gt;  generics      0.1.3   2022-07-05 [1] CRAN (R 4.2.0)
+#&gt;  ggplot2     * 3.4.4   2023-10-12 [1] CRAN (R 4.2.0)
+#&gt;  glue          1.6.2   2022-02-24 [1] CRAN (R 4.2.0)
+#&gt;  gtable        0.3.4   2023-08-21 [1] CRAN (R 4.2.0)
+#&gt;  hms           1.1.3   2023-03-21 [1] CRAN (R 4.2.0)
+#&gt;  htmltools     0.5.6.1 2023-10-06 [1] CRAN (R 4.2.0)
+#&gt;  htmlwidgets   1.6.2   2023-03-17 [1] CRAN (R 4.2.0)
+#&gt;  httpuv        1.6.11  2023-05-11 [1] CRAN (R 4.2.0)
+#&gt;  jquerylib     0.1.4   2021-04-26 [1] CRAN (R 4.2.0)
+#&gt;  jsonlite      1.8.7   2023-06-29 [1] CRAN (R 4.2.0)
+#&gt;  knitr         1.45    2023-10-30 [1] CRAN (R 4.2.1)
+#&gt;  later         1.3.1   2023-05-02 [1] CRAN (R 4.2.0)
+#&gt;  lifecycle     1.0.4   2023-11-07 [1] CRAN (R 4.2.1)
+#&gt;  lubridate   * 1.9.3   2023-09-27 [1] CRAN (R 4.2.0)
+#&gt;  magrittr      2.0.3   2022-03-30 [1] CRAN (R 4.2.0)
+#&gt;  memoise       2.0.1   2021-11-26 [1] CRAN (R 4.2.0)
+#&gt;  mime          0.12    2021-09-28 [1] CRAN (R 4.2.0)
+#&gt;  miniUI        0.1.1.1 2018-05-18 [1] CRAN (R 4.2.0)
+#&gt;  munsell       0.5.0   2018-06-12 [1] CRAN (R 4.2.0)
+#&gt;  pillar        1.9.0   2023-03-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgbuild      1.4.0   2022-11-27 [1] CRAN (R 4.2.0)
+#&gt;  pkgconfig     2.0.3   2019-09-22 [1] CRAN (R 4.2.0)
+#&gt;  pkgload       1.3.2.1 2023-07-08 [1] CRAN (R 4.2.0)
+#&gt;  prettyunits   1.1.1   2020-01-24 [1] CRAN (R 4.2.0)
+#&gt;  processx      3.8.2   2023-06-30 [1] CRAN (R 4.2.0)
+#&gt;  profvis       0.3.8   2023-05-02 [1] CRAN (R 4.2.0)
+#&gt;  promises      1.2.1   2023-08-10 [1] CRAN (R 4.2.0)
+#&gt;  ps            1.7.5   2023-04-18 [1] CRAN (R 4.2.0)
+#&gt;  purrr       * 1.0.2   2023-08-10 [1] CRAN (R 4.2.0)
+#&gt;  R6            2.5.1   2021-08-19 [1] CRAN (R 4.2.0)
+#&gt;  Rcpp          1.0.11  2023-07-06 [1] CRAN (R 4.2.0)
+#&gt;  readr       * 2.1.4   2023-02-10 [1] CRAN (R 4.2.0)
+#&gt;  remotes       2.4.2.1 2023-07-18 [1] CRAN (R 4.2.0)
+#&gt;  rlang         1.1.1   2023-04-28 [1] CRAN (R 4.2.0)
+#&gt;  rmarkdown     2.25    2023-09-18 [1] CRAN (R 4.2.0)
+#&gt;  rstudioapi    0.15.0  2023-07-07 [1] CRAN (R 4.2.0)
+#&gt;  sass          0.4.7   2023-07-15 [1] CRAN (R 4.2.0)
+#&gt;  scales        1.2.1   2022-08-20 [1] CRAN (R 4.2.0)
+#&gt;  sessioninfo   1.2.2   2021-12-06 [1] CRAN (R 4.2.0)
+#&gt;  shiny         1.8.0   2023-11-17 [1] CRAN (R 4.2.1)
+#&gt;  stringi       1.7.12  2023-01-11 [1] CRAN (R 4.2.0)
+#&gt;  stringr     * 1.5.1   2023-11-14 [1] CRAN (R 4.2.1)
+#&gt;  tibble      * 3.2.1   2023-03-20 [1] CRAN (R 4.2.0)
+#&gt;  tidyr       * 1.3.0   2023-01-24 [1] CRAN (R 4.2.0)
+#&gt;  tidyselect    1.2.0   2022-10-10 [1] CRAN (R 4.2.0)
+#&gt;  tidyverse   * 2.0.0   2023-02-22 [1] CRAN (R 4.2.0)
+#&gt;  timechange    0.2.0   2023-01-11 [1] CRAN (R 4.2.0)
+#&gt;  tzdb          0.4.0   2023-05-12 [1] CRAN (R 4.2.0)
+#&gt;  urlchecker    1.0.1   2021-11-30 [1] CRAN (R 4.2.0)
+#&gt;  usethis       2.2.2   2023-07-06 [1] CRAN (R 4.2.0)
+#&gt;  utf8          1.2.3   2023-01-31 [1] CRAN (R 4.2.0)
+#&gt;  vctrs         0.6.4   2023-10-12 [1] CRAN (R 4.2.0)
+#&gt;  withr         2.5.2   2023-10-30 [1] CRAN (R 4.2.1)
+#&gt;  xfun          0.40    2023-08-09 [1] CRAN (R 4.2.0)
+#&gt;  xtable        1.8-4   2019-04-21 [1] CRAN (R 4.2.0)
+#&gt;  yaml          2.3.7   2023-01-23 [1] CRAN (R 4.2.0)
+#&gt; 
+#&gt;  [1] /Users/sebastiansaueruser/Rlibs
+#&gt;  [2] /Library/Frameworks/R.framework/Versions/4.2/Resources/library
+#&gt; 
+#&gt; ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────</code></pre></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script></body></html>

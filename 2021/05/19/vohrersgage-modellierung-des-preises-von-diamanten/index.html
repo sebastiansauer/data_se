@@ -1,0 +1,72 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Vorhersage-Modellierung des Preises von Diamanten - Data Se</title>
+<meta property="og:title" content="Vorhersage-Modellierung des Preises von Diamanten - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>4 min read</span><h1 class=article-title>Vorhersage-Modellierung des Preises von Diamanten</h1><span class=article-date>2021/05/19</span><div class=article-content><script src="/data_se/2021/05/19/vohrersgage-modellierung-des-preises-von-diamanten/
+index_files/header-attrs/header-attrs.js"></script><div id=TOC><ul><li><a href=#hintergrund-und-ziel><span class=toc-section-number>1</span> Hintergrund und Ziel</a></li><li><a href=#pakete-laden><span class=toc-section-number>2</span> Pakete laden</a></li><li><a href=#daten-laden><span class=toc-section-number>3</span> Daten laden</a></li><li><a href=#aufteilen-in-train--und-test-datensatz><span class=toc-section-number>4</span> Aufteilen in Train- und Test-Datensatz</a></li><li><a href=#eda><span class=toc-section-number>5</span> EDA</a></li><li><a href=#modellierung><span class=toc-section-number>6</span> Modellierung</a><ul><li><a href=#modell-1><span class=toc-section-number>6.1</span> Modell 1</a></li><li><a href=#modell-2><span class=toc-section-number>6.2</span> Modell 2</a></li></ul></li><li><a href=#vorhersage-im-test-datensatz><span class=toc-section-number>7</span> Vorhersage im Test-Datensatz</a></li><li><a href=#r-quadrat-im-test-datensatz><span class=toc-section-number>8</span> R-Quadrat im Test-Datensatz</a></li><li><a href=#weitere-überlegungen><span class=toc-section-number>9</span> Weitere Überlegungen</a></li><li><a href=#einreichen><span class=toc-section-number>10</span> Einreichen</a></li></ul></div><div id=hintergrund-und-ziel class="section level1" number=1><h1><span class=header-section-number>1</span> Hintergrund und Ziel</h1><p>In diesem Post sagen wir den Preis von Diamanten vorher. Nehmen wir an, Sie hätten bei einem großen Online-Kaufhaus angeheuert und ihre Chefin möchte gerne wissen, welchen Preis sie wohl für bestimmte Diamanten erzielen kann. <code>price</code> ist also die vorherzusagende Größe im Datensatz <code>diamonds</code> (aus ggplot2).</p></div><div id=pakete-laden class="section level1" number=2><h1><span class=header-section-number>2</span> Pakete laden</h1><pre class=r><code>library(tidyverse)  # data wrangling
+library(tidymodels)  # Vorhersagemodellierung
+library(modelr)  # Modellierungshilfen
+library(lvplot)  # letter value plots</code></pre></div><div id=daten-laden class="section level1" number=3><h1><span class=header-section-number>3</span> Daten laden</h1><pre class=r><code>data(diamonds)  # aus dem Paket `ggplot2`</code></pre></div><div id=aufteilen-in-train--und-test-datensatz class="section level1" number=4><h1><span class=header-section-number>4</span> Aufteilen in Train- und Test-Datensatz</h1><p>Wir trennen einen Teil (25%) des Datensatzes ab, um zu simulieren, dass wir diese Daten erst in der Zukunft zu sehen bekommen werden. Letztlich geht es ja bei der Vorhersagemodellierung darum, Werte in der Zukunft vorherzusagen.</p><p>Ein einfacher Weg dazu sieht so aus:</p><pre class=r><code>diamonds &lt;-
+  diamonds %&gt;% 
+  mutate(id = row_number())</code></pre><pre class=r><code>train &lt;-
+  diamonds %&gt;% 
+  slice_sample(prop = .75)</code></pre><pre class=r><code>test &lt;-
+  diamonds %&gt;% 
+  anti_join(train, by = &quot;id&quot;)</code></pre><p>Ingesamt entspricht die Zeilenzahl der zwei Teile (train und test) der Gesamtzeilenzahl:</p><pre class=r><code>nrow(test) + nrow(train) == nrow(diamonds)
+#&gt; [1] TRUE</code></pre><p>Alternativ kann man auch z.B. folgende Komfort-Funktion verwenden:</p><pre class=r><code>flights_index &lt;- initial_split(diamonds)</code></pre><pre class=r><code>train &lt;- training(flights_index)
+test &lt;- testing(flights_index)</code></pre></div><div id=eda class="section level1" number=5><h1><span class=header-section-number>5</span> EDA</h1><p>Hier nicht ausgeführt…</p><p>In diesem Teil versuchen Sie, den Datensatz zu “verstehen”. Typische Fragen, die Sie in diesem Zusammenhang untersuchen sind:</p><ul><li>Wie ist die Verteilung der abhängigen Variable? Was sind ihre typischen und untypischen Werte, wie ihre Streuung?</li><li>Welche Variablen stehen (in welcher funktionalen Form) mit der abhängigen Variablen (und wie stark) in Zusammenhang?</li><li>Sind die Zusammenhänge abhängig von Drittvariablen (und wie sehr)?</li><li>Wie viele fehlenden Variablen gibt es bei welchen Variablen und inwieweit begrenzen Sie (prognoszierende) Modelle?</li><li>Finden sich “merkwürdige” Werte, die u.U. auf Fehler oder besondere Prozesse zurückzuführen sind?</li><li>Welche kausalen Theorien könnten die beobachteten Zusammenhänge erklären?</li></ul></div><div id=modellierung class="section level1" number=6><h1><span class=header-section-number>6</span> Modellierung</h1><p>Auf geht’s! Erstellen wir ein paar Modelle!</p><div id=modell-1 class="section level2" number=6.1><h2><span class=header-section-number>6.1</span> Modell 1</h2><pre class=r><code>lm1 &lt;- lm(price ~ carat + depth + table + cut + color,
+          data = train)</code></pre><p>Einen Überblick über die Modellergebnisse bekommt man mit <code>summary</code>. Möchte man nur das R-Quadrat wissen, so kann man es sich so “herausziehen”:</p><pre class=r><code>summary(lm1)$r.squared
+#&gt; [1] 0.8717391</code></pre><p>Das sieht schon sehr hoch aus!</p></div><div id=modell-2 class="section level2" number=6.2><h2><span class=header-section-number>6.2</span> Modell 2</h2><pre class=r><code>lm2 &lt;- lm(price ~ carat^2 + carat + depth + table + cut + color + carat:cut,data = train)</code></pre><pre class=r><code>summary(lm2)$r.squared
+#&gt; [1] 0.8737339</code></pre><p>Unwesentlich besser: Die marginale Verbesserung im R-Quadrat haben wir durch wesentlich höhere Komplexität erkauft; vermutlich kein guter Handel.</p></div></div><div id=vorhersage-im-test-datensatz class="section level1" number=7><h1><span class=header-section-number>7</span> Vorhersage im Test-Datensatz</h1><pre class=r><code>test2 &lt;-
+  test %&gt;% 
+  add_predictions(model = lm1, var = &quot;pred_lm1&quot;) %&gt;% 
+  add_predictions(model = lm2, var = &quot;pred_lm2&quot;)</code></pre><pre class=r><code>test2 %&gt;% 
+  select(pred_lm1, pred_lm2, price) %&gt;% 
+  pivot_longer(cols = c(pred_lm1, pred_lm2), 
+               names_to = &quot;model&quot;,
+               values_to = &quot;pred&quot;) %&gt;% 
+  ggplot() +
+  geom_density(aes(x = price), 
+               fill = &quot;grey50&quot;,
+               alpha = .5) +
+  geom_density(aes(x = pred, 
+                   fill = model),alpha = .5
+               )</code></pre><p><img src="/data_se/2021/05/19/vohrersgage-modellierung-des-preises-von-diamanten/
+index_files/figure-html/unnamed-chunk-13-1.png" width=100% style=display:block;margin:auto></p><p>Das Diagramm zeigt, dass die beiden Modelle <code>lm1</code> und <code>lm2</code> fast identische Vorhersagen liefern. Allerdings haben beide Modelle negative Preise, was nicht wirklich Sinn macht. Letzteres zeigt folgendes Diagramm besser:</p><pre class=r><code>test2 %&gt;% 
+  select(pred_lm1, pred_lm2, price) %&gt;% 
+  pivot_longer(everything(), 
+               names_to = &quot;model&quot;,
+               values_to = &quot;pred&quot;) %&gt;% 
+  ggplot() +
+  geom_ref_line(h = 0) +
+  aes(x = model, y = pred, fill = model) +
+  geom_boxplot() 
+  </code></pre><p><img src="/data_se/2021/05/19/vohrersgage-modellierung-des-preises-von-diamanten/
+index_files/figure-html/unnamed-chunk-14-1.png" width=100% style=display:block;margin:auto></p><p>Im Letter value plot kommt die Schiefe und die Extremwerte differenzierter zum Vorschein.</p><pre class=r><code>test2 %&gt;% 
+  select(pred_lm1, pred_lm2, price) %&gt;% 
+  pivot_longer(everything(), 
+               names_to = &quot;model&quot;,
+               values_to = &quot;pred&quot;) %&gt;% 
+  ggplot() +
+  geom_ref_line(h = 0) +
+  aes(x = model, y = pred, fill = model) +
+  geom_lv() 
+  </code></pre><p><img src="/data_se/2021/05/19/vohrersgage-modellierung-des-preises-von-diamanten/
+index_files/figure-html/unnamed-chunk-15-1.png" width=100% style=display:block;margin:auto></p></div><div id=r-quadrat-im-test-datensatz class="section level1" number=8><h1><span class=header-section-number>8</span> R-Quadrat im Test-Datensatz</h1><pre class=r><code>test2 %&gt;% 
+  summarise(
+    rsq_lm1 = rsq_vec(truth = price, estimate = pred_lm1),
+    rsq_lm2 = rsq_vec(truth = price, estimate = pred_lm2)
+    )
+#&gt; # A tibble: 1 x 2
+#&gt;   rsq_lm1 rsq_lm2
+#&gt;     &lt;dbl&gt;   &lt;dbl&gt;
+#&gt; 1   0.871   0.875</code></pre><p>Die beiden Modelle sind fast identisch in ihrem R-Quadrat. Daher bietet es sich an, das einfachere Modell zu bevorzugen.</p></div><div id=weitere-überlegungen class="section level1" number=9><h1><span class=header-section-number>9</span> Weitere Überlegungen</h1><p>Viele Anknüpfungspunkte bieten sich; viele Wege sind noch nicht erforscht. Eine Idee ist, dass die Schätzung von R-Quadrat im Test-Datensatz von der Zufälligkeit der Aufteilung des Gesamt-Datensatz abhängig ist. Hier könnte man verschiedene Aufteilungen vergleichen (Stichwort: Kreuzvalidierung).</p><p>Dann wurden nur wenige Modelle betrachtet und diese nicht stichhaltig begründet. Man könnte sich noch viele weitere Varianten des linearen Modells anschauen oder Annahmen des linearen Modells aufgeben, so etwa multiplikative Modelle (Stichwort: Log-Tranformation).</p><p>Ein weiterer Ansatz ist, auf automatisierte Modellwahl zu betreiben, etwa auf Basis der schrittweisen Regression.</p></div><div id=einreichen class="section level1" number=10><h1><span class=header-section-number>10</span> Einreichen</h1><p>Sie reichen dann einen Datensatz mit den Vorhersagen Ihres Modells für den <em>Test-Datensatz</em> ein. Im Gegensatz zum Beispiel hier wissen Sie <em>nicht</em> wie präzise Ihre Vorhersagen sind. Aber so ist es im Leben: Ob eine Idee gut war, weiß man immer erst hinterher
+🤪🕺😬.</p><pre class=r><code>Einreichen &lt;-
+  test2 %&gt;% 
+  select(id, pred_lm1)</code></pre><pre class=r><code>head(Einreichen)
+#&gt; # A tibble: 6 x 2
+#&gt;      id pred_lm1
+#&gt;   &lt;int&gt;    &lt;dbl&gt;
+#&gt; 1    19   -2062.
+#&gt; 2    22    -462.
+#&gt; 3    26    -411.
+#&gt; 4    27   -1475.
+#&gt; 5    31    -318.
+#&gt; 6    38    -764.</code></pre></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>

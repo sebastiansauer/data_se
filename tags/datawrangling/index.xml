@@ -1,4 +1,382 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Datawrangling on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/datawrangling/</link><description>Recent content in Datawrangling on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Tue, 27 Aug 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/datawrangling/index.xml" rel="self" type="application/rss+xml"/><item><title>Computing rater accuracy across multiple raters and multiple criteria</title><link>https://sebastiansauer.github.io/data_se/2019/08/27/computing-rater-accuracy-across-multiple-raters-and-multiple-criteria/</link><pubDate>Tue, 27 Aug 2019 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2019/08/27/computing-rater-accuracy-across-multiple-raters-and-multiple-criteria/</guid><description>&lt;div id="load-packages" class="section level1">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Datawrangling on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/datawrangling/</link><description>Recent content in Datawrangling on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Sat, 17 Feb 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/datawrangling/index.xml" rel="self" type="application/rss+xml"/><item><title>Dictionaries in R</title><link>https://sebastiansauer.github.io/data_se/2024/02/17/dictionaries-in-r/</link><pubDate>Sat, 17 Feb 2024 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2024/02/17/dictionaries-in-r/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#are-there-dictionaries-in-r" id="toc-are-there-dictionaries-in-r">&lt;span class="toc-section-number">2&lt;/span> Are there Dictionaries in R?&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#named-vectors-as-dictonaries" id="toc-named-vectors-as-dictonaries">&lt;span class="toc-section-number">3&lt;/span> Named vectors as dictonaries&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#assign-keys-to-a-dictionary" id="toc-assign-keys-to-a-dictionary">&lt;span class="toc-section-number">4&lt;/span> Assign keys to a dictionary&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#adding-elements-to-a-dictionary" id="toc-adding-elements-to-a-dictionary">&lt;span class="toc-section-number">5&lt;/span> Adding elements to a dictionary&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#changing-the-order-of-the-keys" id="toc-changing-the-order-of-the-keys">&lt;span class="toc-section-number">6&lt;/span> Changing the order of the keys&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#combining-dictionaries" id="toc-combining-dictionaries">&lt;span class="toc-section-number">7&lt;/span> Combining dictionaries&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#looking-up-the-keys-for-a-given-value" id="toc-looking-up-the-keys-for-a-given-value">&lt;span class="toc-section-number">8&lt;/span> Looking up the keys for a given value&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#using-position-index-to-look-up-values" id="toc-using-position-index-to-look-up-values">&lt;span class="toc-section-number">9&lt;/span> Using position index to look-up values&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#searching-for-some-value" id="toc-searching-for-some-value">&lt;span class="toc-section-number">10&lt;/span> Searching for some value&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#searching-for-the-value-given-some-key-fragments" id="toc-searching-for-the-value-given-some-key-fragments">&lt;span class="toc-section-number">11&lt;/span> Searching for the value given some key fragments&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#check-whether-the-dictionary-contains-some-key" id="toc-check-whether-the-dictionary-contains-some-key">&lt;span class="toc-section-number">12&lt;/span> Check whether the dictionary contains some key&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#sort-values-alphabetically" id="toc-sort-values-alphabetically">&lt;span class="toc-section-number">13&lt;/span> Sort values alphabetically&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#sort-keys-alphabetically" id="toc-sort-keys-alphabetically">&lt;span class="toc-section-number">14&lt;/span> Sort keys alphabetically&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lists-instead-of-vectors" id="toc-lists-instead-of-vectors">&lt;span class="toc-section-number">15&lt;/span> Lists instead of vectors&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#further-reading" id="toc-further-reading">&lt;span class="toc-section-number">16&lt;/span> Further reading&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">17&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="are-there-dictionaries-in-r" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Are there Dictionaries in R?&lt;/h1>
+&lt;p>There are not built-in dictionaries in R such in a way like they are in Python.
+But there’s somthing similar. The R-way of working with dictionaries is using &lt;em>named vectors&lt;/em> or &lt;em>named lists&lt;/em>.&lt;/p></description></item><item><title>Prevent dropping from non-occuring levels using dplyr</title><link>https://sebastiansauer.github.io/data_se/2024/01/30/prevent-dropping-from-non-occuring-levels-using-dplyr/</link><pubDate>Tue, 30 Jan 2024 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2024/01/30/prevent-dropping-from-non-occuring-levels-using-dplyr/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#problem" id="toc-problem">&lt;span class="toc-section-number">2&lt;/span> Problem&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#solution" id="toc-solution">&lt;span class="toc-section-number">3&lt;/span> Solution&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">4&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="problem" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Problem&lt;/h1>
+&lt;p>Consider the following situation:&lt;/p>
+&lt;pre class="r">&lt;code>mtcars |&amp;gt; 
+ group_by(high_hp = hp &amp;gt; 1000) |&amp;gt; 
+ count(high_hp)
+#&amp;gt; # A tibble: 1 × 2
+#&amp;gt; # Groups: high_hp [1]
+#&amp;gt; high_hp n
+#&amp;gt; &amp;lt;lgl&amp;gt; &amp;lt;int&amp;gt;
+#&amp;gt; 1 FALSE 32&lt;/code>&lt;/pre>
+&lt;p>The summary table does not show the level &lt;code>TRUE&lt;/code>, as it is not occuring in the data.
+This can be problematic: If the data is unknown before summarizing and you would expect that both/all levels (TRUE, FALSE) occur. Just imagine that a subsequent function will count the level &lt;code>TRUE&lt;/code> and the level &lt;code>FALSE&lt;/code>. If one level is missing, your system may brake down.&lt;/p></description></item><item><title>Filtering vectors in R</title><link>https://sebastiansauer.github.io/data_se/2023/07/15/filtering-vectors/</link><pubDate>Sat, 15 Jul 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/07/15/filtering-vectors/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">1&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#setup" id="toc-setup">&lt;span class="toc-section-number">2&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-1-base-r" id="toc-way-1-base-r">&lt;span class="toc-section-number">3&lt;/span> Way 1: Base R&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-2-magrittr" id="toc-way-2-magrittr">&lt;span class="toc-section-number">4&lt;/span> Way 2: magrittr&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-3-tidyverse" id="toc-way-3-tidyverse">&lt;span class="toc-section-number">5&lt;/span> Way 3: tidyverse&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-4-purrr" id="toc-way-4-purrr">&lt;span class="toc-section-number">6&lt;/span> Way 4: purrr&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusions" id="toc-conclusions">&lt;span class="toc-section-number">7&lt;/span> Conclusions&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="motivation" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Motivation&lt;/h1>
+&lt;p>We have a vector and we want to filter it by name.&lt;/p>
+&lt;/div>
+&lt;div id="setup" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+## ✔ dplyr 1.1.2 ✔ readr 2.1.4
+## ✔ forcats 1.0.0 ✔ stringr 1.5.0
+## ✔ ggplot2 3.4.2 ✔ tibble 3.2.1
+## ✔ lubridate 1.9.2 ✔ tidyr 1.3.0
+## ✔ purrr 1.0.1 
+## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+## ✖ dplyr::filter() masks stats::filter()
+## ✖ dplyr::lag() masks stats::lag()
+## ℹ Use the conflicted package (&amp;lt;http://conflicted.r-lib.org/&amp;gt;) to force all conflicts to become errors&lt;/code>&lt;/pre>
+&lt;p>Demo vector:&lt;/p></description></item><item><title>Differences according to importing CSV using different functions</title><link>https://sebastiansauer.github.io/data_se/2023/01/19/differences-according-to-importing-csv-using-different-functions/</link><pubDate>Thu, 19 Jan 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/01/19/differences-according-to-importing-csv-using-different-functions/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#data" id="toc-data">&lt;span class="toc-section-number">3&lt;/span> Data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#method-1-read.csv" id="toc-method-1-read.csv">&lt;span class="toc-section-number">4&lt;/span> Method 1: &lt;code>read.csv&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#method-2-read_csv" id="toc-method-2-read_csv">&lt;span class="toc-section-number">5&lt;/span> Method 2: &lt;code>read_csv&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#method-3-data_read" id="toc-method-3-data_read">&lt;span class="toc-section-number">6&lt;/span> Method 3: &lt;code>data_read&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#first-glimpse" id="toc-first-glimpse">&lt;span class="toc-section-number">7&lt;/span> First glimpse&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#hashes" id="toc-hashes">&lt;span class="toc-section-number">8&lt;/span> Hashes&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#not-exactly-identical" id="toc-not-exactly-identical">&lt;span class="toc-section-number">9&lt;/span> Not exactly identical&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#data-comparison" id="toc-data-comparison">&lt;span class="toc-section-number">10&lt;/span> Data comparison&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#conclusion" id="toc-conclusion">&lt;span class="toc-section-number">11&lt;/span> Conclusion&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">12&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(easystats)
+library(digest) # hashes&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>Importing a CSV file can yield to - slightly - different results, according to which functions are used for importing the file.
+The question is whether the &lt;em>data&lt;/em> itself is constant across different methods,
+which is a neccessary condition for reliable analysis,
+or at least the importing function must be known for a reproducible analysis,
+in case different data can result when different import functions are used.&lt;/p></description></item><item><title>A quick demo how to compute rowwise means with the tidyverse</title><link>https://sebastiansauer.github.io/data_se/2023/01/16/a-quick-demo-how-to-compute-rowwise-means-with-the-tidyverse/</link><pubDate>Mon, 16 Jan 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/01/16/a-quick-demo-how-to-compute-rowwise-means-with-the-tidyverse/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#minimal-example" id="toc-minimal-example">&lt;span class="toc-section-number">3&lt;/span> Minimal example&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#see-also" id="toc-see-also">&lt;span class="toc-section-number">4&lt;/span> See also&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">5&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>Sometimes is is neccessary to compute functions, such as mean values, rowwise, ie., summing the values for multiple variables (&lt;code>my_vars&lt;/code>) for each observation.&lt;/p>
+&lt;/div>
+&lt;div id="minimal-example" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Minimal example&lt;/h1>
+&lt;p>For the sake of simplicity, we’ll make use of the &lt;code>mtcars&lt;/code> dataset.&lt;/p>
+&lt;pre class="r">&lt;code>data(mtcars)
+
+my_vars &amp;lt;- c(&amp;quot;mpg&amp;quot;, &amp;quot;cyl&amp;quot;, &amp;quot;hp&amp;quot;)
+
+mtcars &amp;lt;-
+ mtcars |&amp;gt; 
+ select(all_of(my_vars)) |&amp;gt; 
+ rowwise() |&amp;gt; 
+ mutate(mtcars_score = mean(c_across(all_of(my_vars)), na.rm = TRUE))
+
+head(mtcars) # check
+#&amp;gt; # A tibble: 6 × 4
+#&amp;gt; # Rowwise: 
+#&amp;gt; mpg cyl hp mtcars_score
+#&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt;
+#&amp;gt; 1 21 6 110 45.7
+#&amp;gt; 2 21 6 110 45.7
+#&amp;gt; 3 22.8 4 93 39.9
+#&amp;gt; 4 21.4 6 110 45.8
+#&amp;gt; 5 18.7 8 175 67.2
+#&amp;gt; 6 18.1 6 105 43.0&lt;/code>&lt;/pre>
+&lt;p>Check:&lt;/p></description></item><item><title>Setting to NA, conditionally</title><link>https://sebastiansauer.github.io/data_se/2023/01/16/setting-to-na-conditionally/</link><pubDate>Mon, 16 Jan 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/01/16/setting-to-na-conditionally/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#minimal-example" id="toc-minimal-example">&lt;span class="toc-section-number">3&lt;/span> Minimal example&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">4&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>Let’s assume we would like to change the values of multiple variables depending in the state of another variable.
+For the sake of concreteness, let’s say we have some variable called &lt;code>data_trustworthiness&lt;/code>. If this variable (indicating whether or not we can have confidence in some other variables) has the value &lt;code>FALSE&lt;/code> for some cases, we would like to set the varialbe &lt;code>measure1&lt;/code> and &lt;code>measure2&lt;/code> to &lt;code>NA&lt;/code>, thus reflecting that the data from our measurements are not reliable.&lt;/p></description></item><item><title>German weather</title><link>https://sebastiansauer.github.io/data_se/2022/07/24/german-weather/</link><pubDate>Sun, 24 Jul 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/07/24/german-weather/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-data" id="toc-load-data">&lt;span class="toc-section-number">3&lt;/span> Load data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#main-temperature-trajectory-over-time" id="toc-main-temperature-trajectory-over-time">&lt;span class="toc-section-number">4&lt;/span> Main temperature trajectory over time&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#visualization" id="toc-visualization">&lt;span class="toc-section-number">4.1&lt;/span> Visualization&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#linear-model" id="toc-linear-model">&lt;span class="toc-section-number">4.2&lt;/span> Linear model&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#temperature-change-per-month" id="toc-temperature-change-per-month">&lt;span class="toc-section-number">5&lt;/span> Temperature change per month&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#vis-1-change-per-month-for-whole-of-germany" id="toc-vis-1-change-per-month-for-whole-of-germany">&lt;span class="toc-section-number">5.1&lt;/span> Vis 1: Change per Month for whole of Germany&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#linear-model-1" id="toc-linear-model-1">&lt;span class="toc-section-number">5.2&lt;/span> Linear model&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vis-2-trend-by-bundesland" id="toc-vis-2-trend-by-bundesland">&lt;span class="toc-section-number">5.3&lt;/span> Vis 2: Trend by Bundesland&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#change-per-decade" id="toc-change-per-decade">&lt;span class="toc-section-number">6&lt;/span> Change per decade&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#vis-1" id="toc-vis-1">&lt;span class="toc-section-number">6.1&lt;/span> Vis 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#vis-2-temperature-change-per-decade" id="toc-vis-2-temperature-change-per-decade">&lt;span class="toc-section-number">6.2&lt;/span> Vis 2: Temperature change per decade&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#change-in-variability" id="toc-change-in-variability">&lt;span class="toc-section-number">7&lt;/span> Change in variability&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#vis" id="toc-vis">&lt;span class="toc-section-number">7.1&lt;/span> Vis&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#debrief" id="toc-debrief">&lt;span class="toc-section-number">8&lt;/span> Debrief&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">9&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(easystats)
+library(ggplot2); theme_set(theme_minimal()) # ggplot theme&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>Let’s explore the change over time in German weather.
+We are not pretending doing real meteorology here; rather, we are playing around a bit.
+At the very least, we’ll do over own analyses, so we know what’s going in.
+Data stems from &lt;a href="https://www.dwd.de/DE/Home/home_node.html">Deutscher Wetter Diensts, DWD&lt;/a>.&lt;/p></description></item><item><title>Preparing German weather data</title><link>https://sebastiansauer.github.io/data_se/2022/07/24/preparing-german-weather-data/</link><pubDate>Sun, 24 Jul 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/07/24/preparing-german-weather-data/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#licence" id="toc-licence">&lt;span class="toc-section-number">3&lt;/span> Licence&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#its-a-playful-approach" id="toc-its-a-playful-approach">&lt;span class="toc-section-number">4&lt;/span> It’s a playful approach&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#download-data" id="toc-download-data">&lt;span class="toc-section-number">5&lt;/span> Download data&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#air-temperature-means" id="toc-air-temperature-means">&lt;span class="toc-section-number">5.1&lt;/span> Air temperature means&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#download-multiple-files-and-bind-them-together-rowwise" id="toc-download-multiple-files-and-bind-them-together-rowwise">&lt;span class="toc-section-number">6&lt;/span> Download multiple files and bind them together rowwise&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#format-to-long" id="toc-format-to-long">&lt;span class="toc-section-number">7&lt;/span> Format to long&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#more-post-processing" id="toc-more-post-processing">&lt;span class="toc-section-number">8&lt;/span> More post-processing&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#save-to-disk" id="toc-save-to-disk">&lt;span class="toc-section-number">9&lt;/span> Save to disk&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#precipitation" id="toc-precipitation">&lt;span class="toc-section-number">10&lt;/span> Precipitation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#debrief" id="toc-debrief">&lt;span class="toc-section-number">11&lt;/span> Debrief&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">12&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(glue)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>In this post, we’ll prepare official German weather data. All data are accessed from &lt;a href="https://www.dwd.de/DE/Home/home_node.html">DWD&lt;/a>.&lt;/p></description></item><item><title>Beispiel für pivot_longer()</title><link>https://sebastiansauer.github.io/data_se/2021/05/27/beispiel-f%C3%BCr-pivot-longer/</link><pubDate>Thu, 27 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/27/beispiel-f%C3%BCr-pivot-longer/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/05/27/beispiel-f%C3%BCr-pivot-longer/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#setup">&lt;span class="toc-section-number">1&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">2&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#von-lang-nach-breit">&lt;span class="toc-section-number">3&lt;/span> Von lang nach breit&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#plotten">&lt;span class="toc-section-number">4&lt;/span> Plotten&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#kommentar">&lt;span class="toc-section-number">5&lt;/span> Kommentar&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="setup" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="daten-laden" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Daten laden&lt;/h1>
+&lt;pre class="r">&lt;code>d &amp;lt;- read_csv(&amp;quot;https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/Impfbereitschaft/d3.csv&amp;quot;)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="von-lang-nach-breit" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Von lang nach breit&lt;/h1>
+&lt;pre class="r">&lt;code>d2 &amp;lt;-
+ d %&amp;gt;% 
+ select(willingness:open2) %&amp;gt;% 
+ pivot_longer(extra1:open2)&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>d2 %&amp;gt;% 
+ slice_head(n = 7) 
+#&amp;gt; # A tibble: 7 x 6
+#&amp;gt; willingness health fear cases name value
+#&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;chr&amp;gt; &amp;lt;dbl&amp;gt;
+#&amp;gt; 1 10 9 5 1 extra1 2
+#&amp;gt; 2 10 9 5 1 agree1 2
+#&amp;gt; 3 10 9 5 1 cons1 3
+#&amp;gt; 4 10 9 5 1 neuro1 2
+#&amp;gt; 5 10 9 5 1 open1 4
+#&amp;gt; 6 10 9 5 1 extra2 1
+#&amp;gt; 7 10 9 5 1 agree2 4&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="plotten" class="section level1" number="4">
+&lt;h1>&lt;span class="header-section-number">4&lt;/span> Plotten&lt;/h1>
+&lt;pre class="r">&lt;code>d2 %&amp;gt;% 
+ ggplot() +
+ aes(x = willingness, y = value) +
+ facet_wrap(~ name) +
+ geom_point() +
+ geom_smooth(method = &amp;quot;lm&amp;quot;)&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/data_se/2021/05/27/beispiel-f%C3%BCr-pivot-longer/
+index_files/figure-html/unnamed-chunk-5-1.png" width="100%" style="display: block; margin: auto;" />&lt;/p></description></item><item><title>Datensatz flights: Finde den Tag mit den meisten Abflügen</title><link>https://sebastiansauer.github.io/data_se/2021/05/27/datensatz-flights-finde-den-tag-mit-den-meisten-abfl%C3%BCgen/</link><pubDate>Thu, 27 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/27/datensatz-flights-finde-den-tag-mit-den-meisten-abfl%C3%BCgen/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/05/27/datensatz-flights-finde-den-tag-mit-den-meisten-abfl%C3%BCgen/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe-finde-den-tag-mit-den-meisten-abflügen-flights">&lt;span class="toc-section-number">1&lt;/span> Aufgabe: Finde den Tag mit den meisten Abflügen (&lt;code>flights&lt;/code>)!&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#setup">&lt;span class="toc-section-number">2&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">3&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#spalte-mit-datum-ergänzen">&lt;span class="toc-section-number">4&lt;/span> Spalte mit Datum ergänzen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#datensatz-zusammenfassen">&lt;span class="toc-section-number">5&lt;/span> Datensatz zusammenfassen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#maximalwert-der-spalte-n">&lt;span class="toc-section-number">6&lt;/span> Maximalwert der Spalte &lt;code>n&lt;/code>&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="aufgabe-finde-den-tag-mit-den-meisten-abflügen-flights" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Aufgabe: Finde den Tag mit den meisten Abflügen (&lt;code>flights&lt;/code>)!&lt;/h1>
+&lt;p>An welchem Tag im Jahr 2013 sind die meisten Flüge aus NYC gestartet?&lt;/p>
+&lt;/div>
+&lt;div id="setup" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # Datenjudo
+library(nycflights13) # Daten
+library(lubridate) # Datumsangaben&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="daten-laden" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Daten laden&lt;/h1>
+&lt;pre class="r">&lt;code>data(flights)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="spalte-mit-datum-ergänzen" class="section level1" number="4">
+&lt;h1>&lt;span class="header-section-number">4&lt;/span> Spalte mit Datum ergänzen&lt;/h1>
+&lt;pre class="r">&lt;code>flights &amp;lt;-
+ flights %&amp;gt;% 
+ mutate(date = date(time_hour))&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="datensatz-zusammenfassen" class="section level1" number="5">
+&lt;h1>&lt;span class="header-section-number">5&lt;/span> Datensatz zusammenfassen&lt;/h1>
+&lt;pre class="r">&lt;code>flights2 &amp;lt;-
+ flights %&amp;gt;% 
+ group_by(date) %&amp;gt;% 
+ summarise(n = n())&lt;/code>&lt;/pre>
+&lt;p>Synonym:&lt;/p></description></item><item><title>Zeilenweise Operationen (tidyverse-Stil)</title><link>https://sebastiansauer.github.io/data_se/2021/05/27/zeilenweise-operationen-tidyverse-stil/</link><pubDate>Thu, 27 May 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/05/27/zeilenweise-operationen-tidyverse-stil/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/05/27/zeilenweise-operationen-tidyverse-stil/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#aufgabe">&lt;span class="toc-section-number">1&lt;/span> Aufgabe&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#setup">&lt;span class="toc-section-number">2&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#daten-erzeugen">&lt;span class="toc-section-number">3&lt;/span> Daten erzeugen&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#spalten-addieren-die-erste">&lt;span class="toc-section-number">4&lt;/span> Spalten addieren, die Erste&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#spalten-addieren-die-zweite">&lt;span class="toc-section-number">5&lt;/span> Spalten addieren, die Zweite&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#spalten-addieren-die-dritte">&lt;span class="toc-section-number">6&lt;/span> Spalten addieren, die Dritte&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#von-erster-spalte-bis-zu-letzter-spalte">&lt;span class="toc-section-number">7&lt;/span> Von erster Spalte bis zu letzter Spalte&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#fazit">&lt;span class="toc-section-number">8&lt;/span> Fazit&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="aufgabe" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Aufgabe&lt;/h1>
+&lt;p>Berechnen Sie Zeilensummen! … Oder Zeilen-Mittelwerte oder eine andere zeilenbasierte Funktion.&lt;/p>
+&lt;/div>
+&lt;div id="setup" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # Datenjudo&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="daten-erzeugen" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Daten erzeugen&lt;/h1>
+&lt;pre class="r">&lt;code>d &amp;lt;- tribble(
+ ~&amp;quot;x1&amp;quot;, ~&amp;quot;x2&amp;quot;, ~&amp;quot;x3&amp;quot;,
+ 1, 2, 3,
+ 4, 5, 6,
+ 7, 8, 9
+)
+d
+#&amp;gt; # A tibble: 3 x 3
+#&amp;gt; x1 x2 x3
+#&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt;
+#&amp;gt; 1 1 2 3
+#&amp;gt; 2 4 5 6
+#&amp;gt; 3 7 8 9&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="spalten-addieren-die-erste" class="section level1" number="4">
+&lt;h1>&lt;span class="header-section-number">4&lt;/span> Spalten addieren, die Erste&lt;/h1>
+&lt;pre class="r">&lt;code>d %&amp;gt;% 
+ mutate(summe = x1 + x2 + x3) %&amp;gt;% 
+ mutate(mw = (x1 + x2 + x3)/3)
+#&amp;gt; # A tibble: 3 x 5
+#&amp;gt; x1 x2 x3 summe mw
+#&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt;
+#&amp;gt; 1 1 2 3 6 2
+#&amp;gt; 2 4 5 6 15 5
+#&amp;gt; 3 7 8 9 24 8&lt;/code>&lt;/pre>
+&lt;p>Läuft!&lt;/p></description></item><item><title>Computing rater accuracy across multiple raters and multiple criteria</title><link>https://sebastiansauer.github.io/data_se/2019/08/27/computing-rater-accuracy-across-multiple-raters-and-multiple-criteria/</link><pubDate>Tue, 27 Aug 2019 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2019/08/27/computing-rater-accuracy-across-multiple-raters-and-multiple-criteria/</guid><description>&lt;div id="load-packages" class="section level1">
 &lt;h1>Load packages&lt;/h1>
 &lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
 &lt;/div>

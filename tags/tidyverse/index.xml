@@ -1,4 +1,172 @@
-<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Tidyverse on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/tidyverse/</link><description>Recent content in Tidyverse on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Tue, 27 Aug 2019 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/tidyverse/index.xml" rel="self" type="application/rss+xml"/><item><title>Computing rater accuracy across multiple raters and multiple criteria</title><link>https://sebastiansauer.github.io/data_se/2019/08/27/computing-rater-accuracy-across-multiple-raters-and-multiple-criteria/</link><pubDate>Tue, 27 Aug 2019 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2019/08/27/computing-rater-accuracy-across-multiple-raters-and-multiple-criteria/</guid><description>&lt;div id="load-packages" class="section level1">
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>Tidyverse on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/tidyverse/</link><description>Recent content in Tidyverse on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Tue, 30 Jan 2024 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/tidyverse/index.xml" rel="self" type="application/rss+xml"/><item><title>Prevent dropping from non-occuring levels using dplyr</title><link>https://sebastiansauer.github.io/data_se/2024/01/30/prevent-dropping-from-non-occuring-levels-using-dplyr/</link><pubDate>Tue, 30 Jan 2024 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2024/01/30/prevent-dropping-from-non-occuring-levels-using-dplyr/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#problem" id="toc-problem">&lt;span class="toc-section-number">2&lt;/span> Problem&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#solution" id="toc-solution">&lt;span class="toc-section-number">3&lt;/span> Solution&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">4&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="problem" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Problem&lt;/h1>
+&lt;p>Consider the following situation:&lt;/p>
+&lt;pre class="r">&lt;code>mtcars |&amp;gt; 
+ group_by(high_hp = hp &amp;gt; 1000) |&amp;gt; 
+ count(high_hp)
+#&amp;gt; # A tibble: 1 × 2
+#&amp;gt; # Groups: high_hp [1]
+#&amp;gt; high_hp n
+#&amp;gt; &amp;lt;lgl&amp;gt; &amp;lt;int&amp;gt;
+#&amp;gt; 1 FALSE 32&lt;/code>&lt;/pre>
+&lt;p>The summary table does not show the level &lt;code>TRUE&lt;/code>, as it is not occuring in the data.
+This can be problematic: If the data is unknown before summarizing and you would expect that both/all levels (TRUE, FALSE) occur. Just imagine that a subsequent function will count the level &lt;code>TRUE&lt;/code> and the level &lt;code>FALSE&lt;/code>. If one level is missing, your system may brake down.&lt;/p></description></item><item><title>A quick demo how to compute rowwise means with the tidyverse</title><link>https://sebastiansauer.github.io/data_se/2023/01/16/a-quick-demo-how-to-compute-rowwise-means-with-the-tidyverse/</link><pubDate>Mon, 16 Jan 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/01/16/a-quick-demo-how-to-compute-rowwise-means-with-the-tidyverse/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#minimal-example" id="toc-minimal-example">&lt;span class="toc-section-number">3&lt;/span> Minimal example&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#see-also" id="toc-see-also">&lt;span class="toc-section-number">4&lt;/span> See also&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">5&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>Sometimes is is neccessary to compute functions, such as mean values, rowwise, ie., summing the values for multiple variables (&lt;code>my_vars&lt;/code>) for each observation.&lt;/p>
+&lt;/div>
+&lt;div id="minimal-example" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Minimal example&lt;/h1>
+&lt;p>For the sake of simplicity, we’ll make use of the &lt;code>mtcars&lt;/code> dataset.&lt;/p>
+&lt;pre class="r">&lt;code>data(mtcars)
+
+my_vars &amp;lt;- c(&amp;quot;mpg&amp;quot;, &amp;quot;cyl&amp;quot;, &amp;quot;hp&amp;quot;)
+
+mtcars &amp;lt;-
+ mtcars |&amp;gt; 
+ select(all_of(my_vars)) |&amp;gt; 
+ rowwise() |&amp;gt; 
+ mutate(mtcars_score = mean(c_across(all_of(my_vars)), na.rm = TRUE))
+
+head(mtcars) # check
+#&amp;gt; # A tibble: 6 × 4
+#&amp;gt; # Rowwise: 
+#&amp;gt; mpg cyl hp mtcars_score
+#&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt; &amp;lt;dbl&amp;gt;
+#&amp;gt; 1 21 6 110 45.7
+#&amp;gt; 2 21 6 110 45.7
+#&amp;gt; 3 22.8 4 93 39.9
+#&amp;gt; 4 21.4 6 110 45.8
+#&amp;gt; 5 18.7 8 175 67.2
+#&amp;gt; 6 18.1 6 105 43.0&lt;/code>&lt;/pre>
+&lt;p>Check:&lt;/p></description></item><item><title>Setting to NA, conditionally</title><link>https://sebastiansauer.github.io/data_se/2023/01/16/setting-to-na-conditionally/</link><pubDate>Mon, 16 Jan 2023 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2023/01/16/setting-to-na-conditionally/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#minimal-example" id="toc-minimal-example">&lt;span class="toc-section-number">3&lt;/span> Minimal example&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">4&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>Let’s assume we would like to change the values of multiple variables depending in the state of another variable.
+For the sake of concreteness, let’s say we have some variable called &lt;code>data_trustworthiness&lt;/code>. If this variable (indicating whether or not we can have confidence in some other variables) has the value &lt;code>FALSE&lt;/code> for some cases, we would like to set the varialbe &lt;code>measure1&lt;/code> and &lt;code>measure2&lt;/code> to &lt;code>NA&lt;/code>, thus reflecting that the data from our measurements are not reliable.&lt;/p></description></item><item><title>Programmatically plotting with ggplot2</title><link>https://sebastiansauer.github.io/data_se/2022/09/28/programmatically-plotting-with-ggplot2/</link><pubDate>Wed, 28 Sep 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/09/28/programmatically-plotting-with-ggplot2/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#setup" id="toc-setup">&lt;span class="toc-section-number">1&lt;/span> Setup&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lets-go" id="toc-lets-go">&lt;span class="toc-section-number">2&lt;/span> Let’s go&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#way-1" id="toc-way-1">&lt;span class="toc-section-number">2.1&lt;/span> Way 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-2" id="toc-way-2">&lt;span class="toc-section-number">2.2&lt;/span> Way 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-2-1" id="toc-way-2-1">&lt;span class="toc-section-number">2.3&lt;/span> Way 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-3" id="toc-way-3">&lt;span class="toc-section-number">2.4&lt;/span> Way 3&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-4" id="toc-way-4">&lt;span class="toc-section-number">2.5&lt;/span> Way 4&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#further-reading" id="toc-further-reading">&lt;span class="toc-section-number">3&lt;/span> Further reading&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">4&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="setup" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Setup&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling
+library(easystats) # comfort in stats&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>data(mtcars)&lt;/code>&lt;/pre>
+&lt;p>In essence,
+we want to build this kind of plot programmatically:&lt;/p>
+&lt;pre class="r">&lt;code>mtcars %&amp;gt;% 
+ ggplot(aes(x=hp)) +
+ geom_histogram()&lt;/code>&lt;/pre>
+&lt;p>&lt;img src="https://sebastiansauer.github.io/data_se/data_se/2022/09/28/programmatically-plotting-with-ggplot2/
+index_files/figure-html/unnamed-chunk-2-1.png" width="100%" style="display: block; margin: auto;" />&lt;/p>
+&lt;/div>
+&lt;div id="lets-go" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Let’s go&lt;/h1>
+&lt;div id="way-1" class="section level2" number="2.1">
+&lt;h2>&lt;span class="header-section-number">2.1&lt;/span> Way 1&lt;/h2>
+&lt;p>Let’s use unquoted variable names.&lt;/p></description></item><item><title>Some ways to plot the distribution of each variable of a data frame</title><link>https://sebastiansauer.github.io/data_se/2022/09/26/some-ways-to-plot-the-distribution-of-each-variable-of-a-data-frame/</link><pubDate>Mon, 26 Sep 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/09/26/some-ways-to-plot-the-distribution-of-each-variable-of-a-data-frame/</guid><description>&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#motivation" id="toc-motivation">&lt;span class="toc-section-number">1&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-packages" id="toc-load-packages">&lt;span class="toc-section-number">2&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#load-data" id="toc-load-data">&lt;span class="toc-section-number">3&lt;/span> Load data&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lets-plot" id="toc-lets-plot">&lt;span class="toc-section-number">4&lt;/span> Let’s plot&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#way-1" id="toc-way-1">&lt;span class="toc-section-number">4.1&lt;/span> Way 1&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-2" id="toc-way-2">&lt;span class="toc-section-number">4.2&lt;/span> Way 2&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-3" id="toc-way-3">&lt;span class="toc-section-number">4.3&lt;/span> Way 3&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#way-4" id="toc-way-4">&lt;span class="toc-section-number">4.4&lt;/span> Way 4&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#reproducibility" id="toc-reproducibility">&lt;span class="toc-section-number">5&lt;/span> Reproducibility&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="motivation" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Motivation&lt;/h1>
+&lt;p>Often times, in explorative data analysis, one would like to plot the distribution of the relevant variables.
+Whereas ggplot provides handy tools to plot &lt;em>one&lt;/em> variable after each other,
+it would come handy to plot ’em all in one go.&lt;/p>
+&lt;p>Of course, there are many ways to achieve this comfort. This posts presents some of them in brevity.&lt;/p></description></item><item><title>Programming the tidyverse: quoted and unqouted parameters</title><link>https://sebastiansauer.github.io/data_se/2022/03/11/programming-the-tidyverse-quoted-and-unqouted-parameters/</link><pubDate>Fri, 11 Mar 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/03/11/programming-the-tidyverse-quoted-and-unqouted-parameters/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/03/11/programming-the-tidyverse-quoted-and-unqouted-parameters/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#load-packages">&lt;span class="toc-section-number">1&lt;/span> Load packages&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#motivation">&lt;span class="toc-section-number">2&lt;/span> Motivation&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#first-quoted-string-parameter">&lt;span class="toc-section-number">3&lt;/span> First: Quoted (string) parameter&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#second-unquoted-parameter">&lt;span class="toc-section-number">4&lt;/span> Second: Unquoted parameter&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#check">&lt;span class="toc-section-number">5&lt;/span> Check&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#bonus">&lt;span class="toc-section-number">6&lt;/span> Bonus&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="load-packages" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Load packages&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse) # data wrangling&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="motivation" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Motivation&lt;/h1>
+&lt;p>If a project reaches some level of complexity, sooner or later, more systematical meausures of coding need to be employed.&lt;/p>
+&lt;p>Using the tidyverse ecosystem, programming - instead of interactive use -
+may be something different or unusual and it may take some time to wrap your head around it.&lt;/p></description></item><item><title>Kurs: "Vorhersage-Modellierung"</title><link>https://sebastiansauer.github.io/data_se/2022/01/28/kurs-vorhersage-modellierung/</link><pubDate>Fri, 28 Jan 2022 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2022/01/28/kurs-vorhersage-modellierung/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2022/01/28/kurs-vorhersage-modellierung/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+
+&lt;div id="einführung-in-die-vorhersage-modellierung" class="section level1">
+&lt;h1>Einführung in die Vorhersage-Modellierung 🔮&lt;/h1>
+&lt;p>Ein Kurs zur Grundlagen der Datenanalyse und der Vorhersage-Modellierung mit R.&lt;/p>
+&lt;p>&lt;a href="https://sebastiansauer.github.io/vorhersagemodellierung/index.html">Hier&lt;/a> geht es zum Kurs.&lt;/p>
+&lt;p>Alle Materialien des Kurses sind frei verfügbar, können kostenfrei genutzt werden und sind quelloffen.&lt;/p>
+&lt;/div></description></item><item><title>Computing rater accuracy across multiple raters and multiple criteria</title><link>https://sebastiansauer.github.io/data_se/2019/08/27/computing-rater-accuracy-across-multiple-raters-and-multiple-criteria/</link><pubDate>Tue, 27 Aug 2019 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2019/08/27/computing-rater-accuracy-across-multiple-raters-and-multiple-criteria/</guid><description>&lt;div id="load-packages" class="section level1">
 &lt;h1>Load packages&lt;/h1>
 &lt;pre class="r">&lt;code>library(tidyverse)&lt;/code>&lt;/pre>
 &lt;/div>

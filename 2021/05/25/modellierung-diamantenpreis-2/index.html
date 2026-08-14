@@ -1,0 +1,125 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Modellierung Diamantenpreis 2 - Data Se</title>
+<meta property="og:title" content="Modellierung Diamantenpreis 2 - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>9 min read</span><h1 class=article-title>Modellierung Diamantenpreis 2</h1><span class=article-date>2021/05/25</span><div class=article-content><script src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/header-attrs/header-attrs.js"></script><div id=TOC><ul><li><a href=#modellierung-des-preises-von-diamanten><span class=toc-section-number>1</span> Modellierung des Preises von Diamanten</a></li><li><a href=#pakete-laden><span class=toc-section-number>2</span> Pakete laden</a></li><li><a href=#daten-laden><span class=toc-section-number>3</span> Daten laden</a></li><li><a href=#datensatz-verstehen><span class=toc-section-number>4</span> Datensatz verstehen</a></li><li><a href=#modellierung><span class=toc-section-number>5</span> Modellierung</a><ul><li><a href=#modell-1><span class=toc-section-number>5.1</span> Modell 1</a><ul><li><a href=#modellgüte><span class=toc-section-number>5.1.1</span> Modellgüte</a></li><li><a href=#überprüfung-der-annahmen><span class=toc-section-number>5.1.2</span> Überprüfung der Annahmen</a></li></ul></li><li><a href=#modell-2><span class=toc-section-number>5.2</span> Modell 2</a><ul><li><a href=#genauerer-blick-auf-den-zusammenhang><span class=toc-section-number>5.2.1</span> Genauerer Blick auf den Zusammenhang</a></li><li><a href=#log-modell><span class=toc-section-number>5.2.2</span> Log-Modell</a></li></ul></li><li><a href=#modell-3><span class=toc-section-number>5.3</span> Modell 3</a><ul><li><a href=#modellgüte-1><span class=toc-section-number>5.3.1</span> Modellgüte</a></li><li><a href=#voraussetzungen-prüfen><span class=toc-section-number>5.3.2</span> Voraussetzungen prüfen</a></li></ul></li><li><a href=#modell-3a-und-4><span class=toc-section-number>5.4</span> Modell 3a und 4</a><ul><li><a href=#konfundierung-von-schliff-und-karat><span class=toc-section-number>5.4.1</span> Konfundierung von Schliff und Karat</a></li><li><a href=#lm3a><span class=toc-section-number>5.4.2</span> <code>lm3a</code></a></li><li><a href=#lm4-schliff-als-prädiktor><span class=toc-section-number>5.4.3</span> <code>lm4</code>: Schliff als Prädiktor</a></li><li><a href=#modellkoeffizienten><span class=toc-section-number>5.4.4</span> Modellkoeffizienten</a></li><li><a href=#r2-zur-beurteilung-der-relevanz-von-prädiktoren><span class=toc-section-number>5.4.5</span> <span class="math inline">\(R^2\)</span> zur Beurteilung der Relevanz von Prädiktoren</a></li></ul></li></ul></li><li><a href=#fazit-händische-modellierung><span class=toc-section-number>6</span> Fazit: “Händische” Modellierung</a><ul><li><a href=#maschinelle-prädiktorenwahl><span class=toc-section-number>6.1</span> Maschinelle Prädiktorenwahl</a></li><li><a href=#einreichen><span class=toc-section-number>6.2</span> Einreichen</a></li></ul></li></ul></div><div id=modellierung-des-preises-von-diamanten class="section level1" number=1><h1><span class=header-section-number>1</span> Modellierung des Preises von Diamanten</h1><p>In diesem Post untersuchen wir den Preis von Diamanten und gehen auf einige Aspekte der statistischen Modellierung ein.</p><p>Dieser Post orientiert sich an <a href=https://r4ds.had.co.nz/model-building.html>diesem Buchkapitel</a>.</p></div><div id=pakete-laden class="section level1" number=2><h1><span class=header-section-number>2</span> Pakete laden</h1><pre class=r><code>library(tidyverse)  # Datenjudo
+library(corrr)  # Korrelation
+library(ggfortify)  # Annahmen grafisch überprüfen
+library(modelr)  # Hilfen zum Modellieren
+library(broom)  # tidy Regressionsergebnisse</code></pre></div><div id=daten-laden class="section level1" number=3><h1><span class=header-section-number>3</span> Daten laden</h1><pre class=r><code>data(&quot;diamonds&quot;)</code></pre></div><div id=datensatz-verstehen class="section level1" number=4><h1><span class=header-section-number>4</span> Datensatz verstehen</h1><p>Ein zentraler Punkt in der statistischen Modellierung ist das <em>Priori-Wissen</em>: Dass man weiß, worüber man redet. Bei der Modellierung des Preises von Diamananten bietet sich an, etwas über dieses Sujet zu wissen – zumindenst die Variablen des Datensatzes zu verstehen.</p><p>Die <a href=https://ggplot2.tidyverse.org/reference/diamonds.html>Hilfeseite</a> zum Datensatz ist dazu nützlich.</p></div><div id=modellierung class="section level1" number=5><h1><span class=header-section-number>5</span> Modellierung</h1><div id=modell-1 class="section level2" number=5.1><h2><span class=header-section-number>5.1</span> Modell 1</h2><p>Auf Basis unseres Vorwissens (Priori-Wissens) gehen wir davon aus, dass das Gewicht eines Diamanten stark korreliert mit dem Preis:</p><pre class=r><code>diamonds %&gt;% 
+  select(price, carat) %&gt;% 
+  correlate() %&gt;% 
+  focus(price)  # Fokus auf Preis
+#&gt; # A tibble: 1 x 2
+#&gt;   term  price
+#&gt;   &lt;chr&gt; &lt;dbl&gt;
+#&gt; 1 carat 0.922</code></pre><p>Die hohe Korrelation belegt, dass wir auf einem guten Weg sind (zu sein scheinen).</p><p>Man könnte natürlich auch weiter schauen, und alle numerischen Variablen in die Korrelation mit dem Preis aufnehmen:</p><pre class=r><code>diamonds %&gt;% 
+  select(where(is.numeric)) %&gt;% 
+  correlate() %&gt;% 
+  focus(price) %&gt;% 
+  arrange(-abs(price))
+#&gt; # A tibble: 6 x 2
+#&gt;   term    price
+#&gt;   &lt;chr&gt;   &lt;dbl&gt;
+#&gt; 1 carat  0.922 
+#&gt; 2 x      0.884 
+#&gt; 3 y      0.865 
+#&gt; 4 z      0.861 
+#&gt; 5 table  0.127 
+#&gt; 6 depth -0.0106</code></pre><div id=modellgüte class="section level3" number=5.1.1><h3><span class=header-section-number>5.1.1</span> Modellgüte</h3><pre class=r><code>lm1 &lt;- lm(price ~ carat, data = diamonds)
+summary(lm1)$r.squared
+#&gt; [1] 0.8493305</code></pre></div><div id=überprüfung-der-annahmen class="section level3" number=5.1.2><h3><span class=header-section-number>5.1.2</span> Überprüfung der Annahmen</h3><pre class=r><code>autoplot(lm1)</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-6-1.png" width=100% style=display:block;margin:auto></p><p>Oh je! Unser naiver Ansatz (naiv in der Rückschau) offenbart gravierende Mängel. Die vielleicht wichtigste Annahme im Regressionsmdell (aus mathematischer Sicht) ist, die Linearitätsannahme. Ist diese Annahme erfüllt, so sollten sich die Residen ohne Muster um die Nulllinie verteiilen. Wie wir im Diagramm 1 sehen, ist diese Annahme stark verletzt.</p><p>Probieren wir, es besser zu machen</p></div></div><div id=modell-2 class="section level2" number=5.2><h2><span class=header-section-number>5.2</span> Modell 2</h2><div id=genauerer-blick-auf-den-zusammenhang class="section level3" number=5.2.1><h3><span class=header-section-number>5.2.1</span> Genauerer Blick auf den Zusammenhang</h3><pre class=r><code>diamonds %&gt;% 
+  select(price, carat) %&gt;% 
+  ggplot(aes(x = carat, y  = price)) +
+  geom_density2d()</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-7-1.png" width=100% style=display:block;margin:auto></p><p>In den inneren Kreisen (Konturlinien) ist die Dichte an Diamanten am höchsten (dort sind die meisten Diamanten).</p><p>Oder, ähnlich:</p><pre class=r><code>diamonds %&gt;% 
+  select(price, carat) %&gt;% 
+  filter(percent_rank(price) &lt; .9) %&gt;%   # nur die biligsten 90%
+  filter(percent_rank(carat) &lt; .9) %&gt;%   # nur die kleinsten 90%
+  ggplot(aes(x = carat, y  = price)) +
+  geom_density2d_filled()</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-8-1.png" width=100% style=display:block;margin:auto></p><p>Vielleicht so:</p><pre class=r><code>diamonds %&gt;% 
+  select(price, carat) %&gt;% 
+  filter(percent_rank(price) &lt; .95) %&gt;%   # nur die biligsten 95%
+  filter(percent_rank(carat) &lt; .95) %&gt;%   # nur die kleinsten 95%
+  ggplot(aes(x = carat, y  = price)) +
+  geom_hex(bins=50) +
+  geom_smooth()</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-9-1.png" width=100% style=display:block;margin:auto></p><p>Es sieht so aus, als wäre der Zusammenhang nicht linear. Genau das hat uns auch das Diagramm oben gezeigt, bei dem Residuen gegen vorhergesagte Werte angezeichnet wurden.</p></div><div id=log-modell class="section level3" number=5.2.2><h3><span class=header-section-number>5.2.2</span> Log-Modell</h3><p>Ein Log-Modell geht von einem multiplikativen (exponentiellen) Zusammenhang aus: Wächst X um einen festen Betrag, so wächst Y um einen festen Faktor.</p><pre class=r><code>lm2 &lt;- lm(log(price) ~ carat, data = diamonds) 
+summary(lm2)$r.squared
+#&gt; [1] 0.8467802</code></pre><pre class=r><code>autoplot(lm2, which = 1)</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-11-1.png" width=100% style=display:block;margin:auto></p><p>Das Modell scheint auch noch nicht so gut zu passen.</p></div></div><div id=modell-3 class="section level2" number=5.3><h2><span class=header-section-number>5.3</span> Modell 3</h2><p>Vielleicht wird der Preis von einem Diamanten eher so berechnet: Steigt das Gewicht des Diamanten um 1%, so steigt der Preis um 1% (oder x$)?</p><pre class=r><code>diamonds &lt;-
+  diamonds %&gt;% 
+  mutate(price_log = log2(price),
+         carat_log = log2(carat))</code></pre><pre class=r><code>ggplot(diamonds) +
+  aes(x = carat_log, y = price_log) +
+  geom_hex(bins=50)</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-13-1.png" width=100% style=display:block;margin:auto>
+Das ist ein schöner, lineare Trend! Das Log-Log-Modell für Preis und Karat passt!</p><div id=modellgüte-1 class="section level3" number=5.3.1><h3><span class=header-section-number>5.3.1</span> Modellgüte</h3><p>Übrigens ist ein Streudiagramm bei <em>vielen</em> Punkten (>1000) wegen des Overplottings nur bedingt geeignet. Ein Geom Hex ist hier nützlicher.</p><pre class=r><code>lm3 &lt;- lm(price_log ~ carat_log, data = diamonds) 
+summary(lm3)$r.squared
+#&gt; [1] 0.9329893</code></pre><p>Tragen wir die Vorhersagen dieses Modells in die Daten ein:</p><pre class=r><code>diamonds %&gt;% 
+  add_predictions(lm3, &quot;pred_lm3&quot;) %&gt;% 
+  mutate(pred_lm3_delog = 2^pred_lm3) %&gt;% 
+  ggplot() +
+  geom_hex(aes(x = carat, y = price)) +
+  geom_line(aes(x = carat, y = pred_lm3_delog),
+            color = &quot;red&quot;) +
+  lims(x = c(0,2.5), y = c(0, 20000))</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-15-1.png" width=100% style=display:block;margin:auto></p></div><div id=voraussetzungen-prüfen class="section level3" number=5.3.2><h3><span class=header-section-number>5.3.2</span> Voraussetzungen prüfen</h3><pre class=r><code>autoplot(lm3, which = 1)</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-16-1.png" width=100% style=display:block;margin:auto></p><p>Die “abrasierte Kante” kommt vermutlich von unserem Filter. Leider lässt die große Anzahl der Punkte das Diagramm nur bedingt nützlich erscheinen; wir können wegen des Overplotting nicht wirklich gut einen Trend sehen. Aber was wir sehen, ist zumindest besser als in den vorherigen Modellen. Fortschritt!</p></div></div><div id=modell-3a-und-4 class="section level2" number=5.4><h2><span class=header-section-number>5.4</span> Modell 3a und 4</h2><div id=konfundierung-von-schliff-und-karat class="section level3" number=5.4.1><h3><span class=header-section-number>5.4.1</span> Konfundierung von Schliff und Karat</h3><p>Versuchen wir zu verstehen, welche Variablen noch eine Rolle spielen. Schliff erscheint einem Laien als plausibler Prädiktor. Schauen wir uns Schliff näher an.</p><pre class=r><code>diamonds %&gt;% 
+  select(cut, price) %&gt;% 
+  ggplot(aes(x = cut, y = price)) +
+  geom_boxplot()</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-17-1.png" width=100% style=display:block;margin:auto></p><p>Verblüffend! Die guten Schliffarten erzielen nicht den besten Preis! Im Gegenteil: der <em>schlechteste</em> Schliff (<code>Fair</code>) erzielt den höchsten Preis. Wie kann das sein?</p><p>Ein (plausibler) Grund ist, dass Schliff und Karat konfundiert sind: Schwerere Diamanten (hohe Karatzahl) hätten demnach einen schlechteren Schliff. Da aber Karat und Preis positiv korreliert sind, sind Diamanten schlechteren Schliffs teuerer. Soweit die Theorie. Untersuchen wir diese These in den Daten. Dazu betrachten wir den <em>Preis relativ zur Karatzahl</em>. Wir untersuchen also die Frage: Im Verhältnis zu seiner Karatzahl, wie teuer ist der Diamant? Damit können wir prüfen, ob ein Diamant mit schlechtem Schliff im Verhältnis zu seinem Gewicht wirklich (überdurchschnittlich) teuer ist. Wenn unsere These stimmt, müsste dann ein Diamant schlechten Schliffs <em>günstiger</em> sein.</p><pre class=r><code>diamonds %&gt;% 
+  add_residuals(lm3, &quot;resid_lm3&quot;) %&gt;% 
+  ggplot(aes(x = cut, y = resid_lm3)) +
+  geom_boxplot()</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-18-1.png" width=100% style=display:block;margin:auto></p><p>Bingo! Unsere Theorie scheint richtig zu sein. Zumindest passen die Daten zu unserer Vorhersage: Jetzt sind die Diamanten schlechten Schliffs <em>billiger</em> als es ihre Karatzahl vermuten ließe. Anders gesagt: Betrachtet man nur Diamanten mit einer bestimmten Karatzahl, so sind in dieser Gruppe die Diamanten schlechten Schliffs günstiger als Diamanten besseren Schliffs (und entsprechend für Diamanten anderen Schliffs).</p></div><div id=lm3a class="section level3" number=5.4.2><h3><span class=header-section-number>5.4.2</span> <code>lm3a</code></h3><p>Ergänzen wir ein Modell, <code>lm3a</code>, welches <code>cut</code> zusätzlich zum Gewicht (Karat) eines Diamannten nutzt, um den Preis vorherzusagen.</p><pre class=r><code>lm3a &lt;- lm(price_log ~ carat_log + cut, data = diamonds) 
+summary(lm3a)$r.squared
+#&gt; [1] 0.9371003</code></pre><p>Ah, ein sehr hoher <span class="math inline">\(R^2\)</span>-Wert.</p><p>Was sind die Vorhersagen für die Werte von <code>cut</code> von unserem Modell, <code>lm3a</code>?</p><p>So können wir uns für die Werte von <code>cut</code> auf Basis von <code>lm3</code> eine Vorhersage geben lassen. Dabei nehmen wir den typischen Wert von Karat (log), den Median, um genau zu sein:</p><pre class=r><code>lm3a_grid &lt;-
+  diamonds %&gt;% 
+  data_grid(cut, .model = lm3a) %&gt;% 
+  add_predictions(lm3a)
+
+lm3a_grid
+#&gt; # A tibble: 5 x 3
+#&gt;   cut       carat_log  pred
+#&gt;   &lt;ord&gt;         &lt;dbl&gt; &lt;dbl&gt;
+#&gt; 1 Fair         -0.515  11.0
+#&gt; 2 Good         -0.515  11.2
+#&gt; 3 Very Good    -0.515  11.3
+#&gt; 4 Premium      -0.515  11.3
+#&gt; 5 Ideal        -0.515  11.4</code></pre><p>Visualisieren wir den vorhergesagten Preis laut Karatzahl und Schliffart (von <code>lm3a</code>) als rote Punkte und setzen die Verteilung der Preise in Abhängigkeit der Schliffart dagegen (Boxplots):</p><pre class=r><code>diamonds %&gt;% 
+  ggplot() +
+  geom_boxplot(aes(x = cut,
+              y = price_log)) +
+  geom_point(data = lm3a_grid,
+             aes(x = cut,
+                 y = pred),
+             color = &quot;red&quot;,
+             size = 5)</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-21-1.png" width=100% style=display:block;margin:auto></p><p>Wir sehen, dass der Preis laut Karatzahl bei schlechter Schliffart (<code>Fair</code>) höher sein müsste: Relativ zur Karatzahl sind diese Diamanten günstig.</p></div><div id=lm4-schliff-als-prädiktor class="section level3" number=5.4.3><h3><span class=header-section-number>5.4.3</span> <code>lm4</code>: Schliff als Prädiktor</h3><p>Umgekehrt können wir auch anschauen, ob die Karatzahl mit dem Preis relativ zur Schliffart zusammenhängt. Definieren wir dazu ein Modell, das nur die Schliffart zur Vorhersage des Preises nutzt:</p><pre class=r><code>lm4 &lt;- lm(price_log ~ cut, data = diamonds)
+summary(lm4)$r.squared
+#&gt; [1] 0.01813734</code></pre><pre class=r><code>diamonds &lt;-
+  diamonds %&gt;% 
+  add_residuals(lm4, &quot;resid_lm4&quot;)</code></pre><pre class=r><code>diamonds %&gt;% 
+  ggplot() +
+  aes(x = carat_log, y = resid_lm4) +
+  geom_hex(bins = 50)</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-24-1.png" width=100% style=display:block;margin:auto></p><p>Es ist kein großer Unterschied zu erkennen. Der Zusammenhang von Preis und Karat (jeweils log2) ist praktisch gleich zum Zusammenang des Preises relativ zur Schliffart und Karat. Das zeigt, dass die Schliffart nicht wirklich einen “eigenen” Zusammenhang mit dem Preis hat, der über den Zusammenhang der Karatzahl hinausgeht.</p><p>Alternativ könnte man den Zusammenhang von Karat und Preis relativ zur Schliffart auch so betrachten:</p><pre class=r><code>diamonds %&gt;% 
+  ggplot(aes(x = carat_log, y = price_log)) +
+  facet_wrap(~ cut) +
+  geom_ref_line(v = 0) +
+  geom_ref_line(h = 10) +
+  geom_hex(bins = 50)</code></pre><p><img src="/data_se/2021/05/25/modellierung-diamantenpreis-2/
+index_files/figure-html/unnamed-chunk-25-1.png" width=100% style=display:block;margin:auto></p><p>Die Diagramme sehen ähnlich aus: Unabhängig von der Schliffart (was in jeder einzelnen Facette der Fall ist) ist der Zusammenhang von Karat und Preis stark. Anstelle von “unabhängig von” sagt man auch “bereinigt von”, also “bereinigt von der Schliffart”, ist der Zusammenhang von Karat und Preis weiterhin stark.</p><p>Die Referenzlinien wurden hinzugefügt, um einen “Referanzrahmen” zu geben: <span class="math inline">\(x=0\)</span> entspricht <span class="math inline">\(2^0=1\)</span> Karat; <span class="math inline">\(y=2^10=1024\)</span> Dollar Preis.</p></div><div id=modellkoeffizienten class="section level3" number=5.4.4><h3><span class=header-section-number>5.4.4</span> Modellkoeffizienten</h3><p>Die relative Bedeutung des Prädiktoren lässt sich mit einem (ggf. standardisierten) Regressionskoeffizienten darstellen (hier nicht weiter ausgeführt).</p><pre class=r><code>tidy(lm3a)
+#&gt; # A tibble: 6 x 5
+#&gt;   term        estimate std.error statistic  p.value
+#&gt;   &lt;chr&gt;          &lt;dbl&gt;     &lt;dbl&gt;     &lt;dbl&gt;    &lt;dbl&gt;
+#&gt; 1 (Intercept)  12.1      0.00250   4836.   0       
+#&gt; 2 carat_log     1.70     0.00191    888.   0       
+#&gt; 3 cut.L         0.324    0.00635     51.0  0       
+#&gt; 4 cut.Q        -0.0958   0.00562    -17.1  4.80e-65
+#&gt; 5 cut.C         0.0763   0.00491     15.6  2.09e-54
+#&gt; 6 cut^4         0.0269   0.00394      6.81 9.60e-12</code></pre></div><div id=r2-zur-beurteilung-der-relevanz-von-prädiktoren class="section level3" number=5.4.5><h3><span class=header-section-number>5.4.5</span> <span class="math inline">\(R^2\)</span> zur Beurteilung der Relevanz von Prädiktoren</h3><p>Alternativ kann man den Zuwachs an <span class="math inline">\(R^2\)</span> anschauen, wenn man Prädiktoren hinzufügt.</p><pre class=r><code>summary(lm3)$r.squared
+#&gt; [1] 0.9329893</code></pre><pre class=r><code>summary(lm3a)$r.squared
+#&gt; [1] 0.9371003</code></pre><p>Der zusätzliche Prädiktor in <code>lm3a</code> scheint wenig Zuwachs in der Modellgüte (gemessen in <span class="math inline">\(R^2\)</span>) einzubringen. Die <em>unique</em> Releanz des zweiten Prädiktors (<code>cut</code>) ist somit nicht so hoch.</p></div></div></div><div id=fazit-händische-modellierung class="section level1" number=6><h1><span class=header-section-number>6</span> Fazit: “Händische” Modellierung</h1><p>Wir haben uns einige Mühe gemacht, den Datensatz zu verstehen. Dazu haben wir Vorwissen eingebracht und analysiert, welche Muster übrig bleiben, wenn wir ein bestimmtes Muster “abschälen”. So versuchten wir, die mehreren “Schichten” an Mustern zu erkennen, die bei der Preisgestaltung von Diamanten eine Rolle spielen. Gerade schwächere Muster werden oft von einem stärkeren Muster übertönt. Um auch das schwächere Muster zu erkennen, muss man das stärkere Muster entfernen. Das geht mittels der Regressionsanalyse. Allerdings ist die Visualisierung eine zentrale Stütze, um zu verstehen, was im Datensatz “passiert”. Es zeigt sich, dass eine gesunde Portion Datenjudo immer nützlicht ist.</p><div id=maschinelle-prädiktorenwahl class="section level2" number=6.1><h2><span class=header-section-number>6.1</span> Maschinelle Prädiktorenwahl</h2><p>Eine Alternative zur manuellen Wahl von Prädiktoren wie oben ausgeführt, ist die maschinelle Auswahl, etwa mittels schrittweiser Regression. Solche Methoden haben ihre Stärken, aber sie haben auch Nachteile. Erstens sind die resultierenden Modelle “schwarze Kisten”; man spricht von “black box models”. Es ist immer nützlich, und manchmal unentbehrlich, zu verstehen, warum ein Modell eine bestimmte Vorhersage trifft. So würde es z.B. vor Gericht wohl nicht reichen, Ihre Entscheidung zu begründen mit “der Computer hat gesagt, es könnte ein gutes Ergebnis bringen”. Diese Begründung reicht deshalb nicht, weil es keine Begründung ist. Zweitens sind Modelle, bei denen man die Wirkweise, zumindest in Ansätzen versteht, robuster als Black-Box-Modelle. Häufig ändern sich Daten, Verteilungen oder Zusammenhänge. Kennt man die Zusammenhänge, gar die kausalen Zusammenhänge, so wird das Modell bei Verschiebungen seiner Grundlagen robuster bleiben als ein Black-Box-Modell. Einige Aspekte wird ein maschinell gewähltes Modell nicht aufdecken bzw. verwenden (z.B. Dublikate bei den Diamanten, ob es da wohl welche gibt?).</p></div><div id=einreichen class="section level2" number=6.2><h2><span class=header-section-number>6.2</span> Einreichen</h2><p>In einem Prognose-Wettbewerb wählen Sie Ihr bestes Modell (beste Prognosegüte) aus, und reichen dessen Vorhersage ein, zusammen mit einer ID pro Beobachtung, so dass man weiß, auf welchen Diamanten sich ein vorhergesagter Preis bezieht.</p></div></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>

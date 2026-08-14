@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?><rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom"><channel><title>ARM on Data Se</title><link>https://sebastiansauer.github.io/data_se/tags/arm/</link><description>Recent content in ARM on Data Se</description><generator>Hugo</generator><language>en-us</language><lastBuildDate>Tue, 15 Jun 2021 00:00:00 +0000</lastBuildDate><atom:link href="https://sebastiansauer.github.io/data_se/tags/arm/index.xml" rel="self" type="application/rss+xml"/><item><title>ARM, Kap. 4 Syntax im Tidyverse-Stil</title><link>https://sebastiansauer.github.io/data_se/2021/06/15/arm-kap-4-syntax-im-tidyverse-stil/</link><pubDate>Tue, 15 Jun 2021 00:00:00 +0000</pubDate><guid>https://sebastiansauer.github.io/data_se/2021/06/15/arm-kap-4-syntax-im-tidyverse-stil/</guid><description>&lt;script src="https://sebastiansauer.github.io/data_se/data_se/2021/06/15/arm-kap-4-syntax-im-tidyverse-stil/
+index_files/header-attrs/header-attrs.js">&lt;/script>
+
+&lt;div id="TOC">
+&lt;ul>
+&lt;li>&lt;a href="#pakete-laden">&lt;span class="toc-section-number">1&lt;/span> Pakete laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lineare-transformationen">&lt;span class="toc-section-number">2&lt;/span> Lineare Transformationen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-laden-kidsiq">&lt;span class="toc-section-number">2.1&lt;/span> Daten laden: &lt;code>kidsiq&lt;/code>&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm1-interaktionseffekt">&lt;span class="toc-section-number">2.2&lt;/span> lm1: Interaktionseffekt&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm2-zentrieren">&lt;span class="toc-section-number">2.3&lt;/span> lm2: Zentrieren&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm3-z-transformation">&lt;span class="toc-section-number">2.4&lt;/span> lm3: z-Transformation&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#modelle-mit-logy">&lt;span class="toc-section-number">3&lt;/span> Modelle mit &lt;code>log(y)&lt;/code>&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-laden">&lt;span class="toc-section-number">3.1&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm4-earn_log">&lt;span class="toc-section-number">3.2&lt;/span> lm4: earn_log&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm5-earn_log-mit-zwei-prädiktoren">&lt;span class="toc-section-number">3.3&lt;/span> lm5: earn_log mit zwei Prädiktoren&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lm6-mit-z-transformation-und-interaktion">&lt;span class="toc-section-number">3.4&lt;/span> lm6: Mit z-Transformation und Interaktion&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#logy-logx-modelle">&lt;span class="toc-section-number">4&lt;/span> LogY-LogX-Modelle&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#weitere-transformationen">&lt;span class="toc-section-number">5&lt;/span> Weitere Transformationen&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#diskretisierung-metrischer-prädiktoren">&lt;span class="toc-section-number">5.1&lt;/span> Diskretisierung metrischer Prädiktoren&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#buschbeispiel---mesquite">&lt;span class="toc-section-number">6&lt;/span> “Buschbeispiel” - &lt;code>mesquite&lt;/code>&lt;/a>
+&lt;ul>
+&lt;li>&lt;a href="#daten-laden-1">&lt;span class="toc-section-number">6.1&lt;/span> Daten laden&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#lineares-modell-mit-allen-prädiktoren">&lt;span class="toc-section-number">6.2&lt;/span> Lineares Modell mit allen Prädiktoren&lt;/a>&lt;/li>
+&lt;li>&lt;a href="#multiplikatives-modell">&lt;span class="toc-section-number">6.3&lt;/span> Multiplikatives Modell&lt;/a>&lt;/li>
+&lt;/ul>&lt;/li>
+&lt;li>&lt;a href="#referenz">&lt;span class="toc-section-number">7&lt;/span> Referenz&lt;/a>&lt;/li>
+&lt;/ul>
+&lt;/div>
+
+&lt;div id="pakete-laden" class="section level1" number="1">
+&lt;h1>&lt;span class="header-section-number">1&lt;/span> Pakete laden&lt;/h1>
+&lt;pre class="r">&lt;code>library(tidyverse)
+library(arm) # nicht wirklich wichtig, nur für Funktion &amp;quot;display&amp;quot;
+library(foreign)
+library(rio)&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="lineare-transformationen" class="section level1" number="2">
+&lt;h1>&lt;span class="header-section-number">2&lt;/span> Lineare Transformationen&lt;/h1>
+&lt;div id="daten-laden-kidsiq" class="section level2" number="2.1">
+&lt;h2>&lt;span class="header-section-number">2.1&lt;/span> Daten laden: &lt;code>kidsiq&lt;/code>&lt;/h2>
+&lt;pre class="r">&lt;code>kidsiq &amp;lt;- read_csv(&amp;quot;https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/ARM/kidsiq.csv&amp;quot;)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## 
+## ── Column specification ────────────────────────────────────────────────────────
+## cols(
+## kid_score = col_double(),
+## mom_hs = col_double(),
+## mom_iq = col_double(),
+## mom_work = col_double(),
+## mom_age = col_double()
+## )&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="lm1-interaktionseffekt" class="section level2" number="2.2">
+&lt;h2>&lt;span class="header-section-number">2.2&lt;/span> lm1: Interaktionseffekt&lt;/h2>
+&lt;pre class="r">&lt;code>lm1 &amp;lt;- lm(kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq,
+ data = kidsiq)
+display(lm1)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## lm(formula = kid_score ~ mom_hs + mom_iq + mom_hs:mom_iq, data = kidsiq)
+## coef.est coef.se
+## (Intercept) -11.48 13.76 
+## mom_hs 51.27 15.34 
+## mom_iq 0.97 0.15 
+## mom_hs:mom_iq -0.48 0.16 
+## ---
+## n = 434, k = 4
+## residual sd = 17.97, R-Squared = 0.23&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="lm2-zentrieren" class="section level2" number="2.3">
+&lt;h2>&lt;span class="header-section-number">2.3&lt;/span> lm2: Zentrieren&lt;/h2>
+&lt;pre class="r">&lt;code>kidsiq &amp;lt;-
+ kidsiq %&amp;gt;% 
+ mutate(mom_hs_c = mom_hs - mean(mom_hs),
+ mom_iq_c = mom_iq - mean(mom_iq))&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>lm2 &amp;lt;- lm(kid_score ~ mom_hs_c + mom_iq_c + mom_hs_c:mom_iq_c,
+ data = kidsiq)
+display(lm2)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## lm(formula = kid_score ~ mom_hs_c + mom_iq_c + mom_hs_c:mom_iq_c, 
+## data = kidsiq)
+## coef.est coef.se
+## (Intercept) 87.64 0.91 
+## mom_hs_c 2.84 2.43 
+## mom_iq_c 0.59 0.06 
+## mom_hs_c:mom_iq_c -0.48 0.16 
+## ---
+## n = 434, k = 4
+## residual sd = 17.97, R-Squared = 0.23&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>lm2a &amp;lt;- lm(kid_score ~ mom_hs + mom_iq_c + mom_hs:mom_iq_c,
+ data = kidsiq)
+display(lm2a)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## lm(formula = kid_score ~ mom_hs + mom_iq_c + mom_hs:mom_iq_c, 
+## data = kidsiq)
+## coef.est coef.se
+## (Intercept) 85.41 2.22 
+## mom_hs 2.84 2.43 
+## mom_iq_c 0.97 0.15 
+## mom_hs:mom_iq_c -0.48 0.16 
+## ---
+## n = 434, k = 4
+## residual sd = 17.97, R-Squared = 0.23&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="lm3-z-transformation" class="section level2" number="2.4">
+&lt;h2>&lt;span class="header-section-number">2.4&lt;/span> lm3: z-Transformation&lt;/h2>
+&lt;pre class="r">&lt;code>kidsiq &amp;lt;-
+ kidsiq %&amp;gt;% 
+ mutate(mom_iq_z = (mom_iq - mean(mom_iq)) / sd(mom_iq))&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>lm3 &amp;lt;- lm(kid_score ~ mom_hs + mom_iq_z + mom_hs:mom_iq_c, 
+ data = kidsiq)
+
+display(lm3)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## lm(formula = kid_score ~ mom_hs + mom_iq_z + mom_hs:mom_iq_c, 
+## data = kidsiq)
+## coef.est coef.se
+## (Intercept) 85.41 2.22 
+## mom_hs 2.84 2.43 
+## mom_iq_z 14.53 2.23 
+## mom_hs:mom_iq_c -0.48 0.16 
+## ---
+## n = 434, k = 4
+## residual sd = 17.97, R-Squared = 0.23&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;/div>
+&lt;div id="modelle-mit-logy" class="section level1" number="3">
+&lt;h1>&lt;span class="header-section-number">3&lt;/span> Modelle mit &lt;code>log(y)&lt;/code>&lt;/h1>
+&lt;div id="daten-laden" class="section level2" number="3.1">
+&lt;h2>&lt;span class="header-section-number">3.1&lt;/span> Daten laden&lt;/h2>
+&lt;pre class="r">&lt;code>earn &amp;lt;- read_csv(&amp;quot;https://raw.githubusercontent.com/sebastiansauer/2021-sose/master/data/ARM/heights.csv&amp;quot;)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## 
+## ── Column specification ────────────────────────────────────────────────────────
+## cols(
+## earn = col_double(),
+## height1 = col_double(),
+## height2 = col_double(),
+## sex = col_double(),
+## race = col_double(),
+## hisp = col_double(),
+## ed = col_double(),
+## yearbn = col_double(),
+## height = col_double()
+## )&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="lm4-earn_log" class="section level2" number="3.2">
+&lt;h2>&lt;span class="header-section-number">3.2&lt;/span> lm4: earn_log&lt;/h2>
+&lt;pre class="r">&lt;code>earn &amp;lt;-
+ earn %&amp;gt;% 
+ mutate(earn_log = log(earn))&lt;/code>&lt;/pre>
+&lt;pre class="r">&lt;code>lm4 &amp;lt;- lm(earn_log ~ height, 
+ data = earn %&amp;gt;% filter(earn &amp;gt; 0))
+display(lm4)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## lm(formula = earn_log ~ height, data = earn %&amp;gt;% filter(earn &amp;gt; 
+## 0))
+## coef.est coef.se
+## (Intercept) 5.78 0.45 
+## height 0.06 0.01 
+## ---
+## n = 1192, k = 2
+## residual sd = 0.89, R-Squared = 0.06&lt;/code>&lt;/pre>
+&lt;/div>
+&lt;div id="lm5-earn_log-mit-zwei-prädiktoren" class="section level2" number="3.3">
+&lt;h2>&lt;span class="header-section-number">3.3&lt;/span> lm5: earn_log mit zwei Prädiktoren&lt;/h2>
+&lt;pre class="r">&lt;code>earn %&amp;gt;% 
+ count(sex)&lt;/code>&lt;/pre>
+&lt;pre>&lt;code>## # A tibble: 2 x 2
+## sex n
+## &amp;lt;dbl&amp;gt; &amp;lt;int&amp;gt;
+## 1 1 748
+## 2 2 1281&lt;/code>&lt;/pre>
+&lt;p>Leider wissen wir nicht, ob Frauen mit 1 oder mit 2 codiert sind. Gehen wir davon aus, dass Männer mit 1 kodiert sind (vgl. Buch ARM, S. 61).&lt;/p></description></item></channel></rss>

@@ -1,0 +1,40 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Programming the tidyverse: quoted and unqouted parameters - Data Se</title>
+<meta property="og:title" content="Programming the tidyverse: quoted and unqouted parameters - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>3 min read</span><h1 class=article-title>Programming the tidyverse: quoted and unqouted parameters</h1><span class=article-date>2022/03/11</span><div class=article-content><script src="/data_se/2022/03/11/programming-the-tidyverse-quoted-and-unqouted-parameters/
+index_files/header-attrs/header-attrs.js"></script><div id=TOC><ul><li><a href=#load-packages><span class=toc-section-number>1</span> Load packages</a></li><li><a href=#motivation><span class=toc-section-number>2</span> Motivation</a></li><li><a href=#first-quoted-string-parameter><span class=toc-section-number>3</span> First: Quoted (string) parameter</a></li><li><a href=#second-unquoted-parameter><span class=toc-section-number>4</span> Second: Unquoted parameter</a></li><li><a href=#check><span class=toc-section-number>5</span> Check</a></li><li><a href=#bonus><span class=toc-section-number>6</span> Bonus</a></li></ul></div><div id=load-packages class="section level1" number=1><h1><span class=header-section-number>1</span> Load packages</h1><pre class=r><code>library(tidyverse)  # data wrangling</code></pre></div><div id=motivation class="section level1" number=2><h1><span class=header-section-number>2</span> Motivation</h1><p>If a project reaches some level of complexity, sooner or later, more systematical meausures of coding need to be employed.</p><p>Using the tidyverse ecosystem, programming - instead of interactive use -
+may be something different or unusual and it may take some time to wrap your head around it.</p><p>In this post, I’ll show how to deal with a standard situation (using tidyvserse’ nonstandard evaluation).
+More precisely, there are two (complementary) situations we’ll address:</p><ol style=list-style-type:decimal><li><p>How to work with a <em>nonquoted</em> (bare, no quotation marks) parameter in a function call, e.g., <code>draw_cool_diagram(mtcars, hp)</code>.</p></li><li><ol style=list-style-type:decimal><li>How to work with a <em>nquoted</em> (with quotation marks) parameter in a function call, e.g., <code>draw_cool_diagram(mtcars, "hp")</code>.</li></ol></li></ol></div><div id=first-quoted-string-parameter class="section level1" number=3><h1><span class=header-section-number>3</span> First: Quoted (string) parameter</h1><p>For the ease of comprehension,
+let’s make a very simple function:
+A function that pulls a column out of tibble,
+returning a vector of the values.</p><p>The point is that we use a string as parameter value in the function
+that uses tidyverse commands internally.</p><pre class=r><code>pull_string &lt;- function(data, var){
+  
+  var_symbol &lt;- as.name(var)
+  
+  out &lt;- 
+  data %&gt;% 
+    pull({{var_symbol}})
+  
+  return(out)
+}</code></pre><p>Ok, here’s comes the function call, note the <em>quoted</em> parameter “hp”:</p><pre class=r><code>out1 &lt;- pull_string(mtcars, &quot;hp&quot;)
+out1
+#&gt;  [1] 110 110  93 110 175 105 245  62  95 123 123 180 180 180 205 215 230  66  52
+#&gt; [20]  65  97 150 150 245 175  66  91 113 264 175 335 109</code></pre><p>The “curly curly” {{ operator provides the candy here.
+It explains to the tidyverse function that <code>var_symbol</code> needs to evaluated in the environment of the data frame.</p><p>Note that we first translated <code>var</code> from a string to a symbol, using <code>as.name()</code>:</p><pre class=r><code>as.name(&quot;hp&quot;)
+#&gt; hp</code></pre><p>Next to <code>as.name()</code> the curly-curly operator can be made use of.</p></div><div id=second-unquoted-parameter class="section level1" number=4><h1><span class=header-section-number>4</span> Second: Unquoted parameter</h1><p>Ok, let’s move on, next, the <em>unquoted</em> parameter in our function.</p><pre class=r><code>pull_unquoted &lt;- function(data, var) {
+  
+  out &lt;-
+    data %&gt;% 
+    pull({{var}})
+  
+  return(out)
+}
+
+out2 &lt;- pull_unquoted(mtcars, hp)
+out2
+#&gt;  [1] 110 110  93 110 175 105 245  62  95 123 123 180 180 180 205 215 230  66  52
+#&gt; [20]  65  97 150 150 245 175  66  91 113 264 175 335 109</code></pre><p>Even more simple than method 1. Here,
+we don’t need to translate <code>var</code> to a symbol,
+because we already got in unquoted, ie., as a “symbol”.</p></div><div id=check class="section level1" number=5><h1><span class=header-section-number>5</span> Check</h1><p>Did it work out?</p><pre class=r><code>identical(out1, out2)
+#&gt; [1] TRUE</code></pre><p>Seems so!</p></div><div id=bonus class="section level1" number=6><h1><span class=header-section-number>6</span> Bonus</h1><p>To translate from symbol to string,
+we can use the following expression:</p><pre class=r><code>deparse(substitute(var))
+#&gt; [1] &quot;var&quot;</code></pre></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script></body></html>
