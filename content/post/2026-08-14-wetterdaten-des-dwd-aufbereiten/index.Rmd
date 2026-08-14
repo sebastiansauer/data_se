@@ -217,6 +217,78 @@ Quelle: `klimakenntage_bundesland_jahr.csv`
 
 Anmerkung: Deine Liste enthielt "TR" für Starkregentage — das DWD-Kürzel TR steht offiziell für Tropennächte; Starkregentage haben im DWD-Schema kein eigenes Kürzel, daher hier über die tatsächlichen Spaltenwerte (precipGE10mm_days/precipGE20mm_days) benannt.
 
+## Vergleich mit langfristigen Trends
+
+Der DWD stellt für die regionalen Bundesland-Mittelwerte keine eigene
+`multi_annual`-Referenzperiode bereit (die gibt es beim DWD nur auf
+Stationsebene, unter `observations_germany/climate/multi_annual/`).
+Die Referenzperiode wird daher hier selbst aus den bereits geladenen
+Zeitreihen berechnet, als Mittelwert über die WMO-Standardperiode
+**1991–2020**.
+
+```{r referenzperiode_temperatur}
+ref_start <- 1991
+ref_end   <- 2020
+
+temperatur_jahr <- temperatur_lang |>
+  group_by(Bundesland, Jahr) |>
+  summarise(Temp_Mittel_C = mean(Temp_Mittel_C, na.rm = TRUE), .groups = "drop")
+
+referenz_temp <- temperatur_jahr |>
+  filter(Jahr >= ref_start, Jahr <= ref_end) |>
+  group_by(Bundesland) |>
+  summarise(Referenzmittel_C = mean(Temp_Mittel_C, na.rm = TRUE), .groups = "drop")
+
+letztes_jahr <- max(temperatur_jahr$Jahr)
+
+abweichung_temp <- temperatur_jahr |>
+  filter(Jahr == letztes_jahr) |>
+  left_join(referenz_temp, by = "Bundesland") |>
+  mutate(Abweichung_C = Temp_Mittel_C - Referenzmittel_C) |>
+  arrange(desc(Abweichung_C))
+
+abweichung_temp |>
+  select(Bundesland, !!paste0("Jahr_", letztes_jahr) := Temp_Mittel_C,
+         Referenzmittel_C, Abweichung_C) |>
+  tt() |>
+  format_tt(digits = 2)
+```
+
+```{r abweichung_plot}
+ggplot(abweichung_temp, aes(x = reorder(Bundesland, Abweichung_C), y = Abweichung_C,
+                             fill = Abweichung_C > 0)) +
+  geom_col() +
+  coord_flip() +
+  scale_fill_manual(values = c(`TRUE` = "firebrick", `FALSE` = "steelblue"), guide = "none") +
+  labs(
+    title = paste("Temperaturabweichung", letztes_jahr, "vom Referenzmittel", ref_start, "-", ref_end),
+    x = NULL, y = "Abweichung (°C)"
+  )
+```
+
+Analog für die Klimakenntage: Vergleich des Bundeslandmittels im
+letzten verfügbaren Jahr mit dem Referenzmittel 1991–2020, gemittelt
+über alle Bundesländer je Indikator.
+
+```{r referenzperiode_kenntage}
+referenz_kenntage <- kenntage_lang |>
+  filter(Jahr >= ref_start, Jahr <= ref_end) |>
+  group_by(Indikator) |>
+  summarise(Referenzmittel = mean(Wert, na.rm = TRUE), .groups = "drop")
+
+letztes_jahr_kenntage <- max(kenntage_lang$Jahr)
+
+abweichung_kenntage <- kenntage_lang |>
+  filter(Jahr == letztes_jahr_kenntage) |>
+  group_by(Indikator) |>
+  summarise(Wert_aktuell = mean(Wert, na.rm = TRUE), .groups = "drop") |>
+  left_join(referenz_kenntage, by = "Indikator") |>
+  mutate(Differenz = Wert_aktuell - Referenzmittel) |>
+  arrange(desc(Differenz))
+
+abweichung_kenntage |> tt() |> format_tt(digits = 2)
+```
+
 # Überblick über die aggregierten Daten
 
 
