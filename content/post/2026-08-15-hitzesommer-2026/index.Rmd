@@ -63,6 +63,7 @@ DWD-Server kapselt.
 Als Einordnung zunächst die Monatsmittel für Deutschland, wie sie im
 vorherigen Post (`wetterdaten_monat.csv`) aufbereitet wurden.
 
+### Monatsdaten laden
 
 Hier stehen die Daten des DWD bereit – die bereits im Vorpost
 aufbereitete CSV mit Monatsmitteln je Bundesland wird direkt von
@@ -77,6 +78,8 @@ wetterdaten_monat <- read_csv(
 
 
 Datenquelle: Deutscher Wetterdienst (DWD), Climate Data Center, opendata.dwd.de, Lizenz: CC BY 4.0
+
+### Referenzmittel berechnen
 
 Berechnen wir die Temperatur und Niederschlag für den Sommer 2026
 (Juni, Juli) - im Vergleich zu einem langjährigen Referenzwert. Zuerst
@@ -105,6 +108,8 @@ klimatologie_monat <- deutschland_monat |>
   )
 ```
 
+### Sommer 2026 vs. Referenzmittel
+
 Sommer 2026 herausfiltern und dem Referenzmittel gegenüberstellen.
 
 ```{r monatsdaten-sommer}
@@ -126,6 +131,8 @@ sommer_2026 |>
   format_tt(digits = 2)
 ```
 
+### Temperaturverlauf im Plot
+
 Zunächst die Sommermitteltemperatur je Jahr berechnen.
 
 ```{r monatsdaten-plot-daten}
@@ -136,19 +143,21 @@ sommer_temp_jahr <- deutschland_monat |>
 ```
 
 Im Jahresverlauf geplottet, der aktuelle Sommer (2026) ist farbig
-markiert, dazu ein geglätteter Trend (`geom_smooth()`).
+markiert, dazu ein dezenter geglätteter Trend (`geom_smooth()`, ohne
+Konfidenzband, dünn und grau, damit er die Datenpunkte nicht
+überdeckt).
 
 ```{r monatsdaten-plot}
 sommer_temp_jahr |>
   ggplot(aes(x = year, y = sommer_temp)) +
   geom_line(color = "grey60") +
+  geom_smooth(se = FALSE, color = "grey30", linewidth = 0.7) +
   geom_point(aes(color = year == 2026), size = 4) +
   scale_color_manual(values = c(`TRUE` = "firebrick", `FALSE` = "grey40"), guide = "none") +
   labs(
     title = "Sommermitteltemperatur (Jun-Aug) Deutschland",
     x = NULL, y = "Temperatur (°C)"
-  ) +
-  geom_smooth()
+  )
 ```
 
 Hinweis: Der Wert für 2026 basiert auf den bislang verfügbaren
@@ -197,11 +206,13 @@ Für die Auswertung unten genutzt: `TXK` (Kriterium Hitzetag ≥ 30 °C),
 `TNK` (Kriterium Tropennacht ≥ 20 °C), `TMK` (Tagesmittel) und `RSK`
 (Niederschlag, aktuell nur mitgeführt, nicht separat ausgewertet).
 
+## Messstationen auswählen
+
 Je Bundesland die 5 Stationen mit der längsten laufenden Messreihe als
 Kandidaten vormerken (nicht nur die eine "beste", falls diese später
 unvollständige Werte liefert).
 
-## Messstationen auswählen
+### Kandidaten ermitteln
 
 ```{r stationsauswahl-kandidaten}
 data("metaIndex") # Stellt Infos zu den Messtationen bereit (z.B. Lage der Messstation)
@@ -214,6 +225,8 @@ kandidaten <- metaIndex |>
   slice_head(n = 5) |>
   summarise(ids = list(Stations_id), .groups = "drop")
 ```
+
+### Hilfsfunktion: Station laden
 
 Hilfsfunktion, die die Tageswerte einer einzelnen Station herunterlädt
 und einliest.
@@ -232,6 +245,8 @@ lade_station <- function(id) {
 }
 ```
 
+### Hilfsfunktion: beste Station wählen
+
 Hilfsfunktion, die die Kandidaten der Reihe nach durchprobiert und die
 erste brauchbare Station zurückgibt: die erste, bei der in den letzten
 90 Tagen mehr als 80 % der Tagesmaxima (TXK) tatsächlich vorhanden
@@ -248,6 +263,8 @@ waehle_station <- function(ids) {
   NULL
 }
 ```
+
+### Stationsdaten zusammenstellen
 
 Für jedes Bundesland wird jetzt tatsächlich eine Station geladen.
 
@@ -271,6 +288,8 @@ reicht für den Vergleich Sommer 2025 vs. 2026 weiter unten.
 
 ## Wetterdaten pro Tag
 
+### Bundesweites Tagesmittel
+
 ```{r deutschland-tagesmittel}
 deutschland_tag <- stationsdaten |>
   group_by(Datum) |>
@@ -287,6 +306,8 @@ deutschland_tag |>
   tt()
 ```
 
+### Zeitraum zuschneiden
+
 Zeitraum ab Sommer 2025 zuschneiden – das reicht für den Vergleich
 Sommer 2025 vs. 2026 weiter unten.
 
@@ -294,6 +315,10 @@ Sommer 2025 vs. 2026 weiter unten.
 sommer_tage <- deutschland_tag |>
   filter(Datum >= as.Date("2025-06-01"))
 ```
+
+## Hitzetage (Tagesmaximum ≥ 30 °C)
+
+### Hilfsfunktion: Länge einer Hitzewelle
 
 Hilfsfunktion für die längste zusammenhängende Hitzewelle:
 `rle()` ("run-length encoding") zählt Längen zusammenhängender
@@ -308,7 +333,7 @@ hitzewelle_laenge <- function(txk, schwelle = 30) {
 }
 ```
 
-## Hitzetage (Tagesmaximum ≥ 30 °C) 
+### Hitzetage und Hitzewellen je Sommer
 
 Daten je Sommer, sowie die längste
 zusammenhängende Hitzewelle (aufeinanderfolgende Hitzetage):
@@ -328,15 +353,20 @@ sommer_tage |>
   format_tt(digits = 1)
 ```
 
+### Tagesmaxima im Vergleich
+
 Die Tagesmaxima beider Sommer im direkten Vergleich, ausgerichtet auf
-den Tag im Jahr (Sommer 2025 vs. 2026 an derselben x-Position):
+den Tag im Jahr (Sommer 2025 vs. 2026 an derselben x-Position), dazu
+je Jahr ein dezenter geglätteter Trend (gestrichelt, dünn, ohne
+Konfidenzband).
 
 ```{r hitzewellen-plot, fig.width = 8}
 sommer_tage |>
   filter(month(Datum) %in% 6:8) |>
   ggplot(aes(x = yday(Datum), y = TXK, color = factor(year(Datum)))) +
   geom_hline(yintercept = 30, linetype = "dashed", color = "firebrick") +
-  geom_line() +
+  geom_line(alpha = 0.5) +
+  geom_smooth(se = FALSE, linewidth = 0.8, linetype = "solid") +
   labs(
     title = "Tagesmaximaltemperatur Deutschland, Sommer 2025 vs. 2026",
     subtitle = "Gestrichelte Linie: Hitzetag-Schwelle (30 °C)",
@@ -358,6 +388,8 @@ für jeden Kalendertag (unabhängig vom Jahr) ein klimatologischer
 Referenzwert über 1991-2020 gebildet – geglättet mit einem
 ±5-Tage-Fenster um den jeweiligen Tag des Jahres, um Tag-zu-Tag-Rauschen
 zu reduzieren – und jedem Tag des Sommers 2026 gegenübergestellt.
+
+### Historische Tagesdaten laden
 
 Dieselben 16 Stationen wie oben, aber diesmal die `historical`-Dateien.
 
@@ -433,6 +465,8 @@ seinen Tag-des-Jahres (`doy`) per `left_join()` den passenden
 geglätteten Referenzwert zugewiesen, woraus sich die Abweichung
 (`TMK - TMK_ref` usw.) ergibt.
 
+### Referenzwert berechnen
+
 Referenzperiode und Fenstergröße festlegen, dann alle Tage der
 Referenzperiode mit ihrem Tag-des-Jahres (`doy`) versehen.
 
@@ -485,13 +519,51 @@ sommer_2026_tag <- sommer_2026_tag |>
   )
 ```
 
+### Vergleich: 2026 vs. langjähriges Mittel
+
+Variante der Hitzewellen-Grafik von oben: statt Sommer 2025 vs. 2026
+hier 2026 direkt gegen den geglätteten langjährigen Referenzwert
+(1991-2020, siehe Methodik oben) – dieselben Tagesmaxima, nur mit dem
+langfristigen Mittel statt dem Vorjahr als Vergleichslinie.
+
+```{r klimatologie-vergleich-daten}
+klimatologie_vergleich <- sommer_2026_tag |>
+  select(Datum, TXK, TXK_ref) |>
+  pivot_longer(cols = c(TXK, TXK_ref), names_to = "reihe", values_to = "temperatur") |>
+  mutate(reihe = recode(reihe,
+    TXK     = "2026 (tatsächlich)",
+    TXK_ref = "Referenzmittel 1991-2020"
+  ))
+```
+
+```{r klimatologie-vergleichsplot, fig.width = 8}
+klimatologie_vergleich |>
+  ggplot(aes(x = Datum, y = temperatur, color = reihe)) +
+  geom_hline(yintercept = 30, linetype = "dashed", color = "grey50") +
+  geom_line(linewidth = 0.9) +
+  scale_color_manual(values = c(
+    "2026 (tatsächlich)"       = "firebrick",
+    "Referenzmittel 1991-2020" = "grey40"
+  )) +
+  labs(
+    title = "Tagesmaximaltemperatur 2026 vs. langjähriger Referenzwert",
+    subtitle = "Gestrichelte Linie: Hitzetag-Schwelle (30 °C)",
+    x = NULL, y = "Tagesmaximum (°C)", color = NULL
+  )
+```
+
+### Tägliche Abweichung als Balkendiagramm
+
 Als Balkendiagramm über den Sommer: positive Abweichungen (rot) vs.
-negative (blau), Tag für Tag.
+negative (blau), Tag für Tag, dazu ein dezenter geglätteter
+Gesamttrend (`aes(group = 1)`, damit die Glättung nicht durch die
+rot/blau-Einfärbung der Balken in zwei Gruppen zerfällt).
 
 ```{r klimatologie-plot, fig.width = 8, fig.asp = 0.5}
 sommer_2026_tag |>
   ggplot(aes(x = Datum, y = TMK_abw, fill = TMK_abw > 0)) +
   geom_col() +
+  geom_smooth(aes(group = 1), se = FALSE, color = "grey20", linewidth = 0.7) +
   scale_fill_manual(values = c(`TRUE` = "firebrick", `FALSE` = "steelblue"), guide = "none") +
   labs(
     title = "Tagesmitteltemperatur 2026 vs. Referenzwert 1991-2020",
@@ -505,6 +577,8 @@ sommer_2026_tag |>
 Dieselbe Abweichung, als Kalender: eine Kachel je Tag, Füllfarbe als
 Funktion der Abweichung der Tagesmitteltemperatur vom langjährigen
 Referenzwert (blau = kühler, rot = wärmer als 1991-2020).
+
+### Kalenderdaten aufbereiten
 
 Wochentags-Kürzel auf Deutsch, sowie Monat, Tagesnummer und Wochentag
 je Datum ableiten.
@@ -535,6 +609,8 @@ kalender_daten <- kalender_daten |>
     kw_monat = ceiling((tag + monatsbeginn_wd - 1) / 7)
   )
 ```
+
+### Kalenderdiagramm
 
 Die Kacheln selbst: eine Kachel je Tag, eingefärbt nach Abweichung.
 
@@ -567,7 +643,7 @@ kalender_plot +
   )
 ```
 
-## Tageswerte Sommer 2026 vs. Referenzwert 
+## Tageswerte Sommer 2026 vs. Referenzwert
 
 Vollständige Tageswerte für den Sommer 2026, mit Referenzwert und
 Abweichung:
