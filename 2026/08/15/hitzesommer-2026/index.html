@@ -1,0 +1,291 @@
+<!doctype html><html lang=en-us><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=generator content="Hugo 0.134.3"><title>Hitzesommer 2026 - Data Se</title>
+<meta property="og:title" content="Hitzesommer 2026 - Data Se"><link href=//cdn.bootcss.com/highlight.js/9.11.0/styles/github.min.css rel=stylesheet type=text/css><link rel=stylesheet href=/data_se/css/fonts.css media=all><link rel=stylesheet href=/data_se/css/main.css media=all></head><body><div class=wrapper><header class=header><nav class=nav><a href=/data_se/ class=nav-logo><img src=/data_se/images/logo-data-se.png width=50 height=50 alt=Logo></a><ul class=nav-links><li><a href=/data_se/about/>About</a></li><li><a href=/data_se/>Blog</a></li><li><a href=/data_se/privacy/>Data privacy</a></li></ul></nav></header><main class=content role=main><article class=article><span class=article-duration>12 min read</span><h1 class=article-title>Hitzesommer 2026</h1><span class=article-date>2026/08/15</span><div class=article-content><div id=load-packages class="section level1"><h1>Load packages</h1><pre class=r><code>library(tidyverse)
+library(rdwd)
+library(tinytable)</code></pre></div><div id=daten class="section level1"><h1>Daten</h1><p>Der DWD stellt im <a href=https://opendata.dwd.de/climate_environment/CDC/>Climate Data Center</a>
+Tagesklimadaten (u. a. Temperaturmittel/-minimum/-maximum und
+Niederschlag) je Wetterstation frei zum Download an
+(<code>observations_germany/climate/daily/kl/</code>), aufgeteilt in
+<code>historical/</code> (abgeschlossene Jahre) und <code>recent/</code> (laufendes Jahr plus
+die letzten ca. 500 Tage). Ein fertiges Deutschland-Tagesmittel bietet
+der DWD dafür nicht an – das gibt es nur auf Monats-/Jahresebene unter
+<code>regional_averages_DE/</code> (bereits im vorherigen Post genutzt). Für den
+Sommer 2026 wird hier deshalb selbst ein einfaches Tagesmittel über je
+eine Station pro Bundesland gebildet, mit Hilfe des R-Pakets
+<a href=https://bookdown.org/brry/rdwd/><code>{rdwd}</code></a>, das den Zugriff auf die
+DWD-Server kapselt.</p><div id=monatskontext-sommer-2026-im-langfristigen-vergleich class="section level2"><h2>Monatskontext: Sommer 2026 im langfristigen Vergleich</h2><p>Als Einordnung zunächst die Monatsmittel für Deutschland, wie sie im
+vorherigen Post (<code>wetterdaten_monat.csv</code>) aufbereitet wurden.</p><pre class=r><code>wetterdaten_monat &lt;- read_csv(
+  &quot;https://raw.githubusercontent.com/sebastiansauer/data_se/refs/heads/master/content/post/2026-08-14-wetterdaten-des-dwd-aufbereiten/wetterdaten_monat.csv&quot;,
+  show_col_types = FALSE
+)
+
+deutschland_monat &lt;- wetterdaten_monat |&gt;
+  filter(region == &quot;Deutschland&quot;)
+
+ref_start &lt;- 1991
+ref_end   &lt;- 2020
+
+klimatologie_monat &lt;- deutschland_monat |&gt;
+  filter(year &gt;= ref_start, year &lt;= ref_end) |&gt;
+  group_by(month) |&gt;
+  summarise(
+    temp_ref   = mean(temp, na.rm = TRUE),
+    precip_ref = mean(precip, na.rm = TRUE),
+    .groups = &quot;drop&quot;
+  )
+
+sommer_2026 &lt;- deutschland_monat |&gt;
+  filter(year == 2026, month %in% 6:8) |&gt;
+  left_join(klimatologie_monat, by = &quot;month&quot;) |&gt;
+  mutate(
+    temp_abw   = temp - temp_ref,
+    monatsname = month.name[month]
+  )
+
+sommer_2026 |&gt;
+  select(monatsname, temp, temp_ref, temp_abw, precip, precip_ref) |&gt;
+  tt() |&gt;
+  format_tt(digits = 2)</code></pre><script src=https://cdn.jsdelivr.net/gh/vincentarelbundock/tinytable@main/inst/tinytable.js></script><script>const tableFns_lf4lt2w2o4s47n2l2zvw=TinyTable.createTableFunctions("tinytable_lf4lt2w2o4s47n2l2zvw");window.addEventListener("load",function(){var e=[{positions:[{i:"2",j:1},{i:"2",j:2},{i:"2",j:3},{i:"2",j:4},{i:"2",j:5},{i:"2",j:6}],css_id:"tinytable_css_3m5px6icme32y1jy4wh1"},{positions:[{i:"0",j:1},{i:"0",j:2},{i:"0",j:3},{i:"0",j:4},{i:"0",j:5},{i:"0",j:6}],css_id:"tinytable_css_h1wuxi1695a9z5wyybq0"}];e.forEach(function(e){e.positions.forEach(function(t){tableFns_lf4lt2w2o4s47n2l2zvw.styleCell(t.i,t.j,e.css_id)})})})</script><link rel=stylesheet href=https://cdn.jsdelivr.net/gh/vincentarelbundock/tinytable@main/inst/tinytable.css><style>#tinytable_lf4lt2w2o4s47n2l2zvw td.tinytable_css_3m5px6icme32y1jy4wh1,#tinytable_lf4lt2w2o4s47n2l2zvw th.tinytable_css_3m5px6icme32y1jy4wh1{position:relative;--border-bottom:1;--border-left:0;--border-right:0;--border-top:0;--line-color-bottom:var(--tt-line-color);--line-color-left:var(--tt-line-color);--line-color-right:var(--tt-line-color);--line-color-top:var(--tt-line-color);--line-width-bottom:0.08em;--line-width-left:0.1em;--line-width-right:0.1em;--line-width-top:0.1em;--trim-bottom-left:0%;--trim-bottom-right:0%;--trim-left-bottom:0%;--trim-left-top:0%;--trim-right-bottom:0%;--trim-right-top:0%;--trim-top-left:0%;--trim-top-right:0%}#tinytable_lf4lt2w2o4s47n2l2zvw td.tinytable_css_h1wuxi1695a9z5wyybq0,#tinytable_lf4lt2w2o4s47n2l2zvw th.tinytable_css_h1wuxi1695a9z5wyybq0{position:relative;--border-bottom:1;--border-left:0;--border-right:0;--border-top:1;--line-color-bottom:var(--tt-line-color);--line-color-left:var(--tt-line-color);--line-color-right:var(--tt-line-color);--line-color-top:var(--tt-line-color);--line-width-bottom:0.05em;--line-width-left:0.1em;--line-width-right:0.1em;--line-width-top:0.08em;--trim-bottom-left:0%;--trim-bottom-right:0%;--trim-left-bottom:0%;--trim-left-top:0%;--trim-right-bottom:0%;--trim-right-top:0%;--trim-top-left:0%;--trim-top-right:0%}</style><div class=container><table class=tinytable id=tinytable_lf4lt2w2o4s47n2l2zvw style=width:auto;margin-left:auto;margin-right:auto data-quarto-disable-processing=true><thead><tr><th scope=col data-row=0 data-col=1>monatsname</th><th scope=col data-row=0 data-col=2>temp</th><th scope=col data-row=0 data-col=3>temp_ref</th><th scope=col data-row=0 data-col=4>temp_abw</th><th scope=col data-row=0 data-col=5>precip</th><th scope=col data-row=0 data-col=6>precip_ref</th></tr></thead><tbody><tr><td data-row=1 data-col=1>June</td><td data-row=1 data-col=2>19</td><td data-row=1 data-col=3>16</td><td data-row=1 data-col=4>3</td><td data-row=1 data-col=5>66</td><td data-row=1 data-col=6>76</td></tr><tr><td data-row=2 data-col=1>July</td><td data-row=2 data-col=2>20</td><td data-row=2 data-col=3>18</td><td data-row=2 data-col=4>1.2</td><td data-row=2 data-col=5>44</td><td data-row=2 data-col=6>87</td></tr></tbody></table></div><pre class=r><code>deutschland_monat |&gt;
+  filter(month %in% 6:8) |&gt;
+  group_by(year) |&gt;
+  summarise(sommer_temp = mean(temp, na.rm = TRUE), .groups = &quot;drop&quot;) |&gt;
+  ggplot(aes(x = year, y = sommer_temp)) +
+  geom_line(color = &quot;grey60&quot;) +
+  geom_point(aes(color = year == 2026), size = 2) +
+  scale_color_manual(values = c(`TRUE` = &quot;firebrick&quot;, `FALSE` = &quot;grey40&quot;), guide = &quot;none&quot;) +
+  labs(
+    title = &quot;Sommermitteltemperatur (Jun-Aug) Deutschland&quot;,
+    x = NULL, y = &quot;Temperatur (°C)&quot;
+  )</code></pre><p><img src=https://sebastiansauer.github.io/data_se/2026/08/15/hitzesommer-2026/index_files/figure-html/monatsdaten-plot-1.png alt width=70% style=display:block;margin:auto></p><p>Hinweis: Der Wert für 2026 basiert auf den bislang verfügbaren
+Monatsdaten (Juni + Juli), der August ist beim DWD auf Monatsebene
+noch nicht veröffentlicht. Er liegt schon jetzt auf dem Niveau der
+bisherigen Rekordsommer.</p></div><div id=tagesdaten-hitzewellen-im-sommer-2026 class="section level2"><h2>Tagesdaten: Hitzewellen im Sommer 2026</h2><p>Stationsauswahl: je Bundesland wird die Station mit der längsten
+laufenden Messreihe herangezogen (<code>per == "recent"</code>), mit bis zu 5
+Ausweichkandidaten, falls eine Station in den letzten 90 Tagen zu
+viele fehlende Temperaturwerte hat (manche automatischen Stationen
+liefern TXK/TNK nicht durchgängig).</p></div><div id=data-dictionary-dwd-tageswerte-datensatz-kl class="section level2"><h2>Data Dictionary: DWD Tageswerte (Datensatz <code>kl</code>)</h2><p>Quelle: DWD Climate Data Center, <code>observations_germany/climate/daily/kl/</code>
+(Metadatendatei <code>Metadaten_Parameter_klima_tag_&lt;ID>.txt</code> in jedem
+Stations-ZIP). Fehlwert-Code <code>-999</code>, wird von <code>readDWD()</code> automatisch
+zu <code>NA</code>.</p><table><col width=16%><col width=72%><col width=11%><thead><tr class=header><th>Kürzel</th><th>Bedeutung</th><th align=center>Einheit</th></tr></thead><tbody><tr class=odd><td><code>STATIONS_ID</code></td><td>Stations-ID</td><td align=center>—</td></tr><tr class=even><td><code>MESS_DATUM</code></td><td>Messdatum</td><td align=center>Datum</td></tr><tr class=odd><td><code>QN_3</code></td><td>Qualitätsniveau der Parameter FX, FM</td><td align=center>Code</td></tr><tr class=even><td><code>FX</code></td><td>Windspitze (max. Böe des Tages)</td><td align=center>m/s</td></tr><tr class=odd><td><code>FM</code></td><td>Windgeschwindigkeit, Tagesmittel</td><td align=center>m/s</td></tr><tr class=even><td><code>QN_4</code></td><td>Qualitätsniveau der übrigen Parameter (RSK…TGK)</td><td align=center>Code</td></tr><tr class=odd><td><strong><code>RSK</code></strong></td><td><strong>Niederschlagshöhe, Tagessumme</strong></td><td align=center><strong>mm</strong></td></tr><tr class=even><td><code>RSKF</code></td><td>Niederschlagsform (0=kein, 1=Regen, 4=Mischform, 6=Regenschauer, 7=Schnee, 8=Schneeschauer, 9=Hagel …)</td><td align=center>Code</td></tr><tr class=odd><td><code>SDK</code></td><td>Sonnenscheindauer, Tagessumme</td><td align=center>h</td></tr><tr class=even><td><code>SHK_TAG</code></td><td>Schneehöhe</td><td align=center>cm</td></tr><tr class=odd><td><code>NM</code></td><td>Bedeckungsgrad, Tagesmittel</td><td align=center>Achtel</td></tr><tr class=even><td><code>VPM</code></td><td>Dampfdruck, Tagesmittel</td><td align=center>hPa</td></tr><tr class=odd><td><code>PM</code></td><td>Luftdruck (Stationsniveau), Tagesmittel</td><td align=center>hPa</td></tr><tr class=even><td><strong><code>TMK</code></strong></td><td><strong>Lufttemperatur 2 m, Tagesmittel</strong></td><td align=center><strong>°C</strong></td></tr><tr class=odd><td><code>UPM</code></td><td>Relative Luftfeuchte, Tagesmittel</td><td align=center>%</td></tr><tr class=even><td><strong><code>TXK</code></strong></td><td><strong>Lufttemperatur 2 m, Tagesmaximum</strong></td><td align=center><strong>°C</strong></td></tr><tr class=odd><td><strong><code>TNK</code></strong></td><td><strong>Lufttemperatur 2 m, Tagesminimum</strong></td><td align=center><strong>°C</strong></td></tr><tr class=even><td><code>TGK</code></td><td>Lufttemperatur 5 cm über Boden, Tagesminimum</td><td align=center>°C</td></tr><tr class=odd><td><code>eor</code></td><td>Zeilenende-Marker (“end of record”)</td><td align=center>—</td></tr></tbody></table><p>Für die Auswertung unten genutzt: <code>TXK</code> (Kriterium Hitzetag ≥ 30 °C),
+<code>TNK</code> (Kriterium Tropennacht ≥ 20 °C), <code>TMK</code> (Tagesmittel) und <code>RSK</code>
+(Niederschlag, aktuell nur mitgeführt, nicht separat ausgewertet).</p><pre class=r><code>data(&quot;metaIndex&quot;)
+
+kandidaten &lt;- metaIndex |&gt;
+  filter(res == &quot;daily&quot;, var == &quot;kl&quot;, per == &quot;recent&quot;, hasfile) |&gt;
+  distinct(Stations_id, Bundesland, von_datum) |&gt;
+  arrange(Bundesland, von_datum) |&gt;
+  group_by(Bundesland) |&gt;
+  slice_head(n = 5) |&gt;
+  summarise(ids = list(Stations_id), .groups = &quot;drop&quot;)
+
+lade_station &lt;- function(id) {
+  link &lt;- selectDWD(id = id, res = &quot;daily&quot;, var = &quot;kl&quot;, per = &quot;recent&quot;)
+  file &lt;- dataDWD(link, read = FALSE, dir = tempdir(), quiet = TRUE)
+  readDWD(file, varnames = FALSE) |&gt;
+    as_tibble() |&gt;
+    transmute(
+      Stations_id = STATIONS_ID,
+      Datum = MESS_DATUM,
+      TXK, TNK, TMK, RSK
+    )
+}
+
+waehle_station &lt;- function(ids) {
+  for (id in ids) {
+    df &lt;- tryCatch(lade_station(id), error = function(e) NULL)
+    if (is.null(df) || nrow(df) == 0) next
+    letzte_90 &lt;- df |&gt; filter(Datum &gt;= max(Datum) - 90)
+    if (mean(!is.na(letzte_90$TXK)) &gt; 0.8) return(df)
+  }
+  NULL
+}
+
+stationsdaten &lt;- kandidaten |&gt;
+  mutate(daten = map(ids, waehle_station)) |&gt;
+  select(-ids) |&gt;
+  unnest(daten)</code></pre><p>Hinweis:</p><p>“kl” steht für Klimatageswerte – das ist der DWD-interne Kürzel für den Datensatz mit den kombinierten täglichen Klimastationswerten (Temperatur, Niederschlag, Sonnenschein, Wind, Luftdruck etc. in einer Datei je Station).</p><pre class=r><code>deutschland_tag &lt;- stationsdaten |&gt;
+  group_by(Datum) |&gt;
+  summarise(
+    TXK = mean(TXK, na.rm = TRUE),
+    TNK = mean(TNK, na.rm = TRUE),
+    TMK = mean(TMK, na.rm = TRUE),
+    RSK = mean(RSK, na.rm = TRUE),
+    .groups = &quot;drop&quot;
+  )
+
+sommer_tage &lt;- deutschland_tag |&gt;
+  filter(Datum &gt;= as.Date(&quot;2025-06-01&quot;))</code></pre><p>Hitzetage (Tagesmaximum ≥ 30 °C) je Sommer, sowie die längste
+zusammenhängende Hitzewelle (aufeinanderfolgende Hitzetage):</p><pre class=r><code>hitzewelle_laenge &lt;- function(txk, schwelle = 30) {
+  ist_heiss &lt;- !is.na(txk) &amp; txk &gt;= schwelle
+  laengen &lt;- rle(ist_heiss)
+  max(c(0, laengen$lengths[laengen$values]))
+}
+
+sommer_tage |&gt;
+  mutate(jahr = year(Datum), monat = month(Datum)) |&gt;
+  filter(monat %in% 6:8) |&gt;
+  group_by(jahr) |&gt;
+  summarise(
+    hitzetage       = sum(TXK &gt;= 30, na.rm = TRUE),
+    tropennaechte    = sum(TNK &gt;= 20, na.rm = TRUE),
+    laengste_hitzewelle = hitzewelle_laenge(TXK[order(monat)]),
+    .groups = &quot;drop&quot;
+  ) |&gt;
+  tt() |&gt;
+  format_tt(digits = 1)</code></pre><script src=https://cdn.jsdelivr.net/gh/vincentarelbundock/tinytable@main/inst/tinytable.js></script><script>const tableFns_z8l07dhqjr390fs1uc15=TinyTable.createTableFunctions("tinytable_z8l07dhqjr390fs1uc15");window.addEventListener("load",function(){var e=[{positions:[{i:"2",j:1},{i:"2",j:2},{i:"2",j:3},{i:"2",j:4}],css_id:"tinytable_css_egziscbx6g559nuoh6j4"},{positions:[{i:"0",j:1},{i:"0",j:2},{i:"0",j:3},{i:"0",j:4}],css_id:"tinytable_css_k4udlxa34qbm6z1dlxy4"}];e.forEach(function(e){e.positions.forEach(function(t){tableFns_z8l07dhqjr390fs1uc15.styleCell(t.i,t.j,e.css_id)})})})</script><link rel=stylesheet href=https://cdn.jsdelivr.net/gh/vincentarelbundock/tinytable@main/inst/tinytable.css><style>#tinytable_z8l07dhqjr390fs1uc15 td.tinytable_css_egziscbx6g559nuoh6j4,#tinytable_z8l07dhqjr390fs1uc15 th.tinytable_css_egziscbx6g559nuoh6j4{position:relative;--border-bottom:1;--border-left:0;--border-right:0;--border-top:0;--line-color-bottom:var(--tt-line-color);--line-color-left:var(--tt-line-color);--line-color-right:var(--tt-line-color);--line-color-top:var(--tt-line-color);--line-width-bottom:0.08em;--line-width-left:0.1em;--line-width-right:0.1em;--line-width-top:0.1em;--trim-bottom-left:0%;--trim-bottom-right:0%;--trim-left-bottom:0%;--trim-left-top:0%;--trim-right-bottom:0%;--trim-right-top:0%;--trim-top-left:0%;--trim-top-right:0%}#tinytable_z8l07dhqjr390fs1uc15 td.tinytable_css_k4udlxa34qbm6z1dlxy4,#tinytable_z8l07dhqjr390fs1uc15 th.tinytable_css_k4udlxa34qbm6z1dlxy4{position:relative;--border-bottom:1;--border-left:0;--border-right:0;--border-top:1;--line-color-bottom:var(--tt-line-color);--line-color-left:var(--tt-line-color);--line-color-right:var(--tt-line-color);--line-color-top:var(--tt-line-color);--line-width-bottom:0.05em;--line-width-left:0.1em;--line-width-right:0.1em;--line-width-top:0.08em;--trim-bottom-left:0%;--trim-bottom-right:0%;--trim-left-bottom:0%;--trim-left-top:0%;--trim-right-bottom:0%;--trim-right-top:0%;--trim-top-left:0%;--trim-top-right:0%}</style><div class=container><table class=tinytable id=tinytable_z8l07dhqjr390fs1uc15 style=width:auto;margin-left:auto;margin-right:auto data-quarto-disable-processing=true><thead><tr><th scope=col data-row=0 data-col=1>jahr</th><th scope=col data-row=0 data-col=2>hitzetage</th><th scope=col data-row=0 data-col=3>tropennaechte</th><th scope=col data-row=0 data-col=4>laengste_hitzewelle</th></tr></thead><tbody><tr><td data-row=1 data-col=1>2025</td><td data-row=1 data-col=2>7</td><td data-row=1 data-col=3>0</td><td data-row=1 data-col=4>3</td></tr><tr><td data-row=2 data-col=1>2026</td><td data-row=2 data-col=2>16</td><td data-row=2 data-col=3>2</td><td data-row=2 data-col=4>5</td></tr></tbody></table></div><pre class=r><code>sommer_tage |&gt;
+  filter(month(Datum) %in% 6:8) |&gt;
+  ggplot(aes(x = yday(Datum), y = TXK, color = factor(year(Datum)))) +
+  geom_hline(yintercept = 30, linetype = &quot;dashed&quot;, color = &quot;firebrick&quot;) +
+  geom_line() +
+  labs(
+    title = &quot;Tagesmaximaltemperatur Deutschland, Sommer 2025 vs. 2026&quot;,
+    subtitle = &quot;Gestrichelte Linie: Hitzetag-Schwelle (30 °C)&quot;,
+    x = &quot;Tag im Jahr&quot;, y = &quot;Tagesmaximum (°C)&quot;, color = &quot;Jahr&quot;
+  )</code></pre><p><img src=https://sebastiansauer.github.io/data_se/2026/08/15/hitzesommer-2026/index_files/figure-html/hitzewellen-plot-1.png alt width=70% style=display:block;margin:auto></p><p>Da der Sommer 2026 zum Zeitpunkt dieser Auswertung (15.08.) noch nicht
+vorbei ist, sind die Werte für 2026 bislang nur bis Mitte August
+gezählt – die Vergleichszahlen für 2025 sind entsprechend
+vollständiger.</p></div><div id=jeder-tag-im-sommer-2026-vs.-langjähriger-referenzwert-1991-2020 class="section level2"><h2>Jeder Tag im Sommer 2026 vs. langjähriger Referenzwert (1991-2020)</h2><p>Für einen echten Tageswert-Vergleich reicht <code>per = "recent"</code> nicht
+aus (deckt nur gut 1,5 Jahre ab). Für dieselben 16 Referenzstationen
+werden deshalb zusätzlich die <code>historical</code>-Dateien geladen, daraus
+für jeden Kalendertag (unabhängig vom Jahr) ein klimatologischer
+Referenzwert über 1991-2020 gebildet – geglättet mit einem
+±5-Tage-Fenster um den jeweiligen Tag des Jahres, um Tag-zu-Tag-Rauschen
+zu reduzieren – und jedem Tag des Sommers 2026 gegenübergestellt.</p><pre class=r><code>ausgewaehlte_ids &lt;- unique(stationsdaten$Stations_id)
+
+lade_historisch &lt;- function(id) {
+  link &lt;- selectDWD(id = id, res = &quot;daily&quot;, var = &quot;kl&quot;, per = &quot;historical&quot;)
+  file &lt;- dataDWD(link, read = FALSE, dir = tempdir(), quiet = TRUE)
+  readDWD(file, varnames = FALSE) |&gt;
+    as_tibble() |&gt;
+    transmute(
+      Stations_id = STATIONS_ID,
+      Datum = MESS_DATUM,
+      TXK, TNK, TMK
+    )
+}
+
+historisch &lt;- map_dfr(ausgewaehlte_ids, function(id) {
+  tryCatch(lade_historisch(id), error = function(e) NULL)
+})
+
+deutschland_hist_tag &lt;- historisch |&gt;
+  group_by(Datum) |&gt;
+  summarise(
+    TXK = mean(TXK, na.rm = TRUE),
+    TNK = mean(TNK, na.rm = TRUE),
+    TMK = mean(TMK, na.rm = TRUE),
+    .groups = &quot;drop&quot;
+  )</code></pre><div id=methodik-wie-entsteht-der-referenzwert-je-tag class="section level3"><h3>Methodik: Wie entsteht der Referenzwert je Tag?</h3><p><strong>Referenzperiode:</strong> Als Bezugszeitraum dient 1991–2020 – die aktuelle
+WMO-Standardnormalperiode (30 Jahre), der weltweit übliche Maßstab
+dafür, was an einem Kalendertag “normal” ist.</p><p><strong>Warum glätten?</strong> Ein einzelner Kalendertag (z. B. der 27. Juni) hat
+über 30 Jahre nur 30 bundesweite Tagesmittelwerte – statistisch wenig
+und tagesscharf stark verrauscht. Ein einzelner ungewöhnlich kühler
+oder warmer 27. Juni in den 1990ern würde den Referenzwert für genau
+diesen Tag spürbar verzerren.</p><p><strong>Das ±5-Tage-Fenster:</strong> Statt nur des exakten Kalendertags wird ein
+Fenster von 5 Tagen davor bis 5 Tagen danach herangezogen. Für den 27.
+Juni fließen also alle Tage vom 22. Juni bis 2. Juli aus <strong>allen</strong> 30
+Referenzjahren ein – bis zu 11 Tage × 30 Jahre ≈ 330 Werte statt nur
+30. Der Mittelwert daraus ist der geglättete Referenzwert für “27.
+Juni”. Das folgt derselben Grundidee wie offizielle DWD/WMO-Klimanormalen
+(dort oft per harmonischer Glättung/Fourierreihen berechnet), hier
+vereinfacht als gleitendes Mittel über ein festes Tagesfenster.</p><p>Konkret berechnet die Funktion <code>klimatologie_tag()</code> für einen
+Zieltag (<code>doy_ziel</code>, Tag des Jahres) den Abstand zu jedem Tag der
+Referenzperiode, behandelt diesen Abstand zirkulär über den
+Jahreswechsel hinweg (<code>pmin(diff, 366 - diff)</code>, relevant z. B. für den
+1. Januar, für den sonst die letzten Dezembertage fälschlich “weit
+entfernt” wären), filtert auf Abstand ≤ 5 Tage und mittelt TXK/TNK/TMK
+über die verbleibenden Zeilen. Jeder Sommertag 2026 bekommt so über
+seinen Tag-des-Jahres (<code>doy</code>) per <code>left_join()</code> den passenden
+geglätteten Referenzwert zugewiesen, woraus sich die Abweichung
+(<code>TMK - TMK_ref</code> usw.) ergibt.</p><pre class=r><code>ref_start_tag &lt;- 1991
+ref_end_tag   &lt;- 2020
+fenster       &lt;- 5  # Tage vor/nach dem Zieltag
+
+hist_ref &lt;- deutschland_hist_tag |&gt;
+  filter(year(Datum) &gt;= ref_start_tag, year(Datum) &lt;= ref_end_tag) |&gt;
+  mutate(doy = yday(Datum))
+
+klimatologie_tag &lt;- function(doy_ziel) {
+  diff &lt;- abs(hist_ref$doy - doy_ziel)
+  diff &lt;- pmin(diff, 366 - diff)  # zirkulaer um den Jahreswechsel
+  sel  &lt;- hist_ref[diff &lt;= fenster, ]
+  tibble(
+    doy     = doy_ziel,
+    TXK_ref = mean(sel$TXK, na.rm = TRUE),
+    TNK_ref = mean(sel$TNK, na.rm = TRUE),
+    TMK_ref = mean(sel$TMK, na.rm = TRUE)
+  )
+}
+
+sommer_2026_tag &lt;- deutschland_tag |&gt;
+  filter(year(Datum) == 2026, month(Datum) %in% 6:8) |&gt;
+  mutate(doy = yday(Datum))
+
+klimatologie_sommer &lt;- map_dfr(unique(sommer_2026_tag$doy), klimatologie_tag)
+
+sommer_2026_tag &lt;- sommer_2026_tag |&gt;
+  left_join(klimatologie_sommer, by = &quot;doy&quot;) |&gt;
+  mutate(
+    TXK_abw = TXK - TXK_ref,
+    TNK_abw = TNK - TNK_ref,
+    TMK_abw = TMK - TMK_ref
+  )</code></pre><pre class=r><code>sommer_2026_tag |&gt;
+  ggplot(aes(x = Datum, y = TMK_abw, fill = TMK_abw &gt; 0)) +
+  geom_col() +
+  scale_fill_manual(values = c(`TRUE` = &quot;firebrick&quot;, `FALSE` = &quot;steelblue&quot;), guide = &quot;none&quot;) +
+  labs(
+    title = &quot;Tagesmitteltemperatur 2026 vs. Referenzwert 1991-2020&quot;,
+    subtitle = &quot;Abweichung je Tag, geglättet mit ±5-Tage-Fenster um den Kalendertag&quot;,
+    x = NULL, y = &quot;Abweichung (°C)&quot;
+  )</code></pre><p><img src=https://sebastiansauer.github.io/data_se/2026/08/15/hitzesommer-2026/index_files/figure-html/klimatologie-plot-1.png alt width=70% style=display:block;margin:auto></p></div></div><div id=kalenderansicht class="section level2"><h2>Kalenderansicht</h2><p>Dieselbe Abweichung, als Kalender: eine Kachel je Tag, Füllfarbe als
+Funktion der Abweichung der Tagesmitteltemperatur vom langjährigen
+Referenzwert (blau = kühler, rot = wärmer als 1991-2020).</p><pre class=r><code>wochentag_de &lt;- c(&quot;Mo&quot;, &quot;Di&quot;, &quot;Mi&quot;, &quot;Do&quot;, &quot;Fr&quot;, &quot;Sa&quot;, &quot;So&quot;)
+
+kalender_daten &lt;- sommer_2026_tag |&gt;
+  mutate(
+    monat           = factor(month(Datum), levels = 6:8, labels = c(&quot;Juni&quot;, &quot;Juli&quot;, &quot;August&quot;)),
+    tag             = day(Datum),
+    wd_num          = wday(Datum, week_start = 1),  # 1 = Montag ... 7 = Sonntag
+    wochentag       = factor(wochentag_de[wd_num], levels = wochentag_de),
+    monatsbeginn_wd = wday(floor_date(Datum, &quot;month&quot;), week_start = 1),
+    kw_monat        = ceiling((tag + monatsbeginn_wd - 1) / 7)
+  )
+
+ggplot(kalender_daten, aes(x = wochentag, y = -kw_monat, fill = TMK_abw)) +
+  geom_tile(color = &quot;white&quot;, linewidth = 0.6) +
+  geom_text(aes(label = tag), size = 3, color = &quot;grey20&quot;) +
+  scale_fill_gradient2(
+    low = &quot;steelblue&quot;, mid = &quot;grey95&quot;, high = &quot;firebrick&quot;,
+    midpoint = 0, name = &quot;Abweichung\n(°C)&quot;
+  ) +
+  facet_wrap(~monat, ncol = 1, scales = &quot;free_y&quot;) +
+  labs(
+    title = &quot;Kalenderansicht: Tagesmitteltemperatur 2026 vs. Referenzwert 1991-2020&quot;,
+    x = NULL, y = NULL
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    axis.text.y  = element_blank(),
+    axis.ticks.y = element_blank(),
+    panel.grid   = element_blank(),
+    strip.text   = element_text(face = &quot;bold&quot;)
+  )</code></pre><p><img src=https://sebastiansauer.github.io/data_se/2026/08/15/hitzesommer-2026/index_files/figure-html/kalender-diagramm-1.png alt width=70% style=display:block;margin:auto></p><p>Vollständige Tageswerte für den Sommer 2026, mit Referenzwert und
+Abweichung:</p><pre class=r><code>sommer_2026_tag |&gt;
+  transmute(
+    Datum,
+    TXK, TXK_ref, TXK_abw,
+    TMK, TMK_ref, TMK_abw
+  ) |&gt;
+  tt() |&gt;
+  format_tt(digits = 1)</code></pre><script src=https://cdn.jsdelivr.net/gh/vincentarelbundock/tinytable@main/inst/tinytable.js></script><script>const tableFns_qc72kto6380xbaqsrbu9=TinyTable.createTableFunctions("tinytable_qc72kto6380xbaqsrbu9");window.addEventListener("load",function(){var e=[{positions:[{i:"74",j:1},{i:"74",j:2},{i:"74",j:3},{i:"74",j:4},{i:"74",j:5},{i:"74",j:6},{i:"74",j:7}],css_id:"tinytable_css_5a1u3hbljohzrlgaw64x"},{positions:[{i:"0",j:1},{i:"0",j:2},{i:"0",j:3},{i:"0",j:4},{i:"0",j:5},{i:"0",j:6},{i:"0",j:7}],css_id:"tinytable_css_6xvynv0t3onixsu3gjyd"}];e.forEach(function(e){e.positions.forEach(function(t){tableFns_qc72kto6380xbaqsrbu9.styleCell(t.i,t.j,e.css_id)})})})</script><link rel=stylesheet href=https://cdn.jsdelivr.net/gh/vincentarelbundock/tinytable@main/inst/tinytable.css><style>#tinytable_qc72kto6380xbaqsrbu9 td.tinytable_css_5a1u3hbljohzrlgaw64x,#tinytable_qc72kto6380xbaqsrbu9 th.tinytable_css_5a1u3hbljohzrlgaw64x{position:relative;--border-bottom:1;--border-left:0;--border-right:0;--border-top:0;--line-color-bottom:var(--tt-line-color);--line-color-left:var(--tt-line-color);--line-color-right:var(--tt-line-color);--line-color-top:var(--tt-line-color);--line-width-bottom:0.08em;--line-width-left:0.1em;--line-width-right:0.1em;--line-width-top:0.1em;--trim-bottom-left:0%;--trim-bottom-right:0%;--trim-left-bottom:0%;--trim-left-top:0%;--trim-right-bottom:0%;--trim-right-top:0%;--trim-top-left:0%;--trim-top-right:0%}#tinytable_qc72kto6380xbaqsrbu9 td.tinytable_css_6xvynv0t3onixsu3gjyd,#tinytable_qc72kto6380xbaqsrbu9 th.tinytable_css_6xvynv0t3onixsu3gjyd{position:relative;--border-bottom:1;--border-left:0;--border-right:0;--border-top:1;--line-color-bottom:var(--tt-line-color);--line-color-left:var(--tt-line-color);--line-color-right:var(--tt-line-color);--line-color-top:var(--tt-line-color);--line-width-bottom:0.05em;--line-width-left:0.1em;--line-width-right:0.1em;--line-width-top:0.08em;--trim-bottom-left:0%;--trim-bottom-right:0%;--trim-left-bottom:0%;--trim-left-top:0%;--trim-right-bottom:0%;--trim-right-top:0%;--trim-top-left:0%;--trim-top-right:0%}</style><div class=container><table class=tinytable id=tinytable_qc72kto6380xbaqsrbu9 style=width:auto;margin-left:auto;margin-right:auto data-quarto-disable-processing=true><thead><tr><th scope=col data-row=0 data-col=1>Datum</th><th scope=col data-row=0 data-col=2>TXK</th><th scope=col data-row=0 data-col=3>TXK_ref</th><th scope=col data-row=0 data-col=4>TXK_abw</th><th scope=col data-row=0 data-col=5>TMK</th><th scope=col data-row=0 data-col=6>TMK_ref</th><th scope=col data-row=0 data-col=7>TMK_abw</th></tr></thead><tbody><tr><td data-row=1 data-col=1>2026-06-01</td><td data-row=1 data-col=2>23</td><td data-row=1 data-col=3>21</td><td data-row=1 data-col=4>2.27</td><td data-row=1 data-col=5>18</td><td data-row=1 data-col=6>16</td><td data-row=1 data-col=7>2</td></tr><tr><td data-row=2 data-col=1>2026-06-02</td><td data-row=2 data-col=2>25</td><td data-row=2 data-col=3>21</td><td data-row=2 data-col=4>3.48</td><td data-row=2 data-col=5>18</td><td data-row=2 data-col=6>16</td><td data-row=2 data-col=7>2.36</td></tr><tr><td data-row=3 data-col=1>2026-06-03</td><td data-row=3 data-col=2>20</td><td data-row=3 data-col=3>21</td><td data-row=3 data-col=4>-0.84</td><td data-row=3 data-col=5>16</td><td data-row=3 data-col=6>16</td><td data-row=3 data-col=7>0.2</td></tr><tr><td data-row=4 data-col=1>2026-06-04</td><td data-row=4 data-col=2>21</td><td data-row=4 data-col=3>21</td><td data-row=4 data-col=4>-0.43</td><td data-row=4 data-col=5>16</td><td data-row=4 data-col=6>16</td><td data-row=4 data-col=7>0.3</td></tr><tr><td data-row=5 data-col=1>2026-06-05</td><td data-row=5 data-col=2>20</td><td data-row=5 data-col=3>22</td><td data-row=5 data-col=4>-1.08</td><td data-row=5 data-col=5>15</td><td data-row=5 data-col=6>16</td><td data-row=5 data-col=7>-1.17</td></tr><tr><td data-row=6 data-col=1>2026-06-06</td><td data-row=6 data-col=2>23</td><td data-row=6 data-col=3>22</td><td data-row=6 data-col=4>1.52</td><td data-row=6 data-col=5>17</td><td data-row=6 data-col=6>16</td><td data-row=6 data-col=7>0.48</td></tr><tr><td data-row=7 data-col=1>2026-06-07</td><td data-row=7 data-col=2>21</td><td data-row=7 data-col=3>22</td><td data-row=7 data-col=4>-0.48</td><td data-row=7 data-col=5>17</td><td data-row=7 data-col=6>17</td><td data-row=7 data-col=7>0.05</td></tr><tr><td data-row=8 data-col=1>2026-06-08</td><td data-row=8 data-col=2>24</td><td data-row=8 data-col=3>22</td><td data-row=8 data-col=4>2.42</td><td data-row=8 data-col=5>18</td><td data-row=8 data-col=6>17</td><td data-row=8 data-col=7>1.52</td></tr><tr><td data-row=9 data-col=1>2026-06-09</td><td data-row=9 data-col=2>20</td><td data-row=9 data-col=3>22</td><td data-row=9 data-col=4>-1.98</td><td data-row=9 data-col=5>15</td><td data-row=9 data-col=6>17</td><td data-row=9 data-col=7>-1.03</td></tr><tr><td data-row=10 data-col=1>2026-06-10</td><td data-row=10 data-col=2>18</td><td data-row=10 data-col=3>22</td><td data-row=10 data-col=4>-3.3</td><td data-row=10 data-col=5>13</td><td data-row=10 data-col=6>17</td><td data-row=10 data-col=7>-3.19</td></tr><tr><td data-row=11 data-col=1>2026-06-11</td><td data-row=11 data-col=2>18</td><td data-row=11 data-col=3>22</td><td data-row=11 data-col=4>-3.41</td><td data-row=11 data-col=5>13</td><td data-row=11 data-col=6>17</td><td data-row=11 data-col=7>-3.18</td></tr><tr><td data-row=12 data-col=1>2026-06-12</td><td data-row=12 data-col=2>19</td><td data-row=12 data-col=3>22</td><td data-row=12 data-col=4>-3.09</td><td data-row=12 data-col=5>15</td><td data-row=12 data-col=6>17</td><td data-row=12 data-col=7>-1.71</td></tr><tr><td data-row=13 data-col=1>2026-06-13</td><td data-row=13 data-col=2>22</td><td data-row=13 data-col=3>22</td><td data-row=13 data-col=4>0.37</td><td data-row=13 data-col=5>17</td><td data-row=13 data-col=6>17</td><td data-row=13 data-col=7>0.43</td></tr><tr><td data-row=14 data-col=1>2026-06-14</td><td data-row=14 data-col=2>19</td><td data-row=14 data-col=3>22</td><td data-row=14 data-col=4>-2.8</td><td data-row=14 data-col=5>15</td><td data-row=14 data-col=6>17</td><td data-row=14 data-col=7>-1.93</td></tr><tr><td data-row=15 data-col=1>2026-06-15</td><td data-row=15 data-col=2>19</td><td data-row=15 data-col=3>22</td><td data-row=15 data-col=4>-2.74</td><td data-row=15 data-col=5>14</td><td data-row=15 data-col=6>17</td><td data-row=15 data-col=7>-2.29</td></tr><tr><td data-row=16 data-col=1>2026-06-16</td><td data-row=16 data-col=2>22</td><td data-row=16 data-col=3>22</td><td data-row=16 data-col=4>0.78</td><td data-row=16 data-col=5>16</td><td data-row=16 data-col=6>17</td><td data-row=16 data-col=7>-0.15</td></tr><tr><td data-row=17 data-col=1>2026-06-17</td><td data-row=17 data-col=2>25</td><td data-row=17 data-col=3>22</td><td data-row=17 data-col=4>3.81</td><td data-row=17 data-col=5>19</td><td data-row=17 data-col=6>17</td><td data-row=17 data-col=7>2.63</td></tr><tr><td data-row=18 data-col=1>2026-06-18</td><td data-row=18 data-col=2>30</td><td data-row=18 data-col=3>22</td><td data-row=18 data-col=4>8.32</td><td data-row=18 data-col=5>23</td><td data-row=18 data-col=6>17</td><td data-row=18 data-col=7>6.85</td></tr><tr><td data-row=19 data-col=1>2026-06-19</td><td data-row=19 data-col=2>33</td><td data-row=19 data-col=3>22</td><td data-row=19 data-col=4>11.32</td><td data-row=19 data-col=5>25</td><td data-row=19 data-col=6>17</td><td data-row=19 data-col=7>8.7</td></tr><tr><td data-row=20 data-col=1>2026-06-20</td><td data-row=20 data-col=2>32</td><td data-row=20 data-col=3>22</td><td data-row=20 data-col=4>10.1</td><td data-row=20 data-col=5>25</td><td data-row=20 data-col=6>17</td><td data-row=20 data-col=7>8.2</td></tr><tr><td data-row=21 data-col=1>2026-06-21</td><td data-row=21 data-col=2>30</td><td data-row=21 data-col=3>22</td><td data-row=21 data-col=4>8.33</td><td data-row=21 data-col=5>24</td><td data-row=21 data-col=6>17</td><td data-row=21 data-col=7>6.77</td></tr><tr><td data-row=22 data-col=1>2026-06-22</td><td data-row=22 data-col=2>29</td><td data-row=22 data-col=3>22</td><td data-row=22 data-col=4>6.78</td><td data-row=22 data-col=5>23</td><td data-row=22 data-col=6>17</td><td data-row=22 data-col=7>6.25</td></tr><tr><td data-row=23 data-col=1>2026-06-23</td><td data-row=23 data-col=2>29</td><td data-row=23 data-col=3>22</td><td data-row=23 data-col=4>7.08</td><td data-row=23 data-col=5>23</td><td data-row=23 data-col=6>17</td><td data-row=23 data-col=7>6</td></tr><tr><td data-row=24 data-col=1>2026-06-24</td><td data-row=24 data-col=2>33</td><td data-row=24 data-col=3>22</td><td data-row=24 data-col=4>10.36</td><td data-row=24 data-col=5>25</td><td data-row=24 data-col=6>17</td><td data-row=24 data-col=7>8.17</td></tr><tr><td data-row=25 data-col=1>2026-06-25</td><td data-row=25 data-col=2>33</td><td data-row=25 data-col=3>22</td><td data-row=25 data-col=4>10.27</td><td data-row=25 data-col=5>26</td><td data-row=25 data-col=6>17</td><td data-row=25 data-col=7>9.12</td></tr><tr><td data-row=26 data-col=1>2026-06-26</td><td data-row=26 data-col=2>35</td><td data-row=26 data-col=3>23</td><td data-row=26 data-col=4>12.57</td><td data-row=26 data-col=5>28</td><td data-row=26 data-col=6>17</td><td data-row=26 data-col=7>10.09</td></tr><tr><td data-row=27 data-col=1>2026-06-27</td><td data-row=27 data-col=2>38</td><td data-row=27 data-col=3>23</td><td data-row=27 data-col=4>15.01</td><td data-row=27 data-col=5>30</td><td data-row=27 data-col=6>18</td><td data-row=27 data-col=7>12.04</td></tr><tr><td data-row=28 data-col=1>2026-06-28</td><td data-row=28 data-col=2>34</td><td data-row=28 data-col=3>23</td><td data-row=28 data-col=4>11.36</td><td data-row=28 data-col=5>28</td><td data-row=28 data-col=6>18</td><td data-row=28 data-col=7>10.38</td></tr><tr><td data-row=29 data-col=1>2026-06-29</td><td data-row=29 data-col=2>27</td><td data-row=29 data-col=3>23</td><td data-row=29 data-col=4>3.67</td><td data-row=29 data-col=5>22</td><td data-row=29 data-col=6>18</td><td data-row=29 data-col=7>4.22</td></tr><tr><td data-row=30 data-col=1>2026-06-30</td><td data-row=30 data-col=2>27</td><td data-row=30 data-col=3>23</td><td data-row=30 data-col=4>3.76</td><td data-row=30 data-col=5>21</td><td data-row=30 data-col=6>18</td><td data-row=30 data-col=7>3.27</td></tr><tr><td data-row=31 data-col=1>2026-07-01</td><td data-row=31 data-col=2>25</td><td data-row=31 data-col=3>24</td><td data-row=31 data-col=4>1.39</td><td data-row=31 data-col=5>20</td><td data-row=31 data-col=6>18</td><td data-row=31 data-col=7>1.43</td></tr><tr><td data-row=32 data-col=1>2026-07-02</td><td data-row=32 data-col=2>26</td><td data-row=32 data-col=3>24</td><td data-row=32 data-col=4>2.75</td><td data-row=32 data-col=5>20</td><td data-row=32 data-col=6>18</td><td data-row=32 data-col=7>1.44</td></tr><tr><td data-row=33 data-col=1>2026-07-03</td><td data-row=33 data-col=2>23</td><td data-row=33 data-col=3>24</td><td data-row=33 data-col=4>-0.65</td><td data-row=33 data-col=5>18</td><td data-row=33 data-col=6>18</td><td data-row=33 data-col=7>-0.48</td></tr><tr><td data-row=34 data-col=1>2026-07-04</td><td data-row=34 data-col=2>24</td><td data-row=34 data-col=3>24</td><td data-row=34 data-col=4>0.08</td><td data-row=34 data-col=5>18</td><td data-row=34 data-col=6>18</td><td data-row=34 data-col=7>-0.35</td></tr><tr><td data-row=35 data-col=1>2026-07-05</td><td data-row=35 data-col=2>24</td><td data-row=35 data-col=3>24</td><td data-row=35 data-col=4>-0.02</td><td data-row=35 data-col=5>19</td><td data-row=35 data-col=6>18</td><td data-row=35 data-col=7>0.57</td></tr><tr><td data-row=36 data-col=1>2026-07-06</td><td data-row=36 data-col=2>24</td><td data-row=36 data-col=3>24</td><td data-row=36 data-col=4>0.07</td><td data-row=36 data-col=5>19</td><td data-row=36 data-col=6>18</td><td data-row=36 data-col=7>0.74</td></tr><tr><td data-row=37 data-col=1>2026-07-07</td><td data-row=37 data-col=2>26</td><td data-row=37 data-col=3>24</td><td data-row=37 data-col=4>1.99</td><td data-row=37 data-col=5>21</td><td data-row=37 data-col=6>18</td><td data-row=37 data-col=7>2.19</td></tr><tr><td data-row=38 data-col=1>2026-07-08</td><td data-row=38 data-col=2>24</td><td data-row=38 data-col=3>24</td><td data-row=38 data-col=4>0.46</td><td data-row=38 data-col=5>19</td><td data-row=38 data-col=6>18</td><td data-row=38 data-col=7>0.76</td></tr><tr><td data-row=39 data-col=1>2026-07-09</td><td data-row=39 data-col=2>25</td><td data-row=39 data-col=3>23</td><td data-row=39 data-col=4>1.24</td><td data-row=39 data-col=5>19</td><td data-row=39 data-col=6>18</td><td data-row=39 data-col=7>0.86</td></tr><tr><td data-row=40 data-col=1>2026-07-10</td><td data-row=40 data-col=2>28</td><td data-row=40 data-col=3>23</td><td data-row=40 data-col=4>4.47</td><td data-row=40 data-col=5>21</td><td data-row=40 data-col=6>18</td><td data-row=40 data-col=7>2.95</td></tr><tr><td data-row=41 data-col=1>2026-07-11</td><td data-row=41 data-col=2>28</td><td data-row=41 data-col=3>23</td><td data-row=41 data-col=4>5.17</td><td data-row=41 data-col=5>22</td><td data-row=41 data-col=6>18</td><td data-row=41 data-col=7>4.02</td></tr><tr><td data-row=42 data-col=1>2026-07-12</td><td data-row=42 data-col=2>30</td><td data-row=42 data-col=3>23</td><td data-row=42 data-col=4>6.28</td><td data-row=42 data-col=5>23</td><td data-row=42 data-col=6>18</td><td data-row=42 data-col=7>4.69</td></tr><tr><td data-row=43 data-col=1>2026-07-13</td><td data-row=43 data-col=2>30</td><td data-row=43 data-col=3>23</td><td data-row=43 data-col=4>6.56</td><td data-row=43 data-col=5>23</td><td data-row=43 data-col=6>18</td><td data-row=43 data-col=7>4.98</td></tr><tr><td data-row=44 data-col=1>2026-07-14</td><td data-row=44 data-col=2>28</td><td data-row=44 data-col=3>24</td><td data-row=44 data-col=4>4.71</td><td data-row=44 data-col=5>23</td><td data-row=44 data-col=6>18</td><td data-row=44 data-col=7>4.17</td></tr><tr><td data-row=45 data-col=1>2026-07-15</td><td data-row=45 data-col=2>28</td><td data-row=45 data-col=3>24</td><td data-row=45 data-col=4>3.95</td><td data-row=45 data-col=5>22</td><td data-row=45 data-col=6>19</td><td data-row=45 data-col=7>3.38</td></tr><tr><td data-row=46 data-col=1>2026-07-16</td><td data-row=46 data-col=2>29</td><td data-row=46 data-col=3>24</td><td data-row=46 data-col=4>5.28</td><td data-row=46 data-col=5>22</td><td data-row=46 data-col=6>19</td><td data-row=46 data-col=7>3.57</td></tr><tr><td data-row=47 data-col=1>2026-07-17</td><td data-row=47 data-col=2>28</td><td data-row=47 data-col=3>24</td><td data-row=47 data-col=4>4.44</td><td data-row=47 data-col=5>21</td><td data-row=47 data-col=6>19</td><td data-row=47 data-col=7>2.46</td></tr><tr><td data-row=48 data-col=1>2026-07-18</td><td data-row=48 data-col=2>24</td><td data-row=48 data-col=3>24</td><td data-row=48 data-col=4>0.39</td><td data-row=48 data-col=5>19</td><td data-row=48 data-col=6>19</td><td data-row=48 data-col=7>0.63</td></tr><tr><td data-row=49 data-col=1>2026-07-19</td><td data-row=49 data-col=2>22</td><td data-row=49 data-col=3>24</td><td data-row=49 data-col=4>-2.52</td><td data-row=49 data-col=5>17</td><td data-row=49 data-col=6>19</td><td data-row=49 data-col=7>-2.24</td></tr><tr><td data-row=50 data-col=1>2026-07-20</td><td data-row=50 data-col=2>21</td><td data-row=50 data-col=3>24</td><td data-row=50 data-col=4>-3.45</td><td data-row=50 data-col=5>16</td><td data-row=50 data-col=6>19</td><td data-row=50 data-col=7>-2.83</td></tr><tr><td data-row=51 data-col=1>2026-07-21</td><td data-row=51 data-col=2>24</td><td data-row=51 data-col=3>25</td><td data-row=51 data-col=4>-1.06</td><td data-row=51 data-col=5>17</td><td data-row=51 data-col=6>19</td><td data-row=51 data-col=7>-1.91</td></tr><tr><td data-row=52 data-col=1>2026-07-22</td><td data-row=52 data-col=2>22</td><td data-row=52 data-col=3>25</td><td data-row=52 data-col=4>-3.14</td><td data-row=52 data-col=5>17</td><td data-row=52 data-col=6>19</td><td data-row=52 data-col=7>-2.61</td></tr><tr><td data-row=53 data-col=1>2026-07-23</td><td data-row=53 data-col=2>22</td><td data-row=53 data-col=3>25</td><td data-row=53 data-col=4>-3.03</td><td data-row=53 data-col=5>17</td><td data-row=53 data-col=6>19</td><td data-row=53 data-col=7>-2.89</td></tr><tr><td data-row=54 data-col=1>2026-07-24</td><td data-row=54 data-col=2>24</td><td data-row=54 data-col=3>25</td><td data-row=54 data-col=4>-0.94</td><td data-row=54 data-col=5>17</td><td data-row=54 data-col=6>20</td><td data-row=54 data-col=7>-2.11</td></tr><tr><td data-row=55 data-col=1>2026-07-25</td><td data-row=55 data-col=2>29</td><td data-row=55 data-col=3>25</td><td data-row=55 data-col=4>4.17</td><td data-row=55 data-col=5>21</td><td data-row=55 data-col=6>20</td><td data-row=55 data-col=7>1.21</td></tr><tr><td data-row=56 data-col=1>2026-07-26</td><td data-row=56 data-col=2>25</td><td data-row=56 data-col=3>25</td><td data-row=56 data-col=4>0.21</td><td data-row=56 data-col=5>20</td><td data-row=56 data-col=6>20</td><td data-row=56 data-col=7>0.18</td></tr><tr><td data-row=57 data-col=1>2026-07-27</td><td data-row=57 data-col=2>23</td><td data-row=57 data-col=3>25</td><td data-row=57 data-col=4>-2.15</td><td data-row=57 data-col=5>18</td><td data-row=57 data-col=6>20</td><td data-row=57 data-col=7>-1.29</td></tr><tr><td data-row=58 data-col=1>2026-07-28</td><td data-row=58 data-col=2>27</td><td data-row=58 data-col=3>25</td><td data-row=58 data-col=4>1.43</td><td data-row=58 data-col=5>20</td><td data-row=58 data-col=6>20</td><td data-row=58 data-col=7>0.05</td></tr><tr><td data-row=59 data-col=1>2026-07-29</td><td data-row=59 data-col=2>33</td><td data-row=59 data-col=3>25</td><td data-row=59 data-col=4>7.99</td><td data-row=59 data-col=5>25</td><td data-row=59 data-col=6>20</td><td data-row=59 data-col=7>5.01</td></tr><tr><td data-row=60 data-col=1>2026-07-30</td><td data-row=60 data-col=2>36</td><td data-row=60 data-col=3>25</td><td data-row=60 data-col=4>10.75</td><td data-row=60 data-col=5>26</td><td data-row=60 data-col=6>20</td><td data-row=60 data-col=7>5.86</td></tr><tr><td data-row=61 data-col=1>2026-07-31</td><td data-row=61 data-col=2>30</td><td data-row=61 data-col=3>25</td><td data-row=61 data-col=4>4.21</td><td data-row=61 data-col=5>23</td><td data-row=61 data-col=6>20</td><td data-row=61 data-col=7>2.85</td></tr><tr><td data-row=62 data-col=1>2026-08-01</td><td data-row=62 data-col=2>25</td><td data-row=62 data-col=3>25</td><td data-row=62 data-col=4>-0.92</td><td data-row=62 data-col=5>19</td><td data-row=62 data-col=6>20</td><td data-row=62 data-col=7>-0.36</td></tr><tr><td data-row=63 data-col=1>2026-08-02</td><td data-row=63 data-col=2>27</td><td data-row=63 data-col=3>25</td><td data-row=63 data-col=4>1.73</td><td data-row=63 data-col=5>20</td><td data-row=63 data-col=6>20</td><td data-row=63 data-col=7>0.69</td></tr><tr><td data-row=64 data-col=1>2026-08-03</td><td data-row=64 data-col=2>32</td><td data-row=64 data-col=3>25</td><td data-row=64 data-col=4>6.85</td><td data-row=64 data-col=5>24</td><td data-row=64 data-col=6>20</td><td data-row=64 data-col=7>4.17</td></tr><tr><td data-row=65 data-col=1>2026-08-04</td><td data-row=65 data-col=2>32</td><td data-row=65 data-col=3>25</td><td data-row=65 data-col=4>6.77</td><td data-row=65 data-col=5>25</td><td data-row=65 data-col=6>20</td><td data-row=65 data-col=7>5.54</td></tr><tr><td data-row=66 data-col=1>2026-08-05</td><td data-row=66 data-col=2>31</td><td data-row=66 data-col=3>25</td><td data-row=66 data-col=4>5.69</td><td data-row=66 data-col=5>25</td><td data-row=66 data-col=6>20</td><td data-row=66 data-col=7>5.32</td></tr><tr><td data-row=67 data-col=1>2026-08-06</td><td data-row=67 data-col=2>26</td><td data-row=67 data-col=3>25</td><td data-row=67 data-col=4>1.19</td><td data-row=67 data-col=5>21</td><td data-row=67 data-col=6>20</td><td data-row=67 data-col=7>1.58</td></tr><tr><td data-row=68 data-col=1>2026-08-07</td><td data-row=68 data-col=2>23</td><td data-row=68 data-col=3>25</td><td data-row=68 data-col=4>-1.62</td><td data-row=68 data-col=5>18</td><td data-row=68 data-col=6>20</td><td data-row=68 data-col=7>-1.55</td></tr><tr><td data-row=69 data-col=1>2026-08-08</td><td data-row=69 data-col=2>27</td><td data-row=69 data-col=3>25</td><td data-row=69 data-col=4>2.1</td><td data-row=69 data-col=5>20</td><td data-row=69 data-col=6>19</td><td data-row=69 data-col=7>0.2</td></tr><tr><td data-row=70 data-col=1>2026-08-09</td><td data-row=70 data-col=2>32</td><td data-row=70 data-col=3>25</td><td data-row=70 data-col=4>7.33</td><td data-row=70 data-col=5>23</td><td data-row=70 data-col=6>19</td><td data-row=70 data-col=7>3.89</td></tr><tr><td data-row=71 data-col=1>2026-08-10</td><td data-row=71 data-col=2>30</td><td data-row=71 data-col=3>25</td><td data-row=71 data-col=4>5.3</td><td data-row=71 data-col=5>23</td><td data-row=71 data-col=6>19</td><td data-row=71 data-col=7>3.71</td></tr><tr><td data-row=72 data-col=1>2026-08-11</td><td data-row=72 data-col=2>25</td><td data-row=72 data-col=3>24</td><td data-row=72 data-col=4>0.17</td><td data-row=72 data-col=5>19</td><td data-row=72 data-col=6>19</td><td data-row=72 data-col=7>-0.14</td></tr><tr><td data-row=73 data-col=1>2026-08-12</td><td data-row=73 data-col=2>28</td><td data-row=73 data-col=3>24</td><td data-row=73 data-col=4>3.46</td><td data-row=73 data-col=5>19</td><td data-row=73 data-col=6>19</td><td data-row=73 data-col=7>0.52</td></tr><tr><td data-row=74 data-col=1>2026-08-13</td><td data-row=74 data-col=2>31</td><td data-row=74 data-col=3>24</td><td data-row=74 data-col=4>6.49</td><td data-row=74 data-col=5>22</td><td data-row=74 data-col=6>19</td><td data-row=74 data-col=7>3.23</td></tr></tbody></table></div><p>Die zehn Tage mit der größten positiven Abweichung vom langjährigen
+Mittel (Tagesmittel):</p><pre class=r><code>sommer_2026_tag |&gt;
+  arrange(desc(TMK_abw)) |&gt;
+  slice_head(n = 10) |&gt;
+  transmute(Datum, TMK, TMK_ref, TMK_abw) |&gt;
+  tt() |&gt;
+  format_tt(digits = 1)</code></pre><script src=https://cdn.jsdelivr.net/gh/vincentarelbundock/tinytable@main/inst/tinytable.js></script><script>const tableFns_9zfgjl7t8m4mia48s83i=TinyTable.createTableFunctions("tinytable_9zfgjl7t8m4mia48s83i");window.addEventListener("load",function(){var e=[{positions:[{i:"10",j:1},{i:"10",j:2},{i:"10",j:3},{i:"10",j:4}],css_id:"tinytable_css_oulku5h3wfwwma2mlun9"},{positions:[{i:"0",j:1},{i:"0",j:2},{i:"0",j:3},{i:"0",j:4}],css_id:"tinytable_css_af4o0ppzk8zg1dsijb0z"}];e.forEach(function(e){e.positions.forEach(function(t){tableFns_9zfgjl7t8m4mia48s83i.styleCell(t.i,t.j,e.css_id)})})})</script><link rel=stylesheet href=https://cdn.jsdelivr.net/gh/vincentarelbundock/tinytable@main/inst/tinytable.css><style>#tinytable_9zfgjl7t8m4mia48s83i td.tinytable_css_oulku5h3wfwwma2mlun9,#tinytable_9zfgjl7t8m4mia48s83i th.tinytable_css_oulku5h3wfwwma2mlun9{position:relative;--border-bottom:1;--border-left:0;--border-right:0;--border-top:0;--line-color-bottom:var(--tt-line-color);--line-color-left:var(--tt-line-color);--line-color-right:var(--tt-line-color);--line-color-top:var(--tt-line-color);--line-width-bottom:0.08em;--line-width-left:0.1em;--line-width-right:0.1em;--line-width-top:0.1em;--trim-bottom-left:0%;--trim-bottom-right:0%;--trim-left-bottom:0%;--trim-left-top:0%;--trim-right-bottom:0%;--trim-right-top:0%;--trim-top-left:0%;--trim-top-right:0%}#tinytable_9zfgjl7t8m4mia48s83i td.tinytable_css_af4o0ppzk8zg1dsijb0z,#tinytable_9zfgjl7t8m4mia48s83i th.tinytable_css_af4o0ppzk8zg1dsijb0z{position:relative;--border-bottom:1;--border-left:0;--border-right:0;--border-top:1;--line-color-bottom:var(--tt-line-color);--line-color-left:var(--tt-line-color);--line-color-right:var(--tt-line-color);--line-color-top:var(--tt-line-color);--line-width-bottom:0.05em;--line-width-left:0.1em;--line-width-right:0.1em;--line-width-top:0.08em;--trim-bottom-left:0%;--trim-bottom-right:0%;--trim-left-bottom:0%;--trim-left-top:0%;--trim-right-bottom:0%;--trim-right-top:0%;--trim-top-left:0%;--trim-top-right:0%}</style><div class=container><table class=tinytable id=tinytable_9zfgjl7t8m4mia48s83i style=width:auto;margin-left:auto;margin-right:auto data-quarto-disable-processing=true><thead><tr><th scope=col data-row=0 data-col=1>Datum</th><th scope=col data-row=0 data-col=2>TMK</th><th scope=col data-row=0 data-col=3>TMK_ref</th><th scope=col data-row=0 data-col=4>TMK_abw</th></tr></thead><tbody><tr><td data-row=1 data-col=1>2026-06-27</td><td data-row=1 data-col=2>30</td><td data-row=1 data-col=3>18</td><td data-row=1 data-col=4>12</td></tr><tr><td data-row=2 data-col=1>2026-06-28</td><td data-row=2 data-col=2>28</td><td data-row=2 data-col=3>18</td><td data-row=2 data-col=4>10</td></tr><tr><td data-row=3 data-col=1>2026-06-26</td><td data-row=3 data-col=2>28</td><td data-row=3 data-col=3>17</td><td data-row=3 data-col=4>10</td></tr><tr><td data-row=4 data-col=1>2026-06-25</td><td data-row=4 data-col=2>26</td><td data-row=4 data-col=3>17</td><td data-row=4 data-col=4>9</td></tr><tr><td data-row=5 data-col=1>2026-06-19</td><td data-row=5 data-col=2>25</td><td data-row=5 data-col=3>17</td><td data-row=5 data-col=4>9</td></tr><tr><td data-row=6 data-col=1>2026-06-20</td><td data-row=6 data-col=2>25</td><td data-row=6 data-col=3>17</td><td data-row=6 data-col=4>8</td></tr><tr><td data-row=7 data-col=1>2026-06-24</td><td data-row=7 data-col=2>25</td><td data-row=7 data-col=3>17</td><td data-row=7 data-col=4>8</td></tr><tr><td data-row=8 data-col=1>2026-06-18</td><td data-row=8 data-col=2>23</td><td data-row=8 data-col=3>17</td><td data-row=8 data-col=4>7</td></tr><tr><td data-row=9 data-col=1>2026-06-21</td><td data-row=9 data-col=2>24</td><td data-row=9 data-col=3>17</td><td data-row=9 data-col=4>7</td></tr><tr><td data-row=10 data-col=1>2026-06-22</td><td data-row=10 data-col=2>23</td><td data-row=10 data-col=3>17</td><td data-row=10 data-col=4>6</td></tr></tbody></table></div></div></div><div id=fazit class="section level1"><h1>Fazit</h1><p>Sowohl die langfristige Monatsreihe der Bundesland-Gebietsmittel als
+auch die selbst gebildeten Tagesmittel aus Stationsdaten zeigen für
+den Sommer 2026 ein deutlich überdurchschnittliches Bild: Die
+Sommertemperatur bewegt sich auf dem Niveau der bisherigen
+Rekordsommer, und schon bis Mitte August wurden mehr als doppelt so
+viele Hitzetage und eine längere Hitzewelle registriert als im
+gesamten Sommer 2025.</p></div></div></article><section id=comments><div id=disqus_thread></div><script>var disqus_config=function(){};(function(){if(n=function(){var e=!0;try{e=window.self!==window.top}catch{}return e},n())return;var n,t=document,e=t.createElement("script");e.src="//https-data-se-netlify-com.disqus.com/embed.js",e.async=!0,e.setAttribute("data-timestamp",+new Date),(t.head||t.body).appendChild(e)})()</script><noscript>Please enable JavaScript to view the <a href=https://disqus.com/?ref_noscript>comments powered by Disqus.</a></noscript></section></main><footer class=footer><ul class=footer-links><li><a href=/data_se/index.xml type=application/rss+xml target=_blank>RSS feed</a></li><li><a href=https://gohugo.io/ class=footer-links-kudos>Made with <img src=/data_se/images/hugo-logo.png width=22 height=22></a></li></ul></footer></div><script src=//cdn.bootcss.com/highlight.js/9.11.0/highlight.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/r.min.js></script><script src=//cdn.bootcss.com/highlight.js/9.11.0/languages/yaml.min.js></script><script>hljs.configure({languages:[]}),hljs.initHighlightingOnLoad()</script><script src=/js/math-code.js></script><script async src="//cdn.bootcss.com/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML"></script></body></html>
