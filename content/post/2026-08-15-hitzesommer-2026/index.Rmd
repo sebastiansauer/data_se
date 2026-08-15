@@ -30,6 +30,10 @@ knitr::opts_chunk$set(
 
 # Load packages
 
+Vier Pakete: `tidyverse` fürs Datenwrangling und Plotten, `rdwd` für
+den Zugriff auf die DWD-Server, `tinytable` für die Tabellen im Post
+und `ggpubr` für das einheitliche Plot-Theme.
+
 ```{r load-libs, message = FALSE, waring = FALSE}
 library(tidyverse)
 library(rdwd)
@@ -59,18 +63,38 @@ DWD-Server kapselt.
 Als Einordnung zunächst die Monatsmittel für Deutschland, wie sie im
 vorherigen Post (`wetterdaten_monat.csv`) aufbereitet wurden.
 
+
+Hier stehen die Daten des DWD bereit – die bereits im Vorpost
+aufbereitete CSV mit Monatsmitteln je Bundesland wird direkt von
+GitHub nachgeladen:
+
 ```{r monatsdaten-laden}
 wetterdaten_monat <- read_csv(
   "https://raw.githubusercontent.com/sebastiansauer/data_se/refs/heads/master/content/post/2026-08-14-wetterdaten-des-dwd-aufbereiten/wetterdaten_monat.csv",
   show_col_types = FALSE
 )
+``` 
 
+
+Datenquelle: Deutscher Wetterdienst (DWD), Climate Data Center, opendata.dwd.de, Lizenz: CC BY 4.0
+
+Berechnen wir die Temperatur und Niederschlag für den Sommer 2026
+(Juni, Juli) - im Vergleich zu einem langjährigen Referenzwert. Zuerst
+nur die Zeilen für Deutschland insgesamt behalten und die
+Referenzperiode festlegen.
+
+```{r monatsdaten-filter}
 deutschland_monat <- wetterdaten_monat |>
   filter(region == "Deutschland")
 
 ref_start <- 1991
 ref_end   <- 2020
+```
 
+Referenzmittel je Monat berechnen, gemittelt über die WMO-Normalperiode
+1991–2020.
+
+```{r monatsdaten-klimatologie}
 klimatologie_monat <- deutschland_monat |>
   filter(year >= ref_start, year <= ref_end) |>
   group_by(month) |>
@@ -79,34 +103,52 @@ klimatologie_monat <- deutschland_monat |>
     precip_ref = mean(precip, na.rm = TRUE),
     .groups = "drop"
   )
+```
 
+Sommer 2026 herausfiltern und dem Referenzmittel gegenüberstellen.
+
+```{r monatsdaten-sommer}
 sommer_2026 <- deutschland_monat |>
   filter(year == 2026, month %in% 6:8) |>
   left_join(klimatologie_monat, by = "month") |>
   mutate(
-    temp_abw   = temp - temp_ref,
+    temp_abw   = temp - temp_ref,  # Abweichung vom Referenzmittel
     monatsname = month.name[month]
   )
+```
 
+Als Tabelle:
+
+```{r monatsdaten-tabelle}
 sommer_2026 |>
   select(monatsname, temp, temp_ref, temp_abw, precip, precip_ref) |>
   tt() |>
   format_tt(digits = 2)
 ```
 
-```{r monatsdaten-plot}
-deutschland_monat |>
+Zunächst die Sommermitteltemperatur je Jahr berechnen.
+
+```{r monatsdaten-plot-daten}
+sommer_temp_jahr <- deutschland_monat |>
   filter(month %in% 6:8) |>
   group_by(year) |>
-  summarise(sommer_temp = mean(temp, na.rm = TRUE), .groups = "drop") |>
+  summarise(sommer_temp = mean(temp, na.rm = TRUE), .groups = "drop")
+```
+
+Im Jahresverlauf geplottet, der aktuelle Sommer (2026) ist farbig
+markiert, dazu ein geglätteter Trend (`geom_smooth()`).
+
+```{r monatsdaten-plot}
+sommer_temp_jahr |>
   ggplot(aes(x = year, y = sommer_temp)) +
   geom_line(color = "grey60") +
-  geom_point(aes(color = year == 2026), size = 2) +
+  geom_point(aes(color = year == 2026), size = 4) +
   scale_color_manual(values = c(`TRUE` = "firebrick", `FALSE` = "grey40"), guide = "none") +
   labs(
     title = "Sommermitteltemperatur (Jun-Aug) Deutschland",
     x = NULL, y = "Temperatur (°C)"
-  )
+  ) +
+  geom_smooth()
 ```
 
 Hinweis: Der Wert für 2026 basiert auf den bislang verfügbaren
@@ -155,8 +197,12 @@ Für die Auswertung unten genutzt: `TXK` (Kriterium Hitzetag ≥ 30 °C),
 `TNK` (Kriterium Tropennacht ≥ 20 °C), `TMK` (Tagesmittel) und `RSK`
 (Niederschlag, aktuell nur mitgeführt, nicht separat ausgewertet).
 
-```{r stationsauswahl}
-data("metaIndex")
+Je Bundesland die 5 Stationen mit der längsten laufenden Messreihe als
+Kandidaten vormerken (nicht nur die eine "beste", falls diese später
+unvollständige Werte liefert).
+
+```{r stationsauswahl-kandidaten}
+data("metaIndex") # Stellt Infos zu den Messtationen bereit (z.B. Lage der Messstation)
 
 kandidaten <- metaIndex |>
   filter(res == "daily", var == "kl", per == "recent", hasfile) |>
@@ -165,7 +211,12 @@ kandidaten <- metaIndex |>
   group_by(Bundesland) |>
   slice_head(n = 5) |>
   summarise(ids = list(Stations_id), .groups = "drop")
+```
 
+Hilfsfunktion, die die Tageswerte einer einzelnen Station herunterlädt
+und einliest.
+
+```{r stationsauswahl-laden}
 lade_station <- function(id) {
   link <- selectDWD(id = id, res = "daily", var = "kl", per = "recent")
   file <- dataDWD(link, read = FALSE, dir = tempdir(), quiet = TRUE)
@@ -177,7 +228,14 @@ lade_station <- function(id) {
       TXK, TNK, TMK, RSK
     )
 }
+```
 
+Hilfsfunktion, die die Kandidaten der Reihe nach durchprobiert und die
+erste brauchbare Station zurückgibt: die erste, bei der in den letzten
+90 Tagen mehr als 80 % der Tagesmaxima (TXK) tatsächlich vorhanden
+sind.
+
+```{r stationsauswahl-waehlen}
 waehle_station <- function(ids) {
   for (id in ids) {
     df <- tryCatch(lade_station(id), error = function(e) NULL)
@@ -187,7 +245,11 @@ waehle_station <- function(ids) {
   }
   NULL
 }
+```
 
+Für jedes Bundesland wird jetzt tatsächlich eine Station geladen.
+
+```{r stationsauswahl-anwenden}
 stationsdaten <- kandidaten |>
   mutate(daten = map(ids, waehle_station)) |>
   select(-ids) |>
@@ -199,6 +261,11 @@ Hinweis:
 
 "kl" steht für Klimatageswerte – das ist der DWD-interne Kürzel für den Datensatz mit den kombinierten täglichen Klimastationswerten (Temperatur, Niederschlag, Sonnenschein, Wind, Luftdruck etc. in einer Datei je Station).
 
+Aus den 16 gewählten Stationen wird nun je Tag ein einfaches
+bundesweites Mittel gebildet (ungewichtete Mittelung über die
+Stationen) und auf den Zeitraum ab Sommer 2025 zugeschnitten – das
+reicht für den Vergleich Sommer 2025 vs. 2026 weiter unten.
+
 ```{r deutschland-tagesmittel}
 deutschland_tag <- stationsdaten |>
   group_by(Datum) |>
@@ -209,21 +276,33 @@ deutschland_tag <- stationsdaten |>
     RSK = mean(RSK, na.rm = TRUE),
     .groups = "drop"
   )
+```
 
+Zeitraum ab Sommer 2025 zuschneiden – das reicht für den Vergleich
+Sommer 2025 vs. 2026 weiter unten.
+
+```{r sommer-tage}
 sommer_tage <- deutschland_tag |>
   filter(Datum >= as.Date("2025-06-01"))
+```
+
+Hilfsfunktion für die längste zusammenhängende Hitzewelle:
+`rle()` ("run-length encoding") zählt Längen zusammenhängender
+TRUE/FALSE-Serien – hier die längste Serie aufeinanderfolgender
+Hitzetage (TXK ≥ Schwelle).
+
+```{r hitzewelle-funktion}
+hitzewelle_laenge <- function(txk, schwelle = 30) {
+  ist_heiss <- !is.na(txk) & txk >= schwelle
+  laengen <- rle(ist_heiss)
+  max(c(0, laengen$lengths[laengen$values]))
+}
 ```
 
 Hitzetage (Tagesmaximum ≥ 30 °C) je Sommer, sowie die längste
 zusammenhängende Hitzewelle (aufeinanderfolgende Hitzetage):
 
 ```{r hitzewellen}
-hitzewelle_laenge <- function(txk, schwelle = 30) {
-  ist_heiss <- !is.na(txk) & txk >= schwelle
-  laengen <- rle(ist_heiss)
-  max(c(0, laengen$lengths[laengen$values]))
-}
-
 sommer_tage |>
   mutate(jahr = year(Datum), monat = month(Datum)) |>
   filter(monat %in% 6:8) |>
@@ -237,6 +316,9 @@ sommer_tage |>
   tt() |>
   format_tt(digits = 1)
 ```
+
+Die Tagesmaxima beider Sommer im direkten Vergleich, ausgerichtet auf
+den Tag im Jahr (Sommer 2025 vs. 2026 an derselben x-Position):
 
 ```{r hitzewellen-plot}
 sommer_tage |>
@@ -266,7 +348,9 @@ Referenzwert über 1991-2020 gebildet – geglättet mit einem
 ±5-Tage-Fenster um den jeweiligen Tag des Jahres, um Tag-zu-Tag-Rauschen
 zu reduzieren – und jedem Tag des Sommers 2026 gegenübergestellt.
 
-```{r historische-tagesdaten}
+Dieselben 16 Stationen wie oben, aber diesmal die `historical`-Dateien.
+
+```{r historisch-funktion}
 ausgewaehlte_ids <- unique(stationsdaten$Stations_id)
 
 lade_historisch <- function(id) {
@@ -280,11 +364,22 @@ lade_historisch <- function(id) {
       TXK, TNK, TMK
     )
 }
+```
 
+Für jede Station laden – falls eine Station keine `historical`-Datei
+hat, wird sie via `tryCatch()` einfach übersprungen statt den ganzen
+Chunk abzubrechen.
+
+```{r historisch-laden}
 historisch <- map_dfr(ausgewaehlte_ids, function(id) {
   tryCatch(lade_historisch(id), error = function(e) NULL)
 })
+```
 
+Daraus wieder ein bundesweites Tagesmittel bilden – diesmal über die
+komplette historische Zeitreihe.
+
+```{r historisch-tagesmittel}
 deutschland_hist_tag <- historisch |>
   group_by(Datum) |>
   summarise(
@@ -327,7 +422,10 @@ seinen Tag-des-Jahres (`doy`) per `left_join()` den passenden
 geglätteten Referenzwert zugewiesen, woraus sich die Abweichung
 (`TMK - TMK_ref` usw.) ergibt.
 
-```{r klimatologie}
+Referenzperiode und Fenstergröße festlegen, dann alle Tage der
+Referenzperiode mit ihrem Tag-des-Jahres (`doy`) versehen.
+
+```{r klimatologie-referenzzeitraum}
 ref_start_tag <- 1991
 ref_end_tag   <- 2020
 fenster       <- 5  # Tage vor/nach dem Zieltag
@@ -335,7 +433,12 @@ fenster       <- 5  # Tage vor/nach dem Zieltag
 hist_ref <- deutschland_hist_tag |>
   filter(year(Datum) >= ref_start_tag, year(Datum) <= ref_end_tag) |>
   mutate(doy = yday(Datum))
+```
 
+Die Funktion, die für einen Zieltag den geglätteten Referenzwert
+berechnet (Details siehe Methodik oben).
+
+```{r klimatologie-funktion}
 klimatologie_tag <- function(doy_ziel) {
   diff <- abs(hist_ref$doy - doy_ziel)
   diff <- pmin(diff, 366 - diff)  # zirkulaer um den Jahreswechsel
@@ -347,13 +450,21 @@ klimatologie_tag <- function(doy_ziel) {
     TMK_ref = mean(sel$TMK, na.rm = TRUE)
   )
 }
+```
 
+Referenzwert für jeden vorkommenden Tag des Sommers 2026 berechnen.
+
+```{r klimatologie-berechnen}
 sommer_2026_tag <- deutschland_tag |>
   filter(year(Datum) == 2026, month(Datum) %in% 6:8) |>
   mutate(doy = yday(Datum))
 
 klimatologie_sommer <- map_dfr(unique(sommer_2026_tag$doy), klimatologie_tag)
+```
 
+Referenzwerte anfügen und die Abweichung berechnen.
+
+```{r klimatologie-abweichung}
 sommer_2026_tag <- sommer_2026_tag |>
   left_join(klimatologie_sommer, by = "doy") |>
   mutate(
@@ -362,6 +473,9 @@ sommer_2026_tag <- sommer_2026_tag |>
     TMK_abw = TMK - TMK_ref
   )
 ```
+
+Als Balkendiagramm über den Sommer: positive Abweichungen (rot) vs.
+negative (blau), Tag für Tag.
 
 ```{r klimatologie-plot, fig.width = 8, fig.asp = 0.5}
 sommer_2026_tag |>
@@ -381,26 +495,53 @@ Dieselbe Abweichung, als Kalender: eine Kachel je Tag, Füllfarbe als
 Funktion der Abweichung der Tagesmitteltemperatur vom langjährigen
 Referenzwert (blau = kühler, rot = wärmer als 1991-2020).
 
-```{r kalender-diagramm, fig.width = 7, fig.asp = 1.1}
+Wochentags-Kürzel auf Deutsch, sowie Monat, Tagesnummer und Wochentag
+je Datum ableiten.
+
+```{r kalender-daten-wochentag}
 wochentag_de <- c("Mo", "Di", "Mi", "Do", "Fr", "Sa", "So")
 
 kalender_daten <- sommer_2026_tag |>
   mutate(
-    monat           = factor(month(Datum), levels = 6:8, labels = c("Juni", "Juli", "August")),
-    tag             = day(Datum),
-    wd_num          = wday(Datum, week_start = 1),  # 1 = Montag ... 7 = Sonntag
-    wochentag       = factor(wochentag_de[wd_num], levels = wochentag_de),
-    monatsbeginn_wd = wday(floor_date(Datum, "month"), week_start = 1),
-    kw_monat        = ceiling((tag + monatsbeginn_wd - 1) / 7)
+    monat     = factor(month(Datum), levels = 6:8, labels = c("Juni", "Juli", "August")),
+    tag       = day(Datum),
+    wd_num    = wday(Datum, week_start = 1),  # 1 = Montag ... 7 = Sonntag
+    wochentag = factor(wochentag_de[wd_num], levels = wochentag_de)
   )
+```
 
-ggplot(kalender_daten, aes(x = wochentag, y = -kw_monat, fill = TMK_abw)) +
+Zusätzlich die Position im Kalenderraster berechnen: in welcher Zeile
+(Woche) des Monats der jeweilige Tag steht.
+
+```{r kalender-daten-woche}
+kalender_daten <- kalender_daten |>
+  mutate(
+    # Wochentag, mit dem der Monat beginnt (noetig, um die Kalenderzeile
+    # des 1. Tags korrekt einzuruecken)
+    monatsbeginn_wd = wday(floor_date(Datum, "month"), week_start = 1),
+    # Woche im Monat: Tag + Verschiebung durch den Monatsbeginn, durch
+    # 7 geteilt und aufgerundet -> 1. Kalenderzeile, 2. Kalenderzeile, ...
+    kw_monat = ceiling((tag + monatsbeginn_wd - 1) / 7)
+  )
+```
+
+Die Kacheln selbst: eine Kachel je Tag, eingefärbt nach Abweichung.
+
+```{r kalender-plot-kacheln}
+kalender_plot <- ggplot(kalender_daten, aes(x = wochentag, y = -kw_monat, fill = TMK_abw)) +
   geom_tile(color = "white", linewidth = 0.6) +
   geom_text(aes(label = tag), size = 3, color = "grey20") +
   scale_fill_gradient2(
     low = "steelblue", mid = "grey95", high = "firebrick",
     midpoint = 0, name = "Abweichung\n(°C)"
-  ) +
+  )
+```
+
+Je Monat eine eigene Kalenderfläche (`facet_wrap`), Achsenbeschriftung
+und Gitter für die Kalenderoptik ausgeblendet.
+
+```{r kalender-plot-layout, fig.width = 7, fig.asp = 1.1}
+kalender_plot +
   facet_wrap(~monat, ncol = 1, scales = "free_y") +
   labs(
     title = "Kalenderansicht: Tagesmitteltemperatur 2026 vs. Referenzwert 1991-2020",

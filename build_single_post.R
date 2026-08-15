@@ -1,5 +1,5 @@
 blogdown::new_post(
-  title = "Wetterdaten des DWD aufbereiten",
+  title = "Hitzesommer 2026",
   ext = ".Rmd",
   subdir = "post"
 )

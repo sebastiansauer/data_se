@@ -12,6 +12,9 @@ tags:
 
 <div id="load-packages" class="section level1">
 <h1>Load packages</h1>
+<p>Vier Pakete: <code>tidyverse</code> fürs Datenwrangling und Plotten, <code>rdwd</code> für
+den Zugriff auf die DWD-Server, <code>tinytable</code> für die Tabellen im Post
+und <code>ggpubr</code> für das einheitliche Plot-Theme.</p>
 <pre class="r"><code>library(tidyverse)
 library(rdwd)
 library(tinytable)
@@ -37,35 +40,43 @@ DWD-Server kapselt.</p>
 <h2>Monatskontext: Sommer 2026 im langfristigen Vergleich</h2>
 <p>Als Einordnung zunächst die Monatsmittel für Deutschland, wie sie im
 vorherigen Post (<code>wetterdaten_monat.csv</code>) aufbereitet wurden.</p>
+<p>Hier stehen die Daten des DWD bereit – die bereits im Vorpost
+aufbereitete CSV mit Monatsmitteln je Bundesland wird direkt von
+GitHub nachgeladen:</p>
 <pre class="r"><code>wetterdaten_monat &lt;- read_csv(
   &quot;https://raw.githubusercontent.com/sebastiansauer/data_se/refs/heads/master/content/post/2026-08-14-wetterdaten-des-dwd-aufbereiten/wetterdaten_monat.csv&quot;,
   show_col_types = FALSE
-)
-
-deutschland_monat &lt;- wetterdaten_monat |&gt;
+)</code></pre>
+<p>Datenquelle: Deutscher Wetterdienst (DWD), Climate Data Center, opendata.dwd.de, Lizenz: CC BY 4.0</p>
+<p>Berechnen wir die Temperatur und Niederschlag für den Sommer 2026
+(Juni, Juli) - im Vergleich zu einem langjährigen Referenzwert. Zuerst
+nur die Zeilen für Deutschland insgesamt behalten und die
+Referenzperiode festlegen.</p>
+<pre class="r"><code>deutschland_monat &lt;- wetterdaten_monat |&gt;
   filter(region == &quot;Deutschland&quot;)
 
 ref_start &lt;- 1991
-ref_end   &lt;- 2020
-
-klimatologie_monat &lt;- deutschland_monat |&gt;
+ref_end   &lt;- 2020</code></pre>
+<p>Referenzmittel je Monat berechnen, gemittelt über die WMO-Normalperiode
+1991–2020.</p>
+<pre class="r"><code>klimatologie_monat &lt;- deutschland_monat |&gt;
   filter(year &gt;= ref_start, year &lt;= ref_end) |&gt;
   group_by(month) |&gt;
   summarise(
     temp_ref   = mean(temp, na.rm = TRUE),
     precip_ref = mean(precip, na.rm = TRUE),
     .groups = &quot;drop&quot;
-  )
-
-sommer_2026 &lt;- deutschland_monat |&gt;
+  )</code></pre>
+<p>Sommer 2026 herausfiltern und dem Referenzmittel gegenüberstellen.</p>
+<pre class="r"><code>sommer_2026 &lt;- deutschland_monat |&gt;
   filter(year == 2026, month %in% 6:8) |&gt;
   left_join(klimatologie_monat, by = &quot;month&quot;) |&gt;
   mutate(
-    temp_abw   = temp - temp_ref,
+    temp_abw   = temp - temp_ref,  # Abweichung vom Referenzmittel
     monatsname = month.name[month]
-  )
-
-sommer_2026 |&gt;
+  )</code></pre>
+<p>Als Tabelle:</p>
+<pre class="r"><code>sommer_2026 |&gt;
   select(monatsname, temp, temp_ref, temp_abw, precip, precip_ref) |&gt;
   tt() |&gt;
   format_tt(digits = 2)</code></pre>
@@ -75,19 +86,19 @@ sommer_2026 |&gt;
 
     <script>
       // Create table-specific functions using external factory
-      const tableFns_38ys7fb5jebk061bn73i = TinyTable.createTableFunctions("tinytable_38ys7fb5jebk061bn73i");
+      const tableFns_56pllek9j3lqknx8yso7 = TinyTable.createTableFunctions("tinytable_56pllek9j3lqknx8yso7");
       // tinytable span after
       window.addEventListener('load', function () {
           var cellsToStyle = [
             // tinytable style arrays after
-          { positions: [ { i: '2', j: 1 }, { i: '2', j: 2 }, { i: '2', j: 3 }, { i: '2', j: 4 }, { i: '2', j: 5 }, { i: '2', j: 6 } ], css_id: 'tinytable_css_dmyt57schvqk7eypjkz9',}, 
-          { positions: [ { i: '0', j: 1 }, { i: '0', j: 2 }, { i: '0', j: 3 }, { i: '0', j: 4 }, { i: '0', j: 5 }, { i: '0', j: 6 } ], css_id: 'tinytable_css_8ouxvgwd35k5dw6sle1v',}, 
+          { positions: [ { i: '2', j: 1 }, { i: '2', j: 2 }, { i: '2', j: 3 }, { i: '2', j: 4 }, { i: '2', j: 5 }, { i: '2', j: 6 } ], css_id: 'tinytable_css_bsfvns5u6j4pn1y09mlj',}, 
+          { positions: [ { i: '0', j: 1 }, { i: '0', j: 2 }, { i: '0', j: 3 }, { i: '0', j: 4 }, { i: '0', j: 5 }, { i: '0', j: 6 } ], css_id: 'tinytable_css_d9c6nlrwya34e9uiu58o',}, 
           ];
 
           // Loop over the arrays to style the cells
           cellsToStyle.forEach(function (group) {
               group.positions.forEach(function (cell) {
-                  tableFns_38ys7fb5jebk061bn73i.styleCell(cell.i, cell.j, group.css_id);
+                  tableFns_56pllek9j3lqknx8yso7.styleCell(cell.i, cell.j, group.css_id);
               });
           });
       });
@@ -96,11 +107,11 @@ sommer_2026 |&gt;
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/vincentarelbundock/tinytable@main/inst/tinytable.css">
     <style>
     /* tinytable css entries after */
-    #tinytable_38ys7fb5jebk061bn73i td.tinytable_css_dmyt57schvqk7eypjkz9, #tinytable_38ys7fb5jebk061bn73i th.tinytable_css_dmyt57schvqk7eypjkz9 {  position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: var(--tt-line-color); --line-color-left: var(--tt-line-color); --line-color-right: var(--tt-line-color); --line-color-top: var(--tt-line-color); --line-width-bottom: 0.08em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%;  }
-    #tinytable_38ys7fb5jebk061bn73i td.tinytable_css_8ouxvgwd35k5dw6sle1v, #tinytable_38ys7fb5jebk061bn73i th.tinytable_css_8ouxvgwd35k5dw6sle1v {  position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: var(--tt-line-color); --line-color-left: var(--tt-line-color); --line-color-right: var(--tt-line-color); --line-color-top: var(--tt-line-color); --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.08em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%;  }
+    #tinytable_56pllek9j3lqknx8yso7 td.tinytable_css_bsfvns5u6j4pn1y09mlj, #tinytable_56pllek9j3lqknx8yso7 th.tinytable_css_bsfvns5u6j4pn1y09mlj {  position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: var(--tt-line-color); --line-color-left: var(--tt-line-color); --line-color-right: var(--tt-line-color); --line-color-top: var(--tt-line-color); --line-width-bottom: 0.08em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%;  }
+    #tinytable_56pllek9j3lqknx8yso7 td.tinytable_css_d9c6nlrwya34e9uiu58o, #tinytable_56pllek9j3lqknx8yso7 th.tinytable_css_d9c6nlrwya34e9uiu58o {  position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: var(--tt-line-color); --line-color-left: var(--tt-line-color); --line-color-right: var(--tt-line-color); --line-color-top: var(--tt-line-color); --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.08em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%;  }
     </style>
     <div class="container">
-      <table class="tinytable" id="tinytable_38ys7fb5jebk061bn73i" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing='true'>
+      <table class="tinytable" id="tinytable_56pllek9j3lqknx8yso7" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing='true'>
         
         <thead>
               <tr>
@@ -134,18 +145,23 @@ sommer_2026 |&gt;
       </table>
     </div>
 <!-- hack to avoid NA insertion in last line -->
-<pre class="r"><code>deutschland_monat |&gt;
+<p>Zunächst die Sommermitteltemperatur je Jahr berechnen.</p>
+<pre class="r"><code>sommer_temp_jahr &lt;- deutschland_monat |&gt;
   filter(month %in% 6:8) |&gt;
   group_by(year) |&gt;
-  summarise(sommer_temp = mean(temp, na.rm = TRUE), .groups = &quot;drop&quot;) |&gt;
+  summarise(sommer_temp = mean(temp, na.rm = TRUE), .groups = &quot;drop&quot;)</code></pre>
+<p>Im Jahresverlauf geplottet, der aktuelle Sommer (2026) ist farbig
+markiert, dazu ein geglätteter Trend (<code>geom_smooth()</code>).</p>
+<pre class="r"><code>sommer_temp_jahr |&gt;
   ggplot(aes(x = year, y = sommer_temp)) +
   geom_line(color = &quot;grey60&quot;) +
-  geom_point(aes(color = year == 2026), size = 2) +
+  geom_point(aes(color = year == 2026), size = 4) +
   scale_color_manual(values = c(`TRUE` = &quot;firebrick&quot;, `FALSE` = &quot;grey40&quot;), guide = &quot;none&quot;) +
   labs(
     title = &quot;Sommermitteltemperatur (Jun-Aug) Deutschland&quot;,
     x = NULL, y = &quot;Temperatur (°C)&quot;
-  )</code></pre>
+  ) +
+  geom_smooth()</code></pre>
 <p><img src="{{< blogdown/postref >}}index_files/figure-html/monatsdaten-plot-1.png" alt="" width="70%" style="display: block; margin: auto;" /></p>
 <p>Hinweis: Der Wert für 2026 basiert auf den bislang verfügbaren
 Monatsdaten (Juni + Juli), der August ist beim DWD auf Monatsebene
@@ -280,7 +296,10 @@ zu <code>NA</code>.</p>
 <p>Für die Auswertung unten genutzt: <code>TXK</code> (Kriterium Hitzetag ≥ 30 °C),
 <code>TNK</code> (Kriterium Tropennacht ≥ 20 °C), <code>TMK</code> (Tagesmittel) und <code>RSK</code>
 (Niederschlag, aktuell nur mitgeführt, nicht separat ausgewertet).</p>
-<pre class="r"><code>data(&quot;metaIndex&quot;)
+<p>Je Bundesland die 5 Stationen mit der längsten laufenden Messreihe als
+Kandidaten vormerken (nicht nur die eine “beste”, falls diese später
+unvollständige Werte liefert).</p>
+<pre class="r"><code>data(&quot;metaIndex&quot;) # Stellt Infos zu den Messtationen bereit (z.B. Lage der Messstation)
 
 kandidaten &lt;- metaIndex |&gt;
   filter(res == &quot;daily&quot;, var == &quot;kl&quot;, per == &quot;recent&quot;, hasfile) |&gt;
@@ -288,9 +307,10 @@ kandidaten &lt;- metaIndex |&gt;
   arrange(Bundesland, von_datum) |&gt;
   group_by(Bundesland) |&gt;
   slice_head(n = 5) |&gt;
-  summarise(ids = list(Stations_id), .groups = &quot;drop&quot;)
-
-lade_station &lt;- function(id) {
+  summarise(ids = list(Stations_id), .groups = &quot;drop&quot;)</code></pre>
+<p>Hilfsfunktion, die die Tageswerte einer einzelnen Station herunterlädt
+und einliest.</p>
+<pre class="r"><code>lade_station &lt;- function(id) {
   link &lt;- selectDWD(id = id, res = &quot;daily&quot;, var = &quot;kl&quot;, per = &quot;recent&quot;)
   file &lt;- dataDWD(link, read = FALSE, dir = tempdir(), quiet = TRUE)
   readDWD(file, varnames = FALSE) |&gt;
@@ -300,9 +320,12 @@ lade_station &lt;- function(id) {
       Datum = MESS_DATUM,
       TXK, TNK, TMK, RSK
     )
-}
-
-waehle_station &lt;- function(ids) {
+}</code></pre>
+<p>Hilfsfunktion, die die Kandidaten der Reihe nach durchprobiert und die
+erste brauchbare Station zurückgibt: die erste, bei der in den letzten
+90 Tagen mehr als 80 % der Tagesmaxima (TXK) tatsächlich vorhanden
+sind.</p>
+<pre class="r"><code>waehle_station &lt;- function(ids) {
   for (id in ids) {
     df &lt;- tryCatch(lade_station(id), error = function(e) NULL)
     if (is.null(df) || nrow(df) == 0) next
@@ -310,14 +333,18 @@ waehle_station &lt;- function(ids) {
     if (mean(!is.na(letzte_90$TXK)) &gt; 0.8) return(df)
   }
   NULL
-}
-
-stationsdaten &lt;- kandidaten |&gt;
+}</code></pre>
+<p>Für jedes Bundesland wird jetzt tatsächlich eine Station geladen.</p>
+<pre class="r"><code>stationsdaten &lt;- kandidaten |&gt;
   mutate(daten = map(ids, waehle_station)) |&gt;
   select(-ids) |&gt;
   unnest(daten)</code></pre>
 <p>Hinweis:</p>
 <p>“kl” steht für Klimatageswerte – das ist der DWD-interne Kürzel für den Datensatz mit den kombinierten täglichen Klimastationswerten (Temperatur, Niederschlag, Sonnenschein, Wind, Luftdruck etc. in einer Datei je Station).</p>
+<p>Aus den 16 gewählten Stationen wird nun je Tag ein einfaches
+bundesweites Mittel gebildet (ungewichtete Mittelung über die
+Stationen) und auf den Zeitraum ab Sommer 2025 zugeschnitten – das
+reicht für den Vergleich Sommer 2025 vs. 2026 weiter unten.</p>
 <pre class="r"><code>deutschland_tag &lt;- stationsdaten |&gt;
   group_by(Datum) |&gt;
   summarise(
@@ -326,19 +353,23 @@ stationsdaten &lt;- kandidaten |&gt;
     TMK = mean(TMK, na.rm = TRUE),
     RSK = mean(RSK, na.rm = TRUE),
     .groups = &quot;drop&quot;
-  )
-
-sommer_tage &lt;- deutschland_tag |&gt;
+  )</code></pre>
+<p>Zeitraum ab Sommer 2025 zuschneiden – das reicht für den Vergleich
+Sommer 2025 vs. 2026 weiter unten.</p>
+<pre class="r"><code>sommer_tage &lt;- deutschland_tag |&gt;
   filter(Datum &gt;= as.Date(&quot;2025-06-01&quot;))</code></pre>
-<p>Hitzetage (Tagesmaximum ≥ 30 °C) je Sommer, sowie die längste
-zusammenhängende Hitzewelle (aufeinanderfolgende Hitzetage):</p>
+<p>Hilfsfunktion für die längste zusammenhängende Hitzewelle:
+<code>rle()</code> (“run-length encoding”) zählt Längen zusammenhängender
+TRUE/FALSE-Serien – hier die längste Serie aufeinanderfolgender
+Hitzetage (TXK ≥ Schwelle).</p>
 <pre class="r"><code>hitzewelle_laenge &lt;- function(txk, schwelle = 30) {
   ist_heiss &lt;- !is.na(txk) &amp; txk &gt;= schwelle
   laengen &lt;- rle(ist_heiss)
   max(c(0, laengen$lengths[laengen$values]))
-}
-
-sommer_tage |&gt;
+}</code></pre>
+<p>Hitzetage (Tagesmaximum ≥ 30 °C) je Sommer, sowie die längste
+zusammenhängende Hitzewelle (aufeinanderfolgende Hitzetage):</p>
+<pre class="r"><code>sommer_tage |&gt;
   mutate(jahr = year(Datum), monat = month(Datum)) |&gt;
   filter(monat %in% 6:8) |&gt;
   group_by(jahr) |&gt;
@@ -356,19 +387,19 @@ sommer_tage |&gt;
 
     <script>
       // Create table-specific functions using external factory
-      const tableFns_zyckzdon3a1g2psmafv6 = TinyTable.createTableFunctions("tinytable_zyckzdon3a1g2psmafv6");
+      const tableFns_dd1uetkb8fnmaachrdvd = TinyTable.createTableFunctions("tinytable_dd1uetkb8fnmaachrdvd");
       // tinytable span after
       window.addEventListener('load', function () {
           var cellsToStyle = [
             // tinytable style arrays after
-          { positions: [ { i: '2', j: 1 }, { i: '2', j: 2 }, { i: '2', j: 3 }, { i: '2', j: 4 } ], css_id: 'tinytable_css_aftkvhr7inw62yk2uu4b',}, 
-          { positions: [ { i: '0', j: 1 }, { i: '0', j: 2 }, { i: '0', j: 3 }, { i: '0', j: 4 } ], css_id: 'tinytable_css_8fy09sffbhhnvq4e0lve',}, 
+          { positions: [ { i: '2', j: 1 }, { i: '2', j: 2 }, { i: '2', j: 3 }, { i: '2', j: 4 } ], css_id: 'tinytable_css_n8ncagxt0541h73fd170',}, 
+          { positions: [ { i: '0', j: 1 }, { i: '0', j: 2 }, { i: '0', j: 3 }, { i: '0', j: 4 } ], css_id: 'tinytable_css_vyopg7te7in462ddc6nr',}, 
           ];
 
           // Loop over the arrays to style the cells
           cellsToStyle.forEach(function (group) {
               group.positions.forEach(function (cell) {
-                  tableFns_zyckzdon3a1g2psmafv6.styleCell(cell.i, cell.j, group.css_id);
+                  tableFns_dd1uetkb8fnmaachrdvd.styleCell(cell.i, cell.j, group.css_id);
               });
           });
       });
@@ -377,11 +408,11 @@ sommer_tage |&gt;
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/vincentarelbundock/tinytable@main/inst/tinytable.css">
     <style>
     /* tinytable css entries after */
-    #tinytable_zyckzdon3a1g2psmafv6 td.tinytable_css_aftkvhr7inw62yk2uu4b, #tinytable_zyckzdon3a1g2psmafv6 th.tinytable_css_aftkvhr7inw62yk2uu4b {  position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: var(--tt-line-color); --line-color-left: var(--tt-line-color); --line-color-right: var(--tt-line-color); --line-color-top: var(--tt-line-color); --line-width-bottom: 0.08em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%;  }
-    #tinytable_zyckzdon3a1g2psmafv6 td.tinytable_css_8fy09sffbhhnvq4e0lve, #tinytable_zyckzdon3a1g2psmafv6 th.tinytable_css_8fy09sffbhhnvq4e0lve {  position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: var(--tt-line-color); --line-color-left: var(--tt-line-color); --line-color-right: var(--tt-line-color); --line-color-top: var(--tt-line-color); --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.08em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%;  }
+    #tinytable_dd1uetkb8fnmaachrdvd td.tinytable_css_n8ncagxt0541h73fd170, #tinytable_dd1uetkb8fnmaachrdvd th.tinytable_css_n8ncagxt0541h73fd170 {  position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 0; --line-color-bottom: var(--tt-line-color); --line-color-left: var(--tt-line-color); --line-color-right: var(--tt-line-color); --line-color-top: var(--tt-line-color); --line-width-bottom: 0.08em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.1em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%;  }
+    #tinytable_dd1uetkb8fnmaachrdvd td.tinytable_css_vyopg7te7in462ddc6nr, #tinytable_dd1uetkb8fnmaachrdvd th.tinytable_css_vyopg7te7in462ddc6nr {  position: relative; --border-bottom: 1; --border-left: 0; --border-right: 0; --border-top: 1; --line-color-bottom: var(--tt-line-color); --line-color-left: var(--tt-line-color); --line-color-right: var(--tt-line-color); --line-color-top: var(--tt-line-color); --line-width-bottom: 0.05em; --line-width-left: 0.1em; --line-width-right: 0.1em; --line-width-top: 0.08em; --trim-bottom-left: 0%; --trim-bottom-right: 0%; --trim-left-bottom: 0%; --trim-left-top: 0%; --trim-right-bottom: 0%; --trim-right-top: 0%; --trim-top-left: 0%; --trim-top-right: 0%;  }
     </style>
     <div class="container">
-      <table class="tinytable" id="tinytable_zyckzdon3a1g2psmafv6" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing='true'>
+      <table class="tinytable" id="tinytable_dd1uetkb8fnmaachrdvd" style="width: auto; margin-left: auto; margin-right: auto;" data-quarto-disable-processing='true'>
         
         <thead>
               <tr>
@@ -409,6 +440,8 @@ sommer_tage |&gt;
       </table>
     </div>
 <!-- hack to avoid NA insertion in last line -->
+<p>Die Tagesmaxima beider Sommer im direkten Vergleich, ausgerichtet auf
+den Tag im Jahr (Sommer 2025 vs. 2026 an derselben x-Position):</p>
 <pre class="r"><code>sommer_tage |&gt;
   filter(month(Datum) %in% 6:8) |&gt;
   ggplot(aes(x = yday(Datum), y = TXK, color = factor(year(Datum)))) +
@@ -434,6 +467,7 @@ für jeden Kalendertag (unabhängig vom Jahr) ein klimatologischer
 Referenzwert über 1991-2020 gebildet – geglättet mit einem
 ±5-Tage-Fenster um den jeweiligen Tag des Jahres, um Tag-zu-Tag-Rauschen
 zu reduzieren – und jedem Tag des Sommers 2026 gegenübergestellt.</p>
+<p>Dieselben 16 Stationen wie oben, aber diesmal die <code>historical</code>-Dateien.</p>
 <pre class="r"><code>ausgewaehlte_ids &lt;- unique(stationsdaten$Stations_id)
 
 lade_historisch &lt;- function(id) {
@@ -446,13 +480,16 @@ lade_historisch &lt;- function(id) {
       Datum = MESS_DATUM,
       TXK, TNK, TMK
     )
-}
-
-historisch &lt;- map_dfr(ausgewaehlte_ids, function(id) {
+}</code></pre>
+<p>Für jede Station laden – falls eine Station keine <code>historical</code>-Datei
+hat, wird sie via <code>tryCatch()</code> einfach übersprungen statt den ganzen
+Chunk abzubrechen.</p>
+<pre class="r"><code>historisch &lt;- map_dfr(ausgewaehlte_ids, function(id) {
   tryCatch(lade_historisch(id), error = function(e) NULL)
-})
-
-deutschland_hist_tag &lt;- historisch |&gt;
+})</code></pre>
+<p>Daraus wieder ein bundesweites Tagesmittel bilden – diesmal über die
+komplette historische Zeitreihe.</p>
+<pre class="r"><code>deutschland_hist_tag &lt;- historisch |&gt;
   group_by(Datum) |&gt;
   summarise(
     TXK = mean(TXK, na.rm = TRUE),
@@ -488,15 +525,18 @@ entfernt” wären), filtert auf Abstand ≤ 5 Tage und mittelt TXK/TNK/TMK
 seinen Tag-des-Jahres (<code>doy</code>) per <code>left_join()</code> den passenden
 geglätteten Referenzwert zugewiesen, woraus sich die Abweichung
 (<code>TMK - TMK_ref</code> usw.) ergibt.</p>
+<p>Referenzperiode und Fenstergröße festlegen, dann alle Tage der
+Referenzperiode mit ihrem Tag-des-Jahres (<code>doy</code>) versehen.</p>
 <pre class="r"><code>ref_start_tag &lt;- 1991
 ref_end_tag   &lt;- 2020
 fenster       &lt;- 5  # Tage vor/nach dem Zieltag
 
 hist_ref &lt;- deutschland_hist_tag |&gt;
   filter(year(Datum) &gt;= ref_start_tag, year(Datum) &lt;= ref_end_tag) |&gt;
-  mutate(doy = yday(Datum))
-
-klimatologie_tag &lt;- function(doy_ziel) {
+  mutate(doy = yday(Datum))</code></pre>
+<p>Die Funktion, die für einen Zieltag den geglätteten Referenzwert
+berechnet (Details siehe Methodik oben).</p>
+<pre class="r"><code>klimatologie_tag &lt;- function(doy_ziel) {
   diff &lt;- abs(hist_ref$doy - doy_ziel)
   diff &lt;- pmin(diff, 366 - diff)  # zirkulaer um den Jahreswechsel
   sel  &lt;- hist_ref[diff &lt;= fenster, ]
@@ -506,21 +546,23 @@ klimatologie_tag &lt;- function(doy_ziel) {
     TNK_ref = mean(sel$TNK, na.rm = TRUE),
     TMK_ref = mean(sel$TMK, na.rm = TRUE)
   )
-}
-
-sommer_2026_tag &lt;- deutschland_tag |&gt;
+}</code></pre>
+<p>Referenzwert für jeden vorkommenden Tag des Sommers 2026 berechnen.</p>
+<pre class="r"><code>sommer_2026_tag &lt;- deutschland_tag |&gt;
   filter(year(Datum) == 2026, month(Datum) %in% 6:8) |&gt;
   mutate(doy = yday(Datum))
 
-klimatologie_sommer &lt;- map_dfr(unique(sommer_2026_tag$doy), klimatologie_tag)
-
-sommer_2026_tag &lt;- sommer_2026_tag |&gt;
+klimatologie_sommer &lt;- map_dfr(unique(sommer_2026_tag$doy), klimatologie_tag)</code></pre>
+<p>Referenzwerte anfügen und die Abweichung berechnen.</p>
+<pre class="r"><code>sommer_2026_tag &lt;- sommer_2026_tag |&gt;
   left_join(klimatologie_sommer, by = &quot;doy&quot;) |&gt;
   mutate(
     TXK_abw = TXK - TXK_ref,
     TNK_abw = TNK - TNK_ref,
     TMK_abw = TMK - TMK_ref
   )</code></pre>
+<p>Als Balkendiagramm über den Sommer: positive Abweichungen (rot) vs.
+negative (blau), Tag für Tag.</p>
 <pre class="r"><code>sommer_2026_tag |&gt;
   ggplot(aes(x = Datum, y = TMK_abw, fill = TMK_abw &gt; 0)) +
   geom_col() +
@@ -538,25 +580,39 @@ sommer_2026_tag &lt;- sommer_2026_tag |&gt;
 <p>Dieselbe Abweichung, als Kalender: eine Kachel je Tag, Füllfarbe als
 Funktion der Abweichung der Tagesmitteltemperatur vom langjährigen
 Referenzwert (blau = kühler, rot = wärmer als 1991-2020).</p>
+<p>Wochentags-Kürzel auf Deutsch, sowie Monat, Tagesnummer und Wochentag
+je Datum ableiten.</p>
 <pre class="r"><code>wochentag_de &lt;- c(&quot;Mo&quot;, &quot;Di&quot;, &quot;Mi&quot;, &quot;Do&quot;, &quot;Fr&quot;, &quot;Sa&quot;, &quot;So&quot;)
 
 kalender_daten &lt;- sommer_2026_tag |&gt;
   mutate(
-    monat           = factor(month(Datum), levels = 6:8, labels = c(&quot;Juni&quot;, &quot;Juli&quot;, &quot;August&quot;)),
-    tag             = day(Datum),
-    wd_num          = wday(Datum, week_start = 1),  # 1 = Montag ... 7 = Sonntag
-    wochentag       = factor(wochentag_de[wd_num], levels = wochentag_de),
+    monat     = factor(month(Datum), levels = 6:8, labels = c(&quot;Juni&quot;, &quot;Juli&quot;, &quot;August&quot;)),
+    tag       = day(Datum),
+    wd_num    = wday(Datum, week_start = 1),  # 1 = Montag ... 7 = Sonntag
+    wochentag = factor(wochentag_de[wd_num], levels = wochentag_de)
+  )</code></pre>
+<p>Zusätzlich die Position im Kalenderraster berechnen: in welcher Zeile
+(Woche) des Monats der jeweilige Tag steht.</p>
+<pre class="r"><code>kalender_daten &lt;- kalender_daten |&gt;
+  mutate(
+    # Wochentag, mit dem der Monat beginnt (noetig, um die Kalenderzeile
+    # des 1. Tags korrekt einzuruecken)
     monatsbeginn_wd = wday(floor_date(Datum, &quot;month&quot;), week_start = 1),
-    kw_monat        = ceiling((tag + monatsbeginn_wd - 1) / 7)
-  )
-
-ggplot(kalender_daten, aes(x = wochentag, y = -kw_monat, fill = TMK_abw)) +
+    # Woche im Monat: Tag + Verschiebung durch den Monatsbeginn, durch
+    # 7 geteilt und aufgerundet -&gt; 1. Kalenderzeile, 2. Kalenderzeile, ...
+    kw_monat = ceiling((tag + monatsbeginn_wd - 1) / 7)
+  )</code></pre>
+<p>Die Kacheln selbst: eine Kachel je Tag, eingefärbt nach Abweichung.</p>
+<pre class="r"><code>kalender_plot &lt;- ggplot(kalender_daten, aes(x = wochentag, y = -kw_monat, fill = TMK_abw)) +
   geom_tile(color = &quot;white&quot;, linewidth = 0.6) +
   geom_text(aes(label = tag), size = 3, color = &quot;grey20&quot;) +
   scale_fill_gradient2(
     low = &quot;steelblue&quot;, mid = &quot;grey95&quot;, high = &quot;firebrick&quot;,
     midpoint = 0, name = &quot;Abweichung\n(°C)&quot;
-  ) +
+  )</code></pre>
+<p>Je Monat eine eigene Kalenderfläche (<code>facet_wrap</code>), Achsenbeschriftung
+und Gitter für die Kalenderoptik ausgeblendet.</p>
+<pre class="r"><code>kalender_plot +
   facet_wrap(~monat, ncol = 1, scales = &quot;free_y&quot;) +
   labs(
     title = &quot;Kalenderansicht: Tagesmitteltemperatur 2026 vs. Referenzwert 1991-2020&quot;,
@@ -569,7 +625,7 @@ ggplot(kalender_daten, aes(x = wochentag, y = -kw_monat, fill = TMK_abw)) +
     panel.grid   = element_blank(),
     strip.text   = element_text(face = &quot;bold&quot;)
   )</code></pre>
-<p><img src="{{< blogdown/postref >}}index_files/figure-html/kalender-diagramm-1.png" alt="" width="70%" style="display: block; margin: auto;" /></p>
+<p><img src="{{< blogdown/postref >}}index_files/figure-html/kalender-plot-layout-1.png" alt="" width="70%" style="display: block; margin: auto;" /></p>
 <p>Vollständige Tageswerte für den Sommer 2026, mit Referenzwert und
 Abweichung:</p>
 <pre class="r"><code>sommer_2026_tag |&gt;
