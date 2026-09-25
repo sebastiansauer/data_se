@@ -8,10 +8,19 @@ var LR0   = data.lr0 || 1.15;
 
 var margin = (options && options.margin) || { top: 16, right: 20, bottom: 40, left: 46 };
 
-// r2d3 haengt `svg` in einen umgebenden div (container = "div"). Wir setzen
-// Steuerelemente als Geschwister-Div davor.
-var root = d3.select(svg.node().parentNode);
-root.style("font-family", "system-ui, -apple-system, 'Segoe UI', sans-serif");
+// r2d3 haengt `svg` direkt in die ShadowRoot des Widgets (useShadow = true).
+// Die ShadowRoot selbst ist kein Element (kein `.style`, keine namespaceURI),
+// daher wuerde d3.select(shadowRoot).insert(...) Kinder ohne Namespace und
+// somit ohne `.style` erzeugen. Stattdessen einen echten div-Wrapper per
+// DOM-API anlegen und die svg dort hinein verschieben.
+var shadowRoot = svg.node().parentNode;
+d3.select(svg.node().getRootNode().host)
+  .style("font-family", "system-ui, -apple-system, 'Segoe UI', sans-serif");
+
+var rootNode = document.createElement("div");
+shadowRoot.insertBefore(rootNode, svg.node());
+rootNode.appendChild(svg.node());
+var root = d3.select(rootNode);
 
 var controls = root.insert("div", ":first-child")
   .style("display", "flex")
