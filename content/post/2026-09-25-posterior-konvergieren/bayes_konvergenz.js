@@ -1,28 +1,23 @@
 // bayes_konvergenz.js -- D3.js-Skript fuer r2d3
 // Wird von bayes_konvergenz.R via r2d3(script = "bayes_konvergenz.js") geladen.
-// r2d3 stellt die Variablen `data`, `svg`, `width`, `height`, `options` bereit.
+// container = "div": r2d3 stellt hier die Variable `div` bereit (statt `svg`)
+// und legt selbst keine <svg> an -- die bauen wir uns selbst, mit fester
+// Innenhoehe. So bleibt neben dem Chart deterministisch Platz fuer Regler
+// und Legende reserviert, statt dass beide den vorgegebenen Rahmen sprengen
+// (r2d3 wuerde bei container = "svg" die <svg> sonst auf die volle
+// Widget-Hoehe strecken).
 
 var typen = data.typen;   // Array von {id, label, prior, farbe}, aus dem R-data.frame
 var EMAX  = data.emax || 100;
 var LR0   = data.lr0 || 1.15;
 
 var margin = (options && options.margin) || { top: 16, right: 20, bottom: 40, left: 46 };
+var CHART_HEIGHT = 380; // feste Innenhoehe des Charts (Regler/Legende kommen als Geschwister dazu)
 
-// r2d3 haengt `svg` direkt in die ShadowRoot des Widgets (useShadow = true).
-// Die ShadowRoot selbst ist kein Element (kein `.style`, keine namespaceURI),
-// daher wuerde d3.select(shadowRoot).insert(...) Kinder ohne Namespace und
-// somit ohne `.style` erzeugen. Stattdessen einen echten div-Wrapper per
-// DOM-API anlegen und die svg dort hinein verschieben.
-var shadowRoot = svg.node().parentNode;
-d3.select(svg.node().getRootNode().host)
-  .style("font-family", "system-ui, -apple-system, 'Segoe UI', sans-serif");
+var root = div;
+root.style("font-family", "system-ui, -apple-system, 'Segoe UI', sans-serif");
 
-var rootNode = document.createElement("div");
-shadowRoot.insertBefore(rootNode, svg.node());
-rootNode.appendChild(svg.node());
-var root = d3.select(rootNode);
-
-var controls = root.insert("div", ":first-child")
+var controls = root.append("div")
   .style("display", "flex")
   .style("flex-wrap", "wrap")
   .style("gap", "16px")
@@ -56,6 +51,10 @@ var playBtn = btnWrap.append("button").text("▶ Abspielen")
 var resetBtn = btnWrap.append("button").text("Zurücksetzen")
   .style("font", "inherit").style("padding", "6px 12px").style("cursor", "pointer");
 
+var svg = root.append("svg")
+  .attr("height", CHART_HEIGHT)
+  .style("display", "block");
+
 var legendDiv = root.append("div")
   .style("display", "flex").style("flex-wrap", "wrap").style("gap", "10px")
   .style("margin-top", "10px").style("font-size", "12px");
@@ -79,10 +78,11 @@ function curveFor(s, lr) {
   return pts;
 }
 
-function draw(w, h) {
+function draw(w) {
+  svg.attr("width", w);
   svg.selectAll("*").remove();
   var innerW = w - margin.left - margin.right;
-  var innerH = h - margin.top - margin.bottom;
+  var innerH = CHART_HEIGHT - margin.top - margin.bottom;
   var g = svg.append("g").attr("transform", "translate(" + margin.left + "," + margin.top + ")");
 
   var x = d3.scaleLinear().domain([0, EMAX]).range([0, innerW]);
@@ -191,8 +191,8 @@ function draw(w, h) {
   render();
 }
 
-draw(width, height);
+draw(width);
 
-r2d3.onResize(function (newWidth, newHeight) {
-  draw(newWidth, newHeight);
+r2d3.onResize(function (newWidth) {
+  draw(newWidth);
 });

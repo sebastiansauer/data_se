@@ -36,8 +36,9 @@ d3_data <- list(
 widget <- r2d3(
   data = d3_data,
   script = "bayes_konvergenz.js",
-  container = "svg",
+  container = "div",
   d3_version = "6",
+  height = 580,
   options = list(margin = list(top = 16, right = 20, bottom = 40, left = 46))
 )
 
