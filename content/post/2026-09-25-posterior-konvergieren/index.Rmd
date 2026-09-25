@@ -138,9 +138,16 @@ voreingestellte Likelihood-Ratio (`lr0`). Alles zusammen wird als Liste
 an `r2d3()` übergeben, das JavaScript in `bayes_konvergenz.js`
 rendert daraus das eigentliche Diagramm.
 
+`r2d3()` serialisiert einen data.frame standardmäßig spaltenweise
+(`{id: [...], prior: [...]}`), das D3-Skript erwartet aber ein
+zeilenweises Array von Objekten (`typen.map(s => s.prior)`). Deshalb
+wird `typen` zuerst in eine Liste von Zeilen-Records umgewandelt.
+
 ```{r d3-data}
+typen_rows <- lapply(seq_len(nrow(typen)), function(i) as.list(typen[i, ]))
+
 d3_data <- list(
-  typen = typen,
+  typen = typen_rows,
   emax  = 100,
   lr0   = 1.15
 )
@@ -150,7 +157,7 @@ d3_data <- list(
 r2d3(
   data = d3_data,
   script = "bayes_konvergenz.js",
-  container = "div",
+  container = "svg",
   d3_version = "6",
   options = list(margin = list(top = 16, right = 20, bottom = 40, left = 46))
 )

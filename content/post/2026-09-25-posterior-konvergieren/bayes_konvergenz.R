@@ -22,9 +22,13 @@ typen <- data.frame(
   stringsAsFactors = FALSE
 )
 
+# r2d3() serialisiert einen data.frame spaltenweise; das D3-Skript erwartet
+# ein zeilenweises Array von Objekten -- daher in Zeilen-Records umwandeln.
+typen_rows <- lapply(seq_len(nrow(typen)), function(i) as.list(typen[i, ]))
+
 # an d3.js uebergebene Daten: Typen + Default-Parameter
 d3_data <- list(
-  typen = typen,
+  typen = typen_rows,
   emax  = 100,
   lr0   = 1.15
 )
@@ -32,7 +36,7 @@ d3_data <- list(
 widget <- r2d3(
   data = d3_data,
   script = "bayes_konvergenz.js",
-  container = "div",
+  container = "svg",
   d3_version = "6",
   options = list(margin = list(top = 16, right = 20, bottom = 40, left = 46))
 )
