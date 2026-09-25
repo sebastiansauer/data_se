@@ -1,0 +1,207 @@
+---
+title: Wie Posterior-Wahrscheinlichkeiten konvergieren
+author: ''
+date: '2026-09-25'
+slug: posterior-konvergieren
+categories: []
+tags:
+- bayes
+- interaktiv
+---
+
+<link href="{{< blogdown/postref >}}index_files/htmltools-fill/fill.css" rel="stylesheet" />
+<script src="{{< blogdown/postref >}}index_files/htmlwidgets/htmlwidgets.js"></script>
+<script src="{{< blogdown/postref >}}index_files/r2d3-render/r2d3-render.js"></script>
+<script src="{{< blogdown/postref >}}index_files/webcomponents/webcomponents.js"></script>
+<script src="{{< blogdown/postref >}}index_files/r2d3-binding/r2d3.js"></script>
+<script src="{{< blogdown/postref >}}index_files/d3v6/d3.min.js"></script>
+
+
+<div id="fünf-beobachter-ein-ereignis" class="section level1">
+<h1>Fünf Beobachter, ein Ereignis</h1>
+<p>Fünf Personen bilden sich eine Meinung zu einer Hypothese <span class="math inline">\(H\)</span> – sagen
+wir, “das Medikament wirkt”. Jede startet mit einer anderen
+Vorüberzeugung (Prior), und dann beobachten alle fünf dieselbe Serie
+von Ereignissen <span class="math inline">\(E\)</span>, die für <span class="math inline">\(H\)</span> sprechen – zum Beispiel wiederholt
+positive Studienergebnisse. Was passiert mit ihren Überzeugungen, je
+mehr Evidenz sich anhäuft?</p>
+<p>Diese Frage lässt sich mit dem Satz von Bayes exakt beantworten, und
+zwar am elegantesten in der Odds-Form:</p>
+<p><span class="math display">\[
+\text{Odds}(H \mid E) = \text{Odds}(H) \cdot \text{LR}^{\,E}
+\]</span></p>
+<p>Der Prior wird dabei in Chancen (Odds) statt in Wahrscheinlichkeiten
+ausgedrückt, und jedes zusätzliche für <span class="math inline">\(H\)</span> sprechende Ereignis
+multipliziert die Odds mit derselben Likelihood-Ratio (LR). Aus den
+resultierenden Odds lässt sich die Posterior-Wahrscheinlichkeit
+zurückrechnen:</p>
+<p><span class="math display">\[
+\Pr(H \mid E) = \frac{\text{Odds}(H \mid E)}{1 + \text{Odds}(H \mid E)}
+\]</span></p>
+<div id="die-fünf-beobachter" class="section level2">
+<h2>Die fünf Beobachter</h2>
+<table>
+<thead>
+<tr class="header">
+<th>Typ</th>
+<th align="center">Prior <span class="math inline">\(\Pr(H)\)</span></th>
+<th>Beschreibung</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Ausschließer</td>
+<td align="center">0</td>
+<td>hält <span class="math inline">\(H\)</span> für absolut unmöglich</td>
+</tr>
+<tr class="even">
+<td>Skeptiker</td>
+<td align="center">0.001</td>
+<td>hält <span class="math inline">\(H\)</span> für extrem unwahrscheinlich</td>
+</tr>
+<tr class="odd">
+<td>Kritiker</td>
+<td align="center">0.10</td>
+<td>ist eher dagegen</td>
+</tr>
+<tr class="even">
+<td>Unentschiedene</td>
+<td align="center">0.50</td>
+<td>hat keine Präferenz</td>
+</tr>
+<tr class="odd">
+<td>Zustimmer</td>
+<td align="center">0.90</td>
+<td>ist von Anfang an überzeugt</td>
+</tr>
+</tbody>
+</table>
+<p>Alle fünf sehen dieselbe Evidenz und aktualisieren nach derselben
+Regel – der einzige Unterschied ist ihr Startpunkt.</p>
+</div>
+<div id="cromwells-regel" class="section level2">
+<h2>Cromwells Regel</h2>
+<p>Eine Person, deren Prior exakt 0 ist, bleibt für immer bei Pr(H) = 0,
+egal wie viel Evidenz für <span class="math inline">\(H\)</span> noch dazukommt. In der Odds-Form ist das
+offensichtlich: Odds(H) = 0, und 0 mal irgendetwas bleibt 0. Diese
+Eigenart bayesianischen Schließens ist als <em>Cromwells Regel</em> bekannt
+(nach Oliver Cromwells “I beseech you, in the bowels of Christ, think
+it possible that you may be mistaken”) – wer eine Möglichkeit von
+vornherein auf exakt null setzt, kann sie durch keine noch so große
+Menge an Daten mehr revidieren. Das ist keine Rechenschwäche der
+Formel, sondern ihre Konsequenz: Ein Prior von exakt 0 oder 1 ist eine
+Aussage, die als unwiderruflich gemeint ist.</p>
+<p>Alle anderen vier Beobachter – selbst der Skeptiker mit Prior 0.001 –
+konvergieren dagegen langfristig gegen Pr(H) = 1, sofern die Evidenz
+konsistent für <span class="math inline">\(H\)</span> spricht. Sie brauchen nur unterschiedlich lange
+dafür.</p>
+</div>
+</div>
+<div id="interaktive-visualisierung" class="section level1">
+<h1>Interaktive Visualisierung</h1>
+<p>Im Folgenden lässt sich das live nachvollziehen: Der Schieberegler
+“Anzahl Ereignisse E” spielt die Ansammlung von Evidenz durch, der
+Schieberegler “Beweiskraft je Ereignis (LR)” bestimmt, wie stark jedes
+einzelne Ereignis für <span class="math inline">\(H\)</span> spricht. Ein Klick auf die Legende blendet
+einzelne Kurven aus, “Abspielen” animiert die Konvergenz automatisch.</p>
+<p>Das Diagramm ist mit <a href="https://rstudio.github.io/r2d3/">r2d3</a> gebaut –
+einem R-Paket, das D3.js-Visualisierungen direkt aus R heraus
+einbettet. Zuerst die benötigten Pakete:</p>
+<pre class="r"><code>library(r2d3)</code></pre>
+<div id="daten-für-die-fünf-beobachter" class="section level2">
+<h2>Daten für die fünf Beobachter</h2>
+<p>Jeder Typ bekommt eine ID, ein Label für die Legende, seinen Prior und
+eine Farbe. Das Okabe-Ito-Farbschema wäre hier weniger passend, weil
+die fünf Kurven inhaltlich eine Abstufung “gegen – neutral – dafür”
+bilden – daher orientieren sich die Farben stattdessen an dieser
+Abstufung (Blau/Orange für die ablehnenden, Grün/Gelb/Pink für
+neutral/zustimmend).</p>
+<pre class="r"><code>typen &lt;- data.frame(
+  id     = c(&quot;ausschliesser&quot;, &quot;kritiker&quot;, &quot;skeptiker&quot;, &quot;unentschieden&quot;, &quot;zustimmer&quot;),
+  label  = c(&quot;Ausschließer&quot;, &quot;Kritiker&quot;, &quot;Skeptiker&quot;, &quot;Unentschiedene&quot;, &quot;Zustimmer&quot;),
+  prior  = c(0, 0.10, 0.001, 0.50, 0.90),
+  farbe  = c(&quot;#2a78d6&quot;, &quot;#eb6834&quot;, &quot;#1baf7a&quot;, &quot;#eda100&quot;, &quot;#e87ba4&quot;),
+  stringsAsFactors = FALSE
+)
+
+typen
+#&gt;              id          label prior   farbe
+#&gt; 1 ausschliesser   Ausschließer 0.000 #2a78d6
+#&gt; 2      kritiker       Kritiker 0.100 #eb6834
+#&gt; 3     skeptiker      Skeptiker 0.001 #1baf7a
+#&gt; 4 unentschieden Unentschiedene 0.500 #eda100
+#&gt; 5     zustimmer      Zustimmer 0.900 #e87ba4</code></pre>
+<table>
+<thead>
+<tr class="header">
+<th>Spalte</th>
+<th>Bedeutung</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>id</code></td>
+<td>interne Kennung des Beobachtertyps</td>
+</tr>
+<tr class="even">
+<td><code>label</code></td>
+<td>Beschriftung in der Legende</td>
+</tr>
+<tr class="odd">
+<td><code>prior</code></td>
+<td>Prior-Wahrscheinlichkeit <span class="math inline">\(\Pr(H)\)</span> vor jeder Evidenz</td>
+</tr>
+<tr class="even">
+<td><code>farbe</code></td>
+<td>Kurvenfarbe im Diagramm (Hex-Code)</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div id="parameter-und-übergabe-an-d3" class="section level2">
+<h2>Parameter und Übergabe an D3</h2>
+<p>Zusätzlich zu den Beobachtertypen braucht das Diagramm zwei
+Default-Parameter: die maximale Anzahl an Ereignissen (<code>emax</code>) und die
+voreingestellte Likelihood-Ratio (<code>lr0</code>). Alles zusammen wird als Liste
+an <code>r2d3()</code> übergeben, das JavaScript in <code>bayes_konvergenz.js</code>
+rendert daraus das eigentliche Diagramm.</p>
+<pre class="r"><code>d3_data &lt;- list(
+  typen = typen,
+  emax  = 100,
+  lr0   = 1.15
+)</code></pre>
+<pre class="r"><code>r2d3(
+  data = d3_data,
+  script = &quot;bayes_konvergenz.js&quot;,
+  container = &quot;div&quot;,
+  d3_version = &quot;6&quot;,
+  options = list(margin = list(top = 16, right = 20, bottom = 40, left = 46))
+)</code></pre>
+<div class="r2d3 html-widget html-fill-item" id="htmlwidget-1" style="width:70%;height:355.968px;"></div>
+<script type="application/json" data-for="htmlwidget-1">{"x":{"data":{"typen":{"id":["ausschliesser","kritiker","skeptiker","unentschieden","zustimmer"],"label":["Ausschließer","Kritiker","Skeptiker","Unentschiedene","Zustimmer"],"prior":[0,0.1,0.001,0.5,0.9],"farbe":["#2a78d6","#eb6834","#1baf7a","#eda100","#e87ba4"]},"emax":100,"lr0":1.15},"type":"list","container":"div","options":{"margin":{"top":16,"right":20,"bottom":40,"left":46}},"script":"var d3Script = function(d3, r2d3, data, div, width, height, options, theme, console) {\nthis.d3 = d3;\n\ndiv = d3.select(div.node());\n/* R2D3 Source File:  bayes_konvergenz.js */\n// bayes_konvergenz.js -- D3.js-Skript fuer r2d3\n// Wird von bayes_konvergenz.R via r2d3(script = \"bayes_konvergenz.js\") geladen.\n// r2d3 stellt die Variablen `data`, `svg`, `width`, `height`, `options` bereit.\n\nvar typen = data.typen;   // Array von {id, label, prior, farbe}, aus dem R-data.frame\nvar EMAX  = data.emax || 100;\nvar LR0   = data.lr0 || 1.15;\n\nvar margin = (options && options.margin) || { top: 16, right: 20, bottom: 40, left: 46 };\n\n// r2d3 haengt `svg` in einen umgebenden div (container = \"div\"). Wir setzen\n// Steuerelemente als Geschwister-Div davor.\nvar root = d3.select(svg.node().parentNode);\nroot.style(\"font-family\", \"system-ui, -apple-system, 'Segoe UI', sans-serif\");\n\nvar controls = root.insert(\"div\", \":first-child\")\n  .style(\"display\", \"flex\")\n  .style(\"flex-wrap\", \"wrap\")\n  .style(\"gap\", \"16px\")\n  .style(\"align-items\", \"flex-end\")\n  .style(\"margin-bottom\", \"10px\")\n  .style(\"font-size\", \"12px\");\n\nfunction controlBlock(labelText) {\n  var wrap = controls.append(\"div\").style(\"flex\", \"1 1 200px\").style(\"min-width\", \"160px\");\n  var label = wrap.append(\"label\")\n    .style(\"display\", \"block\")\n    .style(\"color\", \"#52514e\")\n    .style(\"margin-bottom\", \"4px\")\n    .html(labelText);\n  return { wrap: wrap, label: label };\n}\n\nvar eBlock = controlBlock(\"Anzahl Ereignisse E: <b id='r2d3-eval'>0<\/b>\");\nvar eSlider = eBlock.wrap.append(\"input\")\n  .attr(\"type\", \"range\").attr(\"min\", 0).attr(\"max\", EMAX).attr(\"step\", 1).attr(\"value\", 0)\n  .style(\"width\", \"100%\");\n\nvar lrBlock = controlBlock(\"Beweiskraft je Ereignis (LR): <b id='r2d3-lrval'>\" + LR0.toFixed(2) + \"<\/b>\");\nvar lrSlider = lrBlock.wrap.append(\"input\")\n  .attr(\"type\", \"range\").attr(\"min\", 1).attr(\"max\", 2.5).attr(\"step\", 0.01).attr(\"value\", LR0)\n  .style(\"width\", \"100%\");\n\nvar btnWrap = controls.append(\"div\").style(\"display\", \"flex\").style(\"gap\", \"6px\");\nvar playBtn = btnWrap.append(\"button\").text(\"▶ Abspielen\")\n  .style(\"font\", \"inherit\").style(\"padding\", \"6px 12px\").style(\"cursor\", \"pointer\");\nvar resetBtn = btnWrap.append(\"button\").text(\"Zurücksetzen\")\n  .style(\"font\", \"inherit\").style(\"padding\", \"6px 12px\").style(\"cursor\", \"pointer\");\n\nvar legendDiv = root.append(\"div\")\n  .style(\"display\", \"flex\").style(\"flex-wrap\", \"wrap\").style(\"gap\", \"10px\")\n  .style(\"margin-top\", \"10px\").style(\"font-size\", \"12px\");\n\nvar state = { e: 0, lr: LR0, hidden: {}, playing: false, timer: null };\n\nfunction priorOdds(p) {\n  if (p <= 0) return 0;\n  if (p >= 1) return Infinity;\n  return p / (1 - p);\n}\nfunction posterior(prior, lr, e) {\n  var odds0 = priorOdds(prior);\n  if (odds0 === 0) return 0;\n  var odds = odds0 * Math.pow(lr, e);\n  return odds / (1 + odds);\n}\nfunction curveFor(s, lr) {\n  var pts = [];\n  for (var e = 0; e <= EMAX; e++) pts.push({ e: e, p: posterior(s.prior, lr, e) });\n  return pts;\n}\n\nfunction draw(w, h) {\n  svg.selectAll(\"*\").remove();\n  var innerW = w - margin.left - margin.right;\n  var innerH = h - margin.top - margin.bottom;\n  var g = svg.append(\"g\").attr(\"transform\", \"translate(\" + margin.left + \",\" + margin.top + \")\");\n\n  var x = d3.scaleLinear().domain([0, EMAX]).range([0, innerW]);\n  var y = d3.scaleLinear().domain([0, 1]).range([innerH, 0]);\n\n  g.append(\"g\").selectAll(\"line\").data(y.ticks(5)).enter().append(\"line\")\n    .attr(\"x1\", 0).attr(\"x2\", innerW)\n    .attr(\"y1\", function (d) { return y(d); }).attr(\"y2\", function (d) { return y(d); })\n    .attr(\"stroke\", \"#e1e0d9\");\n\n  g.append(\"g\")\n    .attr(\"transform\", \"translate(0,\" + innerH + \")\")\n    .call(d3.axisBottom(x).ticks(6).tickSizeOuter(0))\n    .call(function (sel) { sel.selectAll(\"text\").style(\"fill\", \"#898781\").style(\"font-size\", \"10px\"); sel.selectAll(\"path,line\").attr(\"stroke\", \"#c3c2b7\"); });\n\n  g.append(\"g\")\n    .call(d3.axisLeft(y).ticks(5).tickFormat(d3.format(\".2f\")).tickSizeOuter(0))\n    .call(function (sel) { sel.selectAll(\"text\").style(\"fill\", \"#898781\").style(\"font-size\", \"10px\"); sel.selectAll(\"path,line\").attr(\"stroke\", \"#c3c2b7\"); });\n\n  g.append(\"text\").attr(\"x\", innerW / 2).attr(\"y\", innerH + 32).attr(\"text-anchor\", \"middle\")\n    .style(\"font-size\", \"11px\").style(\"fill\", \"#898781\").text(\"Anzahl Ereignisse E\");\n  g.append(\"text\").attr(\"transform\", \"rotate(-90)\").attr(\"x\", -innerH / 2).attr(\"y\", -34)\n    .attr(\"text-anchor\", \"middle\").style(\"font-size\", \"11px\").style(\"fill\", \"#898781\").text(\"Pr(H | E)\");\n\n  var line = d3.line().x(function (d) { return x(d.e); }).y(function (d) { return y(d.p); });\n\n  var linesG = g.append(\"g\");\n  var dotsG = g.append(\"g\");\n  var cursor = g.append(\"line\").attr(\"y1\", 0).attr(\"y2\", innerH)\n    .attr(\"stroke\", \"#898781\").attr(\"stroke-dasharray\", \"3 3\");\n\n  function render() {\n    var lr = state.lr;\n    var series = typen.map(function (s) { return { s: s, pts: curveFor(s, lr) }; });\n    var eIdx = Math.round(state.e);\n\n    var paths = linesG.selectAll(\"path\").data(series, function (d) { return d.s.id; });\n    paths.enter().append(\"path\").attr(\"fill\", \"none\").attr(\"stroke-width\", 2.25)\n      .merge(paths)\n      .attr(\"stroke\", function (d) { return d.s.farbe; })\n      .attr(\"opacity\", function (d) { return state.hidden[d.s.id] ? 0.15 : 1; })\n      .attr(\"d\", function (d) { return line(d.pts); });\n    paths.exit().remove();\n\n    var visible = series.filter(function (d) { return !state.hidden[d.s.id]; });\n    var dots = dotsG.selectAll(\"circle\").data(visible, function (d) { return d.s.id; });\n    dots.enter().append(\"circle\").attr(\"r\", 5).attr(\"stroke\", \"#fcfcfb\").attr(\"stroke-width\", 1.5)\n      .merge(dots)\n      .attr(\"fill\", function (d) { return d.s.farbe; })\n      .attr(\"cx\", x(eIdx)).attr(\"cy\", function (d) { return y(d.pts[eIdx].p); });\n    dots.exit().remove();\n\n    cursor.attr(\"x1\", x(eIdx)).attr(\"x2\", x(eIdx));\n\n    var items = legendDiv.selectAll(\"div.legend-item\").data(series, function (d) { return d.s.id; });\n    var enter = items.enter().append(\"div\").attr(\"class\", \"legend-item\")\n      .style(\"display\", \"flex\").style(\"align-items\", \"center\").style(\"gap\", \"6px\")\n      .style(\"padding\", \"4px 8px\").style(\"border-radius\", \"6px\").style(\"cursor\", \"pointer\")\n      .style(\"color\", \"#52514e\")\n      .on(\"click\", function (event, d) { state.hidden[d.s.id] = !state.hidden[d.s.id]; render(); });\n    enter.append(\"span\").attr(\"class\", \"sw\").style(\"width\", \"10px\").style(\"height\", \"10px\")\n      .style(\"border-radius\", \"50%\").style(\"display\", \"inline-block\");\n    enter.append(\"span\").attr(\"class\", \"lb\");\n    enter.append(\"span\").attr(\"class\", \"vl\").style(\"font-weight\", \"600\").style(\"color\", \"#0b0b0b\")\n      .style(\"font-variant-numeric\", \"tabular-nums\");\n\n    var merged = enter.merge(items);\n    merged.style(\"opacity\", function (d) { return state.hidden[d.s.id] ? 0.35 : 1; });\n    merged.select(\".sw\").style(\"background\", function (d) { return d.s.farbe; });\n    merged.select(\".lb\").text(function (d) { return d.s.label + \" (Prior \" + d3.format(\".3~f\")(d.s.prior) + \")\"; });\n    merged.select(\".vl\").text(function (d) { return \" \" + d3.format(\".3f\")(d.pts[eIdx].p); });\n    items.exit().remove();\n\n    root.select(\"#r2d3-eval\").text(eIdx);\n    root.select(\"#r2d3-lrval\").text(d3.format(\".2f\")(lr));\n  }\n\n  eSlider.on(\"input\", function () { state.e = +this.value; render(); });\n  lrSlider.on(\"input\", function () { state.lr = +this.value; render(); });\n\n  function stopPlaying() {\n    state.playing = false;\n    playBtn.text(\"▶ Abspielen\");\n    if (state.timer) { clearInterval(state.timer); state.timer = null; }\n  }\n  playBtn.on(\"click\", function () {\n    if (state.playing) { stopPlaying(); return; }\n    state.playing = true;\n    playBtn.text(\"⏸ Stopp\");\n    if (state.e >= EMAX) { state.e = 0; eSlider.property(\"value\", 0); }\n    state.timer = setInterval(function () {\n      state.e += 1;\n      if (state.e >= EMAX) {\n        state.e = EMAX; eSlider.property(\"value\", EMAX); render(); stopPlaying(); return;\n      }\n      eSlider.property(\"value\", state.e); render();\n    }, 90);\n  });\n  resetBtn.on(\"click\", function () {\n    stopPlaying();\n    state.e = 0; state.lr = LR0; state.hidden = {};\n    eSlider.property(\"value\", 0); lrSlider.property(\"value\", LR0);\n    render();\n  });\n\n  render();\n}\n\ndraw(width, height);\n\nr2d3.onResize(function (newWidth, newHeight) {\n  draw(newWidth, newHeight);\n});\n};","style":null,"version":6,"theme":{"default":{"background":"#FFFFFF","foreground":"#000000"},"runtime":null},"useShadow":true},"evals":[],"jsHooks":[]}</script>
+</div>
+</div>
+<div id="was-zeigt-das-diagramm" class="section level1">
+<h1>Was zeigt das Diagramm?</h1>
+<ul>
+<li><strong>Der Ausschließer</strong> (Prior 0) verharrt als flache Linie bei
+Pr(H) = 0 – Cromwells Regel in Aktion.</li>
+<li><strong>Der Skeptiker</strong> (Prior 0.001) startet fast bei null, braucht aber
+bei einer moderaten Beweiskraft nur relativ wenige Ereignisse, um
+ebenfalls Richtung 1 zu klettern – exponentielles Wachstum der Odds
+holt einen kleinen Prior schneller ein, als die Intuition vermuten
+lässt.</li>
+<li><strong>Kritiker, Unentschiedene und Zustimmer</strong> konvergieren alle gegen
+dieselbe Grenze, nur mit unterschiedlichem Vorsprung.</li>
+<li>Zieht man den LR-Regler nach oben, beschleunigt sich die Konvergenz
+aller vier beweglichen Kurven – die Reihenfolge bleibt aber gleich,
+weil die Priors sich nicht ändern.</li>
+</ul>
+<p>Das Bild dahinter: Ein Prior ist ein Startpunkt, keine Festlegung –
+außer man erklärt ihn per Definition zu einer (Pr = 0 oder Pr = 1).
+Für jeden anderen Startwert gilt: Genug konsistente Evidenz gleicht
+fast jede Ausgangsüberzeugung wieder aus.</p>
+<hr />
+<p><em>Dieser Beitrag inkl. Code und Visualisierung wurde mit
+KI-Unterstützung (Claude) erstellt.</em></p>
+</div>

@@ -1,0 +1,182 @@
+---
+title: Wie Posterior-Wahrscheinlichkeiten konvergieren
+author: ''
+date: '2026-09-25'
+slug: posterior-konvergieren
+categories: []
+tags:
+- bayes
+- interaktiv
+---
+
+
+
+```{r knitr-setup, echo = FALSE}
+knitr::opts_chunk$set(
+  comment = "#>",
+  collapse = TRUE,
+  message = FALSE,
+  warning = FALSE,
+  cache = TRUE,
+  out.width = "70%",
+  fig.align = 'center',
+  fig.width = 6,
+  fig.asp = 0.618,  # 1 / phi
+  fig.show = "hold",
+  size = "tiny"
+)
+```
+
+
+
+# Fünf Beobachter, ein Ereignis
+
+Fünf Personen bilden sich eine Meinung zu einer Hypothese $H$ -- sagen
+wir, "das Medikament wirkt". Jede startet mit einer anderen
+Vorüberzeugung (Prior), und dann beobachten alle fünf dieselbe Serie
+von Ereignissen $E$, die für $H$ sprechen -- zum Beispiel wiederholt
+positive Studienergebnisse. Was passiert mit ihren Überzeugungen, je
+mehr Evidenz sich anhäuft?
+
+Diese Frage lässt sich mit dem Satz von Bayes exakt beantworten, und
+zwar am elegantesten in der Odds-Form:
+
+$$
+\text{Odds}(H \mid E) = \text{Odds}(H) \cdot \text{LR}^{\,E}
+$$
+
+Der Prior wird dabei in Chancen (Odds) statt in Wahrscheinlichkeiten
+ausgedrückt, und jedes zusätzliche für $H$ sprechende Ereignis
+multipliziert die Odds mit derselben Likelihood-Ratio (LR). Aus den
+resultierenden Odds lässt sich die Posterior-Wahrscheinlichkeit
+zurückrechnen:
+
+$$
+\Pr(H \mid E) = \frac{\text{Odds}(H \mid E)}{1 + \text{Odds}(H \mid E)}
+$$
+
+## Die fünf Beobachter
+
+| Typ | Prior $\Pr(H)$ | Beschreibung |
+|---|:---:|---|
+| Ausschließer | 0 | hält $H$ für absolut unmöglich |
+| Skeptiker | 0.001 | hält $H$ für extrem unwahrscheinlich |
+| Kritiker | 0.10 | ist eher dagegen |
+| Unentschiedene | 0.50 | hat keine Präferenz |
+| Zustimmer | 0.90 | ist von Anfang an überzeugt |
+
+Alle fünf sehen dieselbe Evidenz und aktualisieren nach derselben
+Regel -- der einzige Unterschied ist ihr Startpunkt.
+
+## Cromwells Regel
+
+Eine Person, deren Prior exakt 0 ist, bleibt für immer bei Pr(H) = 0,
+egal wie viel Evidenz für $H$ noch dazukommt. In der Odds-Form ist das
+offensichtlich: Odds(H) = 0, und 0 mal irgendetwas bleibt 0. Diese
+Eigenart bayesianischen Schließens ist als *Cromwells Regel* bekannt
+(nach Oliver Cromwells "I beseech you, in the bowels of Christ, think
+it possible that you may be mistaken") -- wer eine Möglichkeit von
+vornherein auf exakt null setzt, kann sie durch keine noch so große
+Menge an Daten mehr revidieren. Das ist keine Rechenschwäche der
+Formel, sondern ihre Konsequenz: Ein Prior von exakt 0 oder 1 ist eine
+Aussage, die als unwiderruflich gemeint ist.
+
+Alle anderen vier Beobachter -- selbst der Skeptiker mit Prior 0.001 --
+konvergieren dagegen langfristig gegen Pr(H) = 1, sofern die Evidenz
+konsistent für $H$ spricht. Sie brauchen nur unterschiedlich lange
+dafür.
+
+# Interaktive Visualisierung
+
+Im Folgenden lässt sich das live nachvollziehen: Der Schieberegler
+"Anzahl Ereignisse E" spielt die Ansammlung von Evidenz durch, der
+Schieberegler "Beweiskraft je Ereignis (LR)" bestimmt, wie stark jedes
+einzelne Ereignis für $H$ spricht. Ein Klick auf die Legende blendet
+einzelne Kurven aus, "Abspielen" animiert die Konvergenz automatisch.
+
+Das Diagramm ist mit [r2d3](https://rstudio.github.io/r2d3/) gebaut --
+einem R-Paket, das D3.js-Visualisierungen direkt aus R heraus
+einbettet. Zuerst die benötigten Pakete:
+
+```{r load-libs, message = FALSE, warning = FALSE}
+library(r2d3)
+```
+
+## Daten für die fünf Beobachter
+
+Jeder Typ bekommt eine ID, ein Label für die Legende, seinen Prior und
+eine Farbe. Das Okabe-Ito-Farbschema wäre hier weniger passend, weil
+die fünf Kurven inhaltlich eine Abstufung "gegen -- neutral -- dafür"
+bilden -- daher orientieren sich die Farben stattdessen an dieser
+Abstufung (Blau/Orange für die ablehnenden, Grün/Gelb/Pink für
+neutral/zustimmend).
+
+```{r typen-daten}
+typen <- data.frame(
+  id     = c("ausschliesser", "kritiker", "skeptiker", "unentschieden", "zustimmer"),
+  label  = c("Ausschließer", "Kritiker", "Skeptiker", "Unentschiedene", "Zustimmer"),
+  prior  = c(0, 0.10, 0.001, 0.50, 0.90),
+  farbe  = c("#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4"),
+  stringsAsFactors = FALSE
+)
+
+typen
+```
+
+| Spalte | Bedeutung |
+|--------|-----------|
+| `id`    | interne Kennung des Beobachtertyps |
+| `label` | Beschriftung in der Legende |
+| `prior` | Prior-Wahrscheinlichkeit $\Pr(H)$ vor jeder Evidenz |
+| `farbe` | Kurvenfarbe im Diagramm (Hex-Code) |
+
+## Parameter und Übergabe an D3
+
+Zusätzlich zu den Beobachtertypen braucht das Diagramm zwei
+Default-Parameter: die maximale Anzahl an Ereignissen (`emax`) und die
+voreingestellte Likelihood-Ratio (`lr0`). Alles zusammen wird als Liste
+an `r2d3()` übergeben, das JavaScript in `bayes_konvergenz.js`
+rendert daraus das eigentliche Diagramm.
+
+```{r d3-data}
+d3_data <- list(
+  typen = typen,
+  emax  = 100,
+  lr0   = 1.15
+)
+```
+
+```{r bayes-widget}
+r2d3(
+  data = d3_data,
+  script = "bayes_konvergenz.js",
+  container = "div",
+  d3_version = "6",
+  options = list(margin = list(top = 16, right = 20, bottom = 40, left = 46))
+)
+```
+
+# Was zeigt das Diagramm?
+
+- **Der Ausschließer** (Prior 0) verharrt als flache Linie bei
+  Pr(H) = 0 -- Cromwells Regel in Aktion.
+- **Der Skeptiker** (Prior 0.001) startet fast bei null, braucht aber
+  bei einer moderaten Beweiskraft nur relativ wenige Ereignisse, um
+  ebenfalls Richtung 1 zu klettern -- exponentielles Wachstum der Odds
+  holt einen kleinen Prior schneller ein, als die Intuition vermuten
+  lässt.
+- **Kritiker, Unentschiedene und Zustimmer** konvergieren alle gegen
+  dieselbe Grenze, nur mit unterschiedlichem Vorsprung.
+- Zieht man den LR-Regler nach oben, beschleunigt sich die Konvergenz
+  aller vier beweglichen Kurven -- die Reihenfolge bleibt aber gleich,
+  weil die Priors sich nicht ändern.
+
+Das Bild dahinter: Ein Prior ist ein Startpunkt, keine Festlegung --
+außer man erklärt ihn per Definition zu einer (Pr = 0 oder Pr = 1).
+Für jeden anderen Startwert gilt: Genug konsistente Evidenz gleicht
+fast jede Ausgangsüberzeugung wieder aus.
+
+---
+
+*Dieser Beitrag inkl. Code und Visualisierung wurde mit
+KI-Unterstützung (Claude) erstellt.*
